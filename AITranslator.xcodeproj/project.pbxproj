@@ -6,9 +6,48 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CE4EB10F2EA33CAD00DDDFA5 /* TranslationUI.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CE4EB10D2EA33CAD00DDDFA5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE4EB0D52EA33ADD00DDDFA5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE4EB1072EA33CAD00DDDFA5;
+			remoteInfo = TranslationUI;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CE4EB1102EA33CAD00DDDFA5 /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				CE4EB10F2EA33CAD00DDDFA5 /* TranslationUI.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		CE4EB0DD2EA33ADD00DDDFA5 /* AITranslator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AITranslator.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = TranslationUI.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CE4EB1132EA33CAD00DDDFA5 /* Exceptions for "TranslationUI" folder in "TranslationUI" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */ = {
@@ -16,10 +55,25 @@
 			path = AITranslator;
 			sourceTree = "<group>";
 		};
+		CE4EB1092EA33CAD00DDDFA5 /* TranslationUI */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE4EB1132EA33CAD00DDDFA5 /* Exceptions for "TranslationUI" folder in "TranslationUI" target */,
+			);
+			path = TranslationUI;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		CE4EB0DA2EA33ADD00DDDFA5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE4EB1052EA33CAD00DDDFA5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */,
+				CE4EB1092EA33CAD00DDDFA5 /* TranslationUI */,
 				CE4EB0DE2EA33ADD00DDDFA5 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				CE4EB0DD2EA33ADD00DDDFA5 /* AITranslator.app */,
+				CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,10 +111,12 @@
 				CE4EB0D92EA33ADD00DDDFA5 /* Sources */,
 				CE4EB0DA2EA33ADD00DDDFA5 /* Frameworks */,
 				CE4EB0DB2EA33ADD00DDDFA5 /* Resources */,
+				CE4EB1102EA33CAD00DDDFA5 /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CE4EB10E2EA33CAD00DDDFA5 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */,
@@ -69,6 +127,28 @@
 			productName = AITranslator;
 			productReference = CE4EB0DD2EA33ADD00DDDFA5 /* AITranslator.app */;
 			productType = "com.apple.product-type.application";
+		};
+		CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE4EB1142EA33CAD00DDDFA5 /* Build configuration list for PBXNativeTarget "TranslationUI" */;
+			buildPhases = (
+				CE4EB1042EA33CAD00DDDFA5 /* Sources */,
+				CE4EB1052EA33CAD00DDDFA5 /* Frameworks */,
+				CE4EB1062EA33CAD00DDDFA5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				CE4EB1092EA33CAD00DDDFA5 /* TranslationUI */,
+			);
+			name = TranslationUI;
+			packageProductDependencies = (
+			);
+			productName = TranslationUI;
+			productReference = CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -81,6 +161,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					CE4EB0DC2EA33ADD00DDDFA5 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+					CE4EB1072EA33CAD00DDDFA5 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
 				};
@@ -100,12 +183,20 @@
 			projectRoot = "";
 			targets = (
 				CE4EB0DC2EA33ADD00DDDFA5 /* AITranslator */,
+				CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		CE4EB0DB2EA33ADD00DDDFA5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CE4EB1062EA33CAD00DDDFA5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -122,7 +213,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CE4EB1042EA33CAD00DDDFA5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CE4EB10E2EA33CAD00DDDFA5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */;
+			targetProxy = CE4EB10D2EA33CAD00DDDFA5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CE4EB0E62EA33ADF00DDDFA5 /* Debug */ = {
@@ -310,6 +416,62 @@
 			};
 			name = Release;
 		};
+		CE4EB1112EA33CAD00DDDFA5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JW2LR94V6G;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TranslationUI/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TranslationUI;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TranslationUI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		CE4EB1122EA33CAD00DDDFA5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JW2LR94V6G;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TranslationUI/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TranslationUI;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TranslationUI;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -327,6 +489,15 @@
 			buildConfigurations = (
 				CE4EB0E92EA33ADF00DDDFA5 /* Debug */,
 				CE4EB0EA2EA33ADF00DDDFA5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CE4EB1142EA33CAD00DDDFA5 /* Build configuration list for PBXNativeTarget "TranslationUI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE4EB1112EA33CAD00DDDFA5 /* Debug */,
+				CE4EB1122EA33CAD00DDDFA5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
