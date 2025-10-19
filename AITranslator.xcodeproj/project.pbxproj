@@ -88,11 +88,21 @@
 			);
 			target = CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */;
 		};
+		CE4EB13B2EA50B1300DDDFA5 /* Exceptions for "AITranslator" folder in "AITranslator" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = CE4EB0DC2EA33ADD00DDDFA5 /* AITranslator */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CE4EB13B2EA50B1300DDDFA5 /* Exceptions for "AITranslator" folder in "AITranslator" target */,
+			);
 			path = AITranslator;
 			sourceTree = "<group>";
 		};
@@ -493,6 +503,7 @@
 				DEVELOPMENT_TEAM = JW2LR94V6G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AITranslator/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -526,6 +537,7 @@
 				DEVELOPMENT_TEAM = JW2LR94V6G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AITranslator/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

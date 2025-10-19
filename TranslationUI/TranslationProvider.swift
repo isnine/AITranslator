@@ -19,8 +19,7 @@ class TranslationProviderExtension: TranslationUIProviderExtension {
 
     var body: some TranslationUIProviderExtensionScene {
         TranslationUIProviderSelectedTextScene { context in
-//            TranslationProviderView(context: context)
-          HomeView()
+          HomeView(context: context)
         }
     }
 }

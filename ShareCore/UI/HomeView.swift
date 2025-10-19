@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import UIKit
+import TranslationUIProvider
 
 @MainActor
 final class HomeViewModel: ObservableObject {
@@ -163,15 +164,24 @@ final class HomeViewModel: ObservableObject {
 }
 
 public struct HomeView: View {
-    @StateObject private var viewModel = HomeViewModel()
+  @StateObject private var viewModel = HomeViewModel()
+  var openFromExtension: Bool {
+    context != nil
+  }
+  let context: TranslationUIProviderContext?
 
-  public init() {}
+
+  public init(context: TranslationUIProviderContext?) {
+    self.context = context
+  }
 
   public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+              if !openFromExtension {
                 header
                 defaultAppCard
+              }
                 inputComposer
                 actionChips
                 if viewModel.providerRuns.isEmpty {
@@ -185,6 +195,11 @@ public struct HomeView: View {
         }
         .background(AppColors.background.ignoresSafeArea())
         .scrollIndicators(.hidden)
+        .onAppear {
+          if openFromExtension, let inputText = context?.inputText {
+            viewModel.inputText = String(inputText.characters)
+          }
+        }
     }
 
     private var header: some View {
@@ -363,6 +378,9 @@ public struct HomeView: View {
             }
         case let .success(text, _):
             VStack(alignment: .leading, spacing: 12) {
+                Text(text)
+                    .font(.system(size: 14))
+                    .foregroundColor(AppColors.textPrimary)
                 Button {
                     UIPasteboard.general.string = text
                 } label: {
@@ -407,6 +425,6 @@ public struct HomeView: View {
 }
 
 #Preview {
-    HomeView()
+  HomeView(context: nil)
         .preferredColorScheme(.dark)
 }

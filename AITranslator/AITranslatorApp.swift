@@ -21,7 +21,7 @@ struct AITranslatorApp: App {
 private struct RootTabView: View {
     var body: some View {
         TabView {
-            HomeView()
+          HomeView(context: nil)
                 .tabItem {
                     Image(systemName: "house.fill")
                     Text("主页")
