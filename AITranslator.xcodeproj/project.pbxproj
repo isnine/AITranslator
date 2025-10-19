@@ -11,7 +11,6 @@
 		CE4EB1242EA4F47400DDDFA5 /* ShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; };
 		CE4EB1252EA4F47400DDDFA5 /* ShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CE4EB12B2EA4F4B000DDDFA5 /* ShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; };
-		CE4EB12C2EA4F4B000DDDFA5 /* ShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,17 +56,6 @@
 			dstSubfolderSpec = 10;
 			files = (
 				CE4EB1252EA4F47400DDDFA5 /* ShareCore.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CE4EB12F2EA4F4B000DDDFA5 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				CE4EB12C2EA4F4B000DDDFA5 /* ShareCore.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -222,7 +210,6 @@
 				CE4EB1042EA33CAD00DDDFA5 /* Sources */,
 				CE4EB1052EA33CAD00DDDFA5 /* Frameworks */,
 				CE4EB1062EA33CAD00DDDFA5 /* Resources */,
-				CE4EB12F2EA4F4B000DDDFA5 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
