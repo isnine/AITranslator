@@ -2,106 +2,57 @@
 
 ## Overview
 
-AITranslator is an iOS 18+ companion app built with SwiftUI that augments the system-wide translation experience. It registers a `TranslationUIProvider` extension so that, whenever users highlight text and tap the system translation button, they can run customizable LLM-powered actions (translate, summarize, analyze tone, code review, etc.). The host app serves as the configuration console: it manages actions, connects to OpenAI-compatible providers (OpenAI, Azure OpenAI, local gateways), and guides users through setting AITranslator as the default translation app in iOS Settings.
+AITranslator 是一款面向 iOS 18+ 的 SwiftUI 应用，配套一个 `TranslationUIProvider` 扩展，用于在系统翻译面板中直接调用自定义的 LLM 动作。当前代码库聚焦于核心体验：主应用提供动作与模型配置界面，扩展侧在出现时自动执行默认动作，并展示每个 LLM 提供商的结果。
 
-## Project Structure
+## 项目结构
 
-- `AITranslator/` – SwiftUI app target; will host onboarding, provider configuration, and action management UI.
-- `TranslationUI/` – `TranslationUIProvider` extension target executed from the system translation sheet; currently contains the placeholder `TranslationProviderView`.
-- `AITranslator.xcodeproj` – Xcode project with SwiftUI lifecycle and ExtensionKit integration.
-- (_Note_) `TranslationU/` mirrors the starter extension template and can be cleaned up once the `TranslationUI` target is fully in use.
+- `AITranslator/` – 主应用入口，包含 `AITranslatorApp`、顶部 Tab 导航以及占位页面。
+- `AITranslator/UI/` – 主界面相关的 SwiftUI 组件，例如 `RootTabView` 与 `PlaceholderTab`。
+- `ShareCore/` – 可被 App 和扩展共用的跨模块逻辑：
+  - `Configuration/` – `ProviderCategory`、`ActionConfig`、`ProviderConfig` 与 `AppConfigurationStore` 等配置模型。
+  - `Networking/` – `LLMService` 及其请求/结果模型，负责并发调用多个 OpenAI 兼容接口。
+  - `UI/` – 共享的 `HomeView` 和 `HomeViewModel`，在主应用与扩展中共用。
+  - `AppColors.swift` – 统一的深色系配色表。
+- `TranslationUI/` – 系统翻译扩展，`TranslationProviderExtension` 直接呈现 `HomeView(context:)`。
+- `AITranslator.xcodeproj` – 启用了“文件夹同步”模式，新增 Swift 文件自动加入对应 Target。
 
-## Core Scenarios
+已移除旧的 `TranslationU/` 模板代码，避免重复实现。
 
-1. Configure OpenAI-compatible endpoints and store API credentials securely.
-2. Define reusable “actions” with prompts, output expectations, and which providers to fan out to.
-3. Assign one action as the default so the extension can execute it immediately for selected text.
-4. Allow users to swap actions on the fly inside the translation sheet, with results streamed from each configured provider.
-5. Provide first-run guidance so users enable AITranslator in **Settings ▸ Translate ▸ Default App** (name may change in final iOS builds).
+## 核心组件
 
-## Main App (Configuration Console)
+- **AppConfigurationStore**：单例配置仓库，启动时注入一个 Azure OpenAI 默认提供商与四个预置动作（翻译、总结、打磨、语法检查），提供更新接口供未来持久化接入。
+- **ActionConfig / ProviderConfig**：精简的可编码模型，分别描述用户动作以及 OpenAI 兼容提供商，便于持久化或同步。
+- **LLMService**：基于 `URLSession` 的异步客户端，并行向所有匹配的提供商发送请求，落地统一的 `ProviderExecutionResult` 结构，并提供基础的错误分类。
+- **HomeView / HomeViewModel**：共享的 SwiftUI 界面与状态管理，负责输入框折叠/展开、动作切换、并发请求状态以及结果渲染（复制、替换操作）。
+- **TranslationProviderExtension**：扩展入口极简化，仅持有 `HomeView(context:)`，确保应用与扩展界面一致。
 
-- **Action Library** – list, create, clone, archive actions; each action stores a display name, prompt template, optional formatting hints, and post-processing rules (e.g., replace original text automatically).
-- **Provider Connectors** – capture base URL, API key/token, model/engine ID, Azure resource name/deployment name, timeout, max tokens, and optional per-provider instructions; allow multiple connectors and mark them active/inactive.
-- **Routing Rules** – per action, pick one or more providers and specify execution mode (`sequential`, `parallel`, or `first-success`), plus retry limits.
-- **Onboarding & Status** – walk users through enabling the extension, verifying connectivity (test call), and checking entitlement status; surface health indicators (last latency, error counts).
-- **Persistence** – plan to store configuration in AppStorage/CoreData; secrets should live in Keychain with iCloud Keychain sync opt-in.
+## 默认配置
 
-## Translation Extension (TranslationUIProvider)
+| 动作 | Prompt 概要 |
+| --- | --- |
+| 翻译 | 智能翻译选中文本，保持原意并简洁输出 |
+| 总结 | 精简总结选中文本，保留关键信息 |
+| 打磨 | 在原语言中润色文本 |
+| 语法检查 | 输出润色版本并列出错误说明，按严重度标记 |
 
-- Entry point: `TranslationProviderExtension` with `TranslationUIProviderSelectedTextScene` producing `TranslationProviderView`.
-- Responsibilities:
-  - Read `TranslationUIProviderContext` (input text, locale hints, replacement permissions).
-  - Run the default action immediately on appearance; show progress indicator and streamed results.
-  - Offer UI to switch actions; when user selects another action, dispatch requests to all mapped providers and aggregate responses.
-  - Support replacement flow via `context.finish(replacingWithTranslation:)` or `context.expandSheet()` for rich output.
-  - Handle offline/errors gracefully, surfacing provider-specific diagnostics and fallback suggestions.
-- UI Considerations:
-  - Compact vertical layout that respects attributed source text.
-  - Tabs/segmented control for actions and nested chips for provider results.
-  - Option to copy results, share, or send back to main app for deeper processing.
+默认提供商预设为 Azure OpenAI 的 `model-router` 部署，可根据需要扩展。
 
-## Action Execution Pipeline
+## 扩展执行流程
 
-1. Extension receives text and reads current configuration from shared App Group storage.
-2. Determine target action (default or user-selected) and hydrate prompt using templates/variables (language, app name, etc.).
-3. Build provider-specific payloads (OpenAI `chat.completions`, Azure `deployments/{id}/chat/completions`, etc.).
-4. Execute requests according to action routing rules; stream partial results when supported.
-5. Aggregate outputs (per provider with metadata), apply post-processing (e.g., Markdown rendering, text cleanup), then render UI and optionally replace source text.
+1. 扩展接收 `TranslationUIProviderContext`，自动填充输入框并触发默认动作。
+2. `HomeViewModel` 根据所选动作筛选提供商、更新运行状态，并通过 `LLMService` 并发发送请求。
+3. 请求完成后更新 UI，支持复制结果或在宿主应用支持时替换原文。
+4. 若出现错误，界面会在对应提供商卡片中显示诊断信息。
 
-## Provider Configuration Requirements
+## 后续演进建议
 
-- Support any OpenAI-compatible API by letting users specify:
-  - Base URL (e.g., `https://api.openai.com/v1`, `https://your-resource.openai.azure.com/openai/deployments/...`).
-  - HTTP headers (Authorization bearer token, optional custom headers for Azure `api-key`, `api-version` query).
-  - Model/deployment name per provider.
-  - Default system prompt and temperature/top_p settings.
-  - Streaming toggle.
-- Allow multiple credentials; group them by vendor and expose quick reachability test.
-- Consider optional provider types (DeepSeek, Anthropic-compatible proxies) by keeping schema flexible.
+1. 将配置持久化到 App Group，敏感信息放入 Keychain，供扩展读取。
+2. 扩展 `ProviderConfig`，支持更多 HTTP Header、温度参数以及流式响应。
+3. 补充单元测试（URLProtocol Mock）、UI 测试以及扩展集成测试。
+4. 丰富主应用 Tab 页面：动作管理、提供商配置、运行日志、引导设置。
+5. 加入日志与可观测性（可选），并覆盖可访问性/本地化需求。
 
-## Data & Security
+## 参考资料
 
-- Use a dedicated App Group container for sharing action definitions between app and extension.
-- Store tokens and secrets in the Keychain (per-provider IDs reference Keychain items).
-- Provide clear privacy messaging: text snippets are sent to configured providers; encourage enterprise users to point to private endpoints.
-
-## UX Blueprint
-
-- **Home Screen** – summary of default action, quick toggles (enable/disable extension), last run stats.
-- **Actions Detail** – editable prompt template with SwiftUI form, preview of how variables resolve, provider selection matrix, default toggle.
-- **Provider Detail** – connection form, test button, result log.
-- **Guided Setup** – stepper showing: grant extension, choose default, add provider, create action.
-- **Extension Sheet** – top area with source text snippet, central card with action picker, accordion for provider responses, bottom bar with “Replace”, “Copy”, “Run different action”.
-
-## Implementation Roadmap
-
-- **Milestone 1 – Configuration Foundation**
-  - Build settings data models, Keychain helpers, and SwiftUI forms.
-  - Implement App Group persistence and live preview of prompts.
-  - Ship onboarding checklist.
-- **Milestone 2 – Provider SDK Layer**
-  - Abstract OpenAI-compatible API client with streaming support.
-  - Add concurrency control, caching, and error taxonomy.
-  - Write unit tests using mocked URLProtocols.
-- **Milestone 3 – Extension MVP**
-  - Replace placeholder `TranslationProviderView` with production UI.
-  - Load configuration from shared storage, run default action, display results.
-  - Handle replacement flow and fallbacks.
-- **Milestone 4 – Polishing**
-  - Add analytics/telemetry (opt-in), crash diagnostics, localization.
-  - Fine-tune accessibility (Dynamic Type, VoiceOver).
-  - Prepare TestFlight builds and documentation.
-
-## Testing Strategy
-
-- Unit tests for prompt templating, provider clients, and configuration persistence.
-- UI tests for the main app forms and guided setup.
-- Extension integration tests using XCTest with injected mock providers.
-- Manual regression around switching default actions, offline scenarios, and Settings toggles.
-
-## References
-
-- Apple Developer Documentation – [Preparing your app to be the default translation app](https://developer.apple.com/documentation/TranslationUIProvider/Preparing-your-app-to-be-the-default-translation-app)
-- Apple Translation framework docs – `translationPresentation`, `translationTask`, `TranslationSession.Configuration`.
-- WWDC24 materials (Translation UI Provider) for latest UX and entitlement requirements.
+- Apple: [Preparing your app to be the default translation app](https://developer.apple.com/documentation/TranslationUIProvider/Preparing-your-app-to-be-the-default-translation-app)
+- Apple TranslationUIProvider / ExtensionKit 文档与 WWDC24 相关 Session

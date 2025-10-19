@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Combine
 import UIKit
 import TranslationUIProvider
 
@@ -201,6 +200,7 @@ public struct HomeView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
     }

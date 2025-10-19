@@ -6,35 +6,6 @@
 //
 import Foundation
 
-public struct LLMRequestPayload: Codable {
-    public struct Message: Codable {
-        public let role: String
-        public let content: String
-    }
-
-    public let messages: [Message]
-}
-
-public struct ProviderExecutionResult {
-    public let providerID: UUID
-    public let duration: TimeInterval
-    public let response: Result<String, Error>
-}
-
-public enum LLMServiceError: LocalizedError {
-    case emptyContent
-    case httpError(statusCode: Int, body: String)
-
-    public var errorDescription: String? {
-        switch self {
-        case .emptyContent:
-            return "未从模型返回任何内容"
-        case let .httpError(statusCode, body):
-            return "HTTP 错误 \(statusCode): \(body)"
-        }
-    }
-}
-
 public final class LLMService {
     public static let shared = LLMService()
 
@@ -63,9 +34,8 @@ public final class LLMService {
 
             var results: [ProviderExecutionResult] = []
             for await item in group {
-                if let item {
-                    results.append(item)
-                }
+                guard let item else { continue }
+                results.append(item)
             }
             return results
         }
