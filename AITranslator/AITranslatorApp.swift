@@ -13,7 +13,6 @@ struct AITranslatorApp: App {
     var body: some Scene {
         WindowGroup {
             RootTabView()
-                .preferredColorScheme(.dark)
         }
     }
 }

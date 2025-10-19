@@ -9,18 +9,24 @@ import SwiftUI
 import ShareCore
 
 struct PlaceholderTab: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: String
     let message: String
 
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+
     var body: some View {
         ZStack {
-            AppColors.background.ignoresSafeArea()
+            colors.background.ignoresSafeArea()
             VStack(spacing: 8) {
                 Text(title)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(colors.textPrimary)
                 Text(message)
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(colors.textSecondary)
                     .font(.system(size: 14))
             }
         }

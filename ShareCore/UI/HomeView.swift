@@ -11,6 +11,7 @@ import TranslationUIProvider
 
 
 public struct HomeView: View {
+  @Environment(\.colorScheme) private var colorScheme
   @StateObject private var viewModel = HomeViewModel()
   @State private var hasTriggeredAutoRequest = false
   @State private var isInputExpanded: Bool
@@ -18,6 +19,10 @@ public struct HomeView: View {
     context != nil
   }
   let context: TranslationUIProviderContext?
+
+  private var colors: AppColorPalette {
+    AppColors.palette(for: colorScheme)
+  }
 
 
   public init(context: TranslationUIProviderContext?) {
@@ -43,7 +48,7 @@ public struct HomeView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 28)
         }
-        .background(AppColors.background.ignoresSafeArea())
+        .background(colors.background.ignoresSafeArea())
         .scrollIndicators(.hidden)
         .onAppear {
           guard openFromExtension, !hasTriggeredAutoRequest else { return }
@@ -60,29 +65,29 @@ public struct HomeView: View {
     private var header: some View {
         Text("AITranslator")
             .font(.system(size: 28, weight: .semibold))
-            .foregroundColor(AppColors.textPrimary)
+            .foregroundColor(colors.textPrimary)
     }
 
     private var defaultAppCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "info.circle.fill")
-                    .foregroundColor(AppColors.accent)
+                    .foregroundColor(colors.accent)
                     .font(.system(size: 20))
 
                 Text("将 AITranslator 设为系统默认翻译应用")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(colors.textPrimary)
 
                 Button(action: viewModel.openAppSettings) {
-                    Text("尝试一下")
+                    Text("设置")
                         .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(AppColors.cardBackground)
+                        .foregroundColor(colors.cardBackground)
                         .padding(.horizontal, 18)
                         .padding(.vertical, 10)
                         .background(
                             Capsule()
-                                .fill(AppColors.accent)
+                                .fill(colors.accent)
                         )
                 }
                 .buttonStyle(.plain)
@@ -92,7 +97,7 @@ public struct HomeView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AppColors.cardBackground)
+                .fill(colors.cardBackground)
         )
     }
 
@@ -101,7 +106,7 @@ public struct HomeView: View {
 
         return ZStack {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(AppColors.inputBackground)
+                .fill(colors.inputBackground)
 
             VStack(alignment: .leading, spacing: 0) {
                 if isCollapsed {
@@ -133,7 +138,7 @@ public struct HomeView: View {
                             }
                         }
                         .buttonStyle(.plain)
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(colors.textSecondary)
                     }
 
                     Spacer()
@@ -152,10 +157,10 @@ public struct HomeView: View {
                             }
                             .padding(.horizontal, 18)
                             .padding(.vertical, 10)
-                            .foregroundColor(AppColors.chipPrimaryText)
+                            .foregroundColor(colors.chipPrimaryText)
                             .background(
                                 Capsule()
-                                    .fill(AppColors.accent)
+                                    .fill(colors.accent)
                             )
                         }
                         .buttonStyle(.plain)
@@ -173,10 +178,10 @@ public struct HomeView: View {
                             }
                             .padding(.horizontal, 18)
                             .padding(.vertical, 10)
-                            .foregroundColor(AppColors.chipPrimaryText)
+                            .foregroundColor(colors.chipPrimaryText)
                             .background(
                                 Capsule()
-                                    .fill(AppColors.accent)
+                                    .fill(colors.accent)
                             )
                         }
                         .buttonStyle(.plain)
@@ -196,7 +201,7 @@ public struct HomeView: View {
             let displayText = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
             Text(displayText.isEmpty ? viewModel.inputPlaceholder : displayText)
                 .font(.system(size: 15))
-                .foregroundColor(displayText.isEmpty ? AppColors.textSecondary : AppColors.textPrimary)
+                .foregroundColor(displayText.isEmpty ? colors.textSecondary : colors.textPrimary)
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
@@ -210,14 +215,14 @@ public struct HomeView: View {
             ZStack(alignment: .topLeading) {
                 if viewModel.inputText.isEmpty {
                     Text(viewModel.inputPlaceholder)
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(colors.textSecondary)
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
                 }
 
                 TextEditor(text: $viewModel.inputText)
                     .scrollContentBackground(.hidden)
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(colors.textPrimary)
                     .padding(12)
                     .frame(minHeight: 140, maxHeight: 160)
             }
@@ -245,12 +250,12 @@ public struct HomeView: View {
         } label: {
             Text(action.name)
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(isSelected ? AppColors.chipPrimaryText : AppColors.chipSecondaryText)
+                .foregroundColor(isSelected ? colors.chipPrimaryText : colors.chipSecondaryText)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 10)
                 .background(
                     Capsule()
-                        .fill(isSelected ? AppColors.chipPrimaryBackground : AppColors.chipSecondaryBackground)
+                        .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
                 )
         }
         .buttonStyle(.plain)
@@ -259,7 +264,7 @@ public struct HomeView: View {
     private var hintLabel: some View {
         Text(viewModel.placeholderHint)
             .font(.system(size: 14))
-            .foregroundColor(AppColors.textSecondary)
+            .foregroundColor(colors.textSecondary)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.top, 8)
     }
@@ -280,10 +285,10 @@ public struct HomeView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(run.provider.displayName)
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(AppColors.textPrimary)
+                        .foregroundColor(colors.textPrimary)
                     Text(run.provider.modelName)
                         .font(.system(size: 13))
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(colors.textSecondary)
                 }
 
                 Spacer()
@@ -291,7 +296,7 @@ public struct HomeView: View {
                 if let duration = run.durationText {
                     Text(duration)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(AppColors.textSecondary)
+                        .foregroundColor(colors.textSecondary)
                 }
             }
 
@@ -300,7 +305,7 @@ public struct HomeView: View {
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AppColors.cardBackground)
+                .fill(colors.cardBackground)
         )
     }
 
@@ -314,7 +319,7 @@ public struct HomeView: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(0..<3, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(AppColors.skeleton)
+                        .fill(colors.skeleton)
                         .frame(height: 10)
                 }
             }
@@ -322,7 +327,7 @@ public struct HomeView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(text)
                     .font(.system(size: 14))
-                    .foregroundColor(AppColors.textPrimary)
+                    .foregroundColor(colors.textPrimary)
                 HStack(spacing: 16) {
                     Button {
                         UIPasteboard.general.string = text
@@ -331,7 +336,7 @@ public struct HomeView: View {
                             .font(.system(size: 14, weight: .medium))
                     }
                     .buttonStyle(.plain)
-                    .foregroundColor(AppColors.accent)
+                    .foregroundColor(colors.accent)
 
                     if let context, context.allowsReplacement {
                         Button {
@@ -341,7 +346,7 @@ public struct HomeView: View {
                                 .font(.system(size: 14, weight: .medium))
                         }
                         .buttonStyle(.plain)
-                        .foregroundColor(AppColors.accent)
+                        .foregroundColor(colors.accent)
                     }
                 }
             }
@@ -349,10 +354,10 @@ public struct HomeView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("请求失败")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(AppColors.error)
+                    .foregroundColor(colors.error)
                 Text(message)
                     .font(.system(size: 14))
-                    .foregroundColor(AppColors.textSecondary)
+                    .foregroundColor(colors.textSecondary)
             }
         }
     }
@@ -366,14 +371,14 @@ public struct HomeView: View {
             ProgressView()
                 .progressViewStyle(.circular)
                 .controlSize(.small)
-                .tint(AppColors.accent)
+                .tint(colors.accent)
         case .success:
             Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(AppColors.success)
+                .foregroundColor(colors.success)
                 .font(.system(size: 18))
         case .failure:
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(AppColors.error)
+                .foregroundColor(colors.error)
                 .font(.system(size: 18))
         }
     }

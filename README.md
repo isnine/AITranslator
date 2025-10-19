@@ -12,7 +12,7 @@ AITranslator 是一款面向 iOS 18+ 的 SwiftUI 应用，配套一个 `Translat
   - `Configuration/` – `ProviderCategory`、`ActionConfig`、`ProviderConfig` 与 `AppConfigurationStore` 等配置模型。
   - `Networking/` – `LLMService` 及其请求/结果模型，负责并发调用多个 OpenAI 兼容接口。
   - `UI/` – 共享的 `HomeView` 和 `HomeViewModel`，在主应用与扩展中共用。
-  - `AppColors.swift` – 统一的深色系配色表。
+  - `AppColors.swift` – 支持亮/暗模式的自适应配色表，通过 `AppColorPalette` 暴露统一调色。
 - `TranslationUI/` – 系统翻译扩展，`TranslationProviderExtension` 直接呈现 `HomeView(context:)`。
 - `AITranslator.xcodeproj` – 启用了“文件夹同步”模式，新增 Swift 文件自动加入对应 Target。
 

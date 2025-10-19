@@ -9,6 +9,12 @@ import SwiftUI
 import ShareCore
 
 struct RootTabView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+
     var body: some View {
         TabView {
             HomeView(context: nil)
@@ -35,7 +41,7 @@ struct RootTabView: View {
                     Text("设置")
                 }
         }
-        .tint(AppColors.accent)
-        .background(AppColors.background.ignoresSafeArea())
+        .tint(colors.accent)
+        .background(colors.background.ignoresSafeArea())
     }
 }
