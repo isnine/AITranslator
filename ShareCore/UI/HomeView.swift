@@ -75,18 +75,18 @@ public struct HomeView: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(AppColors.textPrimary)
 
-              Button(action: viewModel.openAppSettings) {
-                  Text("设置")
-                      .font(.system(size: 15, weight: .medium))
-                      .foregroundColor(AppColors.cardBackground)
-                      .padding(.horizontal, 18)
-                      .padding(.vertical, 10)
-                      .background(
-                          Capsule()
-                              .fill(AppColors.accent)
-                      )
-              }
-              .buttonStyle(.plain)
+                Button(action: viewModel.openAppSettings) {
+                    Text("尝试一下")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(AppColors.cardBackground)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule()
+                                .fill(AppColors.accent)
+                        )
+                }
+                .buttonStyle(.plain)
             }
 
         }
@@ -100,7 +100,7 @@ public struct HomeView: View {
     private var inputComposer: some View {
         let isCollapsed = openFromExtension && !isInputExpanded
 
-        return ZStack(alignment: .bottomTrailing) {
+        return ZStack {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(AppColors.inputBackground)
 
@@ -115,34 +115,81 @@ public struct HomeView: View {
                     Spacer(minLength: 0)
                 }
             }
-            .padding(.bottom, isCollapsed ? 0 : 16)
+            .padding(.bottom, isCollapsed ? 48 : 64)
 
-            if shouldShowSendButton {
-                Button {
-                    Task {
-                        await viewModel.performSelectedAction()
+            VStack {
+                Spacer()
+                HStack {
+                    if openFromExtension && !isCollapsed {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isInputExpanded = false
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "chevron.up")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("收起")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(AppColors.textSecondary)
                     }
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(AppColors.chipPrimaryText)
-                        .padding(16)
-                        .background(
-                            Circle()
-                                .fill(AppColors.accent)
-                        )
+
+                    Spacer()
+
+                    if openFromExtension && isCollapsed {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isInputExpanded = true
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text("展开")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 10)
+                            .foregroundColor(AppColors.chipPrimaryText)
+                            .background(
+                                Capsule()
+                                    .fill(AppColors.accent)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    } else if !isCollapsed {
+                        Button {
+                            Task {
+                                await viewModel.performSelectedAction()
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text("发送")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Image(systemName: "paperplane.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 10)
+                            .foregroundColor(AppColors.chipPrimaryText)
+                            .background(
+                                Capsule()
+                                    .fill(AppColors.accent)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
-                .buttonStyle(.plain)
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
             }
         }
         .frame(maxWidth: .infinity)
         .frame(minHeight: isCollapsed ? 64 : 170)
         .animation(.easeInOut(duration: 0.2), value: isInputExpanded)
-    }
-
-    private var shouldShowSendButton: Bool {
-        !(openFromExtension && !isInputExpanded)
     }
 
     private var collapsedInputSummary: some View {
@@ -153,17 +200,6 @@ public struct HomeView: View {
                 .foregroundColor(displayText.isEmpty ? AppColors.textSecondary : AppColors.textPrimary)
                 .lineLimit(1)
                 .truncationMode(.tail)
-
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isInputExpanded = true
-                }
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .semibold))
-            }
-            .buttonStyle(.plain)
-            .foregroundColor(AppColors.textSecondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
@@ -184,25 +220,6 @@ public struct HomeView: View {
                     .foregroundColor(AppColors.textPrimary)
                     .padding(12)
                     .frame(minHeight: 140, maxHeight: 160)
-            }
-
-            if openFromExtension {
-                HStack {
-                    Spacer()
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isInputExpanded = false
-                        }
-                    } label: {
-                        Image(systemName: "chevron.up")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(AppColors.textSecondary)
-                            .padding(.trailing, shouldShowSendButton ? 48 : 0)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
             }
         }
     }
