@@ -74,20 +74,21 @@ public struct HomeView: View {
                 Text("将 AITranslator 设为系统默认翻译应用")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(AppColors.textPrimary)
+
+              Button(action: viewModel.openAppSettings) {
+                  Text("设置")
+                      .font(.system(size: 15, weight: .medium))
+                      .foregroundColor(AppColors.cardBackground)
+                      .padding(.horizontal, 18)
+                      .padding(.vertical, 10)
+                      .background(
+                          Capsule()
+                              .fill(AppColors.accent)
+                      )
+              }
+              .buttonStyle(.plain)
             }
 
-            Button(action: viewModel.openAppSettings) {
-                Text("尝试一下")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(AppColors.cardBackground)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 10)
-                    .background(
-                        Capsule()
-                            .fill(AppColors.accent)
-                    )
-            }
-            .buttonStyle(.plain)
         }
         .padding(20)
         .background(
