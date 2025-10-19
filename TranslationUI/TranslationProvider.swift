@@ -8,6 +8,8 @@
 import SwiftUI
 import TranslationUIProvider
 import ExtensionKit
+import Combine
+import ShareCore
 
 @main
 class TranslationProviderExtension: TranslationUIProviderExtension {
@@ -17,7 +19,8 @@ class TranslationProviderExtension: TranslationUIProviderExtension {
 
     var body: some TranslationUIProviderExtensionScene {
         TranslationUIProviderSelectedTextScene { context in
-            TranslationProviderView(context: context)
+//            TranslationProviderView(context: context)
+          HomeView()
         }
     }
 }
