@@ -56,9 +56,7 @@ public struct HomeView: View {
             viewModel.inputText = String(inputText.characters)
           }
           hasTriggeredAutoRequest = true
-          Task {
-            await viewModel.performSelectedAction()
-          }
+          viewModel.performSelectedAction()
         }
     }
 
@@ -166,9 +164,7 @@ public struct HomeView: View {
                         .buttonStyle(.plain)
                     } else if !isCollapsed {
                         Button {
-                            Task {
-                                await viewModel.performSelectedAction()
-                            }
+                            viewModel.performSelectedAction()
                         } label: {
                             HStack(spacing: 6) {
                                 Text("发送")
@@ -243,9 +239,7 @@ public struct HomeView: View {
     private func chip(for action: ActionConfig, isSelected: Bool) -> some View {
         Button {
             if viewModel.selectAction(action) {
-                Task {
-                    await viewModel.performSelectedAction()
-                }
+                viewModel.performSelectedAction()
             }
         } label: {
             Text(action.name)

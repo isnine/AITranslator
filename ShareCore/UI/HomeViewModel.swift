@@ -59,7 +59,12 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    @Published var inputText: String = ""
+    @Published var inputText: String = "" {
+        didSet {
+            guard inputText != oldValue else { return }
+            cancelActiveRequest(clearResults: true)
+        }
+    }
     @Published private(set) var actions: [ActionConfig]
     @Published private(set) var providers: [ProviderConfig]
     @Published var selectedActionID: UUID?
@@ -71,6 +76,8 @@ final class HomeViewModel: ObservableObject {
     private let configurationStore: AppConfigurationStore
     private let llmService: LLMService
     private var cancellables = Set<AnyCancellable>()
+    private var currentRequestTask: Task<Void, Never>?
+    private var activeRequestID: UUID?
 
     init(
         configurationStore: AppConfigurationStore = .shared,
@@ -120,15 +127,19 @@ final class HomeViewModel: ObservableObject {
         return true
     }
 
-    func performSelectedAction() async {
+    func performSelectedAction() {
+        cancelActiveRequest(clearResults: false)
+
         guard let action = selectedAction else {
             print("No action selected.")
+            providerRuns = []
             return
         }
 
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
             print("Input text is empty; skipping request.")
+            providerRuns = []
             return
         }
 
@@ -137,19 +148,53 @@ final class HomeViewModel: ObservableObject {
 
         guard !providersToUse.isEmpty else {
             print("No providers configured.")
+            providerRuns = []
             return
         }
+
+        let requestID = UUID()
+        activeRequestID = requestID
 
         providerRuns = providersToUse.map {
             ProviderRunViewState(provider: $0, status: .running(start: Date()))
         }
 
+        currentRequestTask = Task { [weak self] in
+            await self?.executeRequest(
+                requestID: requestID,
+                text: text,
+                action: action,
+                providers: Array(providersToUse)
+            )
+        }
+    }
+
+    func openAppSettings() {
+        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else {
+            return
+        }
+        UIApplication.shared.open(settingsURL)
+    }
+
+    deinit {
+        currentRequestTask?.cancel()
+    }
+
+    private func executeRequest(
+        requestID: UUID,
+        text: String,
+        action: ActionConfig,
+        providers: [ProviderConfig]
+    ) async {
+        guard !Task.isCancelled else { return }
+
         let results = await llmService.perform(
             text: text,
             with: action,
-            providers: Array(providersToUse),
+            providers: providers,
             partialHandler: { [weak self] providerID, partialText in
                 guard let self else { return }
+                guard self.activeRequestID == requestID else { return }
                 guard let index = self.providerRuns.firstIndex(where: { $0.provider.id == providerID }) else {
                     return
                 }
@@ -158,8 +203,25 @@ final class HomeViewModel: ObservableObject {
                     text: partialText,
                     start: startDate
                 )
+            },
+            completionHandler: { [weak self] result in
+                guard let self else { return }
+                guard self.activeRequestID == requestID else { return }
+                guard let index = self.providerRuns.firstIndex(where: { $0.provider.id == result.providerID }) else {
+                    return
+                }
+
+                switch result.response {
+                case let .success(message):
+                    self.providerRuns[index].status = .success(text: message, duration: result.duration)
+                case let .failure(error):
+                    self.providerRuns[index].status = .failure(message: error.localizedDescription, duration: result.duration)
+                }
             }
         )
+
+        guard !Task.isCancelled else { return }
+        guard activeRequestID == requestID else { return }
 
         for result in results {
             if let index = providerRuns.firstIndex(where: { $0.provider.id == result.providerID }) {
@@ -180,12 +242,19 @@ final class HomeViewModel: ObservableObject {
                 providerRuns.append(.init(provider: provider, status: runState))
             }
         }
+
+        if activeRequestID == requestID {
+            currentRequestTask = nil
+            activeRequestID = nil
+        }
     }
 
-    func openAppSettings() {
-        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else {
-            return
+    private func cancelActiveRequest(clearResults: Bool) {
+        currentRequestTask?.cancel()
+        currentRequestTask = nil
+        activeRequestID = nil
+        if clearResults {
+            providerRuns = []
         }
-        UIApplication.shared.open(settingsURL)
     }
 }

@@ -19,24 +19,36 @@ public final class LLMService {
         text: String,
         with action: ActionConfig,
         providers: [ProviderConfig],
-        partialHandler: (@MainActor @Sendable (UUID, String) -> Void)? = nil
+        partialHandler: (@MainActor @Sendable (UUID, String) -> Void)? = nil,
+        completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)? = nil
     ) async -> [ProviderExecutionResult] {
         await withTaskGroup(of: ProviderExecutionResult?.self) { group in
             for provider in providers {
                 group.addTask { [weak self] in
                     guard let self else { return nil }
-                    return await self.sendRequest(
-                        text: text,
-                        action: action,
-                        provider: provider,
-                        partialHandler: partialHandler
-                    )
+                    do {
+                        return try await self.sendRequest(
+                            text: text,
+                            action: action,
+                            provider: provider,
+                            partialHandler: partialHandler
+                        )
+                    } catch is CancellationError {
+                        return nil
+                    } catch {
+                        return nil
+                    }
                 }
             }
 
             var results: [ProviderExecutionResult] = []
             for await item in group {
                 guard let item else { continue }
+                if let completionHandler {
+                    await MainActor.run {
+                        completionHandler(item)
+                    }
+                }
                 results.append(item)
             }
             return results
@@ -48,7 +60,7 @@ public final class LLMService {
         action: ActionConfig,
         provider: ProviderConfig,
         partialHandler: (@MainActor @Sendable (UUID, String) -> Void)?
-    ) async -> ProviderExecutionResult {
+    ) async throws -> ProviderExecutionResult {
         let start = Date()
 
         var request = URLRequest(url: provider.apiURL)
@@ -89,6 +101,8 @@ public final class LLMService {
                 print("Request payload: \(jsonString)")
             }
 
+            try Task.checkCancellation()
+
             if let partialHandler {
                 return try await handleStreamingRequest(
                     start: start,
@@ -123,6 +137,8 @@ public final class LLMService {
                     throw LLMServiceError.emptyContent
                 }
             }
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             return ProviderExecutionResult(
                 providerID: provider.id,
@@ -140,6 +156,8 @@ public final class LLMService {
         partialHandler: @MainActor @Sendable (UUID, String) -> Void
     ) async throws -> ProviderExecutionResult {
         let (bytes, response) = try await urlSession.bytes(for: request)
+
+        try Task.checkCancellation()
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
@@ -161,6 +179,7 @@ public final class LLMService {
             print("Streaming response from \(provider.displayName)")
             var aggregatedText = ""
             for try await line in bytes.lines {
+                try Task.checkCancellation()
                 let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard trimmedLine.hasPrefix("data:") else { continue }
                 let payload = trimmedLine.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
@@ -173,10 +192,12 @@ public final class LLMService {
                 let deltaText = chunk.combinedText
                 guard !deltaText.isEmpty else { continue }
                 aggregatedText.append(deltaText)
+                try Task.checkCancellation()
                 await partialHandler(provider.id, aggregatedText)
             }
 
             let finalText = aggregatedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            try Task.checkCancellation()
             guard !finalText.isEmpty else { throw LLMServiceError.emptyContent }
 
             print("Final stream output from \(provider.displayName): \(finalText)")
@@ -189,6 +210,7 @@ public final class LLMService {
         } else {
             var data = Data()
             for try await chunk in bytes {
+                try Task.checkCancellation()
                 data.append(chunk)
             }
 
@@ -198,6 +220,7 @@ public final class LLMService {
             let decoded = try decoder.decode(ChatCompletionsResponse.self, from: data)
             if let message = decoded.choices?.first?.message.content, !message.isEmpty {
                 let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+                try Task.checkCancellation()
                 await partialHandler(provider.id, trimmed)
                 return ProviderExecutionResult(
                     providerID: provider.id,
