@@ -323,6 +323,32 @@ public struct HomeView: View {
                         .frame(height: 10)
                 }
             }
+        case let .streaming(text, _):
+            VStack(alignment: .leading, spacing: 12) {
+                if text.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(colors.skeleton)
+                                .frame(height: 10)
+                        }
+                    }
+                } else {
+                    Text(text)
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.textPrimary)
+                }
+
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .controlSize(.small)
+                        .tint(colors.accent)
+                    Text("正在生成…")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+            }
         case let .success(text, _):
             VStack(alignment: .leading, spacing: 12) {
                 Text(text)
@@ -367,7 +393,7 @@ public struct HomeView: View {
         for status: HomeViewModel.ProviderRunViewState.Status
     ) -> some View {
         switch status {
-        case .idle, .running:
+        case .idle, .running, .streaming:
             ProgressView()
                 .progressViewStyle(.circular)
                 .controlSize(.small)

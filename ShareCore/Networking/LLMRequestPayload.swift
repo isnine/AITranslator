@@ -19,8 +19,10 @@ public struct LLMRequestPayload: Codable {
     }
 
     public let messages: [Message]
+    public let stream: Bool?
 
-    public init(messages: [Message]) {
+    public init(messages: [Message], stream: Bool? = nil) {
         self.messages = messages
+        self.stream = stream
     }
 }

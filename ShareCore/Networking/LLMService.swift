@@ -18,7 +18,8 @@ public final class LLMService {
     public func perform(
         text: String,
         with action: ActionConfig,
-        providers: [ProviderConfig]
+        providers: [ProviderConfig],
+        partialHandler: (@MainActor @Sendable (UUID, String) -> Void)? = nil
     ) async -> [ProviderExecutionResult] {
         await withTaskGroup(of: ProviderExecutionResult?.self) { group in
             for provider in providers {
@@ -27,7 +28,8 @@ public final class LLMService {
                     return await self.sendRequest(
                         text: text,
                         action: action,
-                        provider: provider
+                        provider: provider,
+                        partialHandler: partialHandler
                     )
                 }
             }
@@ -44,7 +46,8 @@ public final class LLMService {
     private func sendRequest(
         text: String,
         action: ActionConfig,
-        provider: ProviderConfig
+        provider: ProviderConfig,
+        partialHandler: (@MainActor @Sendable (UUID, String) -> Void)?
     ) async -> ProviderExecutionResult {
         let start = Date()
 
@@ -52,6 +55,9 @@ public final class LLMService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(provider.token, forHTTPHeaderField: provider.authHeaderName)
+        if partialHandler != nil {
+            request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        }
 
         let messages: [LLMRequestPayload.Message]
         if action.prompt.isEmpty {
@@ -65,11 +71,16 @@ public final class LLMService {
             ]
         }
 
-        let payload = LLMRequestPayload(messages: messages)
-
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted]
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+            let payload = LLMRequestPayload(
+                messages: messages,
+                stream: partialHandler != nil ? true : nil
+            )
             let encodedPayload = try encoder.encode(payload)
             request.httpBody = encodedPayload
 
@@ -78,28 +89,39 @@ public final class LLMService {
                 print("Request payload: \(jsonString)")
             }
 
-            let (data, response) = try await urlSession.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw URLError(.badServerResponse)
-            }
-
-            let responseString = String(data: data, encoding: .utf8) ?? ""
-            print("Response JSON from \(provider.displayName): \(responseString)")
-
-            guard (200...299).contains(httpResponse.statusCode) else {
-                throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
-            }
-
-            let decoded = try JSONDecoder().decode(ChatCompletionsResponse.self, from: data)
-            if let message = decoded.choices?.first?.message.content, !message.isEmpty {
-                return ProviderExecutionResult(
-                    providerID: provider.id,
-                    duration: Date().timeIntervalSince(start),
-                    response: .success(message.trimmingCharacters(in: .whitespacesAndNewlines))
+            if let partialHandler {
+                return try await handleStreamingRequest(
+                    start: start,
+                    request: request,
+                    provider: provider,
+                    decoder: decoder,
+                    partialHandler: partialHandler
                 )
             } else {
-                throw LLMServiceError.emptyContent
+                let (data, response) = try await urlSession.data(for: request)
+
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw URLError(.badServerResponse)
+                }
+
+                let responseString = String(data: data, encoding: .utf8) ?? ""
+                print("Response JSON from \(provider.displayName): \(responseString)")
+
+                guard (200...299).contains(httpResponse.statusCode) else {
+                    throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
+                }
+
+                let decoded = try decoder.decode(ChatCompletionsResponse.self, from: data)
+                if let message = decoded.choices?.first?.message.content, !message.isEmpty {
+                    let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return ProviderExecutionResult(
+                        providerID: provider.id,
+                        duration: Date().timeIntervalSince(start),
+                        response: .success(trimmed)
+                    )
+                } else {
+                    throw LLMServiceError.emptyContent
+                }
             }
         } catch {
             return ProviderExecutionResult(
@@ -107,6 +129,84 @@ public final class LLMService {
                 duration: Date().timeIntervalSince(start),
                 response: .failure(error)
             )
+        }
+    }
+
+    private func handleStreamingRequest(
+        start: Date,
+        request: URLRequest,
+        provider: ProviderConfig,
+        decoder: JSONDecoder,
+        partialHandler: @MainActor @Sendable (UUID, String) -> Void
+    ) async throws -> ProviderExecutionResult {
+        let (bytes, response) = try await urlSession.bytes(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            var errorData = Data()
+            for try await chunk in bytes {
+                errorData.append(chunk)
+            }
+            let responseString = String(data: errorData, encoding: .utf8) ?? ""
+            print("Response JSON from \(provider.displayName): \(responseString)")
+            throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
+        }
+
+        let contentType = (httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+
+        if contentType.contains("text/event-stream") {
+            print("Streaming response from \(provider.displayName)")
+            var aggregatedText = ""
+            for try await line in bytes.lines {
+                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard trimmedLine.hasPrefix("data:") else { continue }
+                let payload = trimmedLine.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
+                if payload == "[DONE]" {
+                    break
+                }
+
+                guard let data = payload.data(using: .utf8), !data.isEmpty else { continue }
+                let chunk = try decoder.decode(ChatCompletionsStreamChunk.self, from: data)
+                let deltaText = chunk.combinedText
+                guard !deltaText.isEmpty else { continue }
+                aggregatedText.append(deltaText)
+                await partialHandler(provider.id, aggregatedText)
+            }
+
+            let finalText = aggregatedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !finalText.isEmpty else { throw LLMServiceError.emptyContent }
+
+            print("Final stream output from \(provider.displayName): \(finalText)")
+
+            return ProviderExecutionResult(
+                providerID: provider.id,
+                duration: Date().timeIntervalSince(start),
+                response: .success(finalText)
+            )
+        } else {
+            var data = Data()
+            for try await chunk in bytes {
+                data.append(chunk)
+            }
+
+            let responseString = String(data: data, encoding: .utf8) ?? ""
+            print("Non-stream response from \(provider.displayName): \(responseString)")
+
+            let decoded = try decoder.decode(ChatCompletionsResponse.self, from: data)
+            if let message = decoded.choices?.first?.message.content, !message.isEmpty {
+                let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+                await partialHandler(provider.id, trimmed)
+                return ProviderExecutionResult(
+                    providerID: provider.id,
+                    duration: Date().timeIntervalSince(start),
+                    response: .success(trimmed)
+                )
+            } else {
+                throw LLMServiceError.emptyContent
+            }
         }
     }
 }
@@ -121,4 +221,20 @@ private struct ChatCompletionsResponse: Decodable {
     }
 
     let choices: [Choice]?
+}
+
+private struct ChatCompletionsStreamChunk: Decodable {
+    struct Choice: Decodable {
+        struct Delta: Decodable {
+            let content: String?
+        }
+
+        let delta: Delta?
+    }
+
+    let choices: [Choice]
+
+    var combinedText: String {
+        choices.compactMap { $0.delta?.content }.joined()
+    }
 }

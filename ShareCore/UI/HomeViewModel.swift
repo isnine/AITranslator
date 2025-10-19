@@ -15,12 +15,13 @@ final class HomeViewModel: ObservableObject {
         enum Status {
             case idle
             case running(start: Date)
+            case streaming(text: String, start: Date)
             case success(text: String, duration: TimeInterval)
             case failure(message: String, duration: TimeInterval)
 
             var duration: TimeInterval? {
                 switch self {
-                case .idle, .running:
+                case .idle, .running, .streaming:
                     return nil
                 case let .success(_, duration),
                      let .failure(_, duration):
@@ -40,8 +41,21 @@ final class HomeViewModel: ObservableObject {
         }
 
         var isRunning: Bool {
-            if case .running = status { return true }
-            return false
+            switch status {
+            case .running, .streaming:
+                return true
+            default:
+                return false
+            }
+        }
+
+        var startDate: Date? {
+            switch status {
+            case let .running(start), let .streaming(_, start):
+                return start
+            default:
+                return nil
+            }
         }
     }
 
@@ -133,7 +147,18 @@ final class HomeViewModel: ObservableObject {
         let results = await llmService.perform(
             text: text,
             with: action,
-            providers: Array(providersToUse)
+            providers: Array(providersToUse),
+            partialHandler: { [weak self] providerID, partialText in
+                guard let self else { return }
+                guard let index = self.providerRuns.firstIndex(where: { $0.provider.id == providerID }) else {
+                    return
+                }
+                let startDate = self.providerRuns[index].startDate ?? Date()
+                self.providerRuns[index].status = .streaming(
+                    text: partialText,
+                    start: startDate
+                )
+            }
         )
 
         for result in results {
