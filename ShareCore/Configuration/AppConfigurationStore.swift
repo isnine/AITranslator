@@ -20,7 +20,7 @@ public enum ProviderCategory: String, Codable, CaseIterable {
         case .openAI:
             return "gpt-4o"
         case .azureOpenAI:
-            return "gpt-5-mini"
+            return "model-router"
         case .custom:
             return "--"
         }
@@ -87,10 +87,10 @@ public final class AppConfigurationStore: ObservableObject {
     private init() {
         let defaultProvider = ProviderConfig(
             displayName: "Azure OpenAI",
-            apiURL: URL(string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5-mini/chat/completions?api-version=2025-01-01-preview")!,
+            apiURL: URL(string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview")!,
             token: "REDACTED_AZURE_API_KEY",
             category: .azureOpenAI,
-            modelName: "gpt-5-mini"
+            modelName: "model-router"
         )
 
         let defaultAction = ActionConfig(

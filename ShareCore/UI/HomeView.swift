@@ -165,6 +165,8 @@ final class HomeViewModel: ObservableObject {
 
 public struct HomeView: View {
   @StateObject private var viewModel = HomeViewModel()
+  @State private var hasTriggeredAutoRequest = false
+  @State private var isInputExpanded: Bool
   var openFromExtension: Bool {
     context != nil
   }
@@ -173,6 +175,7 @@ public struct HomeView: View {
 
   public init(context: TranslationUIProviderContext?) {
     self.context = context
+    _isInputExpanded = State(initialValue: context == nil)
   }
 
   public var body: some View {
@@ -196,8 +199,13 @@ public struct HomeView: View {
         .background(AppColors.background.ignoresSafeArea())
         .scrollIndicators(.hidden)
         .onAppear {
-          if openFromExtension, let inputText = context?.inputText {
+          guard openFromExtension, !hasTriggeredAutoRequest else { return }
+          if let inputText = context?.inputText {
             viewModel.inputText = String(inputText.characters)
+          }
+          hasTriggeredAutoRequest = true
+          Task {
+            await viewModel.performSelectedAction()
           }
         }
     }
@@ -241,49 +249,113 @@ public struct HomeView: View {
     }
 
     private var inputComposer: some View {
-        ZStack(alignment: .bottomTrailing) {
+        let isCollapsed = openFromExtension && !isInputExpanded
+
+        return ZStack(alignment: .bottomTrailing) {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(AppColors.inputBackground)
 
             VStack(alignment: .leading, spacing: 0) {
-                ZStack(alignment: .topLeading) {
-                    if viewModel.inputText.isEmpty {
-                        Text(viewModel.inputPlaceholder)
-                            .foregroundColor(AppColors.textSecondary)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 16)
+                if isCollapsed {
+                    collapsedInputSummary
+                } else {
+                    expandedInputEditor
+                }
+
+                if !isCollapsed {
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(.bottom, isCollapsed ? 0 : 16)
+
+            if shouldShowSendButton {
+                Button {
+                    Task {
+                        await viewModel.performSelectedAction()
                     }
-
-                    TextEditor(text: $viewModel.inputText)
-                        .scrollContentBackground(.hidden)
-                        .foregroundColor(AppColors.textPrimary)
-                        .padding(12)
-                        .frame(minHeight: 140, maxHeight: 160)
+                } label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(AppColors.chipPrimaryText)
+                        .padding(16)
+                        .background(
+                            Circle()
+                                .fill(AppColors.accent)
+                        )
                 }
-
-                Spacer(minLength: 0)
+                .buttonStyle(.plain)
+                .padding(16)
             }
-            .padding(.bottom, 16)
-
-            Button {
-                Task {
-                    await viewModel.performSelectedAction()
-                }
-            } label: {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(AppColors.chipPrimaryText)
-                    .padding(16)
-                    .background(
-                        Circle()
-                            .fill(AppColors.accent)
-                    )
-            }
-            .buttonStyle(.plain)
-            .padding(16)
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: 170)
+        .frame(minHeight: isCollapsed ? 64 : 170)
+        .animation(.easeInOut(duration: 0.2), value: isInputExpanded)
+    }
+
+    private var shouldShowSendButton: Bool {
+        !(openFromExtension && !isInputExpanded)
+    }
+
+    private var collapsedInputSummary: some View {
+        HStack(spacing: 12) {
+            let displayText = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+            Text(displayText.isEmpty ? viewModel.inputPlaceholder : displayText)
+                .font(.system(size: 15))
+                .foregroundColor(displayText.isEmpty ? AppColors.textSecondary : AppColors.textPrimary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isInputExpanded = true
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(AppColors.textSecondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+    }
+
+    private var expandedInputEditor: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .topLeading) {
+                if viewModel.inputText.isEmpty {
+                    Text(viewModel.inputPlaceholder)
+                        .foregroundColor(AppColors.textSecondary)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                }
+
+                TextEditor(text: $viewModel.inputText)
+                    .scrollContentBackground(.hidden)
+                    .foregroundColor(AppColors.textPrimary)
+                    .padding(12)
+                    .frame(minHeight: 140, maxHeight: 160)
+            }
+
+            if openFromExtension {
+                HStack {
+                    Spacer()
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isInputExpanded = false
+                        }
+                    } label: {
+                        Image(systemName: "chevron.up")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(AppColors.textSecondary)
+                            .padding(.trailing, shouldShowSendButton ? 48 : 0)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+        }
     }
 
     private var actionChips: some View {
@@ -381,14 +453,27 @@ public struct HomeView: View {
                 Text(text)
                     .font(.system(size: 14))
                     .foregroundColor(AppColors.textPrimary)
-                Button {
-                    UIPasteboard.general.string = text
-                } label: {
-                    Label("复制", systemImage: "doc.on.doc")
-                        .font(.system(size: 14, weight: .medium))
+                HStack(spacing: 16) {
+                    Button {
+                        UIPasteboard.general.string = text
+                    } label: {
+                        Label("复制", systemImage: "doc.on.doc")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(AppColors.accent)
+
+                    if let context, context.allowsReplacement {
+                        Button {
+                            context.finish(translation: AttributedString(text))
+                        } label: {
+                            Label("替换", systemImage: "arrow.left.arrow.right")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(AppColors.accent)
+                    }
                 }
-                .buttonStyle(.plain)
-                .foregroundColor(AppColors.accent)
             }
         case let .failure(message, _):
             VStack(alignment: .leading, spacing: 10) {
