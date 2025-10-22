@@ -360,12 +360,22 @@ public struct HomeView: View {
                 if let diff {
                     VStack(alignment: .leading, spacing: 8) {
                         if diff.hasRemovals {
-                            Text(diff.original)
+                            let originalText = TextDiffBuilder.attributedString(
+                                for: diff.originalSegments,
+                                palette: colors,
+                                colorScheme: colorScheme
+                            )
+                            Text(originalText)
                                 .font(.system(size: 14))
                         }
 
                         if diff.hasAdditions || (!diff.hasRemovals && !diff.hasAdditions) {
-                            Text(diff.revised)
+                            let revisedText = TextDiffBuilder.attributedString(
+                                for: diff.revisedSegments,
+                                palette: colors,
+                                colorScheme: colorScheme
+                            )
+                            Text(revisedText)
                                 .font(.system(size: 14))
                         }
                     }

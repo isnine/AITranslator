@@ -1,8 +1,19 @@
 import SwiftUI
 
+struct TextDiffSegment {
+    enum Kind {
+        case equal
+        case added
+        case removed
+    }
+
+    var kind: Kind
+    var text: String
+}
+
 struct TextDiffPresentation {
-    let original: AttributedString
-    let revised: AttributedString
+    let originalSegments: [TextDiffSegment]
+    let revisedSegments: [TextDiffSegment]
     let hasRemovals: Bool
     let hasAdditions: Bool
 }
@@ -21,18 +32,7 @@ enum TextDiffBuilder {
 
         let lcsMatrix = buildLCSMatrix(original: originalChars, revised: revisedChars)
 
-        enum SegmentType {
-            case equal
-            case added
-            case removed
-        }
-
-        struct Segment {
-            var type: SegmentType
-            var text: String
-        }
-
-        var segments: [Segment] = []
+        var segments: [TextDiffSegment] = []
         var i = originalChars.count
         var j = revisedChars.count
         var addedBuffer: [Character] = []
@@ -41,14 +41,14 @@ enum TextDiffBuilder {
         func flushAdded() {
             guard !addedBuffer.isEmpty else { return }
             let text = String(addedBuffer.reversed())
-            segments.append(.init(type: .added, text: text))
+            segments.append(.init(kind: .added, text: text))
             addedBuffer.removeAll(keepingCapacity: true)
         }
 
         func flushRemoved() {
             guard !removedBuffer.isEmpty else { return }
             let text = String(removedBuffer.reversed())
-            segments.append(.init(type: .removed, text: text))
+            segments.append(.init(kind: .removed, text: text))
             removedBuffer.removeAll(keepingCapacity: true)
         }
 
@@ -56,7 +56,7 @@ enum TextDiffBuilder {
             if i > 0, j > 0, originalChars[i - 1] == revisedChars[j - 1] {
                 flushAdded()
                 flushRemoved()
-                segments.append(.init(type: .equal, text: String(originalChars[i - 1])))
+                segments.append(.init(kind: .equal, text: String(originalChars[i - 1])))
                 i -= 1
                 j -= 1
             } else if j > 0, (i == 0 || lcsMatrix[i][j - 1] >= lcsMatrix[i - 1][j]) {
@@ -73,49 +73,67 @@ enum TextDiffBuilder {
 
         segments.reverse()
 
-        var merged: [Segment] = []
+        var merged: [TextDiffSegment] = []
         for segment in segments {
-            if let lastIndex = merged.indices.last, merged[lastIndex].type == segment.type {
+            if let lastIndex = merged.indices.last, merged[lastIndex].kind == segment.kind {
                 merged[lastIndex].text.append(contentsOf: segment.text)
             } else {
                 merged.append(segment)
             }
         }
 
-        var originalAttributed = AttributedString()
-        var revisedAttributed = AttributedString()
+        var originalSegments: [TextDiffSegment] = []
+        var revisedSegments: [TextDiffSegment] = []
         var hasRemovals = false
         var hasAdditions = false
 
         for segment in merged {
-            switch segment.type {
+            switch segment.kind {
             case .equal:
-                var piece = AttributedString(segment.text)
-                piece.foregroundColor = Color.primary
-                originalAttributed.append(piece)
-                revisedAttributed.append(piece)
+                originalSegments.append(segment)
+                revisedSegments.append(segment)
             case .added:
-                var piece = AttributedString(segment.text)
-                piece.backgroundColor = Color.green.opacity(0.35)
-                piece.foregroundColor = Color.white
-                revisedAttributed.append(piece)
+                revisedSegments.append(segment)
                 hasAdditions = true
             case .removed:
-                var piece = AttributedString(segment.text)
-                piece.backgroundColor = Color.red.opacity(0.35)
-                piece.foregroundColor = Color.white
-                piece.strikethroughStyle = .single
-                originalAttributed.append(piece)
+                originalSegments.append(segment)
                 hasRemovals = true
             }
         }
 
         return TextDiffPresentation(
-            original: originalAttributed,
-            revised: revisedAttributed,
+            originalSegments: originalSegments,
+            revisedSegments: revisedSegments,
             hasRemovals: hasRemovals,
             hasAdditions: hasAdditions
         )
+    }
+
+    static func attributedString(
+        for segments: [TextDiffSegment],
+        palette: AppColorPalette,
+        colorScheme: ColorScheme
+    ) -> AttributedString {
+        let theme = TextDiffColorTheme.forScheme(colorScheme, palette: palette)
+        var attributed = AttributedString()
+
+        for segment in segments {
+            var piece = AttributedString(segment.text)
+            switch segment.kind {
+            case .equal:
+                piece.foregroundColor = theme.baseForeground
+            case .added:
+                piece.backgroundColor = theme.additionBackground
+                piece.foregroundColor = theme.additionForeground
+            case .removed:
+                piece.backgroundColor = theme.removalBackground
+                piece.foregroundColor = theme.removalForeground
+                piece.strikethroughStyle = .single
+            }
+            attributed.append(piece)
+        }
+
+        return attributed
     }
 
     private static func buildLCSMatrix(original: [Character], revised: [Character]) -> [[Int]] {
@@ -134,5 +152,36 @@ enum TextDiffBuilder {
         }
 
         return matrix
+    }
+}
+
+private struct TextDiffColorTheme {
+    let additionBackground: Color
+    let additionForeground: Color
+    let removalBackground: Color
+    let removalForeground: Color
+    let baseForeground: Color
+
+    static func forScheme(_ colorScheme: ColorScheme, palette: AppColorPalette) -> TextDiffColorTheme {
+        let success = AppColors.success.resolve(colorScheme)
+        let error = AppColors.error.resolve(colorScheme)
+        switch colorScheme {
+        case .dark:
+            return TextDiffColorTheme(
+                additionBackground: success.opacity(0.35),
+                additionForeground: Color.white,
+                removalBackground: error.opacity(0.35),
+                removalForeground: Color.white,
+                baseForeground: palette.textPrimary
+            )
+        default:
+            return TextDiffColorTheme(
+                additionBackground: success.opacity(0.18),
+                additionForeground: success,
+                removalBackground: error.opacity(0.18),
+                removalForeground: error,
+                baseForeground: palette.textPrimary
+            )
+        }
     }
 }
