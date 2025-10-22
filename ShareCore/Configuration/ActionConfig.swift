@@ -27,18 +27,21 @@ public struct ActionConfig: Identifiable, Hashable {
     public var prompt: String
     public var providerIDs: [UUID]
     public var usageScenes: UsageScene
+    public var showsDiff: Bool
 
     public init(
         id: UUID = UUID(),
         name: String,
         prompt: String,
         providerIDs: [UUID],
-        usageScenes: UsageScene
+        usageScenes: UsageScene = .all,
+        showsDiff: Bool = false
     ) {
         self.id = id
         self.name = name
         self.prompt = prompt
         self.providerIDs = providerIDs
         self.usageScenes = usageScenes
+        self.showsDiff = showsDiff
     }
 }

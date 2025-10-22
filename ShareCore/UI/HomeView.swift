@@ -355,11 +355,25 @@ public struct HomeView: View {
                         .foregroundColor(colors.textSecondary)
                 }
             }
-        case let .success(text, _):
+        case let .success(text, _, diff):
             VStack(alignment: .leading, spacing: 12) {
-                Text(text)
-                    .font(.system(size: 14))
-                    .foregroundColor(colors.textPrimary)
+                if let diff {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if diff.hasRemovals {
+                            Text(diff.original)
+                                .font(.system(size: 14))
+                        }
+
+                        if diff.hasAdditions || (!diff.hasRemovals && !diff.hasAdditions) {
+                            Text(diff.revised)
+                                .font(.system(size: 14))
+                        }
+                    }
+                } else {
+                    Text(text)
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.textPrimary)
+                }
                 HStack(spacing: 16) {
                     if let context, context.allowsReplacement {
                         Button {

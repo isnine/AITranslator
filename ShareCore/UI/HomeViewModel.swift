@@ -16,14 +16,14 @@ final class HomeViewModel: ObservableObject {
             case idle
             case running(start: Date)
             case streaming(text: String, start: Date)
-            case success(text: String, duration: TimeInterval)
+            case success(text: String, duration: TimeInterval, diff: TextDiffPresentation? = nil)
             case failure(message: String, duration: TimeInterval)
 
             var duration: TimeInterval? {
                 switch self {
                 case .idle, .running, .streaming:
                     return nil
-                case let .success(_, duration),
+                case let .success(_, duration, _),
                      let .failure(_, duration):
                     return duration
                 }
@@ -80,6 +80,8 @@ final class HomeViewModel: ObservableObject {
     private var activeRequestID: UUID?
     private var allActions: [ActionConfig]
     private var usageScene: ActionConfig.UsageScene
+    private var currentRequestInputText: String = ""
+    private var currentActionShowsDiff: Bool = false
 
     init(
         configurationStore: AppConfigurationStore = .shared,
@@ -153,6 +155,9 @@ final class HomeViewModel: ObservableObject {
             return
         }
 
+        currentRequestInputText = text
+        currentActionShowsDiff = action.showsDiff
+
         let mappedProviders = providers.filter { action.providerIDs.contains($0.id) }
         let providersToUse = mappedProviders.isEmpty ? providers.prefix(1).map { $0 } : mappedProviders
 
@@ -217,16 +222,7 @@ final class HomeViewModel: ObservableObject {
             completionHandler: { [weak self] result in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
-                guard let index = self.providerRuns.firstIndex(where: { $0.provider.id == result.providerID }) else {
-                    return
-                }
-
-                switch result.response {
-                case let .success(message):
-                    self.providerRuns[index].status = .success(text: message, duration: result.duration)
-                case let .failure(error):
-                    self.providerRuns[index].status = .failure(message: error.localizedDescription, duration: result.duration)
-                }
+                self.apply(result: result, allowDiff: self.currentActionShowsDiff)
             }
         )
 
@@ -235,17 +231,13 @@ final class HomeViewModel: ObservableObject {
 
         for result in results {
             if let index = providerRuns.firstIndex(where: { $0.provider.id == result.providerID }) {
-                switch result.response {
-                case let .success(message):
-                    providerRuns[index].status = .success(text: message, duration: result.duration)
-                case let .failure(error):
-                    providerRuns[index].status = .failure(message: error.localizedDescription, duration: result.duration)
-                }
+                apply(result: result, allowDiff: currentActionShowsDiff)
             } else if let provider = providers.first(where: { $0.id == result.providerID }) {
                 let runState: ProviderRunViewState.Status
                 switch result.response {
                 case let .success(message):
-                    runState = .success(text: message, duration: result.duration)
+                    let diff = currentActionShowsDiff ? TextDiffBuilder.build(original: currentRequestInputText, revised: message) : nil
+                    runState = .success(text: message, duration: result.duration, diff: diff)
                 case let .failure(error):
                     runState = .failure(message: error.localizedDescription, duration: result.duration)
                 }
@@ -265,6 +257,20 @@ final class HomeViewModel: ObservableObject {
         activeRequestID = nil
         if clearResults {
             providerRuns = []
+        }
+    }
+
+    private func apply(result: ProviderExecutionResult, allowDiff: Bool) {
+        guard let index = providerRuns.firstIndex(where: { $0.provider.id == result.providerID }) else {
+            return
+        }
+
+        switch result.response {
+        case let .success(message):
+            let diff = allowDiff ? TextDiffBuilder.build(original: currentRequestInputText, revised: message) : nil
+            providerRuns[index].status = .success(text: message, duration: result.duration, diff: diff)
+        case let .failure(error):
+            providerRuns[index].status = .failure(message: error.localizedDescription, duration: result.duration)
         }
     }
 

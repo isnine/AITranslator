@@ -92,7 +92,8 @@ private enum Defaults {
                 name: "打磨",
                 prompt: "对文本进行打磨，然后以相同的语言输出打磨后的文本",
                 providerIDs: providerIDs,
-                usageScenes: [.app, .contextEdit]
+                usageScenes: [.app, .contextEdit],
+                showsDiff: true
             ),
             .init(
                 name: "语法检查",
