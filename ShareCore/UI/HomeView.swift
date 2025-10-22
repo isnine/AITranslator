@@ -8,7 +8,7 @@
 import SwiftUI
 import UIKit
 import TranslationUIProvider
-
+import WebKit
 
 public struct HomeView: View {
   @Environment(\.colorScheme) private var colorScheme
@@ -361,24 +361,24 @@ public struct HomeView: View {
                     .font(.system(size: 14))
                     .foregroundColor(colors.textPrimary)
                 HStack(spacing: 16) {
-                    Button {
-                        UIPasteboard.general.string = text
-                    } label: {
-                        Label("复制", systemImage: "doc.on.doc")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundColor(colors.accent)
-
-                    Spacer()
-
                     if let context, context.allowsReplacement {
                         Button {
                             context.finish(translation: AttributedString(text))
                         } label: {
+                            Label("替换", systemImage: "arrow.left.arrow.right")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(colors.accent)
+
+                        Spacer()
+
+                        Button {
+                            UIPasteboard.general.string = text
+                        } label: {
                             HStack(spacing: 6) {
-                                Image(systemName: "arrow.left.arrow.right")
-                                Text("替换")
+                                Image(systemName: "doc.on.doc")
+                                Text("复制")
                             }
                             .font(.system(size: 14, weight: .medium))
                             .padding(.horizontal, openFromExtension ? 18 : 0)
@@ -395,6 +395,15 @@ public struct HomeView: View {
                         }
                         .buttonStyle(.plain)
                         .foregroundColor(openFromExtension ? colors.chipPrimaryText : colors.accent)
+                    } else {
+                        Button {
+                            UIPasteboard.general.string = text
+                        } label: {
+                            Label("复制", systemImage: "doc.on.doc")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(colors.accent)
                     }
                 }
             }

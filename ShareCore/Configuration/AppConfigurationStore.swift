@@ -24,8 +24,9 @@ public final class AppConfigurationStore: ObservableObject {
     }
 
     private init() {
-      self.providers = [Defaults.provider, Defaults.gpt5Provider]
-      self.actions = Defaults.actions(for: [Defaults.provider.id, Defaults.gpt5Provider.id])
+      let providers = [Defaults.provider, Defaults.gpt5NanoProvider]
+      self.providers = providers
+      self.actions = Defaults.actions(for: providers.map { $0.id })
     }
 
     public func updateActions(_ actions: [ActionConfig]) {
@@ -60,6 +61,17 @@ private enum Defaults {
       authHeaderName: "api-key",
       category: .azureOpenAI,
       modelName: "gpt-5"
+  )
+
+  static let gpt5NanoProvider: ProviderConfig = .init(
+      displayName: "Azure OpenAI",
+      apiURL: URL(
+        string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview"
+    )!,
+      token: "REDACTED_AZURE_API_KEY",
+      authHeaderName: "api-key",
+      category: .azureOpenAI,
+      modelName: "gpt-5-nano"
   )
 
     static func actions(for providerIDs: [UUID]) -> [ActionConfig] {
