@@ -370,15 +370,31 @@ public struct HomeView: View {
                     .buttonStyle(.plain)
                     .foregroundColor(colors.accent)
 
+                    Spacer()
+
                     if let context, context.allowsReplacement {
                         Button {
                             context.finish(translation: AttributedString(text))
                         } label: {
-                            Label("替换", systemImage: "arrow.left.arrow.right")
-                                .font(.system(size: 14, weight: .medium))
+                            HStack(spacing: 6) {
+                                Image(systemName: "arrow.left.arrow.right")
+                                Text("替换")
+                            }
+                            .font(.system(size: 14, weight: .medium))
+                            .padding(.horizontal, openFromExtension ? 18 : 0)
+                            .padding(.vertical, openFromExtension ? 10 : 0)
+                            .foregroundColor(openFromExtension ? colors.chipPrimaryText : colors.accent)
+                            .background(
+                                Group {
+                                    if openFromExtension {
+                                        Capsule()
+                                            .fill(colors.accent)
+                                    }
+                                }
+                            )
                         }
                         .buttonStyle(.plain)
-                        .foregroundColor(colors.accent)
+                        .foregroundColor(openFromExtension ? colors.chipPrimaryText : colors.accent)
                     }
                 }
             }
