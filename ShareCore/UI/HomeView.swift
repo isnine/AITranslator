@@ -32,7 +32,7 @@ public struct HomeView: View {
 
   public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 12) {
               if !openFromExtension {
                 header
                 defaultAppCard
@@ -117,7 +117,7 @@ public struct HomeView: View {
                     Spacer(minLength: 0)
                 }
             }
-            .padding(.bottom, isCollapsed ? 48 : 64)
+            .padding(.bottom, isCollapsed ? 0 : 48)
 
             VStack {
                 Spacer()
@@ -141,28 +141,7 @@ public struct HomeView: View {
 
                     Spacer()
 
-                    if openFromExtension && isCollapsed {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                isInputExpanded = true
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Text("展开")
-                                    .font(.system(size: 15, weight: .semibold))
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 15, weight: .semibold))
-                            }
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 10)
-                            .foregroundColor(colors.chipPrimaryText)
-                            .background(
-                                Capsule()
-                                    .fill(colors.accent)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    } else if !isCollapsed {
+                    if !isCollapsed {
                         Button {
                             viewModel.performSelectedAction()
                         } label: {
@@ -184,26 +163,40 @@ public struct HomeView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .padding(.bottom, isCollapsed ? 0 : 12)
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(minHeight: isCollapsed ? 64 : 170)
+//        .frame(minHeight: isCollapsed ? 16 : 170)
         .animation(.easeInOut(duration: 0.2), value: isInputExpanded)
     }
 
     private var collapsedInputSummary: some View {
-        HStack(spacing: 12) {
-            let displayText = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-            Text(displayText.isEmpty ? viewModel.inputPlaceholder : displayText)
-                .font(.system(size: 15))
-                .foregroundColor(displayText.isEmpty ? colors.textSecondary : colors.textPrimary)
-                .lineLimit(1)
-                .truncationMode(.tail)
+        let displayText = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isInputExpanded = true
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Text(displayText.isEmpty ? viewModel.inputPlaceholder : displayText)
+                    .font(.system(size: 15))
+                    .foregroundColor(displayText.isEmpty ? colors.textSecondary : colors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
+        .buttonStyle(.plain)
     }
 
     private var expandedInputEditor: some View {
