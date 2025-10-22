@@ -12,7 +12,7 @@ import TranslationUIProvider
 
 public struct HomeView: View {
   @Environment(\.colorScheme) private var colorScheme
-  @StateObject private var viewModel = HomeViewModel()
+  @StateObject private var viewModel: HomeViewModel
   @State private var hasTriggeredAutoRequest = false
   @State private var isInputExpanded: Bool
   var openFromExtension: Bool {
@@ -24,9 +24,21 @@ public struct HomeView: View {
     AppColors.palette(for: colorScheme)
   }
 
+  private var usageScene: ActionConfig.UsageScene {
+    guard let context else { return .app }
+    return context.allowsReplacement ? .contextEdit : .contextRead
+  }
+
 
   public init(context: TranslationUIProviderContext?) {
     self.context = context
+    let initialScene: ActionConfig.UsageScene
+    if let context {
+      initialScene = context.allowsReplacement ? .contextEdit : .contextRead
+    } else {
+      initialScene = .app
+    }
+    _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
     _isInputExpanded = State(initialValue: context == nil)
   }
 
@@ -51,12 +63,19 @@ public struct HomeView: View {
         .background(colors.background.ignoresSafeArea())
         .scrollIndicators(.hidden)
         .onAppear {
+          viewModel.updateUsageScene(usageScene)
           guard openFromExtension, !hasTriggeredAutoRequest else { return }
           if let inputText = context?.inputText {
             viewModel.inputText = String(inputText.characters)
           }
           hasTriggeredAutoRequest = true
           viewModel.performSelectedAction()
+        }
+        .onChange(of: openFromExtension) { _ in
+          viewModel.updateUsageScene(usageScene)
+        }
+        .onChange(of: context?.allowsReplacement ?? false) { _ in
+          viewModel.updateUsageScene(usageScene)
         }
     }
 

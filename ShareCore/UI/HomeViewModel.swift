@@ -78,26 +78,30 @@ final class HomeViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var currentRequestTask: Task<Void, Never>?
     private var activeRequestID: UUID?
+    private var allActions: [ActionConfig]
+    private var usageScene: ActionConfig.UsageScene
 
     init(
         configurationStore: AppConfigurationStore = .shared,
-        llmService: LLMService = .shared
+        llmService: LLMService = .shared,
+        usageScene: ActionConfig.UsageScene = .app
     ) {
         self.configurationStore = configurationStore
-        self.actions = configurationStore.actions
-        self.providers = configurationStore.providers
         self.llmService = llmService
+        self.usageScene = usageScene
+        self.allActions = configurationStore.actions
+        self.providers = configurationStore.providers
         self.selectedActionID = configurationStore.defaultAction?.id
+        self.actions = []
+
+        refreshActions()
 
         configurationStore.$actions
             .receive(on: RunLoop.main)
             .sink { [weak self] in
                 guard let self else { return }
-                self.actions = $0
-                if let selectedID = self.selectedActionID, $0.contains(where: { $0.id == selectedID }) {
-                    return
-                }
-                self.selectedActionID = $0.first?.id
+                self.allActions = $0
+                self.refreshActions()
             }
             .store(in: &cancellables)
 
@@ -125,6 +129,12 @@ final class HomeViewModel: ObservableObject {
         guard selectedActionID != action.id else { return false }
         selectedActionID = action.id
         return true
+    }
+
+    func updateUsageScene(_ scene: ActionConfig.UsageScene) {
+        guard usageScene != scene else { return }
+        usageScene = scene
+        refreshActions()
     }
 
     func performSelectedAction() {
@@ -256,5 +266,22 @@ final class HomeViewModel: ObservableObject {
         if clearResults {
             providerRuns = []
         }
+    }
+
+    private func refreshActions() {
+        let filtered = allActions.filter { $0.usageScenes.contains(usageScene) }
+        actions = filtered
+
+        guard !filtered.isEmpty else {
+            selectedActionID = nil
+            return
+        }
+
+        if let selectedID = selectedActionID,
+           filtered.contains(where: { $0.id == selectedID }) {
+            return
+        }
+
+        selectedActionID = filtered.first?.id
     }
 }
