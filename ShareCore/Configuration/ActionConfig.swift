@@ -24,6 +24,7 @@ public struct ActionConfig: Identifiable, Hashable {
 
     public let id: UUID
     public var name: String
+    public var summary: String
     public var prompt: String
     public var providerIDs: [UUID]
     public var usageScenes: UsageScene
@@ -32,6 +33,7 @@ public struct ActionConfig: Identifiable, Hashable {
     public init(
         id: UUID = UUID(),
         name: String,
+        summary: String,
         prompt: String,
         providerIDs: [UUID],
         usageScenes: UsageScene = .all,
@@ -39,6 +41,7 @@ public struct ActionConfig: Identifiable, Hashable {
     ) {
         self.id = id
         self.name = name
+        self.summary = summary
         self.prompt = prompt
         self.providerIDs = providerIDs
         self.usageScenes = usageScenes

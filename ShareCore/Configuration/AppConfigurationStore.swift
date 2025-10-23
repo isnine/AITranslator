@@ -77,27 +77,31 @@ private enum Defaults {
     static func actions(for providerIDs: [UUID]) -> [ActionConfig] {
         [
             .init(
-                name: "翻译",
-                prompt: "请对用户选中的文本进行智能翻译，保留原意并输出简洁结果。",
+                name: "Translate",
+                summary: "Use AI for context-aware translation.",
+                prompt: "Translate the selected text intelligently, keep the original meaning, and return a concise result.",
                 providerIDs: providerIDs,
                 usageScenes: [.app, .contextRead]
             ),
             .init(
-                name: "总结",
-                prompt: "尽量简短的对用户选中的文本进行文本总结，保留原意并输出简洁结果。",
+                name: "Summarize",
+                summary: "Generate a concise summary of the text.",
+                prompt: "Provide a concise summary of the selected text, preserving the key meaning.",
                 providerIDs: providerIDs,
                 usageScenes: [.app, .contextRead]
             ),
             .init(
-                name: "打磨",
-                prompt: "对文本进行打磨，然后以相同的语言输出打磨后的文本",
+                name: "Polish",
+                summary: "Rewrite the text in the same language with improved clarity.",
+                prompt: "Polish the text and return the improved version in the same language.",
                 providerIDs: providerIDs,
                 usageScenes: [.app, .contextEdit],
                 showsDiff: true
             ),
             .init(
-                name: "语法检查",
-                prompt: "请帮我检查这段文本的语法错误。1.首先返回一段打磨的句子版本 2.然后换行再以中文逐一解释原始句子的语法错误有哪些，为什么这么修改。对于严重的错误以❌开头，对于轻微的使用⚠️开头。 3.最后换行显示打磨后文本的中文翻译意思.",
+                name: "Grammar Check",
+                summary: "Inspect grammar issues and provide explanations.",
+                prompt: "Review this text for grammar issues. 1. Return a polished version first. 2. On the next line, explain each original error in Chinese, prefixing severe ones with ❌ and minor ones with ⚠️. 3. End with the polished sentence's meaning translated into Chinese.",
                 providerIDs: providerIDs,
                 usageScenes: [.app, .contextEdit]
             )

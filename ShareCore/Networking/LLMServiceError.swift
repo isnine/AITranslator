@@ -14,9 +14,9 @@ public enum LLMServiceError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .emptyContent:
-            return "未从模型返回任何内容"
+            return "No content returned from the model"
         case let .httpError(statusCode, body):
-            return "HTTP 错误 \(statusCode): \(body)"
+            return "HTTP error \(statusCode): \(body)"
         }
     }
 }

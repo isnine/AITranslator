@@ -1,0 +1,54 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Action Library" : {
+
+    },
+    "Actions" : {
+
+    },
+    "All Actions" : {
+
+    },
+    "Collapse" : {
+
+    },
+    "Copy" : {
+
+    },
+    "Generating..." : {
+
+    },
+    "Home" : {
+
+    },
+    "Manage your custom actions" : {
+
+    },
+    "Open Settings" : {
+
+    },
+    "Providers" : {
+
+    },
+    "Replace" : {
+
+    },
+    "Request Failed" : {
+
+    },
+    "Send" : {
+
+    },
+    "Set Tree² Translator as the default translation app" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Tree² Translator" : {
+
+    }
+  },
+  "version" : "1.1"
+}

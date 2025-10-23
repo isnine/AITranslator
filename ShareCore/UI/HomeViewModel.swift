@@ -70,8 +70,8 @@ final class HomeViewModel: ObservableObject {
     @Published var selectedActionID: UUID?
     @Published private(set) var providerRuns: [ProviderRunViewState] = []
 
-    let placeholderHint: String = "输入文本并选择操作开始使用"
-    let inputPlaceholder: String = "输入要翻译或处理的文本…"
+    let placeholderHint: String = "Enter text and choose an action to get started"
+    let inputPlaceholder: String = "Enter text to translate or process..."
 
     private let configurationStore: AppConfigurationStore
     private let llmService: LLMService

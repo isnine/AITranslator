@@ -80,7 +80,7 @@ public struct HomeView: View {
     }
 
     private var header: some View {
-        Text("AITranslator")
+        Text("Tree² Translator")
             .font(.system(size: 28, weight: .semibold))
             .foregroundColor(colors.textPrimary)
     }
@@ -92,12 +92,12 @@ public struct HomeView: View {
                     .foregroundColor(colors.accent)
                     .font(.system(size: 20))
 
-                Text("将 AITranslator 设为系统默认翻译应用")
+                Text("Set Tree² Translator as the default translation app")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(colors.textPrimary)
 
                 Button(action: viewModel.openAppSettings) {
-                    Text("设置")
+                    Text("Open Settings")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(colors.cardBackground)
                         .padding(.horizontal, 18)
@@ -150,7 +150,7 @@ public struct HomeView: View {
                             HStack(spacing: 6) {
                                 Image(systemName: "chevron.up")
                                     .font(.system(size: 14, weight: .semibold))
-                                Text("收起")
+                                Text("Collapse")
                                     .font(.system(size: 14, weight: .medium))
                             }
                         }
@@ -165,7 +165,7 @@ public struct HomeView: View {
                             viewModel.performSelectedAction()
                         } label: {
                             HStack(spacing: 6) {
-                                Text("发送")
+                                Text("Send")
                                     .font(.system(size: 15, weight: .semibold))
                                 Image(systemName: "paperplane.fill")
                                     .font(.system(size: 15, weight: .semibold))
@@ -350,7 +350,7 @@ public struct HomeView: View {
                         .progressViewStyle(.circular)
                         .controlSize(.small)
                         .tint(colors.accent)
-                    Text("正在生成…")
+                    Text("Generating...")
                         .font(.system(size: 13))
                         .foregroundColor(colors.textSecondary)
                 }
@@ -389,7 +389,7 @@ public struct HomeView: View {
                         Button {
                             context.finish(translation: AttributedString(text))
                         } label: {
-                            Label("替换", systemImage: "arrow.left.arrow.right")
+                            Label("Replace", systemImage: "arrow.left.arrow.right")
                                 .font(.system(size: 14, weight: .medium))
                         }
                         .buttonStyle(.plain)
@@ -402,7 +402,7 @@ public struct HomeView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "doc.on.doc")
-                                Text("复制")
+                                Text("Copy")
                             }
                             .font(.system(size: 14, weight: .medium))
                             .padding(.horizontal, openFromExtension ? 18 : 0)
@@ -423,7 +423,7 @@ public struct HomeView: View {
                         Button {
                             UIPasteboard.general.string = text
                         } label: {
-                            Label("复制", systemImage: "doc.on.doc")
+                            Label("Copy", systemImage: "doc.on.doc")
                                 .font(.system(size: 14, weight: .medium))
                         }
                         .buttonStyle(.plain)
@@ -433,7 +433,7 @@ public struct HomeView: View {
             }
         case let .failure(message, _):
             VStack(alignment: .leading, spacing: 10) {
-                Text("请求失败")
+                Text("Request Failed")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(colors.error)
                 Text(message)
