@@ -17,33 +17,46 @@ struct ActionsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                headerSection
-                Text("All Actions")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    headerSection
+                    Text("All Actions")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
 
-                VStack(spacing: 16) {
-                    ForEach(configurationStore.actions) { action in
-                        ActionCardView(
-                            action: action,
-                            isDefault: action.id == configurationStore.defaultAction?.id,
-                            providerCount: providerCount(for: action),
-                            colors: colors
-                        )
+                    VStack(spacing: 16) {
+                        ForEach(configurationStore.actions) { action in
+                            NavigationLink(value: action) {
+                                ActionCardView(
+                                    action: action,
+                                    isDefault: action.id == configurationStore.defaultAction?.id,
+                                    providerCount: providerCount(for: action),
+                                    colors: colors
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 28)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 28)
+            .background(colors.background.ignoresSafeArea())
+            .overlay(alignment: .topTrailing) {
+                addButton
+                    .padding(.top, 24)
+                    .padding(.trailing, 24)
+            }
+            .navigationDestination(for: ActionConfig.self) { action in
+                ActionDetailView(
+                    action: action,
+                    configurationStore: configurationStore
+                )
+            }
         }
-        .background(colors.background.ignoresSafeArea())
-        .overlay(alignment: .topTrailing) {
-            addButton
-                .padding(.top, 24)
-                .padding(.trailing, 24)
-        }
+        .tint(colors.accent)
+        .toolbar(.hidden, for: .navigationBar)
     }
 
     private var headerSection: some View {
@@ -85,42 +98,39 @@ private struct ActionCardView: View {
     let colors: AppColorPalette
 
     var body: some View {
-        Button(action: {}) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 8) {
-                    Text(action.name)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(colors.textPrimary)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 8) {
+                Text(action.name)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
 
-                    if isDefault {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(colors.accent)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
+                if isDefault {
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.accent)
                 }
 
-                Text(action.summary)
-                    .font(.system(size: 15))
-                    .foregroundColor(colors.textSecondary)
+                Spacer()
 
-                Text(providerCountText)
-                    .font(.system(size: 13))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(colors.textSecondary)
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(colors.cardBackground)
-            )
+
+            Text(action.summary)
+                .font(.system(size: 15))
+                .foregroundColor(colors.textSecondary)
+
+            Text(providerCountText)
+                .font(.system(size: 13))
+                .foregroundColor(colors.textSecondary)
         }
-        .buttonStyle(.plain)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(colors.cardBackground)
+        )
     }
 
     private var providerCountText: String {

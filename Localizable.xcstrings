@@ -11,6 +11,26 @@
         }
       }
     },
+    "Action Name" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作名称"
+          }
+        }
+      }
+    },
+    "Action Summary" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作摘要"
+          }
+        }
+      }
+    },
     "Actions" : {
       "localizations" : {
         "zh-Hans" : {
@@ -37,6 +57,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全部动作"
+          }
+        }
+      }
+    },
+    "App" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用内"
+          }
+        }
+      }
+    },
+    "Available inside the app" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在应用内可用"
+          }
+        }
+      }
+    },
+    "Back" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返回"
+          }
+        }
+      }
+    },
+    "Basic Info" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "基本信息"
           }
         }
       }
@@ -91,12 +151,32 @@
         }
       }
     },
+    "Editable Context" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可编辑上下文"
+          }
+        }
+      }
+    },
     "Generating..." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "生成中…"
+          }
+        }
+      }
+    },
+    "Highlights differences between original and AI output" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "突出显示原文与 AI 输出之间的差异"
           }
         }
       }
@@ -141,12 +221,42 @@
         }
       }
     },
+    "Options" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选项"
+          }
+        }
+      }
+    },
+    "Prompt Template" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示词模板"
+          }
+        }
+      }
+    },
     "Providers" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "提供商"
+          }
+        }
+      }
+    },
+    "Read-Only Context" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只读上下文"
           }
         }
       }
@@ -171,6 +281,26 @@
         }
       }
     },
+    "Save" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
+    "Select Providers" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择提供商"
+          }
+        }
+      }
+    },
     "Send" : {
       "localizations" : {
         "zh-Hans" : {
@@ -181,12 +311,12 @@
         }
       }
     },
-    "Set Tree² Translator as the default translation app" : {
+    "Set Tree² Lang as the default translation app" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将 Tree² Translator 设为默认翻译应用"
+            "value" : "将 Tree² 设为默认翻译应用"
           }
         }
       }
@@ -201,12 +331,62 @@
         }
       }
     },
-    "Tree² Translator" : {
+    "Show diff output" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tree² 翻译器"
+            "value" : "显示差异结果"
+          }
+        }
+      }
+    },
+    "Tree²" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tree²"
+          }
+        }
+      }
+    },
+    "Usage Scenes" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用场景"
+          }
+        }
+      }
+    },
+    "Use {text} as placeholder" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 {text} 作为占位符"
+          }
+        }
+      }
+    },
+    "Visible when you can edit and replace text" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可编辑与替换文本时显示"
+          }
+        }
+      }
+    },
+    "Visible when you can only read text" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅能查看文本时显示"
           }
         }
       }
