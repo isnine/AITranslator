@@ -29,7 +29,7 @@ struct RootTabView: View {
                     Text("Actions")
                 }
 
-            PlaceholderTab(title: "Providers", message: "Provider configuration coming soon.")
+            ProvidersView()
                 .tabItem {
                     Image(systemName: "rectangle.connected.to.line.below")
                     Text("Providers")
