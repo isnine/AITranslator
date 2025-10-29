@@ -125,6 +125,76 @@ private struct LanguagePickerView: View {
     }
 
     var body: some View {
+#if os(macOS)
+        VStack(spacing: 0) {
+            Text("选择目标语言")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(colors.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 12)
+
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(TargetLanguageOption.selectionOptions) { option in
+                        Button {
+                            selectedCode = option.rawValue
+                            isPresented = false
+                        } label: {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(option.primaryLabel)
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(colors.textPrimary)
+                                    Text(option.secondaryLabel)
+                                        .font(.system(size: 13))
+                                        .foregroundColor(colors.textSecondary)
+                                }
+
+                                Spacer()
+
+                                if selectedCode == option.rawValue {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(colors.accent)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(colors.cardBackground)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            .frame(maxWidth: .infinity)
+
+            Divider()
+                .padding(.top, 16)
+                .padding(.bottom, 8)
+
+            HStack {
+                Spacer()
+                Button("取消") {
+                    isPresented = false
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(colors.accent)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(colors.accent.opacity(0.12))
+                )
+            }
+        }
+        .padding(24)
+        .frame(minWidth: 420, minHeight: 380)
+        .background(colors.background)
+#else
         NavigationStack {
             List {
                 Section {
@@ -174,6 +244,7 @@ private struct LanguagePickerView: View {
             }
         }
         .tint(colors.accent)
+#endif
     }
 }
 
