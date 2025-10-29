@@ -14,6 +14,8 @@ public final class AppConfigurationStore: ObservableObject {
 
     @Published public private(set) var actions: [ActionConfig]
     @Published public private(set) var providers: [ProviderConfig]
+    private let preferences: AppPreferences
+    private var cancellables: Set<AnyCancellable> = []
 
     public var defaultAction: ActionConfig? {
         actions.first
@@ -23,22 +25,90 @@ public final class AppConfigurationStore: ObservableObject {
         providers.first
     }
 
-    private init() {
-      let providers = [Defaults.provider, Defaults.gpt5NanoProvider]
-      self.providers = providers
-      self.actions = Defaults.actions(for: providers.map { $0.id })
+    private init(preferences: AppPreferences = .shared) {
+        self.preferences = preferences
+
+        preferences.refreshFromDefaults()
+
+        let providers = [Defaults.provider, Defaults.gpt5NanoProvider]
+        self.providers = providers
+        let baseActions = Defaults.actions(for: providers.map { $0.id })
+        self.actions = AppConfigurationStore.applyTargetLanguage(
+            baseActions,
+            targetLanguage: preferences.targetLanguage
+        )
+
+        preferences.$targetLanguage
+            .receive(on: RunLoop.main)
+            .sink { [weak self] option in
+                guard let self else { return }
+                let updated = AppConfigurationStore.applyTargetLanguage(
+                    self.actions,
+                    targetLanguage: option
+                )
+                self.actions = updated
+            }
+            .store(in: &cancellables)
     }
 
     public func updateActions(_ actions: [ActionConfig]) {
-        self.actions = actions
+        let adjusted = AppConfigurationStore.applyTargetLanguage(
+            actions,
+            targetLanguage: preferences.targetLanguage
+        )
+        self.actions = adjusted
     }
 
     public func updateProviders(_ providers: [ProviderConfig]) {
         self.providers = providers
     }
+
+    private static func applyTargetLanguage(
+        _ actions: [ActionConfig],
+        targetLanguage: TargetLanguageOption
+    ) -> [ActionConfig] {
+        actions.map { action in
+            guard let template = ManagedActionTemplate(action: action) else {
+                return action
+            }
+
+            var updated = action
+
+            if template.shouldUpdatePrompt(currentPrompt: action.prompt) {
+                updated.prompt = template.prompt(for: targetLanguage)
+            }
+
+            if let summaryText = template.summary(for: targetLanguage),
+               template.shouldUpdateSummary(currentSummary: action.summary) {
+                updated.summary = summaryText
+            }
+
+            return updated
+        }
+    }
 }
 
 private enum Defaults {
+
+    static let translateName = NSLocalizedString(
+        "Translate",
+        comment: "Name of the translate action"
+    )
+    static let summarizeName = NSLocalizedString(
+        "Summarize",
+        comment: "Name of the summarize action"
+    )
+    static let polishName = NSLocalizedString(
+        "Polish",
+        comment: "Name of the polish action"
+    )
+    static let grammarCheckName = NSLocalizedString(
+        "Grammar Check",
+        comment: "Name of the grammar check action"
+    )
+    static let translateLegacySummary = "Use AI for context-aware translation."
+    static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
+    static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
 
 
     static let provider: ProviderConfig = .init(
@@ -77,21 +147,21 @@ private enum Defaults {
     static func actions(for providerIDs: [UUID]) -> [ActionConfig] {
         [
             .init(
-                name: "Translate",
-                summary: "Use AI for context-aware translation.",
-                prompt: "Translate the selected text intelligently, keep the original meaning, and return a concise result.",
+                name: translateName,
+                summary: translateLegacySummary,
+                prompt: translateLegacyPrompt,
                 providerIDs: providerIDs,
                 usageScenes: [.app, .contextRead]
             ),
             .init(
-                name: "Summarize",
+                name: summarizeName,
                 summary: "Generate a concise summary of the text.",
-                prompt: "Provide a concise summary of the selected text, preserving the key meaning.",
+                prompt: summarizeLegacyPrompt,
                 providerIDs: providerIDs,
                 usageScenes: [.app, .contextRead]
             ),
             .init(
-                name: "Polish",
+                name: polishName,
                 summary: "Rewrite the text in the same language with improved clarity.",
                 prompt: "Polish the text and return the improved version in the same language.",
                 providerIDs: providerIDs,
@@ -99,12 +169,73 @@ private enum Defaults {
                 showsDiff: true
             ),
             .init(
-                name: "Grammar Check",
+                name: grammarCheckName,
                 summary: "Inspect grammar issues and provide explanations.",
                 prompt: "Review this text for grammar issues. 1. Return a polished version first. 2. On the next line, explain each original error in Chinese, prefixing severe ones with ❌ and minor ones with ⚠️. 3. End with the polished sentence's meaning translated into Chinese.",
                 providerIDs: providerIDs,
                 usageScenes: [.app, .contextEdit]
             )
         ]
+    }
+}
+
+private enum ManagedActionTemplate {
+    case translate
+    case summarize
+
+    init?(action: ActionConfig) {
+        switch action.name {
+        case Defaults.translateName:
+            self = .translate
+        case Defaults.summarizeName:
+            self = .summarize
+        default:
+            return nil
+        }
+    }
+
+    func prompt(for language: TargetLanguageOption) -> String {
+        switch self {
+        case .translate:
+            return "Translate the selected text into \(language.promptDescriptor). Preserve tone, intent, and terminology. Respond with only the translated text."
+        case .summarize:
+            return "Provide a concise summary of the selected text in \(language.promptDescriptor). Preserve the essential meaning without adding new information."
+        }
+    }
+
+    func summary(for language: TargetLanguageOption) -> String? {
+        switch self {
+        case .translate:
+            return "Translate into \(language.promptDescriptor) while keeping the original tone."
+        case .summarize:
+            return nil
+        }
+    }
+
+    func shouldUpdatePrompt(currentPrompt: String) -> Bool {
+        let generated = Set(
+            TargetLanguageOption.selectionOptions.map { prompt(for: $0) }
+        )
+
+        switch self {
+        case .translate:
+            return currentPrompt == Defaults.translateLegacyPrompt || generated.contains(currentPrompt)
+        case .summarize:
+            return currentPrompt == Defaults.summarizeLegacyPrompt || generated.contains(currentPrompt)
+        }
+    }
+
+    func shouldUpdateSummary(currentSummary: String) -> Bool {
+        switch self {
+        case .translate:
+            let generated = Set(
+                TargetLanguageOption.selectionOptions.compactMap {
+                    summary(for: $0)
+                }
+            )
+            return currentSummary == Defaults.translateLegacySummary || generated.contains(currentSummary)
+        case .summarize:
+            return false
+        }
     }
 }

@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "Action Library" : {
       "localizations" : {
         "zh-Hans" : {
@@ -161,12 +164,45 @@
         }
       }
     },
+    "Enter text and choose an action to get started" : {
+      "comment" : "Hint shown above the action list when no input or results exist",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入文本并选择一个操作即可开始"
+          }
+        }
+      }
+    },
+    "Enter text to translate or process..." : {
+      "comment" : "Placeholder text for the main input editor",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入文本以进行翻译或处理..."
+          }
+        }
+      }
+    },
     "Generating..." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "生成中…"
+          }
+        }
+      }
+    },
+    "Grammar Check" : {
+      "comment" : "Name of the grammar check action",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语法检查"
           }
         }
       }
@@ -227,6 +263,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选项"
+          }
+        }
+      }
+    },
+    "Polish" : {
+      "comment" : "Name of the polish action",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "润色"
           }
         }
       }
@@ -341,6 +388,28 @@
         }
       }
     },
+    "Summarize" : {
+      "comment" : "Name of the summarize action",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总结"
+          }
+        }
+      }
+    },
+    "Translate" : {
+      "comment" : "Name of the translate action",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译"
+          }
+        }
+      }
+    },
     "Tree²" : {
       "localizations" : {
         "zh-Hans" : {
@@ -390,6 +459,21 @@
           }
         }
       }
+    },
+    "取消" : {
+
+    },
+    "应用偏好设置" : {
+
+    },
+    "目标翻译语言" : {
+
+    },
+    "设置" : {
+
+    },
+    "选择目标语言" : {
+
     }
   },
   "version" : "1.1"

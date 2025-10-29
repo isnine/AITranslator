@@ -63,6 +63,7 @@ public struct HomeView: View {
         .background(colors.background.ignoresSafeArea())
         .scrollIndicators(.hidden)
         .onAppear {
+          AppPreferences.shared.refreshFromDefaults()
           viewModel.updateUsageScene(usageScene)
           guard openFromExtension, !hasTriggeredAutoRequest else { return }
           if let inputText = context?.inputText {

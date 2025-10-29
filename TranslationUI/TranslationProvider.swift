@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 import TranslationUIProvider
 import ExtensionKit
 import ShareCore
@@ -13,7 +14,10 @@ import ShareCore
 @main
 final class TranslationProviderExtension: TranslationUIProviderExtension {
 
-    required init() {}
+    required init() {
+        UserDefaults.standard.addSuite(named: AppPreferences.appGroupSuiteName)
+        AppPreferences.shared.refreshFromDefaults()
+    }
 
     var body: some TranslationUIProviderExtensionScene {
         TranslationUIProviderSelectedTextScene { context in

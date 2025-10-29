@@ -70,8 +70,14 @@ final class HomeViewModel: ObservableObject {
     @Published var selectedActionID: UUID?
     @Published private(set) var providerRuns: [ProviderRunViewState] = []
 
-    let placeholderHint: String = "Enter text and choose an action to get started"
-    let inputPlaceholder: String = "Enter text to translate or process..."
+    let placeholderHint: String = NSLocalizedString(
+        "Enter text and choose an action to get started",
+        comment: "Hint shown above the action list when no input or results exist"
+    )
+    let inputPlaceholder: String = NSLocalizedString(
+        "Enter text to translate or process...",
+        comment: "Placeholder text for the main input editor"
+    )
 
     private let configurationStore: AppConfigurationStore
     private let llmService: LLMService

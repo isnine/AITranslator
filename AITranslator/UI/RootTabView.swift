@@ -35,7 +35,7 @@ struct RootTabView: View {
                     Text("Providers")
                 }
 
-            PlaceholderTab(title: "Settings", message: "Settings page in progress...")
+            SettingsView()
                 .tabItem {
                     Image(systemName: "gearshape.fill")
                     Text("Settings")
