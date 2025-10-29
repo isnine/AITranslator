@@ -56,7 +56,9 @@ struct ActionsView: View {
             }
         }
         .tint(colors.accent)
+#if os(iOS)
         .toolbar(.hidden, for: .navigationBar)
+#endif
     }
 
     private var headerSection: some View {

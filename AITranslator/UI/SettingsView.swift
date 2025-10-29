@@ -33,7 +33,9 @@ struct SettingsView: View {
             }
             .background(colors.background.ignoresSafeArea())
             .navigationTitle("")
+#if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
+            #endif
         }
         .tint(colors.accent)
         .sheet(isPresented: $isLanguagePickerPresented) {
@@ -158,9 +160,11 @@ private struct LanguagePickerView: View {
             }
             .scrollContentBackground(.hidden)
             .background(colors.background.ignoresSafeArea())
-            .listStyle(.insetGrouped)
             .navigationTitle("选择目标语言")
+#if os(iOS)
+            .listStyle(.insetGrouped)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {

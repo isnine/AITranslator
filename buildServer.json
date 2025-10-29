@@ -1,0 +1,19 @@
+{
+	"name": "xcode build server",
+	"version": "0.2",
+	"bspVersion": "2.0",
+	"languages": [
+		"c",
+		"cpp",
+		"objective-c",
+		"objective-cpp",
+		"swift"
+	],
+	"argv": [
+		"/opt/homebrew/bin/xcode-build-server"
+	],
+	"workspace": "/Users/zander/Work/AITranslator/AITranslator.xcodeproj/project.xcworkspace",
+	"build_root": "/Users/zander/Library/Developer/Xcode/DerivedData/AITranslator-dxkoipdnbltpzoharqosklzmbohr",
+	"scheme": "AITranslator",
+	"kind": "xcode"
+}

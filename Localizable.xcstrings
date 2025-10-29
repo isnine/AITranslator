@@ -104,6 +104,9 @@
         }
       }
     },
+    "Cmd+Return" : {
+
+    },
     "Collapse" : {
       "localizations" : {
         "zh-Hans" : {

@@ -6,9 +6,22 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
 import UIKit
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
+#if canImport(TranslationUIProvider)
 import TranslationUIProvider
+#endif
 import WebKit
+
+#if canImport(TranslationUIProvider)
+public typealias AppTranslationContext = TranslationUIProviderContext
+#else
+public typealias AppTranslationContext = Never
+#endif
 
 public struct HomeView: View {
   @Environment(\.colorScheme) private var colorScheme
@@ -16,30 +29,63 @@ public struct HomeView: View {
   @State private var hasTriggeredAutoRequest = false
   @State private var isInputExpanded: Bool
   var openFromExtension: Bool {
-    context != nil
+    #if canImport(TranslationUIProvider)
+    return context != nil
+    #else
+    return false
+    #endif
   }
-  let context: TranslationUIProviderContext?
+  private let context: AppTranslationContext?
 
   private var colors: AppColorPalette {
     AppColors.palette(for: colorScheme)
   }
 
   private var usageScene: ActionConfig.UsageScene {
+    #if canImport(TranslationUIProvider)
     guard let context else { return .app }
     return context.allowsReplacement ? .contextEdit : .contextRead
+    #else
+    return .app
+    #endif
+  }
+
+  private var shouldShowDefaultAppCard: Bool {
+    #if os(macOS)
+    return false
+    #else
+    return true
+    #endif
+  }
+
+  private var initialContextInput: String? {
+    #if canImport(TranslationUIProvider)
+    guard let inputText = context?.inputText else { return nil }
+    return String(inputText.characters)
+    #else
+    return nil
+    #endif
   }
 
 
-  public init(context: TranslationUIProviderContext?) {
+  public init(context: AppTranslationContext? = nil) {
     self.context = context
     let initialScene: ActionConfig.UsageScene
+    #if canImport(TranslationUIProvider)
     if let context {
       initialScene = context.allowsReplacement ? .contextEdit : .contextRead
     } else {
       initialScene = .app
     }
+    #else
+    initialScene = .app
+    #endif
     _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
+    #if canImport(TranslationUIProvider)
     _isInputExpanded = State(initialValue: context == nil)
+    #else
+    _isInputExpanded = State(initialValue: true)
+    #endif
   }
 
   public var body: some View {
@@ -47,7 +93,9 @@ public struct HomeView: View {
             VStack(alignment: .leading, spacing: 12) {
               if !openFromExtension {
                 header
-                defaultAppCard
+                if shouldShowDefaultAppCard {
+                  defaultAppCard
+                }
               }
                 inputComposer
                 actionChips
@@ -65,19 +113,23 @@ public struct HomeView: View {
         .onAppear {
           AppPreferences.shared.refreshFromDefaults()
           viewModel.updateUsageScene(usageScene)
+          #if canImport(TranslationUIProvider)
           guard openFromExtension, !hasTriggeredAutoRequest else { return }
-          if let inputText = context?.inputText {
-            viewModel.inputText = String(inputText.characters)
+          if let inputText = initialContextInput {
+            viewModel.inputText = inputText
           }
           hasTriggeredAutoRequest = true
           viewModel.performSelectedAction()
+          #endif
         }
         .onChange(of: openFromExtension) { _ in
           viewModel.updateUsageScene(usageScene)
         }
+        #if canImport(TranslationUIProvider)
         .onChange(of: context?.allowsReplacement ?? false) { _ in
           viewModel.updateUsageScene(usageScene)
         }
+        #endif
     }
 
     private var header: some View {
@@ -168,6 +220,11 @@ public struct HomeView: View {
                             HStack(spacing: 6) {
                                 Text("Send")
                                     .font(.system(size: 15, weight: .semibold))
+                                #if os(macOS)
+                                Text("Cmd+Return")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(colors.chipPrimaryText.opacity(0.9))
+                                #endif
                                 Image(systemName: "paperplane.fill")
                                     .font(.system(size: 15, weight: .semibold))
                             }
@@ -180,6 +237,9 @@ public struct HomeView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        #if os(macOS)
+                        .keyboardShortcut(.return, modifiers: [.command])
+                        #endif
                     }
                 }
                 .padding(.horizontal, 16)
@@ -386,6 +446,7 @@ public struct HomeView: View {
                         .foregroundColor(colors.textPrimary)
                 }
                 HStack(spacing: 16) {
+                    #if canImport(TranslationUIProvider)
                     if let context, context.allowsReplacement {
                         Button {
                             context.finish(translation: AttributedString(text))
@@ -398,38 +459,13 @@ public struct HomeView: View {
 
                         Spacer()
 
-                        Button {
-                            UIPasteboard.general.string = text
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "doc.on.doc")
-                                Text("Copy")
-                            }
-                            .font(.system(size: 14, weight: .medium))
-                            .padding(.horizontal, openFromExtension ? 18 : 0)
-                            .padding(.vertical, openFromExtension ? 10 : 0)
-                            .foregroundColor(openFromExtension ? colors.chipPrimaryText : colors.accent)
-                            .background(
-                                Group {
-                                    if openFromExtension {
-                                        Capsule()
-                                            .fill(colors.accent)
-                                    }
-                                }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(openFromExtension ? colors.chipPrimaryText : colors.accent)
+                        copyButton(for: text, chipStyle: openFromExtension)
                     } else {
-                        Button {
-                            UIPasteboard.general.string = text
-                        } label: {
-                            Label("Copy", systemImage: "doc.on.doc")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(colors.accent)
+                        copyButton(for: text, chipStyle: false)
                     }
+                    #else
+                    copyButton(for: text, chipStyle: false)
+                    #endif
                 }
             }
         case let .failure(message, _):
@@ -442,6 +478,44 @@ public struct HomeView: View {
                     .foregroundColor(colors.textSecondary)
             }
         }
+    }
+
+    @ViewBuilder
+    private func copyButton(for text: String, chipStyle: Bool) -> some View {
+        Button {
+            copyToPasteboard(text)
+        } label: {
+            if chipStyle {
+                HStack(spacing: 6) {
+                    Image(systemName: "doc.on.doc")
+                    Text("Copy")
+                }
+                .font(.system(size: 14, weight: .medium))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .foregroundColor(colors.chipPrimaryText)
+                .background(
+                    Capsule()
+                        .fill(colors.accent)
+                )
+            } else {
+                Label("Copy", systemImage: "doc.on.doc")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.accent)
+            }
+        }
+        .buttonStyle(.plain)
+        .foregroundColor(chipStyle ? colors.chipPrimaryText : colors.accent)
+    }
+
+    private func copyToPasteboard(_ text: String) {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = text
+        #elseif canImport(AppKit)
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        #endif
     }
 
     @ViewBuilder

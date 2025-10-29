@@ -6,8 +6,12 @@
 //
 import SwiftUI
 import Combine
+#if canImport(UIKit)
 import UIKit
-import TranslationUIProvider
+#endif
+#if canImport(AppKit)
+import AppKit
+#endif
 
 @MainActor
 final class HomeViewModel: ObservableObject {
@@ -191,10 +195,17 @@ final class HomeViewModel: ObservableObject {
     }
 
     func openAppSettings() {
+        #if canImport(UIKit)
         guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else {
             return
         }
         UIApplication.shared.open(settingsURL)
+        #elseif canImport(AppKit)
+        guard let settingsURL = URL(string: "x-apple.systempreferences:") else {
+            return
+        }
+        NSWorkspace.shared.open(settingsURL)
+        #endif
     }
 
     deinit {
