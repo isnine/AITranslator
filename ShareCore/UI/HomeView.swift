@@ -416,7 +416,7 @@ public struct HomeView: View {
                         .foregroundColor(colors.textSecondary)
                 }
             }
-        case let .success(text, _, diff):
+        case let .success(text, _, diff, supplementalTexts):
             VStack(alignment: .leading, spacing: 12) {
                 if let diff {
                     VStack(alignment: .leading, spacing: 8) {
@@ -438,6 +438,13 @@ public struct HomeView: View {
                             )
                             Text(revisedText)
                                 .font(.system(size: 14))
+                        }
+                    }
+                    if !supplementalTexts.isEmpty {
+                        ForEach(Array(supplementalTexts.enumerated()), id: \.offset) { entry in
+                            Text(entry.element)
+                                .font(.system(size: 14))
+                                .foregroundColor(colors.textPrimary)
                         }
                     }
                 } else {

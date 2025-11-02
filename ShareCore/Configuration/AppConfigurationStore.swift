@@ -173,7 +173,35 @@ private enum Defaults {
                 summary: "Inspect grammar issues and provide explanations.",
                 prompt: "Review this text for grammar issues. 1. Return a polished version first. 2. On the next line, explain each original error in Chinese, prefixing severe ones with ❌ and minor ones with ⚠️. 3. End with the polished sentence's meaning translated into Chinese.",
                 providerIDs: providerIDs,
-                usageScenes: [.app, .contextEdit]
+                usageScenes: [.app, .contextEdit],
+                showsDiff: true,
+                structuredOutput: .init(
+                    primaryField: "revised_text",
+                    additionalFields: ["additional_text"],
+                    jsonSchema: """
+                    {
+                      "name": "grammar_check_response",
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "revised_text": {
+                            "type": "string",
+                            "description": "The user text rewritten with all grammar issues addressed. Preserve the original language."
+                          },
+                          "additional_text": {
+                            "type": "string",
+                            "description": "Any requested explanations, analyses, or translations that accompany the revised text."
+                          }
+                        },
+                        "required": [
+                          "revised_text",
+                          "additional_text"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                    """
+                )
             )
         ]
     }

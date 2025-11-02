@@ -8,6 +8,37 @@
 import Foundation
 
 public struct ActionConfig: Identifiable, Hashable {
+    public struct StructuredOutputConfig: Codable, Hashable {
+        public let primaryField: String
+        public let additionalFields: [String]
+        public let jsonSchema: String
+
+        public init(primaryField: String, additionalFields: [String], jsonSchema: String) {
+            self.primaryField = primaryField
+            self.additionalFields = additionalFields
+            self.jsonSchema = jsonSchema
+        }
+
+        public func responseFormatPayload() -> [String: Any]? {
+            guard let schemaObject = jsonSchemaObject() else {
+                return nil
+            }
+
+            return [
+                "type": "json_schema",
+                "json_schema": schemaObject
+            ]
+        }
+
+        private func jsonSchemaObject() -> [String: Any]? {
+            guard let data = jsonSchema.data(using: .utf8) else {
+                return nil
+            }
+            let object = try? JSONSerialization.jsonObject(with: data, options: [])
+            return object as? [String: Any]
+        }
+    }
+
     public struct UsageScene: OptionSet, Hashable {
         public let rawValue: Int
 
@@ -29,6 +60,7 @@ public struct ActionConfig: Identifiable, Hashable {
     public var providerIDs: [UUID]
     public var usageScenes: UsageScene
     public var showsDiff: Bool
+    public var structuredOutput: StructuredOutputConfig?
 
     public init(
         id: UUID = UUID(),
@@ -37,7 +69,8 @@ public struct ActionConfig: Identifiable, Hashable {
         prompt: String,
         providerIDs: [UUID],
         usageScenes: UsageScene = .all,
-        showsDiff: Bool = false
+        showsDiff: Bool = false,
+        structuredOutput: StructuredOutputConfig? = nil
     ) {
         self.id = id
         self.name = name
@@ -46,5 +79,6 @@ public struct ActionConfig: Identifiable, Hashable {
         self.providerIDs = providerIDs
         self.usageScenes = usageScenes
         self.showsDiff = showsDiff
+        self.structuredOutput = structuredOutput
     }
 }

@@ -67,7 +67,9 @@ public final class LLMService {
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(provider.token, forHTTPHeaderField: provider.authHeaderName)
-        if partialHandler != nil {
+        let structuredOutputConfig = provider.category == .azureOpenAI ? action.structuredOutput : nil
+        let streamingHandler = structuredOutputConfig == nil ? partialHandler : nil
+        if streamingHandler != nil {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         }
 
@@ -86,30 +88,40 @@ public final class LLMService {
         do {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted]
-            let decoder = JSONDecoder()
-            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let decoder = JSONDecoder.llmDecoder
+            let payloadData: Data
 
-            let payload = LLMRequestPayload(
-                messages: messages,
-                stream: partialHandler != nil ? true : nil
-            )
-            let encodedPayload = try encoder.encode(payload)
-            request.httpBody = encodedPayload
+            if let structuredOutputConfig,
+               let responseFormat = structuredOutputConfig.responseFormatPayload() {
+                var body: [String: Any] = [
+                    "messages": messages.map { ["role": $0.role, "content": $0.content] }
+                ]
+                body["response_format"] = responseFormat
+                payloadData = try JSONSerialization.data(withJSONObject: body, options: [.prettyPrinted])
+            } else {
+                let payload = LLMRequestPayload(
+                    messages: messages,
+                    stream: streamingHandler != nil ? true : nil
+                )
+                payloadData = try encoder.encode(payload)
+            }
 
-            if let jsonString = String(data: encodedPayload, encoding: .utf8) {
+            request.httpBody = payloadData
+
+            if let jsonString = String(data: payloadData, encoding: .utf8) {
                 print("Sending request to \(provider.apiURL.absoluteString)")
                 print("Request payload: \(jsonString)")
             }
 
             try Task.checkCancellation()
 
-            if let partialHandler {
+            if let streamingHandler {
                 return try await handleStreamingRequest(
                     start: start,
                     request: request,
                     provider: provider,
                     decoder: decoder,
-                    partialHandler: partialHandler
+                    partialHandler: streamingHandler
                 )
             } else {
                 let (data, response) = try await urlSession.data(for: request)
@@ -125,17 +137,19 @@ public final class LLMService {
                     throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
                 }
 
-                let decoded = try decoder.decode(ChatCompletionsResponse.self, from: data)
-                if let message = decoded.choices?.first?.message.content, !message.isEmpty {
-                    let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
-                    return ProviderExecutionResult(
-                        providerID: provider.id,
-                        duration: Date().timeIntervalSince(start),
-                        response: .success(trimmed)
-                    )
-                } else {
-                    throw LLMServiceError.emptyContent
-                }
+                let (message, diffSource, supplementalTexts) = try parseResponsePayload(
+                    data: data,
+                    structuredOutput: structuredOutputConfig
+                )
+                let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
+                return ProviderExecutionResult(
+                    providerID: provider.id,
+                    duration: Date().timeIntervalSince(start),
+                    response: .success(trimmed),
+                    diffSource: diffSource?.trimmingCharacters(in: .whitespacesAndNewlines),
+                    supplementalTexts: supplementalTexts
+                )
             }
         } catch is CancellationError {
             throw CancellationError()
@@ -217,30 +231,60 @@ public final class LLMService {
             let responseString = String(data: data, encoding: .utf8) ?? ""
             print("Non-stream response from \(provider.displayName): \(responseString)")
 
-            let decoded = try decoder.decode(ChatCompletionsResponse.self, from: data)
-            if let message = decoded.choices?.first?.message.content, !message.isEmpty {
-                let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
-                try Task.checkCancellation()
-                await partialHandler(provider.id, trimmed)
-                return ProviderExecutionResult(
-                    providerID: provider.id,
-                    duration: Date().timeIntervalSince(start),
-                    response: .success(trimmed)
-                )
-            } else {
-                throw LLMServiceError.emptyContent
-            }
+            let (message, _, _) = try parseResponsePayload(data: data, structuredOutput: nil)
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            try Task.checkCancellation()
+            guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
+            await partialHandler(provider.id, trimmed)
+            return ProviderExecutionResult(
+                providerID: provider.id,
+                duration: Date().timeIntervalSince(start),
+                response: .success(trimmed)
+            )
         }
     }
 }
 
 private struct ChatCompletionsResponse: Decodable {
     struct Choice: Decodable {
-        struct Message: Decodable {
-            let content: String?
-        }
-
         let message: Message
+    }
+
+    struct Message: Decodable {
+        let content: MessageContent?
+    }
+
+    enum MessageContent: Decodable {
+        case text(String)
+        case parts([MessagePart])
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let text = try? container.decode(String.self) {
+                self = .text(text)
+            } else if let parts = try? container.decode([MessagePart].self) {
+                self = .parts(parts)
+            } else {
+                self = .text("")
+            }
+        }
+    }
+
+    struct MessagePart: Decodable {
+        let type: String?
+        let text: String?
+        let data: String?
+        let content: String?
+        let json: JSONValue?
+        let jsonSchema: JSONSchemaPayload?
+    }
+
+    struct JSONSchemaPayload: Decodable {
+        let name: String?
+        let schema: JSONValue?
+        let output: JSONValue?
+        let result: JSONValue?
+        let json: JSONValue?
     }
 
     let choices: [Choice]?
@@ -259,5 +303,229 @@ private struct ChatCompletionsStreamChunk: Decodable {
 
     var combinedText: String {
         choices.compactMap { $0.delta?.content }.joined()
+    }
+}
+
+private enum JSONValue: Codable {
+    case string(String)
+    case number(Double)
+    case object([String: JSONValue])
+    case array([JSONValue])
+    case bool(Bool)
+    case null
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if container.decodeNil() {
+            self = .null
+        } else if let string = try? container.decode(String.self) {
+            self = .string(string)
+        } else if let bool = try? container.decode(Bool.self) {
+            self = .bool(bool)
+        } else if let int = try? container.decode(Int.self) {
+            self = .number(Double(int))
+        } else if let double = try? container.decode(Double.self) {
+            self = .number(double)
+        } else if let object = try? container.decode([String: JSONValue].self) {
+            self = .object(object)
+        } else if let array = try? container.decode([JSONValue].self) {
+            self = .array(array)
+        } else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unsupported JSON value"
+            )
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case let .string(value):
+            try container.encode(value)
+        case let .number(value):
+            try container.encode(value)
+        case let .object(value):
+            try container.encode(value)
+        case let .array(value):
+            try container.encode(value)
+        case let .bool(value):
+            try container.encode(value)
+        case .null:
+            try container.encodeNil()
+        }
+    }
+}
+
+private extension JSONValue {
+    var objectValue: [String: JSONValue]? {
+        guard case let .object(value) = self else { return nil }
+        return value
+    }
+
+    var renderedString: String? {
+        switch self {
+        case let .string(value):
+            return value
+        case let .number(value):
+            if value.isFinite {
+                let integer = Int64(value)
+                if Double(integer) == value {
+                    return String(integer)
+                }
+            }
+            return String(value)
+        case let .bool(value):
+            return value ? "true" : "false"
+        case let .object(value):
+            guard let data = try? JSONEncoder.llmEncoder.encode(value) else { return nil }
+            return String(data: data, encoding: .utf8)
+        case let .array(value):
+            guard let data = try? JSONEncoder.llmEncoder.encode(value) else { return nil }
+            return String(data: data, encoding: .utf8)
+        case .null:
+            return nil
+        }
+    }
+
+    static func dictionary(from string: String) -> [String: JSONValue]? {
+        guard let data = string.data(using: .utf8) else { return nil }
+        guard let value = try? JSONDecoder.llmDecoder.decode(JSONValue.self, from: data),
+              case let .object(object) = value else {
+            return nil
+        }
+        return object
+    }
+}
+
+private extension ChatCompletionsResponse.Message {
+    func structuredDictionary() -> [String: JSONValue]? {
+        guard let content else { return nil }
+        switch content {
+        case let .text(text):
+            return JSONValue.dictionary(from: text)
+        case let .parts(parts):
+            for part in parts {
+                if let json = part.json?.objectValue {
+                    return json
+                }
+                if let schema = part.jsonSchema {
+                    if let output = schema.output?.objectValue {
+                        return output
+                    }
+                    if let result = schema.result?.objectValue {
+                        return result
+                    }
+                    if let json = schema.json?.objectValue {
+                        return json
+                    }
+                }
+                if let text = part.text,
+                   let dictionary = JSONValue.dictionary(from: text) {
+                    return dictionary
+                }
+                if let content = part.content,
+                   let dictionary = JSONValue.dictionary(from: content) {
+                    return dictionary
+                }
+            }
+            return nil
+        }
+    }
+
+    func plainText() -> String {
+        guard let content else { return "" }
+        switch content {
+        case let .text(text):
+            return text.trimmingCharacters(in: .whitespacesAndNewlines)
+        case let .parts(parts):
+            var fragments: [String] = []
+            for part in parts {
+                if let text = part.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !text.isEmpty {
+                    fragments.append(text)
+                }
+                if let content = part.content?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !content.isEmpty {
+                    fragments.append(content)
+                }
+                if let data = part.data?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !data.isEmpty {
+                    fragments.append(data)
+                }
+                if let json = part.json?.renderedString?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                   !json.isEmpty {
+                    fragments.append(json)
+                }
+                if let output = part.jsonSchema?.output?.renderedString?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                   !output.isEmpty {
+                    fragments.append(output)
+                }
+                if let result = part.jsonSchema?.result?.renderedString?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                   !result.isEmpty {
+                    fragments.append(result)
+                }
+            }
+            return fragments.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+    }
+}
+
+private extension LLMService {
+    func parseResponsePayload(
+        data: Data,
+        structuredOutput: ActionConfig.StructuredOutputConfig?
+    ) throws -> (String, String?, [String]) {
+        let response = try JSONDecoder.llmDecoder.decode(ChatCompletionsResponse.self, from: data)
+        guard let message = response.choices?.first?.message else {
+            throw LLMServiceError.emptyContent
+        }
+
+        if let structuredOutput,
+           let dictionary = message.structuredDictionary(),
+           let primaryValue = dictionary[structuredOutput.primaryField]?.renderedString?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !primaryValue.isEmpty {
+            var supplemental: [String] = []
+            for field in structuredOutput.additionalFields {
+                guard let value = dictionary[field]?.renderedString?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                      !value.isEmpty else {
+                    continue
+                }
+                supplemental.append(value)
+            }
+            var sections = [primaryValue]
+            sections.append(contentsOf: supplemental)
+            let combined = sections.joined(separator: "\n\n")
+            if !combined.isEmpty {
+                return (combined, primaryValue, supplemental)
+            }
+        }
+
+        let fallback = message.plainText()
+        guard !fallback.isEmpty else {
+            throw LLMServiceError.emptyContent
+        }
+        return (fallback, nil, [])
+    }
+}
+
+private extension JSONDecoder {
+    static var llmDecoder: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return decoder
+    }
+}
+
+private extension JSONEncoder {
+    static var llmEncoder: JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
     }
 }
