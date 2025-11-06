@@ -224,7 +224,7 @@ private extension AppConfigurationStore {
         func prompt(for language: TargetLanguageOption) -> String {
             switch self {
             case .translate:
-                return "Translate the selected text into \(language.promptDescriptor). Preserve tone, intent, and terminology. Respond with only the translated text."
+                return Self.translatePrompt(for: language)
             case .summarize:
                 return "Provide a concise summary of the selected text in \(language.promptDescriptor). Preserve the essential meaning without adding new information."
             }
@@ -246,7 +246,12 @@ private extension AppConfigurationStore {
 
             switch self {
             case .translate:
-                return currentPrompt == Defaults.translateLegacyPrompt || generated.contains(currentPrompt)
+                var acceptable = generated
+                acceptable.formUnion(
+                    TargetLanguageOption.selectionOptions.map { Self.translateLegacyPrompt(for: $0) }
+                )
+                acceptable.insert(Defaults.translateLegacyPrompt)
+                return acceptable.contains(currentPrompt)
             case .summarize:
                 return currentPrompt == Defaults.summarizeLegacyPrompt || generated.contains(currentPrompt)
             }
@@ -264,6 +269,15 @@ private extension AppConfigurationStore {
             case .summarize:
                 return false
             }
+        }
+
+        private static func translatePrompt(for language: TargetLanguageOption) -> String {
+            let descriptor = language.promptDescriptor
+            return "Translate the selected text into \(descriptor). If the input language already matches the target language, translate it into English instead. Preserve tone, intent, and terminology. Respond with only the translated text."
+        }
+
+        private static func translateLegacyPrompt(for language: TargetLanguageOption) -> String {
+            "Translate the selected text into \(language.promptDescriptor). Preserve tone, intent, and terminology. Respond with only the translated text."
         }
     }
 }
