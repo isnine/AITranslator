@@ -301,9 +301,11 @@ public struct HomeView: View {
                     .foregroundColor(colors.textPrimary)
                     .padding(12)
                     .frame(minHeight: 140, maxHeight: 160)
+    #if !os(iOS)
                     .onPasteCommand(of: [.plainText]) { providers in
                         handlePasteCommand(providers: providers)
                     }
+    #endif
 #endif
             }
         }
