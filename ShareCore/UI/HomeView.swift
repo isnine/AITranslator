@@ -415,6 +415,7 @@ public struct HomeView: View {
                     Text(text)
                         .font(.system(size: 14))
                         .foregroundColor(colors.textPrimary)
+                        .textSelection(.enabled)
                 }
 
                 HStack(spacing: 8) {
@@ -427,7 +428,7 @@ public struct HomeView: View {
                         .foregroundColor(colors.textSecondary)
                 }
             }
-        case let .success(text, _, diff, supplementalTexts):
+        case let .success(text, copyText, _, diff, supplementalTexts):
             VStack(alignment: .leading, spacing: 12) {
                 if let diff {
                     VStack(alignment: .leading, spacing: 8) {
@@ -439,6 +440,7 @@ public struct HomeView: View {
                             )
                             Text(originalText)
                                 .font(.system(size: 14))
+                                .textSelection(.enabled)
                         }
 
                         if diff.hasAdditions || (!diff.hasRemovals && !diff.hasAdditions) {
@@ -449,25 +451,22 @@ public struct HomeView: View {
                             )
                             Text(revisedText)
                                 .font(.system(size: 14))
-                        }
-                    }
-                    if !supplementalTexts.isEmpty {
-                        ForEach(Array(supplementalTexts.enumerated()), id: \.offset) { entry in
-                            Text(entry.element)
-                                .font(.system(size: 14))
-                                .foregroundColor(colors.textPrimary)
+                                .textSelection(.enabled)
                         }
                     }
                 } else {
-                    Text(text)
+                    let mainText = !supplementalTexts.isEmpty ? copyText : text
+                    Text(mainText)
                         .font(.system(size: 14))
                         .foregroundColor(colors.textPrimary)
+                        .textSelection(.enabled)
                 }
+
                 HStack(spacing: 16) {
                     #if canImport(TranslationUIProvider)
                     if let context, context.allowsReplacement {
                         Button {
-                            context.finish(translation: AttributedString(text))
+                            context.finish(translation: AttributedString(copyText))
                         } label: {
                             Label("Replace", systemImage: "arrow.left.arrow.right")
                                 .font(.system(size: 14, weight: .medium))
@@ -477,13 +476,25 @@ public struct HomeView: View {
 
                         Spacer()
 
-                        copyButton(for: text, chipStyle: openFromExtension)
+                        copyButton(for: copyText, chipStyle: openFromExtension)
                     } else {
-                        copyButton(for: text, chipStyle: false)
+                        copyButton(for: copyText, chipStyle: false)
                     }
                     #else
-                    copyButton(for: text, chipStyle: false)
+                    copyButton(for: copyText, chipStyle: false)
                     #endif
+                }
+
+                if !supplementalTexts.isEmpty {
+                    Divider()
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(Array(supplementalTexts.enumerated()), id: \.offset) { entry in
+                            Text(entry.element)
+                                .font(.system(size: 14))
+                                .foregroundColor(colors.textPrimary)
+                                .textSelection(.enabled)
+                        }
+                    }
                 }
             }
         case let .failure(message, _):
@@ -494,6 +505,7 @@ public struct HomeView: View {
                 Text(message)
                     .font(.system(size: 14))
                     .foregroundColor(colors.textSecondary)
+                    .textSelection(.enabled)
             }
         }
     }

@@ -20,14 +20,20 @@ final class HomeViewModel: ObservableObject {
             case idle
             case running(start: Date)
             case streaming(text: String, start: Date)
-            case success(text: String, duration: TimeInterval, diff: TextDiffBuilder.Presentation? = nil, supplementalTexts: [String] = [])
+            case success(
+                text: String,
+                copyText: String,
+                duration: TimeInterval,
+                diff: TextDiffBuilder.Presentation? = nil,
+                supplementalTexts: [String] = []
+            )
             case failure(message: String, duration: TimeInterval)
 
             var duration: TimeInterval? {
                 switch self {
                 case .idle, .running, .streaming:
                     return nil
-                case let .success(_, duration, _, _),
+                case let .success(_, _, duration, _, _),
                      let .failure(_, duration):
                     return duration
                 }
@@ -257,6 +263,7 @@ final class HomeViewModel: ObservableObject {
                     let diff = currentActionShowsDiff ? TextDiffBuilder.build(original: currentRequestInputText, revised: diffTarget) : nil
                     runState = .success(
                         text: message,
+                        copyText: diffTarget,
                         duration: result.duration,
                         diff: diff,
                         supplementalTexts: result.supplementalTexts
@@ -294,6 +301,7 @@ final class HomeViewModel: ObservableObject {
             let diff = allowDiff ? TextDiffBuilder.build(original: currentRequestInputText, revised: diffTarget) : nil
             providerRuns[index].status = .success(
                 text: message,
+                copyText: diffTarget,
                 duration: result.duration,
                 diff: diff,
                 supplementalTexts: result.supplementalTexts
