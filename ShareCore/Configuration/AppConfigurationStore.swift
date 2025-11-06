@@ -88,182 +88,182 @@ public final class AppConfigurationStore: ObservableObject {
     }
 }
 
-private enum Defaults {
+private extension AppConfigurationStore {
+    enum Defaults {
+        static let translateName = NSLocalizedString(
+            "Translate",
+            comment: "Name of the translate action"
+        )
+        static let summarizeName = NSLocalizedString(
+            "Summarize",
+            comment: "Name of the summarize action"
+        )
+        static let polishName = NSLocalizedString(
+            "Polish",
+            comment: "Name of the polish action"
+        )
+        static let grammarCheckName = NSLocalizedString(
+            "Grammar Check",
+            comment: "Name of the grammar check action"
+        )
+        static let translateLegacySummary = "Use AI for context-aware translation."
+        static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
+        static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
 
-    static let translateName = NSLocalizedString(
-        "Translate",
-        comment: "Name of the translate action"
-    )
-    static let summarizeName = NSLocalizedString(
-        "Summarize",
-        comment: "Name of the summarize action"
-    )
-    static let polishName = NSLocalizedString(
-        "Polish",
-        comment: "Name of the polish action"
-    )
-    static let grammarCheckName = NSLocalizedString(
-        "Grammar Check",
-        comment: "Name of the grammar check action"
-    )
-    static let translateLegacySummary = "Use AI for context-aware translation."
-    static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
-    static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
-
-
-    static let provider: ProviderConfig = .init(
-        displayName: "Azure OpenAI",
-        apiURL: URL(
-          string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview"
-      )!,
-        token: "REDACTED_AZURE_API_KEY",
-        authHeaderName: "api-key",
-        category: .azureOpenAI,
-        modelName: "model-router"
-    )
-
-  static let gpt5Provider: ProviderConfig = .init(
-      displayName: "Azure OpenAI",
-      apiURL: URL(
-        string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5/chat/completions?api-version=2025-01-01-preview"
-    )!,
-      token: "REDACTED_AZURE_API_KEY",
-      authHeaderName: "api-key",
-      category: .azureOpenAI,
-      modelName: "gpt-5"
-  )
-
-  static let gpt5NanoProvider: ProviderConfig = .init(
-      displayName: "Azure OpenAI",
-      apiURL: URL(
-        string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview"
-    )!,
-      token: "REDACTED_AZURE_API_KEY",
-      authHeaderName: "api-key",
-      category: .azureOpenAI,
-      modelName: "gpt-5-nano"
-  )
-
-    static func actions(for providerIDs: [UUID]) -> [ActionConfig] {
-        [
-            .init(
-                name: translateName,
-                summary: translateLegacySummary,
-                prompt: translateLegacyPrompt,
-                providerIDs: providerIDs,
-                usageScenes: [.app, .contextRead]
-            ),
-            .init(
-                name: summarizeName,
-                summary: "Generate a concise summary of the text.",
-                prompt: summarizeLegacyPrompt,
-                providerIDs: providerIDs,
-                usageScenes: [.app, .contextRead]
-            ),
-            .init(
-                name: polishName,
-                summary: "Rewrite the text in the same language with improved clarity.",
-                prompt: "Polish the text and return the improved version in the same language.",
-                providerIDs: providerIDs,
-                usageScenes: [.app, .contextEdit],
-                showsDiff: true
-            ),
-            .init(
-                name: grammarCheckName,
-                summary: "Inspect grammar issues and provide explanations.",
-                prompt: "Review this text for grammar issues. 1. Return a polished version first. 2. On the next line, explain each original error in Chinese, prefixing severe ones with ❌ and minor ones with ⚠️. 3. End with the polished sentence's meaning translated into Chinese.",
-                providerIDs: providerIDs,
-                usageScenes: [.app, .contextEdit],
-                showsDiff: true,
-                structuredOutput: .init(
-                    primaryField: "revised_text",
-                    additionalFields: ["additional_text"],
-                    jsonSchema: """
-                    {
-                      "name": "grammar_check_response",
-                      "schema": {
-                        "type": "object",
-                        "properties": {
-                          "revised_text": {
-                            "type": "string",
-                            "description": "The user text rewritten with all grammar issues addressed. Preserve the original language."
-                          },
-                          "additional_text": {
-                            "type": "string",
-                            "description": "Any requested explanations, analyses, or translations that accompany the revised text."
-                          }
-                        },
-                        "required": [
-                          "revised_text",
-                          "additional_text"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                    """
-                )
-            )
-        ]
-    }
-}
-
-private enum ManagedActionTemplate {
-    case translate
-    case summarize
-
-    init?(action: ActionConfig) {
-        switch action.name {
-        case Defaults.translateName:
-            self = .translate
-        case Defaults.summarizeName:
-            self = .summarize
-        default:
-            return nil
-        }
-    }
-
-    func prompt(for language: TargetLanguageOption) -> String {
-        switch self {
-        case .translate:
-            return "Translate the selected text into \(language.promptDescriptor). Preserve tone, intent, and terminology. Respond with only the translated text."
-        case .summarize:
-            return "Provide a concise summary of the selected text in \(language.promptDescriptor). Preserve the essential meaning without adding new information."
-        }
-    }
-
-    func summary(for language: TargetLanguageOption) -> String? {
-        switch self {
-        case .translate:
-            return "Translate into \(language.promptDescriptor) while keeping the original tone."
-        case .summarize:
-            return nil
-        }
-    }
-
-    func shouldUpdatePrompt(currentPrompt: String) -> Bool {
-        let generated = Set(
-            TargetLanguageOption.selectionOptions.map { prompt(for: $0) }
+        static let provider: ProviderConfig = .init(
+            displayName: "Azure OpenAI",
+            apiURL: URL(
+                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview"
+            )!,
+            token: "REDACTED_AZURE_API_KEY",
+            authHeaderName: "api-key",
+            category: .azureOpenAI,
+            modelName: "model-router"
         )
 
-        switch self {
-        case .translate:
-            return currentPrompt == Defaults.translateLegacyPrompt || generated.contains(currentPrompt)
-        case .summarize:
-            return currentPrompt == Defaults.summarizeLegacyPrompt || generated.contains(currentPrompt)
+        static let gpt5Provider: ProviderConfig = .init(
+            displayName: "Azure OpenAI",
+            apiURL: URL(
+                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5/chat/completions?api-version=2025-01-01-preview"
+            )!,
+            token: "REDACTED_AZURE_API_KEY",
+            authHeaderName: "api-key",
+            category: .azureOpenAI,
+            modelName: "gpt-5"
+        )
+
+        static let gpt5NanoProvider: ProviderConfig = .init(
+            displayName: "Azure OpenAI",
+            apiURL: URL(
+                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview"
+            )!,
+            token: "REDACTED_AZURE_API_KEY",
+            authHeaderName: "api-key",
+            category: .azureOpenAI,
+            modelName: "gpt-5-nano"
+        )
+
+        static func actions(for providerIDs: [UUID]) -> [ActionConfig] {
+            [
+                .init(
+                    name: translateName,
+                    summary: translateLegacySummary,
+                    prompt: translateLegacyPrompt,
+                    providerIDs: providerIDs,
+                    usageScenes: [.app, .contextRead]
+                ),
+                .init(
+                    name: summarizeName,
+                    summary: "Generate a concise summary of the text.",
+                    prompt: summarizeLegacyPrompt,
+                    providerIDs: providerIDs,
+                    usageScenes: [.app, .contextRead]
+                ),
+                .init(
+                    name: polishName,
+                    summary: "Rewrite the text in the same language with improved clarity.",
+                    prompt: "Polish the text and return the improved version in the same language.",
+                    providerIDs: providerIDs,
+                    usageScenes: [.app, .contextEdit],
+                    showsDiff: true
+                ),
+                .init(
+                    name: grammarCheckName,
+                    summary: "Inspect grammar issues and provide explanations.",
+                    prompt: "Review this text for grammar issues. 1. Return a polished version first. 2. On the next line, explain each original error in Chinese, prefixing severe ones with ❌ and minor ones with ⚠️. 3. End with the polished sentence's meaning translated into Chinese.",
+                    providerIDs: providerIDs,
+                    usageScenes: [.app, .contextEdit],
+                    showsDiff: true,
+                    structuredOutput: .init(
+                        primaryField: "revised_text",
+                        additionalFields: ["additional_text"],
+                        jsonSchema: """
+                        {
+                          "name": "grammar_check_response",
+                          "schema": {
+                            "type": "object",
+                            "properties": {
+                              "revised_text": {
+                                "type": "string",
+                                "description": "The user text rewritten with all grammar issues addressed. Preserve the original language."
+                              },
+                              "additional_text": {
+                                "type": "string",
+                                "description": "Any requested explanations, analyses, or translations that accompany the revised text."
+                              }
+                            },
+                            "required": [
+                              "revised_text",
+                              "additional_text"
+                            ],
+                            "additionalProperties": false
+                          }
+                        }
+                        """
+                    )
+                )
+            ]
         }
     }
 
-    func shouldUpdateSummary(currentSummary: String) -> Bool {
-        switch self {
-        case .translate:
+    enum ManagedActionTemplate {
+        case translate
+        case summarize
+
+        init?(action: ActionConfig) {
+            switch action.name {
+            case Defaults.translateName:
+                self = .translate
+            case Defaults.summarizeName:
+                self = .summarize
+            default:
+                return nil
+            }
+        }
+
+        func prompt(for language: TargetLanguageOption) -> String {
+            switch self {
+            case .translate:
+                return "Translate the selected text into \(language.promptDescriptor). Preserve tone, intent, and terminology. Respond with only the translated text."
+            case .summarize:
+                return "Provide a concise summary of the selected text in \(language.promptDescriptor). Preserve the essential meaning without adding new information."
+            }
+        }
+
+        func summary(for language: TargetLanguageOption) -> String? {
+            switch self {
+            case .translate:
+                return "Translate into \(language.promptDescriptor) while keeping the original tone."
+            case .summarize:
+                return nil
+            }
+        }
+
+        func shouldUpdatePrompt(currentPrompt: String) -> Bool {
             let generated = Set(
-                TargetLanguageOption.selectionOptions.compactMap {
-                    summary(for: $0)
-                }
+                TargetLanguageOption.selectionOptions.map { prompt(for: $0) }
             )
-            return currentSummary == Defaults.translateLegacySummary || generated.contains(currentSummary)
-        case .summarize:
-            return false
+
+            switch self {
+            case .translate:
+                return currentPrompt == Defaults.translateLegacyPrompt || generated.contains(currentPrompt)
+            case .summarize:
+                return currentPrompt == Defaults.summarizeLegacyPrompt || generated.contains(currentPrompt)
+            }
+        }
+
+        func shouldUpdateSummary(currentSummary: String) -> Bool {
+            switch self {
+            case .translate:
+                let generated = Set(
+                    TargetLanguageOption.selectionOptions.compactMap {
+                        summary(for: $0)
+                    }
+                )
+                return currentSummary == Defaults.translateLegacySummary || generated.contains(currentSummary)
+            case .summarize:
+                return false
+            }
         }
     }
 }

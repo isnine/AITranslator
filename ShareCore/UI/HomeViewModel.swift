@@ -20,7 +20,7 @@ final class HomeViewModel: ObservableObject {
             case idle
             case running(start: Date)
             case streaming(text: String, start: Date)
-            case success(text: String, duration: TimeInterval, diff: TextDiffPresentation? = nil, supplementalTexts: [String] = [])
+            case success(text: String, duration: TimeInterval, diff: TextDiffBuilder.Presentation? = nil, supplementalTexts: [String] = [])
             case failure(message: String, duration: TimeInterval)
 
             var duration: TimeInterval? {

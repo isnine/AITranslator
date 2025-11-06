@@ -245,120 +245,122 @@ public final class LLMService {
     }
 }
 
-private struct ChatCompletionsResponse: Decodable {
-    struct Choice: Decodable {
-        let message: Message
+private extension LLMService {
+    struct ChatCompletionsResponse: Decodable {
+        struct Choice: Decodable {
+            let message: Message
+        }
+
+        struct Message: Decodable {
+            let content: MessageContent?
+        }
+
+        enum MessageContent: Decodable {
+            case text(String)
+            case parts([MessagePart])
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.singleValueContainer()
+                if let text = try? container.decode(String.self) {
+                    self = .text(text)
+                } else if let parts = try? container.decode([MessagePart].self) {
+                    self = .parts(parts)
+                } else {
+                    self = .text("")
+                }
+            }
+        }
+
+        struct MessagePart: Decodable {
+            let type: String?
+            let text: String?
+            let data: String?
+            let content: String?
+            let json: JSONValue?
+            let jsonSchema: JSONSchemaPayload?
+        }
+
+        struct JSONSchemaPayload: Decodable {
+            let name: String?
+            let schema: JSONValue?
+            let output: JSONValue?
+            let result: JSONValue?
+            let json: JSONValue?
+        }
+
+        let choices: [Choice]?
     }
 
-    struct Message: Decodable {
-        let content: MessageContent?
+    struct ChatCompletionsStreamChunk: Decodable {
+        struct Choice: Decodable {
+            struct Delta: Decodable {
+                let content: String?
+            }
+
+            let delta: Delta?
+        }
+
+        let choices: [Choice]
+
+        var combinedText: String {
+            choices.compactMap { $0.delta?.content }.joined()
+        }
     }
 
-    enum MessageContent: Decodable {
-        case text(String)
-        case parts([MessagePart])
+    enum JSONValue: Codable {
+        case string(String)
+        case number(Double)
+        case object([String: JSONValue])
+        case array([JSONValue])
+        case bool(Bool)
+        case null
 
         init(from decoder: Decoder) throws {
             let container = try decoder.singleValueContainer()
-            if let text = try? container.decode(String.self) {
-                self = .text(text)
-            } else if let parts = try? container.decode([MessagePart].self) {
-                self = .parts(parts)
+            if container.decodeNil() {
+                self = .null
+            } else if let string = try? container.decode(String.self) {
+                self = .string(string)
+            } else if let bool = try? container.decode(Bool.self) {
+                self = .bool(bool)
+            } else if let int = try? container.decode(Int.self) {
+                self = .number(Double(int))
+            } else if let double = try? container.decode(Double.self) {
+                self = .number(double)
+            } else if let object = try? container.decode([String: JSONValue].self) {
+                self = .object(object)
+            } else if let array = try? container.decode([JSONValue].self) {
+                self = .array(array)
             } else {
-                self = .text("")
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Unsupported JSON value"
+                )
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+            case let .string(value):
+                try container.encode(value)
+            case let .number(value):
+                try container.encode(value)
+            case let .object(value):
+                try container.encode(value)
+            case let .array(value):
+                try container.encode(value)
+            case let .bool(value):
+                try container.encode(value)
+            case .null:
+                try container.encodeNil()
             }
         }
     }
-
-    struct MessagePart: Decodable {
-        let type: String?
-        let text: String?
-        let data: String?
-        let content: String?
-        let json: JSONValue?
-        let jsonSchema: JSONSchemaPayload?
-    }
-
-    struct JSONSchemaPayload: Decodable {
-        let name: String?
-        let schema: JSONValue?
-        let output: JSONValue?
-        let result: JSONValue?
-        let json: JSONValue?
-    }
-
-    let choices: [Choice]?
 }
 
-private struct ChatCompletionsStreamChunk: Decodable {
-    struct Choice: Decodable {
-        struct Delta: Decodable {
-            let content: String?
-        }
-
-        let delta: Delta?
-    }
-
-    let choices: [Choice]
-
-    var combinedText: String {
-        choices.compactMap { $0.delta?.content }.joined()
-    }
-}
-
-private enum JSONValue: Codable {
-    case string(String)
-    case number(Double)
-    case object([String: JSONValue])
-    case array([JSONValue])
-    case bool(Bool)
-    case null
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if container.decodeNil() {
-            self = .null
-        } else if let string = try? container.decode(String.self) {
-            self = .string(string)
-        } else if let bool = try? container.decode(Bool.self) {
-            self = .bool(bool)
-        } else if let int = try? container.decode(Int.self) {
-            self = .number(Double(int))
-        } else if let double = try? container.decode(Double.self) {
-            self = .number(double)
-        } else if let object = try? container.decode([String: JSONValue].self) {
-            self = .object(object)
-        } else if let array = try? container.decode([JSONValue].self) {
-            self = .array(array)
-        } else {
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Unsupported JSON value"
-            )
-        }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        switch self {
-        case let .string(value):
-            try container.encode(value)
-        case let .number(value):
-            try container.encode(value)
-        case let .object(value):
-            try container.encode(value)
-        case let .array(value):
-            try container.encode(value)
-        case let .bool(value):
-            try container.encode(value)
-        case .null:
-            try container.encodeNil()
-        }
-    }
-}
-
-private extension JSONValue {
-    var objectValue: [String: JSONValue]? {
+private extension LLMService.JSONValue {
+    var objectValue: [String: LLMService.JSONValue]? {
         guard case let .object(value) = self else { return nil }
         return value
     }
@@ -388,9 +390,9 @@ private extension JSONValue {
         }
     }
 
-    static func dictionary(from string: String) -> [String: JSONValue]? {
+    static func dictionary(from string: String) -> [String: LLMService.JSONValue]? {
         guard let data = string.data(using: .utf8) else { return nil }
-        guard let value = try? JSONDecoder.llmDecoder.decode(JSONValue.self, from: data),
+        guard let value = try? JSONDecoder.llmDecoder.decode(LLMService.JSONValue.self, from: data),
               case let .object(object) = value else {
             return nil
         }
@@ -398,7 +400,9 @@ private extension JSONValue {
     }
 }
 
-private extension ChatCompletionsResponse.Message {
+private extension LLMService.ChatCompletionsResponse.Message {
+    typealias JSONValue = LLMService.JSONValue
+
     func structuredDictionary() -> [String: JSONValue]? {
         guard let content else { return nil }
         switch content {

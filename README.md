@@ -16,6 +16,13 @@ AITranslator 是一款面向 iOS 18+ 的 SwiftUI 应用，配套一个 `Translat
 - `TranslationUI/` – 系统翻译扩展，`TranslationProviderExtension` 直接呈现 `HomeView(context:)`。
 - `AITranslator.xcodeproj` – 启用了“文件夹同步”模式，新增 Swift 文件自动加入对应 Target。
 
+## 最近结构优化
+
+- 遵循 Airbnb Swift Style Guide 的“一个文件一个顶层类型”约定，将 `AppConfigurationStore`、`LLMService` 与 `TextDiffBuilder` 的私有辅助类型下沉为嵌套声明。
+- 将 `SettingsView`、`ActionsView`、`ProvidersView` 的辅助视图改为 `private` 嵌套类型，避免顶层类型膨胀并明确可见性。
+- 将 `AppColors` 的调色板暴露为嵌套 `AppColors.Palette`（通过 `AppColorPalette` typealias 兼容旧代码），集中管理自适应色值。
+- 收敛 `TextDiffBuilder` API：`Segment`、`Presentation` 等类型与配色主题统一收纳在该枚举内部，简化命名空间。
+
 已移除旧的 `TranslationU/` 模板代码，避免重复实现。
 
 ## 核心组件

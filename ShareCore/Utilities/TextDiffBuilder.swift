@@ -1,25 +1,25 @@
 import SwiftUI
 
-struct TextDiffSegment {
-    enum Kind {
-        case equal
-        case added
-        case removed
+enum TextDiffBuilder {
+    struct Segment {
+        enum Kind {
+            case equal
+            case added
+            case removed
+        }
+
+        var kind: Kind
+        var text: String
     }
 
-    var kind: Kind
-    var text: String
-}
+    struct Presentation {
+        let originalSegments: [Segment]
+        let revisedSegments: [Segment]
+        let hasRemovals: Bool
+        let hasAdditions: Bool
+    }
 
-struct TextDiffPresentation {
-    let originalSegments: [TextDiffSegment]
-    let revisedSegments: [TextDiffSegment]
-    let hasRemovals: Bool
-    let hasAdditions: Bool
-}
-
-enum TextDiffBuilder {
-    static func build(original: String, revised: String) -> TextDiffPresentation? {
+    static func build(original: String, revised: String) -> Presentation? {
         guard original != revised else {
             return nil
         }
@@ -32,7 +32,7 @@ enum TextDiffBuilder {
 
         let lcsMatrix = buildLCSMatrix(original: originalChars, revised: revisedChars)
 
-        var segments: [TextDiffSegment] = []
+        var segments: [Segment] = []
         var i = originalChars.count
         var j = revisedChars.count
         var addedBuffer: [Character] = []
@@ -59,7 +59,7 @@ enum TextDiffBuilder {
                 segments.append(.init(kind: .equal, text: String(originalChars[i - 1])))
                 i -= 1
                 j -= 1
-            } else if j > 0, (i == 0 || lcsMatrix[i][j - 1] >= lcsMatrix[i - 1][j]) {
+            } else if j > 0, i == 0 || lcsMatrix[i][j - 1] >= lcsMatrix[i - 1][j] {
                 addedBuffer.append(revisedChars[j - 1])
                 j -= 1
             } else if i > 0 {
@@ -73,7 +73,7 @@ enum TextDiffBuilder {
 
         segments.reverse()
 
-        var merged: [TextDiffSegment] = []
+        var merged: [Segment] = []
         for segment in segments {
             if let lastIndex = merged.indices.last, merged[lastIndex].kind == segment.kind {
                 merged[lastIndex].text.append(contentsOf: segment.text)
@@ -82,8 +82,8 @@ enum TextDiffBuilder {
             }
         }
 
-        var originalSegments: [TextDiffSegment] = []
-        var revisedSegments: [TextDiffSegment] = []
+        var originalSegments: [Segment] = []
+        var revisedSegments: [Segment] = []
         var hasRemovals = false
         var hasAdditions = false
 
@@ -101,7 +101,7 @@ enum TextDiffBuilder {
             }
         }
 
-        return TextDiffPresentation(
+        return Presentation(
             originalSegments: originalSegments,
             revisedSegments: revisedSegments,
             hasRemovals: hasRemovals,
@@ -110,11 +110,11 @@ enum TextDiffBuilder {
     }
 
     static func attributedString(
-        for segments: [TextDiffSegment],
+        for segments: [Segment],
         palette: AppColorPalette,
         colorScheme: ColorScheme
     ) -> AttributedString {
-        let theme = TextDiffColorTheme.forScheme(colorScheme, palette: palette)
+        let theme = ColorTheme.forScheme(colorScheme, palette: palette)
         var attributed = AttributedString()
 
         for segment in segments {
@@ -155,33 +155,35 @@ enum TextDiffBuilder {
     }
 }
 
-private struct TextDiffColorTheme {
-    let additionBackground: Color
-    let additionForeground: Color
-    let removalBackground: Color
-    let removalForeground: Color
-    let baseForeground: Color
+private extension TextDiffBuilder {
+    struct ColorTheme {
+        let additionBackground: Color
+        let additionForeground: Color
+        let removalBackground: Color
+        let removalForeground: Color
+        let baseForeground: Color
 
-    static func forScheme(_ colorScheme: ColorScheme, palette: AppColorPalette) -> TextDiffColorTheme {
-        let success = AppColors.success.resolve(colorScheme)
-        let error = AppColors.error.resolve(colorScheme)
-        switch colorScheme {
-        case .dark:
-            return TextDiffColorTheme(
-                additionBackground: success.opacity(0.35),
-                additionForeground: Color.white,
-                removalBackground: error.opacity(0.35),
-                removalForeground: Color.white,
-                baseForeground: palette.textPrimary
-            )
-        default:
-            return TextDiffColorTheme(
-                additionBackground: success.opacity(0.18),
-                additionForeground: success,
-                removalBackground: error.opacity(0.18),
-                removalForeground: error,
-                baseForeground: palette.textPrimary
-            )
+        static func forScheme(_ colorScheme: ColorScheme, palette: AppColorPalette) -> ColorTheme {
+            let success = palette.success
+            let error = palette.error
+            switch colorScheme {
+            case .dark:
+                return ColorTheme(
+                    additionBackground: success.opacity(0.35),
+                    additionForeground: Color.white,
+                    removalBackground: error.opacity(0.35),
+                    removalForeground: Color.white,
+                    baseForeground: palette.textPrimary
+                )
+            default:
+                return ColorTheme(
+                    additionBackground: success.opacity(0.18),
+                    additionForeground: success,
+                    removalBackground: error.opacity(0.18),
+                    removalForeground: error,
+                    baseForeground: palette.textPrimary
+                )
+            }
         }
     }
 }

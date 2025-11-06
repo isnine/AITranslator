@@ -86,68 +86,70 @@ struct ProvidersView: View {
     }
 }
 
-private struct ProviderCardView: View {
-    enum Status {
-        case active
-        case inactive
+private extension ProvidersView {
+    struct ProviderCardView: View {
+        enum Status {
+            case active
+            case inactive
 
-        var iconName: String {
-            switch self {
-            case .active:
-                return "checkmark.circle.fill"
-            case .inactive:
-                return "xmark.circle.fill"
+            var iconName: String {
+                switch self {
+                case .active:
+                    return "checkmark.circle.fill"
+                case .inactive:
+                    return "xmark.circle.fill"
+                }
             }
         }
-    }
 
-    let provider: ProviderConfig
-    let isDefault: Bool
-    let status: Status
-    let colors: AppColorPalette
+        let provider: ProviderConfig
+        let isDefault: Bool
+        let status: Status
+        let colors: AppColorPalette
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 8) {
-                Text(provider.displayName)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center, spacing: 8) {
+                    Text(provider.displayName)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
 
-                if isDefault {
-                    Text("Default")
-                        .font(.system(size: 12, weight: .semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(colors.chipSecondaryBackground)
-                        )
-                        .foregroundColor(colors.chipSecondaryText)
+                    if isDefault {
+                        Text("Default")
+                            .font(.system(size: 12, weight: .semibold))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(
+                                Capsule()
+                                    .fill(colors.chipSecondaryBackground)
+                            )
+                            .foregroundColor(colors.chipSecondaryText)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: status.iconName)
+                        .font(.system(size: 18))
+                        .foregroundColor(status == .active ? colors.success : colors.error)
                 }
 
-                Spacer()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(provider.apiURL.host ?? provider.apiURL.absoluteString)
+                        .font(.system(size: 15))
+                        .foregroundColor(colors.textSecondary)
 
-                Image(systemName: status.iconName)
-                    .font(.system(size: 18))
-                    .foregroundColor(status == .active ? colors.success : colors.error)
+                    Text(provider.modelName)
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
             }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(provider.apiURL.host ?? provider.apiURL.absoluteString)
-                    .font(.system(size: 15))
-                    .foregroundColor(colors.textSecondary)
-
-                Text(provider.modelName)
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
-            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(colors.cardBackground)
+            )
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(colors.cardBackground)
-        )
     }
 }
 

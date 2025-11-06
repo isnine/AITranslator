@@ -67,7 +67,6 @@ public struct HomeView: View {
     #endif
   }
 
-
   public init(context: AppTranslationContext? = nil) {
     self.context = context
     let initialScene: ActionConfig.UsageScene

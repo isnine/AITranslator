@@ -93,53 +93,55 @@ struct ActionsView: View {
     }
 }
 
-private struct ActionCardView: View {
-    let action: ActionConfig
-    let isDefault: Bool
-    let providerCount: Int
-    let colors: AppColorPalette
+private extension ActionsView {
+    struct ActionCardView: View {
+        let action: ActionConfig
+        let isDefault: Bool
+        let providerCount: Int
+        let colors: AppColorPalette
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 8) {
-                Text(action.name)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .center, spacing: 8) {
+                    Text(action.name)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
 
-                if isDefault {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(colors.accent)
+                    if isDefault {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(colors.accent)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
                 }
 
-                Spacer()
+                Text(action.summary)
+                    .font(.system(size: 15))
+                    .foregroundColor(colors.textSecondary)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                Text(providerCountText)
+                    .font(.system(size: 13))
                     .foregroundColor(colors.textSecondary)
             }
-
-            Text(action.summary)
-                .font(.system(size: 15))
-                .foregroundColor(colors.textSecondary)
-
-            Text(providerCountText)
-                .font(.system(size: 13))
-                .foregroundColor(colors.textSecondary)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(colors.cardBackground)
+            )
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(colors.cardBackground)
-        )
-    }
 
-    private var providerCountText: String {
-        if providerCount == 1 {
-            return "1 provider"
+        private var providerCountText: String {
+            if providerCount == 1 {
+                return "1 provider"
+            }
+            return "\(providerCount) providers"
         }
-        return "\(providerCount) providers"
     }
 }
 
