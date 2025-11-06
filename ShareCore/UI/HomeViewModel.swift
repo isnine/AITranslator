@@ -79,6 +79,7 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var providers: [ProviderConfig]
     @Published var selectedActionID: UUID?
     @Published private(set) var providerRuns: [ProviderRunViewState] = []
+    @Published private(set) var speakingProviders: Set<UUID> = []
 
     let placeholderHint: String = NSLocalizedString(
         "Enter text and choose an action to get started",
@@ -91,6 +92,7 @@ final class HomeViewModel: ObservableObject {
 
     private let configurationStore: AppConfigurationStore
     private let llmService: LLMService
+    private let textToSpeechService: TextToSpeechService
     private var cancellables = Set<AnyCancellable>()
     private var currentRequestTask: Task<Void, Never>?
     private var activeRequestID: UUID?
@@ -102,10 +104,12 @@ final class HomeViewModel: ObservableObject {
     init(
         configurationStore: AppConfigurationStore = .shared,
         llmService: LLMService = .shared,
+        textToSpeechService: TextToSpeechService = .shared,
         usageScene: ActionConfig.UsageScene = .app
     ) {
         self.configurationStore = configurationStore
         self.llmService = llmService
+        self.textToSpeechService = textToSpeechService
         self.usageScene = usageScene
         self.allActions = configurationStore.actions
         self.providers = configurationStore.providers
@@ -198,6 +202,30 @@ final class HomeViewModel: ObservableObject {
                 providers: Array(providersToUse)
             )
         }
+    }
+
+    func speakResult(_ text: String, providerID: UUID) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !speakingProviders.contains(providerID) else { return }
+
+        speakingProviders.insert(providerID)
+
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.textToSpeechService.speak(text: trimmed)
+            } catch {
+                print("TTS playback failed for provider \(providerID): \(error)")
+            }
+            await MainActor.run {
+                self.speakingProviders.remove(providerID)
+            }
+        }
+    }
+
+    func isSpeaking(providerID: UUID) -> Bool {
+        speakingProviders.contains(providerID)
     }
 
     func openAppSettings() {

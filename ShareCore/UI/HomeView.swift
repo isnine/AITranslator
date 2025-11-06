@@ -282,15 +282,29 @@ public struct HomeView: View {
     private var expandedInputEditor: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .topLeading) {
+#if !os(macOS)
                 if viewModel.inputText.isEmpty {
                     Text(viewModel.inputPlaceholder)
                         .foregroundColor(colors.textSecondary)
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
                 }
+#endif
 
 #if os(macOS)
-                AutoPasteTextEditor(text: $viewModel.inputText) { pastedText in
+                AutoPasteTextEditor(
+                    text: $viewModel.inputText,
+                    placeholder: viewModel.inputPlaceholder
+                ) { pastedText in
+                    applyPastedTextIfNeeded(pastedText)
+                }
+                .frame(minHeight: 140, maxHeight: 160)
+                .padding(12)
+#elseif os(iOS)
+                AutoPasteTextEditor(
+                    text: $viewModel.inputText,
+                    placeholder: viewModel.inputPlaceholder
+                ) { pastedText in
                     applyPastedTextIfNeeded(pastedText)
                 }
                 .frame(minHeight: 140, maxHeight: 160)
@@ -301,11 +315,9 @@ public struct HomeView: View {
                     .foregroundColor(colors.textPrimary)
                     .padding(12)
                     .frame(minHeight: 140, maxHeight: 160)
-    #if !os(iOS)
                     .onPasteCommand(of: [.plainText]) { providers in
                         handlePasteCommand(providers: providers)
                     }
-    #endif
 #endif
             }
         }
@@ -380,7 +392,7 @@ public struct HomeView: View {
                 }
             }
 
-            content(for: run.status, providerName: run.provider.displayName)
+            content(for: run)
         }
         .padding(18)
         .background(
@@ -390,11 +402,8 @@ public struct HomeView: View {
     }
 
     @ViewBuilder
-    private func content(
-        for status: HomeViewModel.ProviderRunViewState.Status,
-        providerName: String
-    ) -> some View {
-        switch status {
+    private func content(for run: HomeViewModel.ProviderRunViewState) -> some View {
+        switch run.status {
         case .idle, .running:
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(0..<3, id: \.self) { _ in
@@ -431,6 +440,7 @@ public struct HomeView: View {
                 }
             }
         case let .success(text, copyText, _, diff, supplementalTexts):
+            let providerID = run.provider.id
             VStack(alignment: .leading, spacing: 12) {
                 if let diff {
                     VStack(alignment: .leading, spacing: 8) {
@@ -478,11 +488,14 @@ public struct HomeView: View {
 
                         Spacer()
 
-                        copyButton(for: copyText, chipStyle: openFromExtension)
+                        speakButton(for: copyText, providerID: providerID, chipStyle: true)
+                        copyButton(for: copyText, chipStyle: true)
                     } else {
+                        speakButton(for: copyText, providerID: providerID, chipStyle: false)
                         copyButton(for: copyText, chipStyle: false)
                     }
                     #else
+                    speakButton(for: copyText, providerID: providerID, chipStyle: false)
                     copyButton(for: copyText, chipStyle: false)
                     #endif
                 }
@@ -538,6 +551,54 @@ public struct HomeView: View {
         }
         .buttonStyle(.plain)
         .foregroundColor(chipStyle ? colors.chipPrimaryText : colors.accent)
+    }
+
+    @ViewBuilder
+    private func speakButton(for text: String, providerID: UUID, chipStyle: Bool) -> some View {
+        let isSpeaking = viewModel.isSpeaking(providerID: providerID)
+        let speakingText = NSLocalizedString("Speaking...", comment: "TTS progress state label")
+        let speakText = NSLocalizedString("Speak", comment: "TTS action button label")
+        Button {
+            viewModel.speakResult(text, providerID: providerID)
+        } label: {
+            if chipStyle {
+                HStack(spacing: 6) {
+                    if isSpeaking {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .controlSize(.small)
+                            .tint(colors.chipPrimaryText)
+                    } else {
+                        Image(systemName: "speaker.wave.2.fill")
+                    }
+                    Text(isSpeaking ? speakingText : speakText)
+                }
+                .font(.system(size: 14, weight: .medium))
+                .padding(.horizontal, 18)
+                .padding(.vertical, 10)
+                .foregroundColor(colors.chipPrimaryText)
+                .background(
+                    Capsule()
+                        .fill(colors.accent.opacity(isSpeaking ? 0.85 : 1))
+                )
+            } else {
+                HStack(spacing: 8) {
+                    if isSpeaking {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .controlSize(.small)
+                            .tint(colors.accent)
+                    } else {
+                        Image(systemName: "speaker.wave.2.fill")
+                    }
+                    Text(isSpeaking ? speakingText : speakText)
+                }
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(colors.accent)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isSpeaking)
     }
 
     private func copyToPasteboard(_ text: String) {
@@ -647,6 +708,7 @@ public struct HomeView: View {
 #if os(macOS)
 private struct AutoPasteTextEditor: NSViewRepresentable {
     @Binding var text: String
+    let placeholder: String
     let onPaste: (String) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -658,7 +720,8 @@ private struct AutoPasteTextEditor: NSViewRepresentable {
         textView.delegate = context.coordinator
         textView.isRichText = false
         textView.drawsBackground = false
-        textView.textContainerInset = NSSize(width: 4, height: 8)
+        textView.textContainerInset = NSSize(width: 16, height: 12)
+        textView.textContainer?.lineFragmentPadding = 0
         textView.minSize = NSSize(width: 0, height: 0)
         textView.maxSize = NSSize(
             width: CGFloat.greatestFiniteMagnitude,
@@ -668,6 +731,7 @@ private struct AutoPasteTextEditor: NSViewRepresentable {
         textView.textContainer?.widthTracksTextView = true
         textView.string = text
         textView.onPaste = onPaste
+        textView.placeholderAttributedString = makePlaceholderAttributedString()
 
         let scrollView = NSScrollView()
         scrollView.drawsBackground = false
@@ -687,6 +751,9 @@ private struct AutoPasteTextEditor: NSViewRepresentable {
         }
 
         textView.onPaste = onPaste
+        if textView.placeholderAttributedString?.string != placeholder {
+            textView.placeholderAttributedString = makePlaceholderAttributedString()
+        }
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
@@ -704,10 +771,22 @@ private struct AutoPasteTextEditor: NSViewRepresentable {
             }
         }
     }
+
+    private func makePlaceholderAttributedString() -> NSAttributedString {
+        NSAttributedString(
+            string: placeholder,
+            attributes: [
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
+        )
+    }
 }
 
 private final class PastingTextView: NSTextView {
     var onPaste: ((String) -> Void)?
+    var placeholderAttributedString: NSAttributedString? {
+        didSet { needsDisplay = true }
+    }
 
     override func paste(_ sender: Any?) {
         super.paste(sender)
@@ -715,11 +794,111 @@ private final class PastingTextView: NSTextView {
         let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         onPaste?(current)
+        needsDisplay = true
     }
 
     override var isRichText: Bool {
         get { false }
         set { }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        guard string.isEmpty,
+              window?.firstResponder !== self,
+              let placeholder = placeholderAttributedString else {
+            return
+        }
+
+        let inset = textContainerInset
+        let padding = textContainer?.lineFragmentPadding ?? 0
+        let origin = CGPoint(
+            x: inset.width + padding,
+            y: bounds.height - inset.height - placeholder.size().height
+        )
+        placeholder.draw(at: origin)
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result { needsDisplay = true }
+        return result
+    }
+
+    override func resignFirstResponder() -> Bool {
+        let result = super.resignFirstResponder()
+        if result { needsDisplay = true }
+        return result
+    }
+
+    override func didChangeText() {
+        super.didChangeText()
+        needsDisplay = true
+    }
+}
+#elseif os(iOS)
+private struct AutoPasteTextEditor: UIViewRepresentable {
+    @Binding var text: String
+    let placeholder: String
+    let onPaste: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> PastingTextView {
+        let textView = PastingTextView()
+        textView.delegate = context.coordinator
+        textView.backgroundColor = .clear
+        textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
+        textView.text = text
+        textView.onPaste = onPaste
+        textView.isScrollEnabled = true
+        textView.alwaysBounceVertical = true
+        textView.adjustsFontForContentSizeCategory = true
+        textView.font = UIFont.preferredFont(forTextStyle: .body)
+        textView.autocorrectionType = .default
+        textView.smartDashesType = .no
+        textView.smartQuotesType = .no
+        textView.accessibilityHint = placeholder
+        return textView
+    }
+
+    func updateUIView(_ uiView: PastingTextView, context: Context) {
+        if uiView.text != text {
+            uiView.text = text
+        }
+        uiView.onPaste = onPaste
+    }
+
+    final class Coordinator: NSObject, UITextViewDelegate {
+        private let parent: AutoPasteTextEditor
+
+        init(parent: AutoPasteTextEditor) {
+            self.parent = parent
+        }
+
+        func textViewDidChange(_ textView: UITextView) {
+            let updated = textView.text ?? ""
+            if parent.text != updated {
+                parent.text = updated
+            }
+        }
+    }
+}
+
+private final class PastingTextView: UITextView {
+    var onPaste: ((String) -> Void)?
+
+    override func paste(_ sender: Any?) {
+        super.paste(sender)
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let current = self.text ?? ""
+            let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            self.onPaste?(current)
+        }
     }
 }
 #endif

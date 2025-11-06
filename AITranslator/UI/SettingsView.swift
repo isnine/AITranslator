@@ -10,8 +10,12 @@ import ShareCore
 
 struct SettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(TargetLanguageOption.storageKey, store: AppPreferences.sharedDefaults) private var targetLanguageCode: String = TargetLanguageOption.appLanguage.rawValue
+    @AppStorage(TargetLanguageOption.storageKey, store: AppPreferences.sharedDefaults)
+    private var targetLanguageCode: String = TargetLanguageOption.appLanguage.rawValue
+    @ObservedObject private var preferences: AppPreferences
     @State private var isLanguagePickerPresented = false
+    @State private var customTTSEndpoint: String
+    @State private var customTTSAPIKey: String
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -19,6 +23,13 @@ struct SettingsView: View {
 
     private var selectedOption: TargetLanguageOption {
         TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
+    }
+
+    init(preferences: AppPreferences = .shared) {
+        let configuration = preferences.ttsUsesDefaultConfiguration ? TTSConfiguration.default : preferences.ttsConfiguration
+        _preferences = ObservedObject(wrappedValue: preferences)
+        _customTTSEndpoint = State(initialValue: configuration.endpointURL.absoluteString)
+        _customTTSAPIKey = State(initialValue: configuration.apiKey)
     }
 
     var body: some View {
@@ -45,11 +56,25 @@ struct SettingsView: View {
             )
         }
         .onAppear {
-            AppPreferences.shared.refreshFromDefaults()
+            preferences.refreshFromDefaults()
+            syncTTSPreferencesFromStore()
         }
         .onChange(of: targetLanguageCode) { newValue in
             let option = TargetLanguageOption(rawValue: newValue) ?? .appLanguage
-            AppPreferences.shared.setTargetLanguage(option)
+            preferences.setTargetLanguage(option)
+        }
+        .onChange(of: customTTSEndpoint) { _ in
+            persistCustomTTSConfiguration()
+        }
+        .onChange(of: customTTSAPIKey) { _ in
+            persistCustomTTSConfiguration()
+        }
+        .onReceive(preferences.$ttsUsesDefaultConfiguration) { _ in
+            syncTTSPreferencesFromStore()
+        }
+        .onReceive(preferences.$ttsConfiguration) { _ in
+            guard !isUsingDefaultTTS else { return }
+            syncTTSPreferencesFromStore()
         }
     }
 
@@ -67,39 +92,162 @@ struct SettingsView: View {
 
     private var preferencesSection: some View {
         VStack(spacing: 16) {
-            VStack(spacing: 0) {
-                Button {
-                    isLanguagePickerPresented = true
-                } label: {
-                    HStack(alignment: .center, spacing: 16) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("目标翻译语言")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(colors.textPrimary)
-                            LanguageValueView(option: selectedOption, colors: colors)
-                        }
-
-                        Spacer(minLength: 12)
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(colors.textSecondary)
-                    }
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 18)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(colors.cardBackground)
-            )
+            languagePreferenceCard
+            ttsPreferenceCard
         }
     }
 }
 
 private extension SettingsView {
+    var isUsingDefaultTTS: Bool {
+        preferences.ttsUsesDefaultConfiguration
+    }
+
+    var defaultToggleBinding: Binding<Bool> {
+        Binding(
+            get: { preferences.ttsUsesDefaultConfiguration },
+            set: { newValue in
+                preferences.setTTSUsesDefaultConfiguration(newValue)
+                if newValue {
+                    customTTSEndpoint = TTSConfiguration.default.endpointURL.absoluteString
+                    customTTSAPIKey = TTSConfiguration.default.apiKey
+                } else {
+                    syncTTSPreferencesFromStore()
+                }
+            }
+        )
+    }
+
+    var languagePreferenceCard: some View {
+        VStack(spacing: 0) {
+            Button {
+                isLanguagePickerPresented = true
+            } label: {
+                HStack(alignment: .center, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("目标翻译语言")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(colors.textPrimary)
+                        LanguageValueView(option: selectedOption, colors: colors)
+                    }
+
+                    Spacer(minLength: 12)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 18)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(colors.cardBackground)
+        )
+    }
+
+    var ttsPreferenceCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("TTS 设置")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+                Text("配置 Azure 语音端点和 API Key，用于朗读翻译结果。")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
+            }
+
+            Toggle("使用默认配置", isOn: defaultToggleBinding)
+                .font(.system(size: 14, weight: .medium))
+                .tint(colors.accent)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text("自定义端点")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+
+                TextField("https://...", text: $customTTSEndpoint)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .foregroundColor(colors.textPrimary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                    .disabled(isUsingDefaultTTS)
+                    .autocorrectionDisabled()
+#if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
+#endif
+
+                Text("API Key")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+
+                SecureField("在此输入 Azure Key", text: $customTTSAPIKey)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .foregroundColor(colors.textPrimary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                    .disabled(isUsingDefaultTTS)
+                    .autocorrectionDisabled()
+#if os(iOS)
+                    .textInputAutocapitalization(.never)
+                    .textContentType(.password)
+#endif
+            }
+            .opacity(isUsingDefaultTTS ? 0.55 : 1)
+        }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(colors.cardBackground)
+        )
+    }
+
+    func persistCustomTTSConfiguration() {
+        guard !isUsingDefaultTTS else { return }
+
+        let trimmedEndpoint = customTTSEndpoint
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedEndpoint.isEmpty, let endpointURL = URL(string: trimmedEndpoint) else {
+            return
+        }
+
+        let trimmedKey = customTTSAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let configuration = TTSConfiguration(
+            endpointURL: endpointURL,
+            apiKey: trimmedKey
+        )
+
+        customTTSEndpoint = trimmedEndpoint
+        customTTSAPIKey = trimmedKey
+        preferences.setTTSConfiguration(configuration)
+    }
+
+    func syncTTSPreferencesFromStore() {
+        if isUsingDefaultTTS {
+            customTTSEndpoint = TTSConfiguration.default.endpointURL.absoluteString
+            customTTSAPIKey = TTSConfiguration.default.apiKey
+        } else {
+            let configuration = preferences.ttsConfiguration
+            customTTSEndpoint = configuration.endpointURL.absoluteString
+            customTTSAPIKey = configuration.apiKey
+        }
+    }
+
     struct LanguageValueView: View {
         let option: TargetLanguageOption
         let colors: AppColorPalette
