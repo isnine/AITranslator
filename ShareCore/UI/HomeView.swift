@@ -16,6 +16,7 @@ import AppKit
 import TranslationUIProvider
 #endif
 import WebKit
+import UniformTypeIdentifiers
 
 #if canImport(TranslationUIProvider)
 public typealias AppTranslationContext = TranslationUIProviderContext
@@ -288,11 +289,22 @@ public struct HomeView: View {
                         .padding(.top, 16)
                 }
 
+#if os(macOS)
+                AutoPasteTextEditor(text: $viewModel.inputText) { pastedText in
+                    applyPastedTextIfNeeded(pastedText)
+                }
+                .frame(minHeight: 140, maxHeight: 160)
+                .padding(12)
+#else
                 TextEditor(text: $viewModel.inputText)
                     .scrollContentBackground(.hidden)
                     .foregroundColor(colors.textPrimary)
                     .padding(12)
                     .frame(minHeight: 140, maxHeight: 160)
+                    .onPasteCommand(of: [.plainText]) { providers in
+                        handlePasteCommand(providers: providers)
+                    }
+#endif
             }
         }
     }
@@ -544,7 +556,159 @@ public struct HomeView: View {
                 .font(.system(size: 18))
         }
     }
+
+    private func handlePasteCommand(providers: [NSItemProvider]) {
+        if let clipboardText = readImmediatePasteboardText() {
+            Task { @MainActor in
+                applyPastedTextIfNeeded(clipboardText)
+            }
+            return
+        }
+
+        guard !providers.isEmpty else { return }
+
+        let plainTextIdentifier = UTType.plainText.identifier
+
+        for provider in providers {
+            if provider.hasItemConformingToTypeIdentifier(plainTextIdentifier) {
+                provider.loadItem(forTypeIdentifier: plainTextIdentifier, options: nil) { item, _ in
+                    guard let text = Self.coerceLoadedItemToString(item) else { return }
+                    Task { @MainActor in
+                        applyPastedTextIfNeeded(text)
+                    }
+                }
+                return
+            }
+
+            if provider.canLoadObject(ofClass: NSString.self) {
+                provider.loadObject(ofClass: NSString.self) { object, _ in
+                    guard let text = object as? String else { return }
+                    Task { @MainActor in
+                        applyPastedTextIfNeeded(text)
+                    }
+                }
+                return
+            }
+        }
+    }
+
+    private func readImmediatePasteboardText() -> String? {
+        #if canImport(AppKit)
+        if let text = NSPasteboard.general.string(forType: .string) {
+            return text
+        }
+        #endif
+        #if canImport(UIKit)
+        if let text = UIPasteboard.general.string {
+            return text
+        }
+        #endif
+        return nil
+    }
+
+    @MainActor
+    private func applyPastedTextIfNeeded(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        viewModel.inputText = text
+        isInputExpanded = true
+        viewModel.performSelectedAction()
+    }
+
+    private static func coerceLoadedItemToString(_ item: NSSecureCoding?) -> String? {
+        switch item {
+        case let data as Data:
+            return String(data: data, encoding: .utf8)
+        case let string as String:
+            return string
+        case let attributed as NSAttributedString:
+            return attributed.string
+        default:
+            return nil
+        }
+    }
 }
+
+#if os(macOS)
+private struct AutoPasteTextEditor: NSViewRepresentable {
+    @Binding var text: String
+    let onPaste: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let textView = PastingTextView()
+        textView.delegate = context.coordinator
+        textView.isRichText = false
+        textView.drawsBackground = false
+        textView.textContainerInset = NSSize(width: 4, height: 8)
+        textView.minSize = NSSize(width: 0, height: 0)
+        textView.maxSize = NSSize(
+            width: CGFloat.greatestFiniteMagnitude,
+            height: CGFloat.greatestFiniteMagnitude
+        )
+        textView.isHorizontallyResizable = false
+        textView.textContainer?.widthTracksTextView = true
+        textView.string = text
+        textView.onPaste = onPaste
+
+        let scrollView = NSScrollView()
+        scrollView.drawsBackground = false
+        scrollView.hasVerticalScroller = true
+        scrollView.contentView.drawsBackground = false
+        scrollView.documentView = textView
+        return scrollView
+    }
+
+    func updateNSView(_ nsView: NSScrollView, context: Context) {
+        guard let textView = nsView.documentView as? PastingTextView else {
+            return
+        }
+
+        if textView.string != text {
+            textView.string = text
+        }
+
+        textView.onPaste = onPaste
+    }
+
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        private let parent: AutoPasteTextEditor
+
+        init(parent: AutoPasteTextEditor) {
+            self.parent = parent
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            let updated = textView.string
+            if parent.text != updated {
+                parent.text = updated
+            }
+        }
+    }
+}
+
+private final class PastingTextView: NSTextView {
+    var onPaste: ((String) -> Void)?
+
+    override func paste(_ sender: Any?) {
+        super.paste(sender)
+        let current = string
+        let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        onPaste?(current)
+    }
+
+    override var isRichText: Bool {
+        get { false }
+        set { }
+    }
+}
+#endif
 
 #Preview {
   HomeView(context: nil)
