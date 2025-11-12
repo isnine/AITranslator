@@ -106,16 +106,21 @@ private extension AppConfigurationStore {
             "Grammar Check",
             comment: "Name of the grammar check action"
         )
+        static let sentenceAnalysisName = NSLocalizedString(
+            "Sentence Analysis",
+            comment: "Name of the sentence analysis action"
+        )
         static let translateLegacySummary = "Use AI for context-aware translation."
         static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
         static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
+        static let sentenceAnalysisSummary = "Parse sentence grammar and highlight reusable phrases."
 
         static let provider: ProviderConfig = .init(
             displayName: "Azure OpenAI",
             apiURL: URL(
-                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview"
+                string: "https://aitranslator.xiaozwan.workers.dev/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview"
             )!,
-            token: "REDACTED_AZURE_API_KEY",
+            token: "defaulttoken",
             authHeaderName: "api-key",
             category: .azureOpenAI,
             modelName: "model-router"
@@ -124,9 +129,9 @@ private extension AppConfigurationStore {
         static let gpt5Provider: ProviderConfig = .init(
             displayName: "Azure OpenAI",
             apiURL: URL(
-                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5/chat/completions?api-version=2025-01-01-preview"
+                string: "https://aitranslator.xiaozwan.workers.dev/openai/deployments/gpt-5/chat/completions?api-version=2025-01-01-preview"
             )!,
-            token: "REDACTED_AZURE_API_KEY",
+            token: "defaulttoken",
             authHeaderName: "api-key",
             category: .azureOpenAI,
             modelName: "gpt-5"
@@ -135,9 +140,9 @@ private extension AppConfigurationStore {
         static let gpt5NanoProvider: ProviderConfig = .init(
             displayName: "Azure OpenAI",
             apiURL: URL(
-                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview"
+                string: "https://aitranslator.xiaozwan.workers.dev/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview"
             )!,
-            token: "REDACTED_AZURE_API_KEY",
+            token: "defaulttoken",
             authHeaderName: "api-key",
             category: .azureOpenAI,
             modelName: "gpt-5-nano"
@@ -150,21 +155,21 @@ private extension AppConfigurationStore {
                     summary: translateLegacySummary,
                     prompt: translateLegacyPrompt,
                     providerIDs: providerIDs,
-                    usageScenes: [.app, .contextRead]
+                    usageScenes: .all
                 ),
                 .init(
                     name: summarizeName,
                     summary: "Generate a concise summary of the text.",
                     prompt: summarizeLegacyPrompt,
                     providerIDs: providerIDs,
-                    usageScenes: [.app, .contextRead]
+                    usageScenes: .all
                 ),
                 .init(
                     name: polishName,
                     summary: "Rewrite the text in the same language with improved clarity.",
                     prompt: "Polish the text and return the improved version in the same language.",
                     providerIDs: providerIDs,
-                    usageScenes: [.app, .contextEdit],
+                    usageScenes: .all,
                     showsDiff: true
                 ),
                 .init(
@@ -172,7 +177,7 @@ private extension AppConfigurationStore {
                     summary: "Inspect grammar issues and provide explanations.",
                     prompt: "Review this text for grammar issues. 1. Return a polished version first. 2. On the next line, explain each original error in Chinese, prefixing severe ones with ❌ and minor ones with ⚠️. 3. End with the polished sentence's meaning translated into Chinese.",
                     providerIDs: providerIDs,
-                    usageScenes: [.app, .contextEdit],
+                    usageScenes: .all,
                     showsDiff: true,
                     structuredOutput: .init(
                         primaryField: "revised_text",
@@ -201,6 +206,13 @@ private extension AppConfigurationStore {
                         }
                         """
                     )
+                ),
+                .init(
+                    name: sentenceAnalysisName,
+                    summary: sentenceAnalysisSummary,
+                    prompt: ManagedActionTemplate.sentenceAnalysisPrompt(for: .appLanguage),
+                    providerIDs: providerIDs,
+                    usageScenes: .all
                 )
             ]
         }
@@ -209,6 +221,7 @@ private extension AppConfigurationStore {
     enum ManagedActionTemplate {
         case translate
         case summarize
+        case sentenceAnalysis
 
         init?(action: ActionConfig) {
             switch action.name {
@@ -216,6 +229,8 @@ private extension AppConfigurationStore {
                 self = .translate
             case Defaults.summarizeName:
                 self = .summarize
+            case Defaults.sentenceAnalysisName:
+                self = .sentenceAnalysis
             default:
                 return nil
             }
@@ -227,6 +242,8 @@ private extension AppConfigurationStore {
                 return Self.translatePrompt(for: language)
             case .summarize:
                 return "Provide a concise summary of the selected text in \(language.promptDescriptor). Preserve the essential meaning without adding new information."
+            case .sentenceAnalysis:
+                return Self.sentenceAnalysisPrompt(for: language)
             }
         }
 
@@ -235,6 +252,8 @@ private extension AppConfigurationStore {
             case .translate:
                 return "Translate into \(language.promptDescriptor) while keeping the original tone."
             case .summarize:
+                return nil
+            case .sentenceAnalysis:
                 return nil
             }
         }
@@ -254,6 +273,8 @@ private extension AppConfigurationStore {
                 return acceptable.contains(currentPrompt)
             case .summarize:
                 return currentPrompt == Defaults.summarizeLegacyPrompt || generated.contains(currentPrompt)
+            case .sentenceAnalysis:
+                return generated.contains(currentPrompt)
             }
         }
 
@@ -268,6 +289,8 @@ private extension AppConfigurationStore {
                 return currentSummary == Defaults.translateLegacySummary || generated.contains(currentSummary)
             case .summarize:
                 return false
+            case .sentenceAnalysis:
+                return false
             }
         }
 
@@ -278,6 +301,23 @@ private extension AppConfigurationStore {
 
         private static func translateLegacyPrompt(for language: TargetLanguageOption) -> String {
             "Translate the selected text into \(language.promptDescriptor). Preserve tone, intent, and terminology. Respond with only the translated text."
+        }
+
+        static func sentenceAnalysisPrompt(for language: TargetLanguageOption) -> String {
+            let descriptor = language.promptDescriptor
+            return """
+            Analyze the provided sentence or short paragraph and respond entirely in \(descriptor). Follow exactly two Markdown sections:
+
+            ## 📚语法分析
+            - Explain the sentence structure (clauses, parts of speech, tense/voice) and how key components relate.
+            - Highlight noteworthy grammar patterns or difficult constructions.
+
+            ## ✍️ 搭配积累
+            - List useful short phrases, collocations, or idiomatic chunks from the input.
+            - Give each item a brief meaning plus usage tips or a short example.
+
+            Keep explanations concise yet insightful and do not add extra sections.
+            """
         }
     }
 }
