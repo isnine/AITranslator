@@ -118,9 +118,9 @@ private extension AppConfigurationStore {
         static let provider: ProviderConfig = .init(
             displayName: "Azure OpenAI",
             apiURL: URL(
-                string: "https://aitranslator.xiaozwan.workers.dev/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview"
+                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview"
             )!,
-            token: "defaulttoken",
+            token: "REDACTED_AZURE_API_KEY",
             authHeaderName: "api-key",
             category: .azureOpenAI,
             modelName: "model-router"
@@ -129,9 +129,9 @@ private extension AppConfigurationStore {
         static let gpt5Provider: ProviderConfig = .init(
             displayName: "Azure OpenAI",
             apiURL: URL(
-                string: "https://aitranslator.xiaozwan.workers.dev/openai/deployments/gpt-5/chat/completions?api-version=2025-01-01-preview"
+                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5/chat/completions?api-version=2025-01-01-preview"
             )!,
-            token: "defaulttoken",
+            token: "REDACTED_AZURE_API_KEY",
             authHeaderName: "api-key",
             category: .azureOpenAI,
             modelName: "gpt-5"
@@ -140,9 +140,9 @@ private extension AppConfigurationStore {
         static let gpt5NanoProvider: ProviderConfig = .init(
             displayName: "Azure OpenAI",
             apiURL: URL(
-                string: "https://aitranslator.xiaozwan.workers.dev/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview"
+                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview"
             )!,
-            token: "defaulttoken",
+            token: "REDACTED_AZURE_API_KEY",
             authHeaderName: "api-key",
             category: .azureOpenAI,
             modelName: "gpt-5-nano"
