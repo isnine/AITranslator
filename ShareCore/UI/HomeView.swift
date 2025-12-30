@@ -439,6 +439,49 @@ public struct HomeView: View {
                         .foregroundColor(colors.textSecondary)
                 }
             }
+        case let .streamingSentencePairs(pairs, _):
+            VStack(alignment: .leading, spacing: 12) {
+                if pairs.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        ForEach(0..<3, id: \.self) { _ in
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(colors.skeleton)
+                                .frame(height: 10)
+                        }
+                    }
+                } else {
+                    // Streaming sentence pairs display
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(pairs.enumerated()), id: \.offset) { index, pair in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(pair.original)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(colors.textSecondary)
+                                    .textSelection(.enabled)
+                                Text(pair.translation)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(colors.textPrimary)
+                                    .textSelection(.enabled)
+                            }
+                            .padding(.vertical, 8)
+
+                            if index < pairs.count - 1 {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .controlSize(.small)
+                        .tint(colors.accent)
+                    Text("Translating...")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+            }
         case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs):
             let providerID = run.provider.id
             VStack(alignment: .leading, spacing: 12) {
@@ -640,7 +683,7 @@ public struct HomeView: View {
         for status: HomeViewModel.ProviderRunViewState.Status
     ) -> some View {
         switch status {
-        case .idle, .running, .streaming:
+        case .idle, .running, .streaming, .streamingSentencePairs:
             ProgressView()
                 .progressViewStyle(.circular)
                 .controlSize(.small)

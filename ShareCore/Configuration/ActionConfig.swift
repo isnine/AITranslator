@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents a single sentence pair with original and translated text.
-public struct SentencePair: Codable, Hashable, Identifiable {
+public struct SentencePair: Codable, Hashable, Identifiable, Sendable {
     public var id: String { original + translation }
     public let original: String
     public let translation: String

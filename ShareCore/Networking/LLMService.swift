@@ -6,6 +6,12 @@
 //
 import Foundation
 
+/// Represents a streaming update that can be either plain text or sentence pairs.
+public enum StreamingUpdate: Sendable {
+    case text(String)
+    case sentencePairs([SentencePair])
+}
+
 public final class LLMService {
     public static let shared = LLMService()
 
@@ -19,7 +25,7 @@ public final class LLMService {
         text: String,
         with action: ActionConfig,
         providers: [ProviderConfig],
-        partialHandler: (@MainActor @Sendable (UUID, String) -> Void)? = nil,
+        partialHandler: (@MainActor @Sendable (UUID, StreamingUpdate) -> Void)? = nil,
         completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)? = nil
     ) async -> [ProviderExecutionResult] {
         await withTaskGroup(of: ProviderExecutionResult?.self) { group in
@@ -59,7 +65,7 @@ public final class LLMService {
         text: String,
         action: ActionConfig,
         provider: ProviderConfig,
-        partialHandler: (@MainActor @Sendable (UUID, String) -> Void)?
+        partialHandler: (@MainActor @Sendable (UUID, StreamingUpdate) -> Void)?
     ) async throws -> ProviderExecutionResult {
         let start = Date()
 
@@ -68,8 +74,10 @@ public final class LLMService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(provider.token, forHTTPHeaderField: provider.authHeaderName)
         let structuredOutputConfig = provider.category == .azureOpenAI ? action.structuredOutput : nil
-        let streamingHandler = structuredOutputConfig == nil ? partialHandler : nil
-        if streamingHandler != nil {
+        // Enable streaming for both regular and structured output (sentence pairs)
+        let isSentencePairsMode = structuredOutputConfig?.primaryField == "sentence_pairs"
+        let enableStreaming = partialHandler != nil
+        if enableStreaming {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         }
 
@@ -94,14 +102,15 @@ public final class LLMService {
             if let structuredOutputConfig,
                let responseFormat = structuredOutputConfig.responseFormatPayload() {
                 var body: [String: Any] = [
-                    "messages": messages.map { ["role": $0.role, "content": $0.content] }
+                    "messages": messages.map { ["role": $0.role, "content": $0.content] },
+                    "stream": enableStreaming
                 ]
                 body["response_format"] = responseFormat
                 payloadData = try JSONSerialization.data(withJSONObject: body, options: [.prettyPrinted])
             } else {
                 let payload = LLMRequestPayload(
                     messages: messages,
-                    stream: streamingHandler != nil ? true : nil
+                    stream: enableStreaming ? true : nil
                 )
                 payloadData = try encoder.encode(payload)
             }
@@ -115,13 +124,14 @@ public final class LLMService {
 
             try Task.checkCancellation()
 
-            if let streamingHandler {
+            if enableStreaming, let partialHandler {
                 return try await handleStreamingRequest(
                     start: start,
                     request: request,
                     provider: provider,
                     decoder: decoder,
-                    partialHandler: streamingHandler
+                    structuredOutputConfig: structuredOutputConfig,
+                    partialHandler: partialHandler
                 )
             } else {
                 let (data, response) = try await urlSession.data(for: request)
@@ -168,7 +178,8 @@ public final class LLMService {
         request: URLRequest,
         provider: ProviderConfig,
         decoder: JSONDecoder,
-        partialHandler: @MainActor @Sendable (UUID, String) -> Void
+        structuredOutputConfig: ActionConfig.StructuredOutputConfig?,
+        partialHandler: @MainActor @Sendable (UUID, StreamingUpdate) -> Void
     ) async throws -> ProviderExecutionResult {
         let (bytes, response) = try await urlSession.bytes(for: request)
 
@@ -189,10 +200,13 @@ public final class LLMService {
         }
 
         let contentType = (httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+        let isSentencePairsMode = structuredOutputConfig?.primaryField == "sentence_pairs"
 
         if contentType.contains("text/event-stream") {
             print("Streaming response from \(provider.displayName)")
             var aggregatedText = ""
+            let sentencePairParser = isSentencePairsMode ? StreamingSentencePairParser() : nil
+
             for try await line in bytes.lines {
                 try Task.checkCancellation()
                 let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -208,7 +222,14 @@ public final class LLMService {
                 guard !deltaText.isEmpty else { continue }
                 aggregatedText.append(deltaText)
                 try Task.checkCancellation()
-                await partialHandler(provider.id, aggregatedText)
+
+                if let parser = sentencePairParser {
+                    // Incremental parsing for sentence pairs
+                    let pairs = parser.append(deltaText)
+                    await partialHandler(provider.id, .sentencePairs(pairs))
+                } else {
+                    await partialHandler(provider.id, .text(aggregatedText))
+                }
             }
 
             let finalText = aggregatedText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -216,6 +237,18 @@ public final class LLMService {
             guard !finalText.isEmpty else { throw LLMServiceError.emptyContent }
 
             print("Final stream output from \(provider.displayName): \(finalText)")
+
+            // Parse final result for sentence pairs mode
+            if isSentencePairsMode {
+                let pairs = parseSentencePairsFromJSON(finalText)
+                let combinedText = pairs.map { "\($0.original)\n\($0.translation)" }.joined(separator: "\n\n")
+                return ProviderExecutionResult(
+                    providerID: provider.id,
+                    duration: Date().timeIntervalSince(start),
+                    response: .success(combinedText.isEmpty ? finalText : combinedText),
+                    sentencePairs: pairs
+                )
+            }
 
             return ProviderExecutionResult(
                 providerID: provider.id,
@@ -232,17 +265,110 @@ public final class LLMService {
             let responseString = String(data: data, encoding: .utf8) ?? ""
             print("Non-stream response from \(provider.displayName): \(responseString)")
 
-            let parsed = try parseResponsePayload(data: data, structuredOutput: nil)
+            let parsed = try parseResponsePayload(data: data, structuredOutput: structuredOutputConfig)
             let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
             try Task.checkCancellation()
             guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
-            await partialHandler(provider.id, trimmed)
+
+            if !parsed.sentencePairs.isEmpty {
+                await partialHandler(provider.id, .sentencePairs(parsed.sentencePairs))
+            } else {
+                await partialHandler(provider.id, .text(trimmed))
+            }
+
             return ProviderExecutionResult(
                 providerID: provider.id,
                 duration: Date().timeIntervalSince(start),
-                response: .success(trimmed)
+                response: .success(trimmed),
+                sentencePairs: parsed.sentencePairs
             )
         }
+    }
+
+    /// Parse sentence pairs from raw JSON string
+    private func parseSentencePairsFromJSON(_ jsonString: String) -> [SentencePair] {
+        guard let data = jsonString.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let pairsArray = json["sentence_pairs"] as? [[String: Any]] else {
+            return []
+        }
+
+        return pairsArray.compactMap { dict -> SentencePair? in
+            guard let original = dict["original"] as? String,
+                  let translation = dict["translation"] as? String,
+                  !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return nil
+            }
+            return SentencePair(
+                original: original.trimmingCharacters(in: .whitespacesAndNewlines),
+                translation: translation.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+        }
+    }
+}
+
+/// Incremental JSON parser for streaming sentence pairs.
+/// Extracts completed sentence pair objects as they become available.
+private final class StreamingSentencePairParser {
+    private var buffer = ""
+    private var emittedPairs: [SentencePair] = []
+
+    /// Append new delta text and return all completed pairs found so far.
+    func append(_ delta: String) -> [SentencePair] {
+        buffer.append(delta)
+
+        // Try to extract completed sentence pair objects
+        let newPairs = extractCompletedPairs()
+        if !newPairs.isEmpty {
+            emittedPairs.append(contentsOf: newPairs)
+        }
+
+        return emittedPairs
+    }
+
+    private func extractCompletedPairs() -> [SentencePair] {
+        var pairs: [SentencePair] = []
+
+        // Pattern to match complete sentence pair objects:
+        // {"original": "...", "translation": "..."} or {"translation": "...", "original": "..."}
+        let pattern = #"\{\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*\}"#
+
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return pairs
+        }
+
+        let nsString = buffer as NSString
+        let matches = regex.matches(in: buffer, options: [], range: NSRange(location: 0, length: nsString.length))
+
+        // Only process matches we haven't emitted yet
+        let startIndex = emittedPairs.count
+        for (index, match) in matches.enumerated() {
+            guard index >= startIndex else { continue }
+
+            let matchString = nsString.substring(with: match.range)
+            if let pair = parseSinglePair(matchString) {
+                pairs.append(pair)
+            }
+        }
+
+        return pairs
+    }
+
+    private func parseSinglePair(_ jsonString: String) -> SentencePair? {
+        guard let data = jsonString.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+              let original = dict["original"],
+              let translation = dict["translation"],
+              !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+
+        return SentencePair(
+            original: original.trimmingCharacters(in: .whitespacesAndNewlines),
+            translation: translation.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
     }
 }
 

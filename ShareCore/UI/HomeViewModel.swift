@@ -20,6 +20,7 @@ final class HomeViewModel: ObservableObject {
             case idle
             case running(start: Date)
             case streaming(text: String, start: Date)
+            case streamingSentencePairs(pairs: [SentencePair], start: Date)
             case success(
                 text: String,
                 copyText: String,
@@ -32,7 +33,7 @@ final class HomeViewModel: ObservableObject {
 
             var duration: TimeInterval? {
                 switch self {
-                case .idle, .running, .streaming:
+                case .idle, .running, .streaming, .streamingSentencePairs:
                     return nil
                 case let .success(_, _, duration, _, _, _),
                      let .failure(_, duration):
@@ -53,7 +54,7 @@ final class HomeViewModel: ObservableObject {
 
         var isRunning: Bool {
             switch status {
-            case .running, .streaming:
+            case .running, .streaming, .streamingSentencePairs:
                 return true
             default:
                 return false
@@ -62,7 +63,7 @@ final class HomeViewModel: ObservableObject {
 
         var startDate: Date? {
             switch status {
-            case let .running(start), let .streaming(_, start):
+            case let .running(start), let .streaming(_, start), let .streamingSentencePairs(_, start):
                 return start
             default:
                 return nil
@@ -259,17 +260,25 @@ final class HomeViewModel: ObservableObject {
             text: text,
             with: action,
             providers: providers,
-            partialHandler: { [weak self] providerID, partialText in
+            partialHandler: { [weak self] providerID, update in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
                 guard let index = self.providerRuns.firstIndex(where: { $0.provider.id == providerID }) else {
                     return
                 }
                 let startDate = self.providerRuns[index].startDate ?? Date()
-                self.providerRuns[index].status = .streaming(
-                    text: partialText,
-                    start: startDate
-                )
+                switch update {
+                case let .text(partialText):
+                    self.providerRuns[index].status = .streaming(
+                        text: partialText,
+                        start: startDate
+                    )
+                case let .sentencePairs(pairs):
+                    self.providerRuns[index].status = .streamingSentencePairs(
+                        pairs: pairs,
+                        start: startDate
+                    )
+                }
             },
             completionHandler: { [weak self] result in
                 guard let self else { return }
