@@ -181,3 +181,68 @@ AITranslator/
 - Apple: [Preparing your app to be the default translation app](https://developer.apple.com/documentation/TranslationUIProvider/Preparing-your-app-to-be-the-default-translation-app)
 - Apple TranslationUIProvider / ExtensionKit 文档与 WWDC24 相关 Session
 - [Airbnb Swift Style Guide](https://github.com/airbnb/swift)
+
+## AI Agent 开发工具
+
+### XcodeBuildMCP
+
+本项目支持通过 [XcodeBuildMCP](https://github.com/nicepkg/xcodebuild-mcp) 实现 AI Agent 自动化开发。XcodeBuildMCP 是一个 Model Context Protocol (MCP) 服务器，允许 AI Agent 直接与 Xcode 项目交互。
+
+#### 可用能力
+
+| 能力         | 工具示例                                  | 用途                                     |
+| ------------ | ----------------------------------------- | ---------------------------------------- |
+| **构建**     | `build_sim`, `build_macos`                | 编译项目到模拟器或 macOS                 |
+| **运行**     | `build_run_sim`, `launch_app_sim`         | 构建并运行，或直接启动应用               |
+| **截图**     | `screenshot`                              | 捕获模拟器当前屏幕                       |
+| **日志**     | `start_sim_log_cap`, `stop_sim_log_cap`   | 启动/停止日志捕获会话                    |
+| **UI 描述**  | `describe_ui`                             | 获取完整的视图层次结构（用于自动化测试） |
+| **UI 交互**  | `tap`, `type_text`, `swipe`, `long_press` | 模拟用户操作                             |
+| **项目管理** | `discover_projs`, `list_schemes`          | 发现项目和 scheme                        |
+
+#### 典型工作流程
+
+```bash
+# 1. 设置会话默认值
+session-set-defaults {
+  "projectPath": "/Users/zander/Work/AITranslator/AITranslator.xcodeproj",
+  "scheme": "AITranslator",
+  "simulatorId": "<simulator-uuid>",
+  "useLatestOS": true
+}
+
+# 2. 构建并运行
+build_run_sim
+
+# 3. 开启日志捕获
+start_sim_log_cap { "bundleId": "com.zanderwang.AITranslator" }
+# 返回 sessionId
+
+# 4. 截图查看当前状态
+screenshot
+
+# 5. 获取 UI 层次结构（用于精确点击坐标）
+describe_ui
+
+# 6. 模拟用户操作
+tap { "label": "Send" }           # 通过 accessibility label 点击
+tap { "x": 200, "y": 300 }        # 通过坐标点击
+type_text { "text": "Hello" }     # 输入文字
+
+# 7. 停止日志捕获并查看
+stop_sim_log_cap { "logSessionId": "<session-id>" }
+```
+
+#### 使用场景
+
+1. **自动化 UI 测试**：AI Agent 可以自动构建、运行应用并通过截图验证 UI 效果
+2. **快速迭代**：修改代码后立即编译验证，无需手动操作 Xcode
+3. **问题诊断**：通过日志捕获和 UI 描述快速定位问题
+4. **自动化演示**：录制视频或截图用于文档
+
+#### 注意事项
+
+- 截图是静态的，无法捕获动画效果
+- 日志捕获需要应用使用 `os_log` 输出结构化日志才能看到内容
+- `describe_ui` 返回 accessibility 信息，用于精确定位 UI 元素坐标
+- 建议在点击前先调用 `describe_ui` 获取精确坐标，而不是从截图猜测
