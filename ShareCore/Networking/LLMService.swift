@@ -75,7 +75,6 @@ public final class LLMService {
         request.setValue(provider.token, forHTTPHeaderField: provider.authHeaderName)
         let structuredOutputConfig = provider.category == .azureOpenAI ? action.structuredOutput : nil
         // Enable streaming for both regular and structured output (sentence pairs)
-        let isSentencePairsMode = structuredOutputConfig?.primaryField == "sentence_pairs"
         let enableStreaming = partialHandler != nil
         if enableStreaming {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")

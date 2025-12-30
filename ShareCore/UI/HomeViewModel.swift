@@ -104,23 +104,24 @@ final class HomeViewModel: ObservableObject {
     private var currentActionShowsDiff: Bool = false
 
     init(
-        configurationStore: AppConfigurationStore = .shared,
+        configurationStore: AppConfigurationStore? = nil,
         llmService: LLMService = .shared,
         textToSpeechService: TextToSpeechService = .shared,
         usageScene: ActionConfig.UsageScene = .app
     ) {
-        self.configurationStore = configurationStore
+        let store = configurationStore ?? .shared
+        self.configurationStore = store
         self.llmService = llmService
         self.textToSpeechService = textToSpeechService
         self.usageScene = usageScene
-        self.allActions = configurationStore.actions
-        self.providers = configurationStore.providers
-        self.selectedActionID = configurationStore.defaultAction?.id
+        self.allActions = store.actions
+        self.providers = store.providers
+        self.selectedActionID = store.defaultAction?.id
         self.actions = []
 
         refreshActions()
 
-        configurationStore.$actions
+        store.$actions
             .receive(on: RunLoop.main)
             .sink { [weak self] in
                 guard let self else { return }
@@ -129,7 +130,7 @@ final class HomeViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        configurationStore.$providers
+        store.$providers
             .receive(on: RunLoop.main)
             .sink { [weak self] in
                 self?.providers = $0
@@ -213,15 +214,15 @@ final class HomeViewModel: ObservableObject {
 
         speakingProviders.insert(providerID)
 
-        Task { [weak self] in
+        _ = Task { [weak self] in
             guard let self else { return }
             do {
                 try await self.textToSpeechService.speak(text: trimmed)
             } catch {
                 print("TTS playback failed for provider \(providerID): \(error)")
             }
-            await MainActor.run {
-                self.speakingProviders.remove(providerID)
+            _ = await MainActor.run { [weak self] in
+                self?.speakingProviders.remove(providerID)
             }
         }
     }
@@ -291,7 +292,7 @@ final class HomeViewModel: ObservableObject {
         guard activeRequestID == requestID else { return }
 
         for result in results {
-            if let index = providerRuns.firstIndex(where: { $0.provider.id == result.providerID }) {
+            if providerRuns.contains(where: { $0.provider.id == result.providerID }) {
                 apply(result: result, allowDiff: currentActionShowsDiff)
             } else if let provider = providers.first(where: { $0.id == result.providerID }) {
                 let runState: ProviderRunViewState.Status

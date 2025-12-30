@@ -59,14 +59,14 @@ struct SettingsView: View {
             preferences.refreshFromDefaults()
             syncTTSPreferencesFromStore()
         }
-        .onChange(of: targetLanguageCode) { newValue in
-            let option = TargetLanguageOption(rawValue: newValue) ?? .appLanguage
+        .onChange(of: targetLanguageCode) {
+            let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
             preferences.setTargetLanguage(option)
         }
-        .onChange(of: customTTSEndpoint) { _ in
+        .onChange(of: customTTSEndpoint) {
             persistCustomTTSConfiguration()
         }
-        .onChange(of: customTTSAPIKey) { _ in
+        .onChange(of: customTTSAPIKey) {
             persistCustomTTSConfiguration()
         }
         .onReceive(preferences.$ttsUsesDefaultConfiguration) { _ in
@@ -80,11 +80,11 @@ struct SettingsView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("设置")
+            Text("Settings")
                 .font(.system(size: 30, weight: .semibold))
                 .foregroundColor(colors.textPrimary)
 
-            Text("应用偏好设置")
+            Text("App Preferences")
                 .font(.system(size: 15))
                 .foregroundColor(colors.textSecondary)
         }
@@ -125,7 +125,7 @@ private extension SettingsView {
             } label: {
                 HStack(alignment: .center, spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("目标翻译语言")
+                        Text("Target Language")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(colors.textPrimary)
                         LanguageValueView(option: selectedOption, colors: colors)
@@ -152,20 +152,20 @@ private extension SettingsView {
     var ttsPreferenceCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
-                Text("TTS 设置")
+                Text("TTS Settings")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(colors.textPrimary)
-                Text("配置 Azure 语音端点和 API Key，用于朗读翻译结果。")
+                Text("Configure Azure speech endpoint and API Key for reading translations aloud.")
                     .font(.system(size: 13))
                     .foregroundColor(colors.textSecondary)
             }
 
-            Toggle("使用默认配置", isOn: defaultToggleBinding)
+            Toggle("Use Default Configuration", isOn: defaultToggleBinding)
                 .font(.system(size: 14, weight: .medium))
                 .tint(colors.accent)
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("自定义端点")
+                Text("Custom Endpoint")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(colors.textSecondary)
 
@@ -190,7 +190,7 @@ private extension SettingsView {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(colors.textSecondary)
 
-                SecureField("在此输入 Azure Key", text: $customTTSAPIKey)
+                SecureField("Enter Azure Key here", text: $customTTSAPIKey)
                     .textFieldStyle(.plain)
                     .font(.system(size: 14))
                     .padding(.horizontal, 14)
@@ -276,7 +276,7 @@ private extension SettingsView {
         var body: some View {
 #if os(macOS)
             VStack(spacing: 0) {
-                Text("选择目标语言")
+                Text("Select Target Language")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -327,7 +327,7 @@ private extension SettingsView {
 
                 HStack {
                     Spacer()
-                    Button("取消") {
+                    Button("Cancel") {
                         isPresented = false
                     }
                     .buttonStyle(.plain)
@@ -379,14 +379,14 @@ private extension SettingsView {
                 }
                 .scrollContentBackground(.hidden)
                 .background(colors.background.ignoresSafeArea())
-                .navigationTitle("选择目标语言")
+                .navigationTitle("Select Target Language")
 #if os(iOS)
                 .listStyle(.insetGrouped)
                 .navigationBarTitleDisplayMode(.inline)
 #endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("取消") {
+                        Button("Cancel") {
                             isPresented = false
                         }
                     }

@@ -65,7 +65,14 @@
       }
     },
     "API Key" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 密钥"
+          }
+        }
+      }
     },
     "App" : {
       "localizations" : {
@@ -73,6 +80,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "应用内"
+          }
+        }
+      }
+    },
+    "App Preferences" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用偏好设置"
           }
         }
       }
@@ -107,6 +124,16 @@
         }
       }
     },
+    "Cancel" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
     "Cmd+Return" : {
 
     },
@@ -130,6 +157,16 @@
         }
       }
     },
+    "Configure Azure speech endpoint and API Key for reading translations aloud." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置 Azure 语音端点和 API Key，用于朗读翻译结果。"
+          }
+        }
+      }
+    },
     "Configured Providers" : {
       "localizations" : {
         "zh-Hans" : {
@@ -141,11 +178,22 @@
       }
     },
     "Copy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "复制"
+          }
+        }
+      }
+    },
+    "Custom Endpoint" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义端点"
           }
         }
       }
@@ -160,12 +208,25 @@
         }
       }
     },
+    "Duration: %@" : {
+
+    },
     "Editable Context" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "可编辑上下文"
+          }
+        }
+      }
+    },
+    "Enter Azure Key here" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此输入 Azure Key"
           }
         }
       }
@@ -257,7 +318,15 @@
       }
     },
     "No text available for speech." : {
-      "comment" : "TTS empty input error"
+      "comment" : "TTS empty input error",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可朗读的文本。"
+          }
+        }
+      }
     },
     "Open Settings" : {
       "localizations" : {
@@ -340,6 +409,9 @@
         }
       }
     },
+    "Retry" : {
+
+    },
     "Save" : {
       "localizations" : {
         "zh-Hans" : {
@@ -360,6 +432,16 @@
         }
       }
     },
+    "Select Target Language" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择目标语言"
+          }
+        }
+      }
+    },
     "Send" : {
       "localizations" : {
         "zh-Hans" : {
@@ -371,10 +453,26 @@
       }
     },
     "Sentence Analysis" : {
-      "comment" : "Name of the sentence analysis action"
+      "comment" : "Name of the sentence analysis action",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语法分析"
+          }
+        }
+      }
     },
     "Sentence Translate" : {
-      "comment" : "Name of the sentence-by-sentence translation action"
+      "comment" : "Name of the sentence-by-sentence translation action",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "逐句翻译"
+          }
+        }
+      }
     },
     "Set Tree² Lang as the default translation app" : {
       "localizations" : {
@@ -407,13 +505,39 @@
       }
     },
     "Speak" : {
-      "comment" : "TTS action button label"
+      "comment" : "TTS action button label",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "朗读"
+          }
+        }
+      }
     },
     "Speaking..." : {
-      "comment" : "TTS progress state label"
+      "comment" : "TTS progress state label",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "朗读中…"
+          }
+        }
+      }
     },
     "Speech playback is not supported on this platform." : {
-      "comment" : "TTS platform unsupported error"
+      "comment" : "TTS platform unsupported error",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此平台不支持语音播放。"
+          }
+        }
+      }
     },
     "Speech service returned an error (%d). Details: %@" : {
       "comment" : "TTS HTTP error",
@@ -437,6 +561,16 @@
         }
       }
     },
+    "Target Language" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目标翻译语言"
+          }
+        }
+      }
+    },
     "Translate" : {
       "comment" : "Name of the translate action",
       "localizations" : {
@@ -449,7 +583,14 @@
       }
     },
     "Translating..." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译中…"
+          }
+        }
+      }
     },
     "Tree²" : {
       "localizations" : {
@@ -461,11 +602,26 @@
         }
       }
     },
-    "TTS 设置" : {
-
+    "TTS Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TTS 设置"
+          }
+        }
+      }
     },
     "Unable to connect to the speech service." : {
-      "comment" : "TTS invalid response error"
+      "comment" : "TTS invalid response error",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接语音服务。"
+          }
+        }
+      }
     },
     "Usage Scenes" : {
       "localizations" : {
@@ -483,6 +639,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用 {text} 作为占位符"
+          }
+        }
+      }
+    },
+    "Use Default Configuration" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用默认配置"
           }
         }
       }
@@ -506,33 +672,6 @@
           }
         }
       }
-    },
-    "使用默认配置" : {
-
-    },
-    "取消" : {
-
-    },
-    "在此输入 Azure Key" : {
-
-    },
-    "应用偏好设置" : {
-
-    },
-    "目标翻译语言" : {
-
-    },
-    "自定义端点" : {
-
-    },
-    "设置" : {
-
-    },
-    "选择目标语言" : {
-
-    },
-    "配置 Azure 语音端点和 API Key，用于朗读翻译结果。" : {
-
     }
   },
   "version" : "1.1"

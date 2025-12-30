@@ -29,6 +29,7 @@ public struct HomeView: View {
   @StateObject private var viewModel: HomeViewModel
   @State private var hasTriggeredAutoRequest = false
   @State private var isInputExpanded: Bool
+  @State private var showingProviderInfo: UUID?
   var openFromExtension: Bool {
     #if canImport(TranslationUIProvider)
     return context != nil
@@ -122,11 +123,11 @@ public struct HomeView: View {
           viewModel.performSelectedAction()
           #endif
         }
-        .onChange(of: openFromExtension) { _ in
+        .onChange(of: openFromExtension) {
           viewModel.updateUsageScene(usageScene)
         }
         #if canImport(TranslationUIProvider)
-        .onChange(of: context?.allowsReplacement ?? false) { _ in
+        .onChange(of: context?.allowsReplacement ?? false) {
           viewModel.updateUsageScene(usageScene)
         }
         #endif
@@ -370,123 +371,289 @@ public struct HomeView: View {
     }
 
     private func providerResultCard(for run: HomeViewModel.ProviderRunViewState) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center, spacing: 12) {
-                statusIndicator(for: run.status)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(run.provider.displayName)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(colors.textPrimary)
-                    Text(run.provider.modelName)
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
-                }
-
-                Spacer()
-
-                if let duration = run.durationText {
-                    Text(duration)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(colors.textSecondary)
-                }
-            }
-
+        let providerID = run.provider.id
+        return VStack(alignment: .leading, spacing: 12) {
             content(for: run)
+
+            // Bottom info bar
+            bottomInfoBar(for: run, providerID: providerID)
         }
         .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(colors.cardBackground)
         )
+        .overlay(alignment: .topTrailing) {
+            if showingProviderInfo == providerID {
+                providerInfoPopover(for: run)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: showingProviderInfo)
+    }
+
+    @ViewBuilder
+    private func bottomInfoBar(
+        for run: HomeViewModel.ProviderRunViewState,
+        providerID: UUID
+    ) -> some View {
+        switch run.status {
+        case .idle, .running:
+            EmptyView()
+
+        case let .streaming(_, start):
+            HStack(spacing: 8) {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .tint(colors.accent)
+                Text("Generating...")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
+                Spacer()
+                liveTimer(start: start)
+            }
+
+        case let .streamingSentencePairs(_, start):
+            HStack(spacing: 8) {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .tint(colors.accent)
+                Text("Translating...")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
+                Spacer()
+                liveTimer(start: start)
+            }
+
+        case let .success(_, copyText, _, _, _, sentencePairs):
+            HStack(spacing: 12) {
+                // Status + Duration + Info
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(colors.success)
+                        .font(.system(size: 14))
+
+                    if let duration = run.durationText {
+                        Text(duration)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(colors.textSecondary)
+                    }
+
+                    providerInfoButton(providerID: providerID)
+                }
+
+                Spacer()
+
+                // Action buttons
+                if sentencePairs.isEmpty {
+                    actionButtons(copyText: copyText, providerID: providerID)
+                }
+            }
+
+        case .failure:
+            HStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(colors.error)
+                        .font(.system(size: 14))
+
+                    if let duration = run.durationText {
+                        Text(duration)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(colors.textSecondary)
+                    }
+
+                    providerInfoButton(providerID: run.provider.id)
+                }
+
+                Spacer()
+
+                // Retry button
+                Button {
+                    viewModel.performSelectedAction()
+                } label: {
+                    Label("Retry", systemImage: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(colors.accent)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func actionButtons(copyText: String, providerID: UUID) -> some View {
+        #if canImport(TranslationUIProvider)
+        if let context, context.allowsReplacement {
+            Button {
+                context.finish(translation: AttributedString(copyText))
+            } label: {
+                Label("Replace", systemImage: "arrow.left.arrow.right")
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(colors.accent)
+
+            compactSpeakButton(for: copyText, providerID: providerID)
+            compactCopyButton(for: copyText)
+        } else {
+            compactSpeakButton(for: copyText, providerID: providerID)
+            compactCopyButton(for: copyText)
+        }
+        #else
+        compactSpeakButton(for: copyText, providerID: providerID)
+        compactCopyButton(for: copyText)
+        #endif
+    }
+
+    @ViewBuilder
+    private func providerInfoButton(providerID: UUID) -> some View {
+        Button {
+            withAnimation {
+                if showingProviderInfo == providerID {
+                    showingProviderInfo = nil
+                } else {
+                    showingProviderInfo = providerID
+                }
+            }
+        } label: {
+            Image(systemName: "info.circle")
+                .font(.system(size: 14))
+                .foregroundColor(colors.textSecondary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func providerInfoPopover(for run: HomeViewModel.ProviderRunViewState) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(run.provider.displayName)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(colors.textPrimary)
+            Text(run.provider.modelName)
+                .font(.system(size: 12))
+                .foregroundColor(colors.textSecondary)
+            if let duration = run.durationText {
+                Text("Duration: \(duration)")
+                    .font(.system(size: 12))
+                    .foregroundColor(colors.textSecondary)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(colors.cardBackground)
+                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+        )
+        .padding(.top, 8)
+        .padding(.trailing, 8)
+        .onTapGesture {
+            withAnimation {
+                showingProviderInfo = nil
+            }
+        }
+    }
+
+    private func liveTimer(start: Date) -> some View {
+        TimelineView(.periodic(from: start, by: 0.1)) { timeline in
+            let elapsed = timeline.date.timeIntervalSince(start)
+            Text(String(format: "%.1fs", elapsed))
+                .font(.system(size: 12, weight: .medium).monospacedDigit())
+                .foregroundColor(colors.textSecondary)
+        }
+    }
+
+    private func skeletonPlaceholder() -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(0..<3, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(colors.skeleton)
+                    .frame(height: 10)
+                    .frame(maxWidth: index == 2 ? 180 : .infinity)
+                    .shimmer()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func compactSpeakButton(for text: String, providerID: UUID) -> some View {
+        let isSpeaking = viewModel.isSpeaking(providerID: providerID)
+        Button {
+            viewModel.speakResult(text, providerID: providerID)
+        } label: {
+            if isSpeaking {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .tint(colors.accent)
+            } else {
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.accent)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isSpeaking)
+    }
+
+    @ViewBuilder
+    private func compactCopyButton(for text: String) -> some View {
+        Button {
+            copyToPasteboard(text)
+        } label: {
+            Image(systemName: "doc.on.doc")
+                .font(.system(size: 14))
+                .foregroundColor(colors.accent)
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
     private func content(for run: HomeViewModel.ProviderRunViewState) -> some View {
         switch run.status {
         case .idle, .running:
-            VStack(alignment: .leading, spacing: 8) {
-                ForEach(0..<3, id: \.self) { _ in
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(colors.skeleton)
-                        .frame(height: 10)
-                }
-            }
+            skeletonPlaceholder()
+
         case let .streaming(text, _):
-            VStack(alignment: .leading, spacing: 12) {
-                if text.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(colors.skeleton)
-                                .frame(height: 10)
-                        }
-                    }
-                } else {
-                    Text(text)
-                        .font(.system(size: 14))
-                        .foregroundColor(colors.textPrimary)
-                        .textSelection(.enabled)
-                }
-
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .controlSize(.small)
-                        .tint(colors.accent)
-                    Text("Generating...")
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
-                }
+            if text.isEmpty {
+                skeletonPlaceholder()
+            } else {
+                Text(text)
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textPrimary)
+                    .textSelection(.enabled)
             }
+
         case let .streamingSentencePairs(pairs, _):
-            VStack(alignment: .leading, spacing: 12) {
-                if pairs.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(colors.skeleton)
-                                .frame(height: 10)
+            if pairs.isEmpty {
+                skeletonPlaceholder()
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(pairs.enumerated()), id: \.offset) { index, pair in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(pair.original)
+                                .font(.system(size: 14))
+                                .foregroundColor(colors.textSecondary)
+                                .textSelection(.enabled)
+                            Text(pair.translation)
+                                .font(.system(size: 14))
+                                .foregroundColor(colors.textPrimary)
+                                .textSelection(.enabled)
+                        }
+                        .padding(.vertical, 8)
+
+                        if index < pairs.count - 1 {
+                            Divider()
                         }
                     }
-                } else {
-                    // Streaming sentence pairs display
-                    VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(pairs.enumerated()), id: \.offset) { index, pair in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(pair.original)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(colors.textSecondary)
-                                    .textSelection(.enabled)
-                                Text(pair.translation)
-                                    .font(.system(size: 14))
-                                    .foregroundColor(colors.textPrimary)
-                                    .textSelection(.enabled)
-                            }
-                            .padding(.vertical, 8)
-
-                            if index < pairs.count - 1 {
-                                Divider()
-                            }
-                        }
-                    }
-                }
-
-                HStack(spacing: 8) {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .controlSize(.small)
-                        .tint(colors.accent)
-                    Text("Translating...")
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
                 }
             }
+
         case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs):
-            let providerID = run.provider.id
             VStack(alignment: .leading, spacing: 12) {
                 if !sentencePairs.isEmpty {
-                    // Sentence-by-sentence display: alternating original and translation rows
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(Array(sentencePairs.enumerated()), id: \.offset) { index, pair in
                             VStack(alignment: .leading, spacing: 8) {
@@ -538,35 +705,6 @@ public struct HomeView: View {
                         .textSelection(.enabled)
                 }
 
-                // Only show copy/speak buttons for non-sentence-pairs display
-                if sentencePairs.isEmpty {
-                    HStack(spacing: 16) {
-                        #if canImport(TranslationUIProvider)
-                        if let context, context.allowsReplacement {
-                            Button {
-                                context.finish(translation: AttributedString(copyText))
-                            } label: {
-                                Label("Replace", systemImage: "arrow.left.arrow.right")
-                                    .font(.system(size: 14, weight: .medium))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundColor(colors.accent)
-
-                            Spacer()
-
-                            speakButton(for: copyText, providerID: providerID, chipStyle: true)
-                            copyButton(for: copyText, chipStyle: true)
-                        } else {
-                            speakButton(for: copyText, providerID: providerID, chipStyle: false)
-                            copyButton(for: copyText, chipStyle: false)
-                        }
-                        #else
-                        speakButton(for: copyText, providerID: providerID, chipStyle: false)
-                        copyButton(for: copyText, chipStyle: false)
-                        #endif
-                    }
-                }
-
                 if !supplementalTexts.isEmpty {
                     Divider()
                     VStack(alignment: .leading, spacing: 8) {
@@ -579,6 +717,7 @@ public struct HomeView: View {
                     }
                 }
             }
+
         case let .failure(message, _):
             VStack(alignment: .leading, spacing: 10) {
                 Text("Request Failed")
@@ -592,82 +731,6 @@ public struct HomeView: View {
         }
     }
 
-    @ViewBuilder
-    private func copyButton(for text: String, chipStyle: Bool) -> some View {
-        Button {
-            copyToPasteboard(text)
-        } label: {
-            if chipStyle {
-                HStack(spacing: 6) {
-                    Image(systemName: "doc.on.doc")
-                    Text("Copy")
-                }
-                .font(.system(size: 14, weight: .medium))
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .foregroundColor(colors.chipPrimaryText)
-                .background(
-                    Capsule()
-                        .fill(colors.accent)
-                )
-            } else {
-                Label("Copy", systemImage: "doc.on.doc")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(colors.accent)
-            }
-        }
-        .buttonStyle(.plain)
-        .foregroundColor(chipStyle ? colors.chipPrimaryText : colors.accent)
-    }
-
-    @ViewBuilder
-    private func speakButton(for text: String, providerID: UUID, chipStyle: Bool) -> some View {
-        let isSpeaking = viewModel.isSpeaking(providerID: providerID)
-        let speakingText = NSLocalizedString("Speaking...", comment: "TTS progress state label")
-        let speakText = NSLocalizedString("Speak", comment: "TTS action button label")
-        Button {
-            viewModel.speakResult(text, providerID: providerID)
-        } label: {
-            if chipStyle {
-                HStack(spacing: 6) {
-                    if isSpeaking {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .controlSize(.small)
-                            .tint(colors.chipPrimaryText)
-                    } else {
-                        Image(systemName: "speaker.wave.2.fill")
-                    }
-                    Text(isSpeaking ? speakingText : speakText)
-                }
-                .font(.system(size: 14, weight: .medium))
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .foregroundColor(colors.chipPrimaryText)
-                .background(
-                    Capsule()
-                        .fill(colors.accent.opacity(isSpeaking ? 0.85 : 1))
-                )
-            } else {
-                HStack(spacing: 8) {
-                    if isSpeaking {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .controlSize(.small)
-                            .tint(colors.accent)
-                    } else {
-                        Image(systemName: "speaker.wave.2.fill")
-                    }
-                    Text(isSpeaking ? speakingText : speakText)
-                }
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(colors.accent)
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(isSpeaking)
-    }
-
     private func copyToPasteboard(_ text: String) {
         #if canImport(UIKit)
         UIPasteboard.general.string = text
@@ -676,27 +739,6 @@ public struct HomeView: View {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         #endif
-    }
-
-    @ViewBuilder
-    private func statusIndicator(
-        for status: HomeViewModel.ProviderRunViewState.Status
-    ) -> some View {
-        switch status {
-        case .idle, .running, .streaming, .streamingSentencePairs:
-            ProgressView()
-                .progressViewStyle(.circular)
-                .controlSize(.small)
-                .tint(colors.accent)
-        case .success:
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(colors.success)
-                .font(.system(size: 18))
-        case .failure:
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(colors.error)
-                .font(.system(size: 18))
-        }
     }
 
     private func handlePasteCommand(providers: [NSItemProvider]) {
@@ -969,6 +1011,43 @@ private final class PastingTextView: UITextView {
     }
 }
 #endif
+
+// MARK: - Shimmer Animation
+
+private struct ShimmerModifier: ViewModifier {
+    @State private var phase: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(
+                GeometryReader { geometry in
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            .clear,
+                            .white.opacity(0.4),
+                            .clear
+                        ]),
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                    .frame(width: geometry.size.width * 0.6)
+                    .offset(x: -geometry.size.width * 0.3 + phase * geometry.size.width * 1.6)
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .onAppear {
+                withAnimation(.linear(duration: 1.2).repeatForever(autoreverses: false)) {
+                    phase = 1
+                }
+            }
+    }
+}
+
+private extension View {
+    func shimmer() -> some View {
+        modifier(ShimmerModifier())
+    }
+}
 
 #Preview {
   HomeView(context: nil)

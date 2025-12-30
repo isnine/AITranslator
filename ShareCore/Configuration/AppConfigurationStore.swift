@@ -154,15 +154,7 @@ private extension AppConfigurationStore {
 
         static func actions(for providerIDs: [UUID]) -> [ActionConfig] {
             [
-                // 1. Translate
-                .init(
-                    name: translateName,
-                    summary: translateLegacySummary,
-                    prompt: translateLegacyPrompt,
-                    providerIDs: providerIDs,
-                    usageScenes: .all
-                ),
-                // 2. Sentence Translate
+                // 1. Sentence Translate (default)
                 .init(
                     name: sentenceBySentenceTranslateName,
                     summary: "Translate each sentence and display original/translation side by side.",
@@ -205,6 +197,14 @@ private extension AppConfigurationStore {
                         """
                     ),
                     displayMode: .sentencePairs
+                ),
+                // 2. Translate
+                .init(
+                    name: translateName,
+                    summary: translateLegacySummary,
+                    prompt: translateLegacyPrompt,
+                    providerIDs: providerIDs,
+                    usageScenes: .all
                 ),
                 // 3. Grammar Check
                 .init(
@@ -379,7 +379,7 @@ private extension AppConfigurationStore {
         static func sentenceBySentenceTranslatePrompt(for language: TargetLanguageOption) -> String {
             let descriptor = language.promptDescriptor
             return """
-            Translate the following text sentence by sentence into \(descriptor). Split the input into individual sentences, keeping punctuation with each sentence. For each sentence, provide the original text and its translation as a pair. Preserve the original meaning, tone, and style. If a sentence is already in the target language, keep it unchanged.
+            Translate the following text sentence by sentence into \(descriptor). If the input language already matches the target language, translate it into English instead. Split the input into individual sentences, keeping punctuation with each sentence. For each sentence, provide the original text and its translation as a pair. Preserve the original meaning, tone, and style.
             """
         }
     }

@@ -85,9 +85,9 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
         if let localized = englishLocale.localizedString(forIdentifier: identifier) {
             return localized
         }
-        let components = Locale.components(fromIdentifier: identifier)
-        if let languageCode = components[NSLocale.Key.languageCode.rawValue],
-           let english = englishLocale.localizedString(forLanguageCode: languageCode) {
+        let components = Locale.Components(identifier: identifier)
+        if let languageCode = components.languageComponents.languageCode,
+           let english = englishLocale.localizedString(forLanguageCode: languageCode.identifier) {
             return english
         }
         return identifier
@@ -110,11 +110,11 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
     }
 
     private func resolvedIdentifier() -> String {
-        var components = Locale.components(fromIdentifier: baseIdentifier)
-        if components[NSLocale.Key.languageCode.rawValue] == nil {
-            components[NSLocale.Key.languageCode.rawValue] = baseIdentifier
+        var components = Locale.Components(identifier: baseIdentifier)
+        if components.languageComponents.languageCode == nil {
+            components.languageComponents.languageCode = Locale.LanguageCode(baseIdentifier)
         }
-        return Locale.identifier(fromComponents: components)
+        return Locale(components: components).identifier
     }
 
     private func name(in locale: Locale) -> String {
@@ -123,15 +123,15 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
             return localized
         }
 
-        let components = Locale.components(fromIdentifier: identifier)
-        guard let languageCode = components[NSLocale.Key.languageCode.rawValue] else {
+        let components = Locale.Components(identifier: identifier)
+        guard let languageCode = components.languageComponents.languageCode else {
             return identifier
         }
 
-        var name = locale.localizedString(forLanguageCode: languageCode) ?? identifier
+        var name = locale.localizedString(forLanguageCode: languageCode.identifier) ?? identifier
 
-        if let scriptCode = components[NSLocale.Key.scriptCode.rawValue],
-           let scriptName = locale.localizedString(forScriptCode: scriptCode),
+        if let scriptCode = components.languageComponents.script,
+           let scriptName = locale.localizedString(forScriptCode: scriptCode.identifier),
            !scriptName.isEmpty {
             name += " (\(scriptName))"
         }
