@@ -25,7 +25,8 @@ final class HomeViewModel: ObservableObject {
                 copyText: String,
                 duration: TimeInterval,
                 diff: TextDiffBuilder.Presentation? = nil,
-                supplementalTexts: [String] = []
+                supplementalTexts: [String] = [],
+                sentencePairs: [SentencePair] = []
             )
             case failure(message: String, duration: TimeInterval)
 
@@ -33,7 +34,7 @@ final class HomeViewModel: ObservableObject {
                 switch self {
                 case .idle, .running, .streaming:
                     return nil
-                case let .success(_, _, duration, _, _),
+                case let .success(_, _, duration, _, _, _),
                      let .failure(_, duration):
                     return duration
                 }
@@ -294,7 +295,8 @@ final class HomeViewModel: ObservableObject {
                         copyText: diffTarget,
                         duration: result.duration,
                         diff: diff,
-                        supplementalTexts: result.supplementalTexts
+                        supplementalTexts: result.supplementalTexts,
+                        sentencePairs: result.sentencePairs
                     )
                 case let .failure(error):
                     runState = .failure(message: error.localizedDescription, duration: result.duration)
@@ -332,7 +334,8 @@ final class HomeViewModel: ObservableObject {
                 copyText: diffTarget,
                 duration: result.duration,
                 diff: diff,
-                supplementalTexts: result.supplementalTexts
+                supplementalTexts: result.supplementalTexts,
+                sentencePairs: result.sentencePairs
             )
         case let .failure(error):
             providerRuns[index].status = .failure(message: error.localizedDescription, duration: result.duration)

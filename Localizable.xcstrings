@@ -373,6 +373,9 @@
     "Sentence Analysis" : {
       "comment" : "Name of the sentence analysis action"
     },
+    "Sentence Translate" : {
+      "comment" : "Name of the sentence-by-sentence translation action"
+    },
     "Set Tree² Lang as the default translation app" : {
       "localizations" : {
         "zh-Hans" : {

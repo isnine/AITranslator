@@ -30,7 +30,7 @@ public final class AppConfigurationStore: ObservableObject {
 
         preferences.refreshFromDefaults()
 
-        let providers = [Defaults.provider, Defaults.gpt5NanoProvider]
+        let providers = [Defaults.provider]
         self.providers = providers
         let baseActions = Defaults.actions(for: providers.map { $0.id })
         self.actions = AppConfigurationStore.applyTargetLanguage(
@@ -110,6 +110,10 @@ private extension AppConfigurationStore {
             "Sentence Analysis",
             comment: "Name of the sentence analysis action"
         )
+        static let sentenceBySentenceTranslateName = NSLocalizedString(
+            "Sentence Translate",
+            comment: "Name of the sentence-by-sentence translation action"
+        )
         static let translateLegacySummary = "Use AI for context-aware translation."
         static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
         static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
@@ -150,6 +154,7 @@ private extension AppConfigurationStore {
 
         static func actions(for providerIDs: [UUID]) -> [ActionConfig] {
             [
+                // 1. Translate
                 .init(
                     name: translateName,
                     summary: translateLegacySummary,
@@ -157,21 +162,51 @@ private extension AppConfigurationStore {
                     providerIDs: providerIDs,
                     usageScenes: .all
                 ),
+                // 2. Sentence Translate
                 .init(
-                    name: summarizeName,
-                    summary: "Generate a concise summary of the text.",
-                    prompt: summarizeLegacyPrompt,
-                    providerIDs: providerIDs,
-                    usageScenes: .all
-                ),
-                .init(
-                    name: polishName,
-                    summary: "Rewrite the text in the same language with improved clarity.",
-                    prompt: "Polish the text and return the improved version in the same language.",
+                    name: sentenceBySentenceTranslateName,
+                    summary: "Translate each sentence and display original/translation side by side.",
+                    prompt: ManagedActionTemplate.sentenceBySentenceTranslatePrompt(for: .appLanguage),
                     providerIDs: providerIDs,
                     usageScenes: .all,
-                    showsDiff: true
+                    structuredOutput: .init(
+                        primaryField: "sentence_pairs",
+                        additionalFields: [],
+                        jsonSchema: """
+                        {
+                          "name": "sentence_translate_response",
+                          "schema": {
+                            "type": "object",
+                            "properties": {
+                              "sentence_pairs": {
+                                "type": "array",
+                                "description": "Array of sentence pairs with original and translated text.",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "original": {
+                                      "type": "string",
+                                      "description": "The original sentence from the input."
+                                    },
+                                    "translation": {
+                                      "type": "string",
+                                      "description": "The translated version of the sentence."
+                                    }
+                                  },
+                                  "required": ["original", "translation"],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": ["sentence_pairs"],
+                            "additionalProperties": false
+                          }
+                        }
+                        """
+                    ),
+                    displayMode: .sentencePairs
                 ),
+                // 3. Grammar Check
                 .init(
                     name: grammarCheckName,
                     summary: "Inspect grammar issues and provide explanations.",
@@ -207,6 +242,16 @@ private extension AppConfigurationStore {
                         """
                     )
                 ),
+                // 4. Polish
+                .init(
+                    name: polishName,
+                    summary: "Rewrite the text in the same language with improved clarity.",
+                    prompt: "Polish the text and return the improved version in the same language.",
+                    providerIDs: providerIDs,
+                    usageScenes: .all,
+                    showsDiff: true
+                ),
+                // 5. Sentence Analysis
                 .init(
                     name: sentenceAnalysisName,
                     summary: sentenceAnalysisSummary,
@@ -222,6 +267,7 @@ private extension AppConfigurationStore {
         case translate
         case summarize
         case sentenceAnalysis
+        case sentenceBySentenceTranslate
 
         init?(action: ActionConfig) {
             switch action.name {
@@ -231,6 +277,8 @@ private extension AppConfigurationStore {
                 self = .summarize
             case Defaults.sentenceAnalysisName:
                 self = .sentenceAnalysis
+            case Defaults.sentenceBySentenceTranslateName:
+                self = .sentenceBySentenceTranslate
             default:
                 return nil
             }
@@ -244,6 +292,8 @@ private extension AppConfigurationStore {
                 return "Provide a concise summary of the selected text in \(language.promptDescriptor). Preserve the essential meaning without adding new information."
             case .sentenceAnalysis:
                 return Self.sentenceAnalysisPrompt(for: language)
+            case .sentenceBySentenceTranslate:
+                return Self.sentenceBySentenceTranslatePrompt(for: language)
             }
         }
 
@@ -254,6 +304,8 @@ private extension AppConfigurationStore {
             case .summarize:
                 return nil
             case .sentenceAnalysis:
+                return nil
+            case .sentenceBySentenceTranslate:
                 return nil
             }
         }
@@ -275,6 +327,8 @@ private extension AppConfigurationStore {
                 return currentPrompt == Defaults.summarizeLegacyPrompt || generated.contains(currentPrompt)
             case .sentenceAnalysis:
                 return generated.contains(currentPrompt)
+            case .sentenceBySentenceTranslate:
+                return generated.contains(currentPrompt)
             }
         }
 
@@ -290,6 +344,8 @@ private extension AppConfigurationStore {
             case .summarize:
                 return false
             case .sentenceAnalysis:
+                return false
+            case .sentenceBySentenceTranslate:
                 return false
             }
         }
@@ -317,6 +373,13 @@ private extension AppConfigurationStore {
             - Give each item a brief meaning plus usage tips or a short example.
 
             Keep explanations concise yet insightful and do not add extra sections.
+            """
+        }
+
+        static func sentenceBySentenceTranslatePrompt(for language: TargetLanguageOption) -> String {
+            let descriptor = language.promptDescriptor
+            return """
+            Translate the following text sentence by sentence into \(descriptor). Split the input into individual sentences, keeping punctuation with each sentence. For each sentence, provide the original text and its translation as a pair. Preserve the original meaning, tone, and style. If a sentence is already in the target language, keep it unchanged.
             """
         }
     }

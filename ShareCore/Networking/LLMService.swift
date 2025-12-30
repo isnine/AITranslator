@@ -137,18 +137,19 @@ public final class LLMService {
                     throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
                 }
 
-                let (message, diffSource, supplementalTexts) = try parseResponsePayload(
+                let parsed = try parseResponsePayload(
                     data: data,
                     structuredOutput: structuredOutputConfig
                 )
-                let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
                 return ProviderExecutionResult(
                     providerID: provider.id,
                     duration: Date().timeIntervalSince(start),
                     response: .success(trimmed),
-                    diffSource: diffSource?.trimmingCharacters(in: .whitespacesAndNewlines),
-                    supplementalTexts: supplementalTexts
+                    diffSource: parsed.diffSource?.trimmingCharacters(in: .whitespacesAndNewlines),
+                    supplementalTexts: parsed.supplementalTexts,
+                    sentencePairs: parsed.sentencePairs
                 )
             }
         } catch is CancellationError {
@@ -231,8 +232,8 @@ public final class LLMService {
             let responseString = String(data: data, encoding: .utf8) ?? ""
             print("Non-stream response from \(provider.displayName): \(responseString)")
 
-            let (message, _, _) = try parseResponsePayload(data: data, structuredOutput: nil)
-            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            let parsed = try parseResponsePayload(data: data, structuredOutput: nil)
+            let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
             try Task.checkCancellation()
             guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
             await partialHandler(provider.id, trimmed)
@@ -479,34 +480,76 @@ private extension LLMService.ChatCompletionsResponse.Message {
 }
 
 private extension LLMService {
+    struct ParsedResponse {
+        let message: String
+        let diffSource: String?
+        let supplementalTexts: [String]
+        let sentencePairs: [SentencePair]
+    }
+
     func parseResponsePayload(
         data: Data,
         structuredOutput: ActionConfig.StructuredOutputConfig?
-    ) throws -> (String, String?, [String]) {
+    ) throws -> ParsedResponse {
         let response = try JSONDecoder.llmDecoder.decode(ChatCompletionsResponse.self, from: data)
         guard let message = response.choices?.first?.message else {
             throw LLMServiceError.emptyContent
         }
 
         if let structuredOutput,
-           let dictionary = message.structuredDictionary(),
-           let primaryValue = dictionary[structuredOutput.primaryField]?.renderedString?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !primaryValue.isEmpty {
-            var supplemental: [String] = []
-            for field in structuredOutput.additionalFields {
-                guard let value = dictionary[field]?.renderedString?
-                    .trimmingCharacters(in: .whitespacesAndNewlines),
-                      !value.isEmpty else {
-                    continue
+           let dictionary = message.structuredDictionary() {
+            // Check for sentence_pairs array (for sentence-by-sentence translation)
+            if structuredOutput.primaryField == "sentence_pairs",
+               let pairsValue = dictionary["sentence_pairs"],
+               case let .array(pairsArray) = pairsValue {
+                let pairs = pairsArray.compactMap { item -> SentencePair? in
+                    guard case let .object(obj) = item,
+                          let originalValue = obj["original"],
+                          let translationValue = obj["translation"],
+                          let original = originalValue.renderedString?.trimmingCharacters(in: .whitespacesAndNewlines),
+                          let translation = translationValue.renderedString?.trimmingCharacters(in: .whitespacesAndNewlines),
+                          !original.isEmpty, !translation.isEmpty else {
+                        return nil
+                    }
+                    return SentencePair(original: original, translation: translation)
                 }
-                supplemental.append(value)
+
+                if !pairs.isEmpty {
+                    // Build combined text for fallback/copy
+                    let combinedText = pairs.map { "\($0.original)\n\($0.translation)" }.joined(separator: "\n\n")
+                    return ParsedResponse(
+                        message: combinedText,
+                        diffSource: nil,
+                        supplementalTexts: [],
+                        sentencePairs: pairs
+                    )
+                }
             }
-            var sections = [primaryValue]
-            sections.append(contentsOf: supplemental)
-            let combined = sections.joined(separator: "\n\n")
-            if !combined.isEmpty {
-                return (combined, primaryValue, supplemental)
+
+            // Standard structured output handling
+            if let primaryValue = dictionary[structuredOutput.primaryField]?.renderedString?
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+               !primaryValue.isEmpty {
+                var supplemental: [String] = []
+                for field in structuredOutput.additionalFields {
+                    guard let value = dictionary[field]?.renderedString?
+                        .trimmingCharacters(in: .whitespacesAndNewlines),
+                          !value.isEmpty else {
+                        continue
+                    }
+                    supplemental.append(value)
+                }
+                var sections = [primaryValue]
+                sections.append(contentsOf: supplemental)
+                let combined = sections.joined(separator: "\n\n")
+                if !combined.isEmpty {
+                    return ParsedResponse(
+                        message: combined,
+                        diffSource: primaryValue,
+                        supplementalTexts: supplemental,
+                        sentencePairs: []
+                    )
+                }
             }
         }
 
@@ -514,7 +557,12 @@ private extension LLMService {
         guard !fallback.isEmpty else {
             throw LLMServiceError.emptyContent
         }
-        return (fallback, nil, [])
+        return ParsedResponse(
+            message: fallback,
+            diffSource: nil,
+            supplementalTexts: [],
+            sentencePairs: []
+        )
     }
 }
 

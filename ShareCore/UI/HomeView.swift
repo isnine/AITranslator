@@ -439,10 +439,31 @@ public struct HomeView: View {
                         .foregroundColor(colors.textSecondary)
                 }
             }
-        case let .success(text, copyText, _, diff, supplementalTexts):
+        case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs):
             let providerID = run.provider.id
             VStack(alignment: .leading, spacing: 12) {
-                if let diff {
+                if !sentencePairs.isEmpty {
+                    // Sentence-by-sentence display: alternating original and translation rows
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(sentencePairs.enumerated()), id: \.offset) { index, pair in
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(pair.original)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(colors.textSecondary)
+                                    .textSelection(.enabled)
+                                Text(pair.translation)
+                                    .font(.system(size: 14))
+                                    .foregroundColor(colors.textPrimary)
+                                    .textSelection(.enabled)
+                            }
+                            .padding(.vertical, 8)
+
+                            if index < sentencePairs.count - 1 {
+                                Divider()
+                            }
+                        }
+                    }
+                } else if let diff {
                     VStack(alignment: .leading, spacing: 8) {
                         if diff.hasRemovals {
                             let originalText = TextDiffBuilder.attributedString(
@@ -474,30 +495,33 @@ public struct HomeView: View {
                         .textSelection(.enabled)
                 }
 
-                HStack(spacing: 16) {
-                    #if canImport(TranslationUIProvider)
-                    if let context, context.allowsReplacement {
-                        Button {
-                            context.finish(translation: AttributedString(copyText))
-                        } label: {
-                            Label("Replace", systemImage: "arrow.left.arrow.right")
-                                .font(.system(size: 14, weight: .medium))
+                // Only show copy/speak buttons for non-sentence-pairs display
+                if sentencePairs.isEmpty {
+                    HStack(spacing: 16) {
+                        #if canImport(TranslationUIProvider)
+                        if let context, context.allowsReplacement {
+                            Button {
+                                context.finish(translation: AttributedString(copyText))
+                            } label: {
+                                Label("Replace", systemImage: "arrow.left.arrow.right")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(colors.accent)
+
+                            Spacer()
+
+                            speakButton(for: copyText, providerID: providerID, chipStyle: true)
+                            copyButton(for: copyText, chipStyle: true)
+                        } else {
+                            speakButton(for: copyText, providerID: providerID, chipStyle: false)
+                            copyButton(for: copyText, chipStyle: false)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundColor(colors.accent)
-
-                        Spacer()
-
-                        speakButton(for: copyText, providerID: providerID, chipStyle: true)
-                        copyButton(for: copyText, chipStyle: true)
-                    } else {
+                        #else
                         speakButton(for: copyText, providerID: providerID, chipStyle: false)
                         copyButton(for: copyText, chipStyle: false)
+                        #endif
                     }
-                    #else
-                    speakButton(for: copyText, providerID: providerID, chipStyle: false)
-                    copyButton(for: copyText, chipStyle: false)
-                    #endif
                 }
 
                 if !supplementalTexts.isEmpty {
