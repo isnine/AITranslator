@@ -18,6 +18,7 @@
 			<string>AITranslator</string>
 			<key>NSSendTypes</key>
 			<array>
+				<string>public.utf8-plain-text</string>
 				<string>NSStringPboardType</string>
 			</array>
 		</dict>

@@ -8,6 +8,9 @@
 import SwiftUI
 import ShareCore
 import Combine
+#if os(macOS)
+import AppKit
+#endif
 
 @main
 struct AITranslatorApp: App {
@@ -42,6 +45,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Register this object as a service provider for handling text from right-click menu
     NSApp.servicesProvider = self
+
+    // Register the pasteboard types this app can receive via Services
+    // This tells the system that this app can accept string data from the Services menu
+    NSApp.registerServicesMenuSendTypes([.string], returnTypes: [])
+
+    // Force update dynamic services
     NSUpdateDynamicServices()
   }
 
