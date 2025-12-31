@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "%lld" : {
+
+    },
     "Action Library" : {
       "localizations" : {
         "zh-Hans" : {
@@ -94,6 +97,9 @@
         }
       }
     },
+    "Are you sure you want to delete \"%@\"?" : {
+
+    },
     "Available inside the app" : {
       "localizations" : {
         "zh-Hans" : {
@@ -147,6 +153,12 @@
         }
       }
     },
+    "Configuration" : {
+
+    },
+    "Configuration exported successfully." : {
+
+    },
     "Configure AI providers" : {
       "localizations" : {
         "zh-Hans" : {
@@ -188,6 +200,12 @@
         }
       }
     },
+    "Create your first action by tapping the + button, or import a configuration from Settings." : {
+
+    },
+    "Current: %@" : {
+
+    },
     "Custom Endpoint" : {
       "localizations" : {
         "zh-Hans" : {
@@ -207,6 +225,12 @@
           }
         }
       }
+    },
+    "Delete" : {
+
+    },
+    "Delete Configuration" : {
+
     },
     "Duration: %@" : {
 
@@ -253,6 +277,12 @@
         }
       }
     },
+    "Export" : {
+
+    },
+    "Export Successful" : {
+
+    },
     "Generating..." : {
       "localizations" : {
         "zh-Hans" : {
@@ -268,6 +298,7 @@
     },
     "Grammar Check" : {
       "comment" : "Name of the grammar check action",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -300,6 +331,15 @@
     "https://..." : {
 
     },
+    "Import" : {
+
+    },
+    "Import Failed" : {
+
+    },
+    "Load" : {
+
+    },
     "Manage your custom actions" : {
       "localizations" : {
         "zh-Hans" : {
@@ -309,6 +349,15 @@
           }
         }
       }
+    },
+    "Manage, import, or export your configurations." : {
+
+    },
+    "New Empty" : {
+
+    },
+    "No Actions Yet" : {
+
     },
     "No providers configured yet." : {
       "localizations" : {
@@ -330,6 +379,9 @@
           }
         }
       }
+    },
+    "OK" : {
+
     },
     "Open Settings" : {
       "localizations" : {
@@ -353,6 +405,7 @@
     },
     "Polish" : {
       "comment" : "Name of the polish action",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -430,6 +483,12 @@
           }
         }
       }
+    },
+    "Save Current" : {
+
+    },
+    "Saved Configurations" : {
+
     },
     "Select Providers" : {
       "localizations" : {

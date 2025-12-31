@@ -7,6 +7,7 @@
 
 import SwiftUI
 import ShareCore
+import UniformTypeIdentifiers
 #if os(macOS)
 import Carbon
 #endif
@@ -16,9 +17,24 @@ struct SettingsView: View {
   @AppStorage(TargetLanguageOption.storageKey, store: AppPreferences.sharedDefaults)
   private var targetLanguageCode: String = TargetLanguageOption.appLanguage.rawValue
   @ObservedObject private var preferences: AppPreferences
+  @ObservedObject private var configStore = AppConfigurationStore.shared
   @State private var isLanguagePickerPresented = false
   @State private var customTTSEndpoint: String
   @State private var customTTSAPIKey: String
+
+  // Configuration import/export state
+  @State private var isImportPresented = false
+  @State private var isExportPresented = false
+  @State private var configurationDocument: ConfigurationDocument?
+  @State private var importError: String?
+  @State private var showImportError = false
+  @State private var showExportSuccess = false
+  @State private var savedConfigurations: [ConfigurationFileInfo] = []
+  @State private var showDeleteConfirmation = false
+  @State private var configToDelete: ConfigurationFileInfo?
+  @State private var showSaveDialog = false
+  @State private var newConfigName = ""
+
   #if os(macOS)
   @ObservedObject private var hotKeyManager = HotKeyManager.shared
   @State private var isRecordingHotKey = false
@@ -84,6 +100,31 @@ struct SettingsView: View {
             guard !isUsingDefaultTTS else { return }
             syncTTSPreferencesFromStore()
         }
+        .fileImporter(
+            isPresented: $isImportPresented,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            handleImport(result)
+        }
+        .fileExporter(
+            isPresented: $isExportPresented,
+            document: configurationDocument,
+            contentType: .json,
+            defaultFilename: "tree2lang-config.json"
+        ) { result in
+            handleExport(result)
+        }
+        .alert("Import Failed", isPresented: $showImportError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importError ?? "Unknown error")
+        }
+        .alert("Export Successful", isPresented: $showExportSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Configuration exported successfully.")
+        }
     }
 
     private var header: some View {
@@ -105,6 +146,7 @@ struct SettingsView: View {
       hotKeyPreferenceCard
       #endif
       ttsPreferenceCard
+      configurationCard
     }
   }
 }
@@ -351,6 +393,341 @@ private extension SettingsView {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(colors.cardBackground)
         )
+    }
+
+    var configurationCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Configuration")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+                Text("Manage, import, or export your configurations.")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
+            }
+
+            // Action buttons row
+            HStack(spacing: 12) {
+                Button {
+                    isImportPresented = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "square.and.arrow.down")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Import")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(colors.accent)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.accent.opacity(0.12))
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    prepareAndExport()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Export")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(colors.textPrimary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    createDefaultTemplate()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("Save Current")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(colors.textPrimary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    createEmptyTemplate()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "doc.badge.plus")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("New Empty")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(colors.textPrimary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+            }
+
+            // Current configuration indicator
+            if let currentName = configStore.currentConfigurationName {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.green)
+                    Text("Current: \(currentName)")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(colors.textPrimary)
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.green.opacity(0.1))
+                )
+            }
+
+            // Current config stats
+            HStack(spacing: 16) {
+                configStatView(count: configStore.providers.count, label: "Providers")
+                configStatView(count: configStore.actions.count, label: "Actions")
+            }
+
+            // Saved configurations list
+            if !savedConfigurations.isEmpty {
+                Divider()
+                    .padding(.vertical, 4)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Saved Configurations")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
+
+                    ForEach(savedConfigurations) { config in
+                        savedConfigurationRow(config)
+                    }
+                }
+            }
+        }
+        .padding(18)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(colors.cardBackground)
+        )
+        .onAppear {
+            refreshSavedConfigurations()
+        }
+        .alert("Delete Configuration", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                if let config = configToDelete {
+                    deleteConfiguration(config)
+                }
+            }
+        } message: {
+            Text("Are you sure you want to delete \"\(configToDelete?.name ?? "")\"?")
+        }
+    }
+
+    func savedConfigurationRow(_ config: ConfigurationFileInfo) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "doc.text")
+                .font(.system(size: 14))
+                .foregroundColor(colors.accent)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(config.name)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.textPrimary)
+                Text(config.formattedDate)
+                    .font(.system(size: 11))
+                    .foregroundColor(colors.textSecondary)
+            }
+
+            Spacer()
+
+            Button {
+                loadConfiguration(config)
+            } label: {
+                Text("Load")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(colors.accent)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(colors.accent.opacity(0.12))
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                configToDelete = config
+                showDeleteConfirmation = true
+            } label: {
+                Image(systemName: "trash")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.red.opacity(0.8))
+                    .padding(6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.red.opacity(0.1))
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(colors.inputBackground)
+        )
+    }
+
+    func refreshSavedConfigurations() {
+        savedConfigurations = ConfigurationFileManager.shared.listConfigurations()
+    }
+
+    func createDefaultTemplate() {
+        do {
+            _ = try ConfigurationFileManager.shared.createDefaultTemplate(
+                from: configStore,
+                preferences: preferences
+            )
+            refreshSavedConfigurations()
+        } catch {
+            importError = error.localizedDescription
+            showImportError = true
+        }
+    }
+
+    func loadConfiguration(_ config: ConfigurationFileInfo) {
+        do {
+            let appConfig = try ConfigurationFileManager.shared.loadConfiguration(from: config.url)
+            ConfigurationService.shared.applyConfiguration(
+                appConfig,
+                to: configStore,
+                preferences: preferences,
+                configurationName: config.name
+            )
+        } catch {
+            importError = error.localizedDescription
+            showImportError = true
+        }
+    }
+
+    func deleteConfiguration(_ config: ConfigurationFileInfo) {
+        do {
+            try ConfigurationFileManager.shared.deleteConfiguration(at: config.url)
+            refreshSavedConfigurations()
+        } catch {
+            importError = error.localizedDescription
+            showImportError = true
+        }
+    }
+
+    func createEmptyTemplate() {
+        do {
+            _ = try ConfigurationFileManager.shared.createEmptyTemplate()
+            refreshSavedConfigurations()
+        } catch {
+            importError = error.localizedDescription
+            showImportError = true
+        }
+    }
+
+    func configStatView(count: Int, label: String) -> some View {
+        HStack(spacing: 6) {
+            Text("\(count)")
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundColor(colors.accent)
+            Text(label)
+                .font(.system(size: 13))
+                .foregroundColor(colors.textSecondary)
+        }
+    }
+
+    func prepareAndExport() {
+        let config = ConfigurationService.shared.exportConfiguration(
+            from: configStore,
+            preferences: preferences
+        )
+        guard let data = config else { return }
+
+        do {
+            configurationDocument = try ConfigurationDocument(data: data)
+            isExportPresented = true
+        } catch {
+            importError = error.localizedDescription
+            showImportError = true
+        }
+    }
+
+    func handleImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case .success(let urls):
+            guard let url = urls.first else { return }
+
+            guard url.startAccessingSecurityScopedResource() else {
+                importError = "Unable to access the selected file."
+                showImportError = true
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            do {
+                let data = try Data(contentsOf: url)
+                let importResult = ConfigurationService.shared.importConfiguration(from: data)
+
+                switch importResult {
+                case .success(let config):
+                    ConfigurationService.shared.applyConfiguration(
+                        config,
+                        to: configStore,
+                        preferences: preferences
+                    )
+                case .failure(let error):
+                    importError = error.localizedDescription
+                    showImportError = true
+                }
+            } catch {
+                importError = error.localizedDescription
+                showImportError = true
+            }
+
+        case .failure(let error):
+            importError = error.localizedDescription
+            showImportError = true
+        }
+    }
+
+    func handleExport(_ result: Result<URL, Error>) {
+        switch result {
+        case .success:
+            showExportSuccess = true
+        case .failure(let error):
+            importError = error.localizedDescription
+            showImportError = true
+        }
     }
 
     func persistCustomTTSConfiguration() {

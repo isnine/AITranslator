@@ -14,8 +14,34 @@ public final class AppConfigurationStore: ObservableObject {
 
     @Published public private(set) var actions: [ActionConfig]
     @Published public private(set) var providers: [ProviderConfig]
+    @Published public private(set) var currentConfigurationName: String?
+    
     private let preferences: AppPreferences
     private var cancellables: Set<AnyCancellable> = []
+    
+    private let fileManager = FileManager.default
+    
+    /// Directory for storing configuration files
+    private var configurationDirectory: URL {
+        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let configDir = appSupport.appendingPathComponent("AITranslator", isDirectory: true)
+        
+        if !fileManager.fileExists(atPath: configDir.path) {
+            try? fileManager.createDirectory(at: configDir, withIntermediateDirectories: true)
+        }
+        
+        return configDir
+    }
+    
+    /// Path to the active configuration file
+    private var activeConfigURL: URL {
+        configurationDirectory.appendingPathComponent("active-config.json")
+    }
+    
+    /// Path to store current configuration name
+    private var configNameURL: URL {
+        configurationDirectory.appendingPathComponent("config-name.txt")
+    }
 
     public var defaultAction: ActionConfig? {
         actions.first
@@ -27,16 +53,15 @@ public final class AppConfigurationStore: ObservableObject {
 
     private init(preferences: AppPreferences = .shared) {
         self.preferences = preferences
-
         preferences.refreshFromDefaults()
-
-        let providers = [Defaults.provider]
-        self.providers = providers
-        let baseActions = Defaults.actions(for: providers.map { $0.id })
-        self.actions = AppConfigurationStore.applyTargetLanguage(
-            baseActions,
-            targetLanguage: preferences.targetLanguage
-        )
+        
+        // Initialize with empty arrays first
+        self.providers = []
+        self.actions = []
+        self.currentConfigurationName = nil
+        
+        // Then load from persistence or defaults
+        loadConfiguration()
 
         preferences.$targetLanguage
             .receive(on: RunLoop.main)
@@ -47,9 +72,12 @@ public final class AppConfigurationStore: ObservableObject {
                     targetLanguage: option
                 )
                 self.actions = updated
+                self.saveConfiguration()
             }
             .store(in: &cancellables)
     }
+    
+    // MARK: - Public Methods
 
     public func updateActions(_ actions: [ActionConfig]) {
         let adjusted = AppConfigurationStore.applyTargetLanguage(
@@ -57,10 +85,195 @@ public final class AppConfigurationStore: ObservableObject {
             targetLanguage: preferences.targetLanguage
         )
         self.actions = adjusted
+        saveConfiguration()
     }
 
     public func updateProviders(_ providers: [ProviderConfig]) {
         self.providers = providers
+        saveConfiguration()
+    }
+    
+    public func setCurrentConfigurationName(_ name: String?) {
+        self.currentConfigurationName = name
+        saveConfigurationName(name)
+    }
+    
+    // MARK: - Persistence using JSON files
+    
+    private func loadConfiguration() {
+        // Try to load from active config file
+        if fileManager.fileExists(atPath: activeConfigURL.path) {
+            do {
+                let data = try Data(contentsOf: activeConfigURL)
+                let config = try JSONDecoder().decode(AppConfiguration.self, from: data)
+                
+                applyLoadedConfiguration(config)
+                loadConfigurationName()
+                return
+            } catch {
+                print("Failed to load active configuration: \(error)")
+            }
+        }
+        
+        // First launch: load from bundled default config
+        loadBundledDefaultConfiguration()
+    }
+    
+    private func loadBundledDefaultConfiguration() {
+        guard let url = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
+            print("DefaultConfiguration.json not found in bundle")
+            return
+        }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            let config = try JSONDecoder().decode(AppConfiguration.self, from: data)
+            
+            applyLoadedConfiguration(config)
+            self.currentConfigurationName = "Default"
+            
+            // Apply preferences if present
+            if let prefsConfig = config.preferences {
+                if let targetLang = prefsConfig.targetLanguage,
+                   let option = TargetLanguageOption(rawValue: targetLang) {
+                    preferences.setTargetLanguage(option)
+                }
+            }
+            
+            // Apply TTS if present
+            if let ttsEntry = config.tts {
+                if let usesDefault = ttsEntry.useDefault {
+                    preferences.setTTSUsesDefaultConfiguration(usesDefault)
+                }
+                if let ttsConfig = ttsEntry.toTTSConfiguration() {
+                    preferences.setTTSConfiguration(ttsConfig)
+                }
+            }
+            
+            saveConfiguration()
+            saveConfigurationName("Default")
+        } catch {
+            print("Failed to load bundled default configuration: \(error)")
+        }
+    }
+    
+    private func applyLoadedConfiguration(_ config: AppConfiguration) {
+        // Build provider map
+        var loadedProviders: [ProviderConfig] = []
+        var providerNameToID: [String: UUID] = [:]
+        
+        for (name, entry) in config.providers {
+            if let provider = entry.toProviderConfig(name: name) {
+                loadedProviders.append(provider)
+                providerNameToID[name] = provider.id
+            }
+        }
+        
+        // Build actions
+        var loadedActions: [ActionConfig] = []
+        for (name, entry) in config.actions {
+            let action = entry.toActionConfig(name: name, providerMap: providerNameToID)
+            loadedActions.append(action)
+        }
+        
+        self.providers = loadedProviders
+        self.actions = AppConfigurationStore.applyTargetLanguage(
+            loadedActions,
+            targetLanguage: preferences.targetLanguage
+        )
+    }
+    
+    private func saveConfiguration() {
+        let config = buildCurrentConfiguration()
+        
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(config)
+            try data.write(to: activeConfigURL)
+        } catch {
+            print("Failed to save configuration: \(error)")
+        }
+    }
+    
+    private func buildCurrentConfiguration() -> AppConfiguration {
+        // Build provider entries
+        var providerEntries: [String: AppConfiguration.ProviderEntry] = [:]
+        var providerIDToName: [UUID: String] = [:]
+        
+        for provider in providers {
+            let (name, entry) = AppConfiguration.ProviderEntry.from(provider)
+            var uniqueName = name
+            var counter = 1
+            while providerEntries[uniqueName] != nil {
+                counter += 1
+                uniqueName = "\(name) \(counter)"
+            }
+            providerEntries[uniqueName] = entry
+            providerIDToName[provider.id] = uniqueName
+        }
+        
+        // Build action entries
+        var actionEntries: [String: AppConfiguration.ActionEntry] = [:]
+        for action in actions {
+            let (name, entry) = AppConfiguration.ActionEntry.from(action, providerNames: providerIDToName)
+            var uniqueName = name
+            var counter = 1
+            while actionEntries[uniqueName] != nil {
+                counter += 1
+                uniqueName = "\(name) \(counter)"
+            }
+            actionEntries[uniqueName] = entry
+        }
+        
+        return AppConfiguration(
+            version: "1.0.0",
+            preferences: AppConfiguration.PreferencesConfig(
+                targetLanguage: preferences.targetLanguage.rawValue
+            ),
+            providers: providerEntries,
+            tts: AppConfiguration.TTSEntry.from(
+                preferences.effectiveTTSConfiguration,
+                usesDefault: preferences.ttsUsesDefaultConfiguration
+            ),
+            actions: actionEntries
+        )
+    }
+    
+    private func saveConfigurationName(_ name: String?) {
+        do {
+            if let name = name {
+                try name.write(to: configNameURL, atomically: true, encoding: .utf8)
+            } else if fileManager.fileExists(atPath: configNameURL.path) {
+                try fileManager.removeItem(at: configNameURL)
+            }
+        } catch {
+            print("Failed to save configuration name: \(error)")
+        }
+    }
+    
+    private func loadConfigurationName() {
+        guard fileManager.fileExists(atPath: configNameURL.path) else {
+            currentConfigurationName = nil
+            return
+        }
+        
+        do {
+            currentConfigurationName = try String(contentsOf: configNameURL, encoding: .utf8)
+        } catch {
+            print("Failed to load configuration name: \(error)")
+            currentConfigurationName = nil
+        }
+    }
+    
+    /// Reset to bundled default configuration
+    public func resetToDefault() {
+        // Remove active config file
+        try? fileManager.removeItem(at: activeConfigURL)
+        try? fileManager.removeItem(at: configNameURL)
+        
+        // Reload from bundled defaults
+        loadBundledDefaultConfiguration()
     }
 
     private static func applyTargetLanguage(
@@ -88,196 +301,45 @@ public final class AppConfigurationStore: ObservableObject {
     }
 }
 
+// MARK: - Managed Action Templates (for language updates)
+
 private extension AppConfigurationStore {
-    enum Defaults {
-        static let translateName = NSLocalizedString(
-            "Translate",
-            comment: "Name of the translate action"
-        )
-        static let summarizeName = NSLocalizedString(
-            "Summarize",
-            comment: "Name of the summarize action"
-        )
-        static let polishName = NSLocalizedString(
-            "Polish",
-            comment: "Name of the polish action"
-        )
-        static let grammarCheckName = NSLocalizedString(
-            "Grammar Check",
-            comment: "Name of the grammar check action"
-        )
-        static let sentenceAnalysisName = NSLocalizedString(
-            "Sentence Analysis",
-            comment: "Name of the sentence analysis action"
-        )
-        static let sentenceBySentenceTranslateName = NSLocalizedString(
-            "Sentence Translate",
-            comment: "Name of the sentence-by-sentence translation action"
-        )
-        static let translateLegacySummary = "Use AI for context-aware translation."
-        static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
-        static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
-        static let sentenceAnalysisSummary = "Parse sentence grammar and highlight reusable phrases."
-
-        static let provider: ProviderConfig = .init(
-            displayName: "Azure OpenAI",
-            apiURL: URL(
-                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview"
-            )!,
-            token: "REDACTED_AZURE_API_KEY",
-            authHeaderName: "api-key",
-            category: .azureOpenAI,
-            modelName: "model-router"
-        )
-
-        static let gpt5Provider: ProviderConfig = .init(
-            displayName: "Azure OpenAI",
-            apiURL: URL(
-                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5/chat/completions?api-version=2025-01-01-preview"
-            )!,
-            token: "REDACTED_AZURE_API_KEY",
-            authHeaderName: "api-key",
-            category: .azureOpenAI,
-            modelName: "gpt-5"
-        )
-
-        static let gpt5NanoProvider: ProviderConfig = .init(
-            displayName: "Azure OpenAI",
-            apiURL: URL(
-                string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-5-nano/chat/completions?api-version=2025-01-01-preview"
-            )!,
-            token: "REDACTED_AZURE_API_KEY",
-            authHeaderName: "api-key",
-            category: .azureOpenAI,
-            modelName: "gpt-5-nano"
-        )
-
-        static func actions(for providerIDs: [UUID]) -> [ActionConfig] {
-            [
-                // 1. Sentence Translate (default)
-                .init(
-                    name: sentenceBySentenceTranslateName,
-                    summary: "Translate each sentence and display original/translation side by side.",
-                    prompt: ManagedActionTemplate.sentenceBySentenceTranslatePrompt(for: .appLanguage),
-                    providerIDs: providerIDs,
-                    usageScenes: .all,
-                    structuredOutput: .init(
-                        primaryField: "sentence_pairs",
-                        additionalFields: [],
-                        jsonSchema: """
-                        {
-                          "name": "sentence_translate_response",
-                          "schema": {
-                            "type": "object",
-                            "properties": {
-                              "sentence_pairs": {
-                                "type": "array",
-                                "description": "Array of sentence pairs with original and translated text.",
-                                "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "original": {
-                                      "type": "string",
-                                      "description": "The original sentence from the input."
-                                    },
-                                    "translation": {
-                                      "type": "string",
-                                      "description": "The translated version of the sentence."
-                                    }
-                                  },
-                                  "required": ["original", "translation"],
-                                  "additionalProperties": false
-                                }
-                              }
-                            },
-                            "required": ["sentence_pairs"],
-                            "additionalProperties": false
-                          }
-                        }
-                        """
-                    ),
-                    displayMode: .sentencePairs
-                ),
-                // 2. Translate
-                .init(
-                    name: translateName,
-                    summary: translateLegacySummary,
-                    prompt: translateLegacyPrompt,
-                    providerIDs: providerIDs,
-                    usageScenes: .all
-                ),
-                // 3. Grammar Check
-                .init(
-                    name: grammarCheckName,
-                    summary: "Inspect grammar issues and provide explanations.",
-                    prompt: "Review this text for grammar issues. 1. Return a polished version first. 2. On the next line, explain each original error in Chinese, prefixing severe ones with ❌ and minor ones with ⚠️. 3. End with the polished sentence's meaning translated into Chinese.",
-                    providerIDs: providerIDs,
-                    usageScenes: .all,
-                    showsDiff: true,
-                    structuredOutput: .init(
-                        primaryField: "revised_text",
-                        additionalFields: ["additional_text"],
-                        jsonSchema: """
-                        {
-                          "name": "grammar_check_response",
-                          "schema": {
-                            "type": "object",
-                            "properties": {
-                              "revised_text": {
-                                "type": "string",
-                                "description": "The user text rewritten with all grammar issues addressed. Preserve the original language."
-                              },
-                              "additional_text": {
-                                "type": "string",
-                                "description": "Any requested explanations, analyses, or translations that accompany the revised text."
-                              }
-                            },
-                            "required": [
-                              "revised_text",
-                              "additional_text"
-                            ],
-                            "additionalProperties": false
-                          }
-                        }
-                        """
-                    )
-                ),
-                // 4. Polish
-                .init(
-                    name: polishName,
-                    summary: "Rewrite the text in the same language with improved clarity.",
-                    prompt: "Polish the text and return the improved version in the same language.",
-                    providerIDs: providerIDs,
-                    usageScenes: .all,
-                    showsDiff: true
-                ),
-                // 5. Sentence Analysis
-                .init(
-                    name: sentenceAnalysisName,
-                    summary: sentenceAnalysisSummary,
-                    prompt: ManagedActionTemplate.sentenceAnalysisPrompt(for: .appLanguage),
-                    providerIDs: providerIDs,
-                    usageScenes: .all
-                )
-            ]
-        }
-    }
-
     enum ManagedActionTemplate {
         case translate
         case summarize
         case sentenceAnalysis
         case sentenceBySentenceTranslate
 
+        private static let translateName = NSLocalizedString(
+            "Translate",
+            comment: "Name of the translate action"
+        )
+        private static let summarizeName = NSLocalizedString(
+            "Summarize",
+            comment: "Name of the summarize action"
+        )
+        private static let sentenceAnalysisName = NSLocalizedString(
+            "Sentence Analysis",
+            comment: "Name of the sentence analysis action"
+        )
+        private static let sentenceBySentenceTranslateName = NSLocalizedString(
+            "Sentence Translate",
+            comment: "Name of the sentence-by-sentence translation action"
+        )
+        
+        private static let translateLegacySummary = "Use AI for context-aware translation."
+        private static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
+        private static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
+
         init?(action: ActionConfig) {
             switch action.name {
-            case Defaults.translateName:
+            case Self.translateName:
                 self = .translate
-            case Defaults.summarizeName:
+            case Self.summarizeName:
                 self = .summarize
-            case Defaults.sentenceAnalysisName:
+            case Self.sentenceAnalysisName:
                 self = .sentenceAnalysis
-            case Defaults.sentenceBySentenceTranslateName:
+            case Self.sentenceBySentenceTranslateName:
                 self = .sentenceBySentenceTranslate
             default:
                 return nil
@@ -321,10 +383,10 @@ private extension AppConfigurationStore {
                 acceptable.formUnion(
                     TargetLanguageOption.selectionOptions.map { Self.translateLegacyPrompt(for: $0) }
                 )
-                acceptable.insert(Defaults.translateLegacyPrompt)
+                acceptable.insert(Self.translateLegacyPrompt)
                 return acceptable.contains(currentPrompt)
             case .summarize:
-                return currentPrompt == Defaults.summarizeLegacyPrompt || generated.contains(currentPrompt)
+                return currentPrompt == Self.summarizeLegacyPrompt || generated.contains(currentPrompt)
             case .sentenceAnalysis:
                 return generated.contains(currentPrompt)
             case .sentenceBySentenceTranslate:
@@ -340,7 +402,7 @@ private extension AppConfigurationStore {
                         summary(for: $0)
                     }
                 )
-                return currentSummary == Defaults.translateLegacySummary || generated.contains(currentSummary)
+                return currentSummary == Self.translateLegacySummary || generated.contains(currentSummary)
             case .summarize:
                 return false
             case .sentenceAnalysis:

@@ -38,6 +38,10 @@ struct ActionsView: View {
                             .buttonStyle(.plain)
                         }
                     }
+
+                    if configurationStore.actions.isEmpty {
+                        emptyStateView
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 28)
@@ -85,6 +89,28 @@ struct ActionsView: View {
                 .shadow(color: colors.accent.opacity(0.35), radius: 12, x: 0, y: 8)
         }
         .buttonStyle(.plain)
+    }
+
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "bolt.slash")
+                .font(.system(size: 48, weight: .light))
+                .foregroundColor(colors.textSecondary.opacity(0.5))
+
+            VStack(spacing: 6) {
+                Text("No Actions Yet")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+
+                Text("Create your first action by tapping the + button, or import a configuration from Settings.")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 48)
+        .padding(.horizontal, 24)
     }
 
     private func providerCount(for action: ActionConfig) -> Int {

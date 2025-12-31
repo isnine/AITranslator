@@ -1,0 +1,58 @@
+{
+  "version": "1.0.0",
+  "preferences": {
+    "targetLanguage": "Simplified Chinese",
+    "hotkey": {
+      "key": "Space",
+      "modifiers": ["command", "shift"]
+    }
+  },
+  "providers": {
+    "Azure OpenAI": {
+      "category": "azureOpenAI",
+      "model": "model-router",
+      "endpoint": "https://REDACTED_AZURE_ENDPOINT/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview",
+      "authHeader": "api-key",
+      "token": "REDACTED_AZURE_API_KEY"
+    }
+  },
+  "tts": {
+    "useDefault": true,
+    "endpoint": "https://api.openai.com/v1/audio/speech",
+    "apiKey": "",
+    "model": "gpt-4o-mini-tts",
+    "voice": "alloy"
+  },
+  "actions": {
+    "Sentence Translate": {
+      "summary": "Translate each sentence and display original/translation side by side.",
+      "prompt": "Translate the following text sentence by sentence into Simplified Chinese. If the input language already matches the target language, translate it into English instead. Split the input into individual sentences, keeping punctuation with each sentence. For each sentence, provide the original text and its translation as a pair. Preserve the original meaning, tone, and style.",
+      "providers": ["Azure OpenAI"],
+      "outputType": "sentencePairs"
+    },
+    "Translate": {
+      "summary": "Translate into Simplified Chinese while keeping the original tone.",
+      "prompt": "Translate the selected text into Simplified Chinese. If the input language already matches the target language, translate it into English instead. Preserve tone, intent, and terminology. Respond with only the translated text.",
+      "providers": ["Azure OpenAI"],
+      "outputType": "plain"
+    },
+    "Grammar Check": {
+      "summary": "Inspect grammar issues and provide explanations.",
+      "prompt": "Review this text for grammar issues. 1. Return a polished version first. 2. On the next line, explain each original error in Chinese, prefixing severe ones with ❌ and minor ones with ⚠️. 3. End with the polished sentence's meaning translated into Chinese.",
+      "providers": ["Azure OpenAI"],
+      "outputType": "grammarCheck"
+    },
+    "Polish": {
+      "summary": "Rewrite the text in the same language with improved clarity.",
+      "prompt": "Polish the text and return the improved version in the same language.",
+      "providers": ["Azure OpenAI"],
+      "outputType": "diff"
+    },
+    "Sentence Analysis": {
+      "summary": "Parse sentence grammar and highlight reusable phrases.",
+      "prompt": "Analyze the provided sentence or short paragraph and respond entirely in Simplified Chinese. Follow exactly two Markdown sections:\n\n## 📚语法分析\n- Explain the sentence structure (clauses, parts of speech, tense/voice) and how key components relate.\n- Highlight noteworthy grammar patterns or difficult constructions.\n\n## ✍️ 搭配积累\n- List useful short phrases, collocations, or idiomatic chunks from the input.\n- Give each item a brief meaning plus usage tips or a short example.\n\nKeep explanations concise yet insightful and do not add extra sections.",
+      "providers": ["Azure OpenAI"],
+      "outputType": "plain"
+    }
+  }
+}

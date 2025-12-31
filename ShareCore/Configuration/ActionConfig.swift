@@ -23,7 +23,7 @@ public struct SentencePair: Codable, Hashable, Identifiable, Sendable {
     }
 }
 
-public struct ActionConfig: Identifiable, Hashable {
+public struct ActionConfig: Identifiable, Hashable, Codable {
     /// Controls how the result is displayed in the UI.
     public enum DisplayMode: String, Codable, Hashable {
         /// Default text display with copy/speak buttons.
@@ -63,7 +63,7 @@ public struct ActionConfig: Identifiable, Hashable {
         }
     }
 
-    public struct UsageScene: OptionSet, Hashable {
+    public struct UsageScene: OptionSet, Hashable, Codable {
         public let rawValue: Int
 
         public init(rawValue: Int) {
@@ -83,10 +83,43 @@ public struct ActionConfig: Identifiable, Hashable {
     public var prompt: String
     public var providerIDs: [UUID]
     public var usageScenes: UsageScene
-    public var showsDiff: Bool
-    public var structuredOutput: StructuredOutputConfig?
-    public var displayMode: DisplayMode
+    public var outputType: OutputType
 
+    /// Computed property for backward compatibility
+    public var showsDiff: Bool {
+        outputType.showsDiff
+    }
+
+    /// Computed property for backward compatibility
+    public var structuredOutput: StructuredOutputConfig? {
+        outputType.structuredOutput
+    }
+
+    /// Computed property for backward compatibility
+    public var displayMode: DisplayMode {
+        outputType.displayMode
+    }
+
+    /// Primary initializer using OutputType
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        summary: String,
+        prompt: String,
+        providerIDs: [UUID],
+        usageScenes: UsageScene = .all,
+        outputType: OutputType = .plain
+    ) {
+        self.id = id
+        self.name = name
+        self.summary = summary
+        self.prompt = prompt
+        self.providerIDs = providerIDs
+        self.usageScenes = usageScenes
+        self.outputType = outputType
+    }
+
+    /// Legacy initializer for backward compatibility
     public init(
         id: UUID = UUID(),
         name: String,
@@ -104,8 +137,16 @@ public struct ActionConfig: Identifiable, Hashable {
         self.prompt = prompt
         self.providerIDs = providerIDs
         self.usageScenes = usageScenes
-        self.showsDiff = showsDiff
-        self.structuredOutput = structuredOutput
-        self.displayMode = displayMode
+
+        // Infer outputType from legacy parameters
+        if displayMode == .sentencePairs {
+            self.outputType = .sentencePairs
+        } else if structuredOutput?.primaryField == "revised_text" {
+            self.outputType = .grammarCheck
+        } else if showsDiff {
+            self.outputType = .diff
+        } else {
+            self.outputType = .plain
+        }
     }
 }

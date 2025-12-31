@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct ProviderConfig: Identifiable, Hashable {
+public struct ProviderConfig: Identifiable, Hashable, Codable {
     public let id: UUID
     public var displayName: String
     public var apiURL: URL
