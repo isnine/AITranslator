@@ -232,6 +232,12 @@
     "Delete Configuration" : {
 
     },
+    "Discard" : {
+
+    },
+    "Discard Changes?" : {
+
+    },
     "Duration: %@" : {
 
     },
@@ -743,6 +749,9 @@
           }
         }
       }
+    },
+    "You have unsaved changes. Are you sure you want to discard them?" : {
+
     }
   },
   "version" : "1.1"

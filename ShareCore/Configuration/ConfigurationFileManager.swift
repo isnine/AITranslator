@@ -25,10 +25,35 @@ public final class ConfigurationFileManager: Sendable {
     return configDir
   }
 
-  private init() {}
+  private init() {
+    // Copy bundled default configuration on first run if no configs exist
+    ensureBundledDefaultExists()
+  }
+
+  /// Ensure the bundled default configuration is copied to the configurations directory on first run
+  private func ensureBundledDefaultExists() {
+    let defaultConfigURL = configurationsDirectory.appendingPathComponent("Default.json")
+    
+    // Only copy if it doesn't exist yet
+    guard !fileManager.fileExists(atPath: defaultConfigURL.path) else { return }
+    
+    // Find and copy bundled default
+    guard let bundleURL = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
+      return
+    }
+    
+    do {
+      try fileManager.copyItem(at: bundleURL, to: defaultConfigURL)
+    } catch {
+      print("Failed to copy bundled default configuration: \(error)")
+    }
+  }
 
   /// List all saved configuration files
   public func listConfigurations() -> [ConfigurationFileInfo] {
+    // Ensure bundled default is present
+    ensureBundledDefaultExists()
+    
     guard let files = try? fileManager.contentsOfDirectory(
       at: configurationsDirectory,
       includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],

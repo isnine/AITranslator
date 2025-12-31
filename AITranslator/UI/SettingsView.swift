@@ -34,6 +34,9 @@ struct SettingsView: View {
   @State private var configToDelete: ConfigurationFileInfo?
   @State private var showSaveDialog = false
   @State private var newConfigName = ""
+  @State private var showConfigEditor = false
+  @State private var configToEdit: ConfigurationFileInfo?
+  @State private var editingConfigText = ""
 
   #if os(macOS)
   @ObservedObject private var hotKeyManager = HotKeyManager.shared
@@ -125,6 +128,21 @@ struct SettingsView: View {
         } message: {
             Text("Configuration exported successfully.")
         }
+        .sheet(isPresented: $showConfigEditor) {
+            ConfigurationEditorView(
+                configInfo: configToEdit,
+                initialText: editingConfigText,
+                colors: colors,
+                onSave: { updatedText in
+                    saveEditedConfiguration(updatedText)
+                },
+                onDismiss: {
+                    showConfigEditor = false
+                    configToEdit = nil
+                    editingConfigText = ""
+                }
+            )
+        }
     }
 
     private var header: some View {
@@ -141,12 +159,12 @@ struct SettingsView: View {
 
   private var preferencesSection: some View {
     VStack(spacing: 16) {
+      configurationCard
       languagePreferenceCard
       #if os(macOS)
       hotKeyPreferenceCard
       #endif
       ttsPreferenceCard
-      configurationCard
     }
   }
 }
@@ -406,7 +424,42 @@ private extension SettingsView {
                     .foregroundColor(colors.textSecondary)
             }
 
-            // Action buttons row
+            // Action buttons - use grid on iOS, horizontal on macOS
+            #if os(iOS)
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                configActionButton(
+                    icon: "square.and.arrow.down",
+                    title: "Import",
+                    isAccent: true
+                ) {
+                    isImportPresented = true
+                }
+
+                configActionButton(
+                    icon: "square.and.arrow.up",
+                    title: "Export",
+                    isAccent: false
+                ) {
+                    prepareAndExport()
+                }
+
+                configActionButton(
+                    icon: "plus.circle",
+                    title: "Save",
+                    isAccent: false
+                ) {
+                    createDefaultTemplate()
+                }
+
+                configActionButton(
+                    icon: "doc.badge.plus",
+                    title: "New",
+                    isAccent: false
+                ) {
+                    createEmptyTemplate()
+                }
+            }
+            #else
             HStack(spacing: 12) {
                 Button {
                     isImportPresented = true
@@ -486,6 +539,7 @@ private extension SettingsView {
 
                 Spacer()
             }
+            #endif
 
             // Current configuration indicator
             if let currentName = configStore.currentConfigurationName {
@@ -550,20 +604,33 @@ private extension SettingsView {
 
     func savedConfigurationRow(_ config: ConfigurationFileInfo) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: "doc.text")
-                .font(.system(size: 14))
-                .foregroundColor(colors.accent)
+            // Tappable area to open editor
+            Button {
+                openConfigEditor(config)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "doc.text")
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.accent)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(config.name)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(colors.textPrimary)
-                Text(config.formattedDate)
-                    .font(.system(size: 11))
-                    .foregroundColor(colors.textSecondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(config.name)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(colors.textPrimary)
+                        Text(config.formattedDate)
+                            .font(.system(size: 11))
+                            .foregroundColor(colors.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
+                .contentShape(Rectangle())
             }
-
-            Spacer()
+            .buttonStyle(.plain)
 
             Button {
                 loadConfiguration(config)
@@ -601,6 +668,47 @@ private extension SettingsView {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(colors.inputBackground)
         )
+    }
+
+    func openConfigEditor(_ config: ConfigurationFileInfo) {
+        do {
+            let data = try Data(contentsOf: config.url)
+            if let jsonString = String(data: data, encoding: .utf8) {
+                editingConfigText = jsonString
+                configToEdit = config
+                showConfigEditor = true
+            }
+        } catch {
+            importError = "Failed to read configuration: \(error.localizedDescription)"
+            showImportError = true
+        }
+    }
+
+    func saveEditedConfiguration(_ text: String) {
+        guard let config = configToEdit else { return }
+        
+        // Validate JSON first
+        guard let data = text.data(using: .utf8) else {
+            importError = "Invalid text encoding"
+            showImportError = true
+            return
+        }
+        
+        do {
+            // Try to parse to validate
+            _ = try JSONDecoder().decode(AppConfiguration.self, from: data)
+            
+            // Write back to file
+            try data.write(to: config.url)
+            
+            refreshSavedConfigurations()
+            showConfigEditor = false
+            configToEdit = nil
+            editingConfigText = ""
+        } catch {
+            importError = "Invalid configuration: \(error.localizedDescription)"
+            showImportError = true
+        }
     }
 
     func refreshSavedConfigurations() {
@@ -665,6 +773,32 @@ private extension SettingsView {
                 .foregroundColor(colors.textSecondary)
         }
     }
+
+    #if os(iOS)
+    func configActionButton(
+        icon: String,
+        title: String,
+        isAccent: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 14, weight: .medium))
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+            }
+            .foregroundColor(isAccent ? colors.accent : colors.textPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isAccent ? colors.accent.opacity(0.12) : colors.inputBackground)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+    #endif
 
     func prepareAndExport() {
         let config = ConfigurationService.shared.exportConfiguration(
@@ -915,4 +1049,153 @@ private extension SettingsView {
 #Preview {
     SettingsView()
         .preferredColorScheme(.dark)
+}
+
+// MARK: - Configuration Editor View
+
+struct ConfigurationEditorView: View {
+    let configInfo: ConfigurationFileInfo?
+    let initialText: String
+    let colors: AppColorPalette
+    let onSave: (String) -> Void
+    let onDismiss: () -> Void
+
+    @State private var editableText: String = ""
+    @State private var hasChanges = false
+    @State private var showDiscardAlert = false
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        #if os(macOS)
+        macOSEditor
+        #else
+        iOSEditor
+        #endif
+    }
+
+    #if os(macOS)
+    private var macOSEditor: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(configInfo?.name ?? "Configuration")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
+                    Text("Edit JSON configuration")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        handleCancel()
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(colors.textSecondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+
+                    Button("Save") {
+                        onSave(editableText)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(colors.accent)
+                    )
+                    .disabled(!hasChanges)
+                    .opacity(hasChanges ? 1 : 0.5)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(colors.cardBackground)
+
+            Divider()
+
+            // Editor
+            TextEditor(text: $editableText)
+                .font(.system(size: 13, design: .monospaced))
+                .scrollContentBackground(.hidden)
+                .background(colors.background)
+                .padding(12)
+        }
+        .frame(minWidth: 600, minHeight: 500)
+        .background(colors.background)
+        .onAppear {
+            editableText = initialText
+        }
+        .onChange(of: editableText) {
+            hasChanges = editableText != initialText
+        }
+        .alert("Discard Changes?", isPresented: $showDiscardAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Discard", role: .destructive) {
+                onDismiss()
+            }
+        } message: {
+            Text("You have unsaved changes. Are you sure you want to discard them?")
+        }
+    }
+    #endif
+
+    #if os(iOS)
+    private var iOSEditor: some View {
+        NavigationStack {
+            TextEditor(text: $editableText)
+                .font(.system(size: 14, design: .monospaced))
+                .scrollContentBackground(.hidden)
+                .background(colors.background)
+                .padding(.horizontal, 12)
+                .navigationTitle(configInfo?.name ?? "Configuration")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            handleCancel()
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            onSave(editableText)
+                        }
+                        .disabled(!hasChanges)
+                    }
+                }
+                .background(colors.background.ignoresSafeArea())
+        }
+        .onAppear {
+            editableText = initialText
+        }
+        .onChange(of: editableText) {
+            hasChanges = editableText != initialText
+        }
+        .alert("Discard Changes?", isPresented: $showDiscardAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Discard", role: .destructive) {
+                onDismiss()
+            }
+        } message: {
+            Text("You have unsaved changes. Are you sure you want to discard them?")
+        }
+    }
+    #endif
+
+    private func handleCancel() {
+        if hasChanges {
+            showDiscardAlert = true
+        } else {
+            onDismiss()
+        }
+    }
 }

@@ -101,33 +101,44 @@ public final class AppConfigurationStore: ObservableObject {
     // MARK: - Persistence using JSON files
     
     private func loadConfiguration() {
+        print("[ConfigStore] activeConfigURL: \(activeConfigURL.path)")
+        print("[ConfigStore] File exists: \(fileManager.fileExists(atPath: activeConfigURL.path))")
+        
         // Try to load from active config file
         if fileManager.fileExists(atPath: activeConfigURL.path) {
             do {
                 let data = try Data(contentsOf: activeConfigURL)
+                print("[ConfigStore] Loaded active config, size: \(data.count) bytes")
                 let config = try JSONDecoder().decode(AppConfiguration.self, from: data)
+                print("[ConfigStore] Decoded active config, providers count: \(config.providers.count)")
                 
                 applyLoadedConfiguration(config)
                 loadConfigurationName()
                 return
             } catch {
-                print("Failed to load active configuration: \(error)")
+                print("[ConfigStore] Failed to load active configuration: \(error)")
             }
         }
         
         // First launch: load from bundled default config
+        print("[ConfigStore] Loading bundled default configuration...")
         loadBundledDefaultConfiguration()
     }
     
     private func loadBundledDefaultConfiguration() {
         guard let url = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
-            print("DefaultConfiguration.json not found in bundle")
+            print("[ConfigStore] DefaultConfiguration.json not found in bundle")
             return
         }
         
+        print("[ConfigStore] Found bundled config at: \(url.path)")
+        
         do {
             let data = try Data(contentsOf: url)
+            print("[ConfigStore] Bundled config size: \(data.count) bytes")
+            
             let config = try JSONDecoder().decode(AppConfiguration.self, from: data)
+            print("[ConfigStore] Decoded bundled config, providers count: \(config.providers.count)")
             
             applyLoadedConfiguration(config)
             self.currentConfigurationName = "Default"
@@ -162,12 +173,20 @@ public final class AppConfigurationStore: ObservableObject {
         var loadedProviders: [ProviderConfig] = []
         var providerNameToID: [String: UUID] = [:]
         
+        print("[ConfigStore] Parsing \(config.providers.count) providers from config")
+        
         for (name, entry) in config.providers {
+            print("[ConfigStore] Trying to parse provider: '\(name)' with category: '\(entry.category)'")
             if let provider = entry.toProviderConfig(name: name) {
                 loadedProviders.append(provider)
                 providerNameToID[name] = provider.id
+                print("[ConfigStore] ✅ Successfully parsed provider: '\(name)'")
+            } else {
+                print("[ConfigStore] ❌ Failed to parse provider: '\(name)' - toProviderConfig returned nil")
             }
         }
+        
+        print("[ConfigStore] Total loaded providers: \(loadedProviders.count)")
         
         // Build actions
         var loadedActions: [ActionConfig] = []
@@ -175,6 +194,8 @@ public final class AppConfigurationStore: ObservableObject {
             let action = entry.toActionConfig(name: name, providerMap: providerNameToID)
             loadedActions.append(action)
         }
+        
+        print("[ConfigStore] Total loaded actions: \(loadedActions.count)")
         
         self.providers = loadedProviders
         self.actions = AppConfigurationStore.applyTargetLanguage(

@@ -80,11 +80,21 @@ public extension AppConfiguration {
 
     /// Convert to internal ProviderConfig
     public func toProviderConfig(name: String) -> ProviderConfig? {
-      guard let url = URL(string: endpoint) else { return nil }
-      guard let providerCategory = ProviderCategory(rawValue: category)
-        ?? ProviderCategory.allCases.first(where: { $0.displayName == category }) else {
+      guard let url = URL(string: endpoint) else {
+        print("[ProviderEntry] ❌ Invalid URL: '\(endpoint)'")
         return nil
       }
+      
+      print("[ProviderEntry] Looking for category: '\(category)'")
+      print("[ProviderEntry] Available categories: \(ProviderCategory.allCases.map { "'\($0.rawValue)'" }.joined(separator: ", "))")
+      
+      guard let providerCategory = ProviderCategory(rawValue: category)
+        ?? ProviderCategory.allCases.first(where: { $0.displayName == category }) else {
+        print("[ProviderEntry] ❌ Unknown category: '\(category)'")
+        return nil
+      }
+      
+      print("[ProviderEntry] ✅ Matched category: \(providerCategory.rawValue)")
 
       let resolvedAuthHeader: String
       if let authHeader, !authHeader.isEmpty {
