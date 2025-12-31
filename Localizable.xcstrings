@@ -10,6 +10,9 @@
     "(%lld)" : {
 
     },
+    "%@:" : {
+
+    },
     "%lld" : {
 
     },
@@ -104,9 +107,6 @@
     "alloy" : {
 
     },
-    "API Endpoint" : {
-
-    },
     "API Key" : {
       "localizations" : {
         "zh-Hans" : {
@@ -118,6 +118,9 @@
       }
     },
     "API Token" : {
+
+    },
+    "API Version" : {
 
     },
     "App" : {
@@ -168,6 +171,9 @@
           }
         }
       }
+    },
+    "Base Endpoint" : {
+
     },
     "Basic Info" : {
       "localizations" : {
@@ -277,6 +283,12 @@
     "Connection" : {
 
     },
+    "Connection successful" : {
+
+    },
+    "Connection successful (%@ms)" : {
+
+    },
     "Copied!" : {
       "comment" : "Menu bar popover copied indicator",
       "extractionState" : "stale",
@@ -325,6 +337,12 @@
     "Danger Zone" : {
 
     },
+    "Debug" : {
+
+    },
+    "Debug Info" : {
+
+    },
     "Default" : {
       "localizations" : {
         "zh-Hans" : {
@@ -342,6 +360,12 @@
 
     },
     "Delete Provider" : {
+
+    },
+    "Deployment Names" : {
+
+    },
+    "Deployments" : {
 
     },
     "Discard" : {
@@ -363,6 +387,9 @@
 
     },
     "Duration: %@" : {
+
+    },
+    "e.g., model-router, gpt-5, gpt-4o" : {
 
     },
     "Edit JSON configuration" : {
@@ -513,9 +540,6 @@
       }
     },
     "Model" : {
-
-    },
-    "Model Name" : {
 
     },
     "New Empty" : {
@@ -786,7 +810,11 @@
     "Saved Configurations" : {
 
     },
+    "Select Deployments" : {
+
+    },
     "Select Providers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -840,6 +868,9 @@
           }
         }
       }
+    },
+    "Separate multiple deployments with commas" : {
+
     },
     "Set Tree² Lang as the default translation app" : {
       "localizations" : {
@@ -950,6 +981,12 @@
           }
         }
       }
+    },
+    "Test Deployments" : {
+
+    },
+    "Testing..." : {
+
     },
     "Translate" : {
       "comment" : "Name of the translate action",
@@ -1070,6 +1107,9 @@
       }
     },
     "Voice" : {
+
+    },
+    "Waiting..." : {
 
     },
     "You have unsaved changes. Are you sure you want to discard them?" : {

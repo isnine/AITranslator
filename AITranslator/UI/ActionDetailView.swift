@@ -14,25 +14,39 @@ struct ActionDetailView: View {
     @ObservedObject private var configurationStore: AppConfigurationStore
 
     private let actionID: UUID
+    private let isNewAction: Bool
     @State private var name: String
     @State private var summary: String
     @State private var prompt: String
-    @State private var selectedProviderIDs: Set<UUID>
+    @State private var selectedDeployments: Set<ProviderDeployment>
     @State private var usageScenes: ActionConfig.UsageScene
     @State private var outputType: OutputType
 
     init(
-        action: ActionConfig,
+        action: ActionConfig?,
         configurationStore: AppConfigurationStore
     ) {
         self._configurationStore = ObservedObject(wrappedValue: configurationStore)
-        self.actionID = action.id
-        _name = State(initialValue: action.name)
-        _summary = State(initialValue: action.summary)
-        _prompt = State(initialValue: action.prompt)
-        _selectedProviderIDs = State(initialValue: Set(action.providerIDs))
-        _usageScenes = State(initialValue: action.usageScenes)
-        _outputType = State(initialValue: action.outputType)
+        
+        if let action = action {
+            self.actionID = action.id
+            self.isNewAction = false
+            _name = State(initialValue: action.name)
+            _summary = State(initialValue: action.summary)
+            _prompt = State(initialValue: action.prompt)
+            _selectedDeployments = State(initialValue: Set(action.providerDeployments))
+            _usageScenes = State(initialValue: action.usageScenes)
+            _outputType = State(initialValue: action.outputType)
+        } else {
+            self.actionID = UUID()
+            self.isNewAction = true
+            _name = State(initialValue: "")
+            _summary = State(initialValue: "")
+            _prompt = State(initialValue: "Translate the following text to {targetLanguage}:\n\n{text}")
+            _selectedDeployments = State(initialValue: [])
+            _usageScenes = State(initialValue: .app)
+            _outputType = State(initialValue: .plain)
+        }
     }
 
     var body: some View {
@@ -112,13 +126,69 @@ struct ActionDetailView: View {
     }
 
     private var providerSection: some View {
-        section(title: "Select Providers") {
-            VStack(spacing: 12) {
+        section(title: "Select Deployments") {
+            VStack(spacing: 16) {
                 ForEach(configurationStore.providers) { provider in
-                    providerRow(for: provider)
+                    if !provider.deployments.isEmpty {
+                        providerDeploymentsCard(for: provider)
+                    }
                 }
             }
         }
+    }
+
+    private func providerDeploymentsCard(for provider: ProviderConfig) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Provider header
+            Text(provider.displayName)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(colors.textPrimary)
+            
+            // Deployments list
+            VStack(spacing: 8) {
+                ForEach(provider.deployments, id: \.self) { deployment in
+                    deploymentRow(provider: provider, deployment: deployment)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(colors.cardBackground)
+        )
+    }
+
+    private func deploymentRow(provider: ProviderConfig, deployment: String) -> some View {
+        let providerDeployment = ProviderDeployment(providerID: provider.id, deployment: deployment)
+        let isSelected = selectedDeployments.contains(providerDeployment)
+        
+        return Button {
+            toggleDeployment(providerDeployment)
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                Text(deployment)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(colors.textPrimary)
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .foregroundColor(isSelected ? colors.accent : colors.textSecondary.opacity(0.6))
+                    .font(.system(size: 20))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(colors.inputBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(isSelected ? colors.accent : Color.clear, lineWidth: 2)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var usageSection: some View {
@@ -238,49 +308,6 @@ struct ActionDetailView: View {
         }
     }
 
-    private func providerRow(for provider: ProviderConfig) -> some View {
-        let isSelected = selectedProviderIDs.contains(provider.id)
-        return Button {
-            toggleProvider(provider.id)
-        } label: {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(provider.displayName)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(colors.textPrimary)
-
-                    Text(provider.modelName)
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
-                }
-
-                Spacer()
-
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(colors.accent)
-                        .font(.system(size: 20))
-                } else {
-                    Image(systemName: "circle")
-                        .foregroundColor(colors.textSecondary.opacity(0.6))
-                        .font(.system(size: 20))
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(colors.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(isSelected ? colors.accent : colors.cardBackground, lineWidth: 2)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
     private func usageSceneRow(
         title: LocalizedStringKey,
         description: LocalizedStringKey,
@@ -317,11 +344,11 @@ struct ActionDetailView: View {
         .buttonStyle(.plain)
     }
 
-    private func toggleProvider(_ id: UUID) {
-        if selectedProviderIDs.contains(id) {
-            selectedProviderIDs.remove(id)
+    private func toggleDeployment(_ deployment: ProviderDeployment) {
+        if selectedDeployments.contains(deployment) {
+            selectedDeployments.remove(deployment)
         } else {
-            selectedProviderIDs.insert(id)
+            selectedDeployments.insert(deployment)
         }
     }
 
@@ -337,16 +364,14 @@ struct ActionDetailView: View {
     }
 
     private func saveAction() {
-        let orderedProviderIDs = configurationStore.providers
-            .map(\.id)
-            .filter { selectedProviderIDs.contains($0) }
+        let orderedDeployments = Array(selectedDeployments)
 
         let updated = ActionConfig(
             id: actionID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             summary: summary.trimmingCharacters(in: .whitespacesAndNewlines),
             prompt: prompt.trimmingCharacters(in: .whitespacesAndNewlines),
-            providerIDs: orderedProviderIDs,
+            providerDeployments: orderedDeployments,
             usageScenes: usageScenes,
             outputType: outputType
         )

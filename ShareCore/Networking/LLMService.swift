@@ -21,15 +21,16 @@ public final class LLMService {
         self.urlSession = urlSession
     }
 
+    /// Performs requests using provider deployments (new API)
     public func perform(
         text: String,
         with action: ActionConfig,
-        providers: [ProviderConfig],
+        providerDeployments: [(provider: ProviderConfig, deployment: String)],
         partialHandler: (@MainActor @Sendable (UUID, StreamingUpdate) -> Void)? = nil,
         completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)? = nil
     ) async -> [ProviderExecutionResult] {
         await withTaskGroup(of: ProviderExecutionResult?.self) { group in
-            for provider in providers {
+            for (provider, deployment) in providerDeployments {
                 group.addTask { [weak self] in
                     guard let self else { return nil }
                     do {
@@ -37,6 +38,7 @@ public final class LLMService {
                             text: text,
                             action: action,
                             provider: provider,
+                            deployment: deployment,
                             partialHandler: partialHandler
                         )
                     } catch is CancellationError {
@@ -61,15 +63,45 @@ public final class LLMService {
         }
     }
 
+    /// Legacy perform method using providers only (backward compatible)
+    public func perform(
+        text: String,
+        with action: ActionConfig,
+        providers: [ProviderConfig],
+        partialHandler: (@MainActor @Sendable (UUID, StreamingUpdate) -> Void)? = nil,
+        completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)? = nil
+    ) async -> [ProviderExecutionResult] {
+        // Use the first deployment for each provider
+        let deployments = providers.map { provider in
+            (provider: provider, deployment: provider.deployments.first ?? "")
+        }
+        return await perform(
+            text: text,
+            with: action,
+            providerDeployments: deployments,
+            partialHandler: partialHandler,
+            completionHandler: completionHandler
+        )
+    }
+
     private func sendRequest(
         text: String,
         action: ActionConfig,
         provider: ProviderConfig,
+        deployment: String = "",
         partialHandler: (@MainActor @Sendable (UUID, StreamingUpdate) -> Void)?
     ) async throws -> ProviderExecutionResult {
         let start = Date()
 
-        var request = URLRequest(url: provider.apiURL)
+        // Use specific deployment URL if provided, otherwise use default
+        let requestURL: URL
+        if deployment.isEmpty {
+            requestURL = provider.apiURL
+        } else {
+            requestURL = provider.apiURL(for: deployment)
+        }
+
+        var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(provider.token, forHTTPHeaderField: provider.authHeaderName)

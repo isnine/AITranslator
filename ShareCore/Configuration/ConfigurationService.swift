@@ -105,21 +105,26 @@ public final class ConfigurationService: Sendable {
       preferences.setTTSConfiguration(.empty)
     }
 
-    // Build provider map (name -> UUID)
+    // Build provider map (name -> UUID) and deployments map
     var providers: [ProviderConfig] = []
     var providerNameToID: [String: UUID] = [:]
+    var providerDeploymentsMap: [String: (id: UUID, deployments: [String])] = [:]
 
     for (name, entry) in config.providers {
       if let provider = entry.toProviderConfig(name: name) {
         providers.append(provider)
         providerNameToID[name] = provider.id
+        providerDeploymentsMap[name] = (id: provider.id, deployments: provider.deployments)
       }
     }
 
     // Build actions (actions is now an array)
     var actions: [ActionConfig] = []
     for entry in config.actions {
-      let action = entry.toActionConfig(providerMap: providerNameToID)
+      let action = entry.toActionConfig(
+        providerMap: providerNameToID,
+        providerDeploymentsMap: providerDeploymentsMap
+      )
       actions.append(action)
     }
 
@@ -202,7 +207,15 @@ public final class ConfigurationService: Sendable {
     let providerNames = Set(config.providers.keys)
 
     for action in config.actions {
-      for providerName in action.providers {
+      for providerRef in action.providers {
+        // Extract provider name (handle "ProviderName:deployment" format)
+        let providerName: String
+        if let colonIndex = providerRef.firstIndex(of: ":") {
+          providerName = String(providerRef[..<colonIndex])
+        } else {
+          providerName = providerRef
+        }
+        
         if !providerNames.contains(providerName) {
           return .failure(.missingProvider(providerName, inAction: action.name))
         }

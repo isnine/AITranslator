@@ -59,19 +59,30 @@ public extension AppConfiguration {
 public extension AppConfiguration {
   struct ProviderEntry: Codable, Sendable {
     public var category: String
+    // New format fields
+    public var baseEndpoint: String?
+    public var apiVersion: String?
+    public var deployments: [String]?
+    // Legacy format fields (for backward compatibility)
     public var model: String?
-    public var endpoint: String
+    public var endpoint: String?
     public var authHeader: String?
     public var token: String
 
     public init(
       category: String,
+      baseEndpoint: String? = nil,
+      apiVersion: String? = nil,
+      deployments: [String]? = nil,
       model: String? = nil,
-      endpoint: String,
+      endpoint: String? = nil,
       authHeader: String? = nil,
       token: String
     ) {
       self.category = category
+      self.baseEndpoint = baseEndpoint
+      self.apiVersion = apiVersion
+      self.deployments = deployments
       self.model = model
       self.endpoint = endpoint
       self.authHeader = authHeader
@@ -80,11 +91,6 @@ public extension AppConfiguration {
 
     /// Convert to internal ProviderConfig
     public func toProviderConfig(name: String) -> ProviderConfig? {
-      guard let url = URL(string: endpoint) else {
-        print("[ProviderEntry] ❌ Invalid URL: '\(endpoint)'")
-        return nil
-      }
-      
       print("[ProviderEntry] Looking for category: '\(category)'")
       print("[ProviderEntry] Available categories: \(ProviderCategory.allCases.map { "'\($0.rawValue)'" }.joined(separator: ", "))")
       
@@ -103,6 +109,29 @@ public extension AppConfiguration {
         resolvedAuthHeader = providerCategory == .azureOpenAI ? "api-key" : "Authorization"
       }
 
+      // New format: baseEndpoint + apiVersion + deployments
+      if let baseEndpointStr = baseEndpoint, let baseURL = URL(string: baseEndpointStr) {
+        let version = apiVersion ?? "2024-02-15-preview"
+        let deploymentList = deployments ?? []
+        
+        return ProviderConfig(
+          displayName: name,
+          baseEndpoint: baseURL,
+          apiVersion: version,
+          token: token,
+          authHeaderName: resolvedAuthHeader,
+          category: providerCategory,
+          deployments: deploymentList
+        )
+      }
+      
+      // Legacy format: full endpoint URL
+      guard let endpointStr = endpoint, let url = URL(string: endpointStr) else {
+        print("[ProviderEntry] ❌ Invalid URL: '\(endpoint ?? "")'")
+        return nil
+      }
+
+      // Use legacy initializer which parses the full URL
       return ProviderConfig(
         displayName: name,
         apiURL: url,
@@ -113,12 +142,15 @@ public extension AppConfiguration {
       )
     }
 
-    /// Create from internal ProviderConfig
+    /// Create from internal ProviderConfig (always uses new format)
     public static func from(_ config: ProviderConfig) -> (name: String, entry: ProviderEntry) {
       let entry = ProviderEntry(
         category: config.category.rawValue,
-        model: config.modelName,
-        endpoint: config.apiURL.absoluteString,
+        baseEndpoint: config.baseEndpoint.absoluteString,
+        apiVersion: config.apiVersion,
+        deployments: config.deployments,
+        model: nil,
+        endpoint: nil,
         authHeader: config.authHeaderName,
         token: config.token
       )
@@ -186,6 +218,7 @@ public extension AppConfiguration {
     public var name: String
     public var summary: String?
     public var prompt: String
+    /// Provider references - can be either "ProviderName" (legacy) or "ProviderName:deployment"
     public var providers: [String]
     public var scenes: [String]?
     public var outputType: String?
@@ -207,10 +240,32 @@ public extension AppConfiguration {
     }
 
     /// Convert to internal ActionConfig
+    /// providerMap: [providerName: (id, deployments)]
     public func toActionConfig(
-      providerMap: [String: UUID]
+      providerMap: [String: UUID],
+      providerDeploymentsMap: [String: (id: UUID, deployments: [String])]
     ) -> ActionConfig {
-      let providerIDs = providers.compactMap { providerMap[$0] }
+      var providerDeployments: [ProviderDeployment] = []
+      
+      for providerRef in providers {
+        // Check if it's "ProviderName:deployment" format
+        if let colonIndex = providerRef.firstIndex(of: ":") {
+          let providerName = String(providerRef[..<colonIndex])
+          let deployment = String(providerRef[providerRef.index(after: colonIndex)...])
+          
+          if let providerID = providerMap[providerName] {
+            providerDeployments.append(ProviderDeployment(providerID: providerID, deployment: deployment))
+          }
+        } else {
+          // Legacy format - use first deployment
+          if let info = providerDeploymentsMap[providerRef] {
+            let deployment = info.deployments.first ?? ""
+            providerDeployments.append(ProviderDeployment(providerID: info.id, deployment: deployment))
+          } else if let providerID = providerMap[providerRef] {
+            providerDeployments.append(ProviderDeployment(providerID: providerID, deployment: ""))
+          }
+        }
+      }
 
       let resolvedOutputType = OutputType(rawValue: outputType ?? "") ?? .plain
 
@@ -238,10 +293,22 @@ public extension AppConfiguration {
         name: name,
         summary: summary ?? "",
         prompt: prompt,
-        providerIDs: providerIDs,
+        providerDeployments: providerDeployments,
         usageScenes: usageScenes,
         outputType: resolvedOutputType
       )
+    }
+    
+    /// Legacy conversion method for backward compatibility
+    public func toActionConfig(
+      providerMap: [String: UUID]
+    ) -> ActionConfig {
+      // Build a simple deployments map from provider map
+      var deploymentsMap: [String: (id: UUID, deployments: [String])] = [:]
+      for (name, id) in providerMap {
+        deploymentsMap[name] = (id: id, deployments: [])
+      }
+      return toActionConfig(providerMap: providerMap, providerDeploymentsMap: deploymentsMap)
     }
 
     /// Create from internal ActionConfig
@@ -249,7 +316,15 @@ public extension AppConfiguration {
       _ config: ActionConfig,
       providerNames: [UUID: String]
     ) -> ActionEntry {
-      let providerNameList = config.providerIDs.compactMap { providerNames[$0] }
+      // Create provider references with deployment info
+      let providerRefs: [String] = config.providerDeployments.compactMap { deployment in
+        guard let name = providerNames[deployment.providerID] else { return nil }
+        if deployment.deployment.isEmpty {
+          return name
+        } else {
+          return "\(name):\(deployment.deployment)"
+        }
+      }
 
       var scenes: [String] = []
       if config.usageScenes.contains(.app) { scenes.append("app") }
@@ -260,7 +335,7 @@ public extension AppConfiguration {
         name: config.name,
         summary: config.summary.isEmpty ? nil : config.summary,
         prompt: config.prompt,
-        providers: providerNameList,
+        providers: providerRefs,
         scenes: scenes.count == 3 ? nil : scenes,
         outputType: config.outputType == .plain ? nil : config.outputType.rawValue
       )

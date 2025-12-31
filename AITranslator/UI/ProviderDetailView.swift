@@ -16,37 +16,70 @@ struct ProviderDetailView: View {
     private let providerID: UUID
     private let isNewProvider: Bool
     @State private var displayName: String
-    @State private var apiURL: String
+    @State private var baseEndpoint: String
+    @State private var apiVersion: String
     @State private var token: String
     @State private var authHeaderName: String
     @State private var category: ProviderCategory
-    @State private var modelName: String
+    @State private var deploymentsText: String  // comma-separated input
     @State private var showDeleteConfirmation = false
+
+    // Test states
+    @State private var testResults: [DeploymentTestResult] = []
+    @State private var isTesting = false
+    @State private var showDebugSheet = false
+    @State private var debugInfo: DebugInfo?
+
+    struct DeploymentTestResult: Identifiable {
+        let id = UUID()
+        let deploymentName: String
+        var status: TestStatus
+        var isEnabled: Bool
+        var debugInfo: DebugInfo?
+        var latency: TimeInterval?
+
+        enum TestStatus {
+            case pending
+            case testing
+            case success
+            case failure(String)
+        }
+    }
+
+    struct DebugInfo {
+        let requestURL: String
+        let requestHeaders: [String: String]
+        let requestBody: String
+        let responseStatusCode: Int?
+        let responseBody: String
+    }
 
     init(
         provider: ProviderConfig?,
         configurationStore: AppConfigurationStore
     ) {
         self._configurationStore = ObservedObject(wrappedValue: configurationStore)
-        
+
         if let provider = provider {
             self.providerID = provider.id
             self.isNewProvider = false
             _displayName = State(initialValue: provider.displayName)
-            _apiURL = State(initialValue: provider.apiURL.absoluteString)
+            _baseEndpoint = State(initialValue: provider.baseEndpoint.absoluteString)
+            _apiVersion = State(initialValue: provider.apiVersion)
             _token = State(initialValue: provider.token)
             _authHeaderName = State(initialValue: provider.authHeaderName)
             _category = State(initialValue: provider.category)
-            _modelName = State(initialValue: provider.modelName)
+            _deploymentsText = State(initialValue: provider.deployments.joined(separator: ", "))
         } else {
             self.providerID = UUID()
             self.isNewProvider = true
             _displayName = State(initialValue: "")
-            _apiURL = State(initialValue: "https://")
+            _baseEndpoint = State(initialValue: "")
+            _apiVersion = State(initialValue: "2024-02-15-preview")
             _token = State(initialValue: "")
             _authHeaderName = State(initialValue: "api-key")
-            _category = State(initialValue: .custom)
-            _modelName = State(initialValue: "")
+            _category = State(initialValue: .azureOpenAI)
+            _deploymentsText = State(initialValue: "")
         }
     }
 
@@ -57,8 +90,9 @@ struct ProviderDetailView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     basicInfoSection
                     connectionSection
+                    deploymentsSection
                     categorySection
-                    
+
                     if !isNewProvider {
                         deleteSection
                     }
@@ -76,6 +110,9 @@ struct ProviderDetailView: View {
             }
         } message: {
             Text("Are you sure you want to delete \"\(displayName)\"? This action cannot be undone.")
+        }
+        .sheet(isPresented: $showDebugSheet) {
+            debugSheet
         }
     }
 
@@ -115,22 +152,41 @@ struct ProviderDetailView: View {
 
     private var canSave: Bool {
         !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !apiURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        URL(string: apiURL) != nil
+        !baseEndpoint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        URL(string: baseEndpoint) != nil &&
+        hasEnabledDeployments
+    }
+
+    private var hasEnabledDeployments: Bool {
+        // Either we have test results with enabled deployments, or we have deployments text and haven't tested yet
+        if testResults.isEmpty {
+            return !deploymentsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        return testResults.contains { $0.isEnabled }
     }
 
     private var basicInfoSection: some View {
         section(title: "Basic Info") {
             labeledField(title: "Display Name", text: $displayName, placeholder: "e.g., Azure OpenAI")
-            labeledField(title: "Model Name", text: $modelName, placeholder: "e.g., gpt-4o")
         }
     }
 
     private var connectionSection: some View {
         section(title: "Connection") {
-            labeledField(title: "API Endpoint", text: $apiURL, placeholder: "https://api.openai.com/v1/chat/completions")
+            labeledField(
+                title: "Base Endpoint",
+                text: $baseEndpoint,
+                placeholder: "https://xxx.openai.azure.com/openai/deployments"
+            )
+
+            labeledField(
+                title: "API Version",
+                text: $apiVersion,
+                placeholder: "e.g., 2025-01-01-preview"
+            )
+
             labeledField(title: "Auth Header Name", text: $authHeaderName, placeholder: "api-key")
-            
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("API Token")
                     .font(.system(size: 14, weight: .medium))
@@ -150,6 +206,245 @@ struct ProviderDetailView: View {
         }
     }
 
+    private var deploymentsSection: some View {
+        section(title: "Deployments") {
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Deployment Names")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+
+                    TextField("e.g., model-router, gpt-5, gpt-4o", text: $deploymentsText)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 16))
+                        .foregroundColor(colors.textPrimary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                .fill(colors.inputBackground)
+                        )
+                        .onChange(of: deploymentsText) { _ in
+                            // Clear test results when deployments change
+                            testResults = []
+                        }
+
+                    Text("Separate multiple deployments with commas")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                // Test button
+                Button {
+                    Task {
+                        await runDeploymentTests()
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if isTesting {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle())
+                                .scaleEffect(0.8)
+                        } else {
+                            Image(systemName: "play.circle.fill")
+                                .font(.system(size: 16))
+                        }
+                        Text(isTesting ? "Testing..." : "Test Deployments")
+                            .font(.system(size: 15, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(canTest ? colors.accent : colors.accent.opacity(0.5))
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(!canTest || isTesting)
+
+                // Test results list
+                if !testResults.isEmpty {
+                    VStack(spacing: 8) {
+                        ForEach($testResults) { $result in
+                            deploymentResultRow(result: $result)
+                        }
+                    }
+                    .padding(.top, 8)
+                }
+            }
+        }
+    }
+
+    private var canTest: Bool {
+        !deploymentsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !baseEndpoint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        URL(string: baseEndpoint) != nil &&
+        !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !apiVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func deploymentResultRow(result: Binding<DeploymentTestResult>) -> some View {
+        HStack(spacing: 12) {
+            // Checkbox (only for successful tests)
+            switch result.wrappedValue.status {
+            case .success:
+                Button {
+                    result.wrappedValue.isEnabled.toggle()
+                } label: {
+                    Image(systemName: result.wrappedValue.isEnabled ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22))
+                        .foregroundColor(result.wrappedValue.isEnabled ? colors.accent : colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+            case .failure:
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 22))
+                    .foregroundColor(colors.error)
+            case .testing:
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .scaleEffect(0.8)
+            case .pending:
+                Image(systemName: "circle.dotted")
+                    .font(.system(size: 22))
+                    .foregroundColor(colors.textSecondary)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(result.wrappedValue.deploymentName)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(colors.textPrimary)
+
+                switch result.wrappedValue.status {
+                case .success:
+                    if let latency = result.wrappedValue.latency {
+                        Text("Connection successful (\(String(format: "%.0f", latency * 1000))ms)")
+                            .font(.system(size: 12))
+                            .foregroundColor(colors.success)
+                    } else {
+                        Text("Connection successful")
+                            .font(.system(size: 12))
+                            .foregroundColor(colors.success)
+                    }
+                case .failure(let message):
+                    Text(message)
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.error)
+                        .lineLimit(1)
+                case .testing:
+                    Text("Testing...")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                case .pending:
+                    Text("Waiting...")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                }
+            }
+
+            Spacer()
+
+            // Debug button for failed tests
+            if case .failure = result.wrappedValue.status,
+               result.wrappedValue.debugInfo != nil {
+                Button {
+                    debugInfo = result.wrappedValue.debugInfo
+                    showDebugSheet = true
+                } label: {
+                    Text("Debug")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(colors.accent)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(colors.accent.opacity(0.15))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(colors.cardBackground)
+        )
+    }
+
+    private var debugSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    if let info = debugInfo {
+                        debugSection(title: "Request URL", content: info.requestURL)
+
+                        debugSection(title: "Request Headers") {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ForEach(info.requestHeaders.sorted(by: { $0.key < $1.key }), id: \.key) { key, value in
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Text("\(key):")
+                                            .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                            .foregroundColor(colors.textPrimary)
+                                        Text(value)
+                                            .font(.system(size: 13, design: .monospaced))
+                                            .foregroundColor(colors.textSecondary)
+                                    }
+                                }
+                            }
+                        }
+
+                        debugSection(title: "Request Body", content: info.requestBody)
+
+                        if let statusCode = info.responseStatusCode {
+                            debugSection(title: "Response Status", content: "\(statusCode)")
+                        }
+
+                        debugSection(title: "Response Body", content: info.responseBody)
+                    }
+                }
+                .padding(20)
+            }
+            .background(colors.background.ignoresSafeArea())
+            .navigationTitle("Debug Info")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showDebugSheet = false
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func debugSection(title: String, content: String) -> some View {
+        debugSection(title: title) {
+            Text(content)
+                .font(.system(size: 13, design: .monospaced))
+                .foregroundColor(colors.textPrimary)
+                .textSelection(.enabled)
+        }
+    }
+
+    @ViewBuilder
+    private func debugSection(title: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(colors.textPrimary)
+
+            content()
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(colors.cardBackground)
+                )
+        }
+    }
+
     private var categorySection: some View {
         section(title: "Provider Category") {
             VStack(spacing: 12) {
@@ -164,9 +459,6 @@ struct ProviderDetailView: View {
         let isSelected = category == cat
         return Button {
             category = cat
-            if modelName.isEmpty {
-                modelName = cat.defaultModelHint
-            }
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -255,21 +547,185 @@ struct ProviderDetailView: View {
         }
     }
 
+    // MARK: - Test Logic
+
+    private func runDeploymentTests() async {
+        let deploymentNames = deploymentsText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard !deploymentNames.isEmpty else { return }
+
+        isTesting = true
+
+        // Initialize all results as testing (concurrent)
+        testResults = deploymentNames.map { name in
+            DeploymentTestResult(deploymentName: name, status: .testing, isEnabled: false)
+        }
+
+        // Test all deployments concurrently
+        await withTaskGroup(of: (Int, DeploymentTestResult).self) { group in
+            for (index, deploymentName) in deploymentNames.enumerated() {
+                group.addTask {
+                    let result = await self.testDeployment(deploymentName)
+                    return (index, result)
+                }
+            }
+            
+            for await (index, result) in group {
+                testResults[index] = result
+            }
+        }
+
+        isTesting = false
+    }
+
+    private func testDeployment(_ deploymentName: String) async -> DeploymentTestResult {
+        guard let baseURL = URL(string: baseEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return DeploymentTestResult(
+                deploymentName: deploymentName,
+                status: .failure("Invalid base endpoint URL"),
+                isEnabled: false
+            )
+        }
+
+        // Build URL: baseEndpoint/{deployment}/chat/completions?api-version={version}
+        let path = baseURL.appendingPathComponent(deploymentName)
+            .appendingPathComponent("chat/completions")
+        var components = URLComponents(url: path, resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "api-version", value: apiVersion)]
+
+        guard let url = components.url else {
+            return DeploymentTestResult(
+                deploymentName: deploymentName,
+                status: .failure("Failed to build request URL"),
+                isEnabled: false
+            )
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(token.trimmingCharacters(in: .whitespacesAndNewlines), forHTTPHeaderField: authHeaderName)
+
+        let requestBody: [String: Any] = [
+            "messages": [
+                ["role": "user", "content": "hello"]
+            ]
+        ]
+
+        let requestBodyData: Data
+        let requestBodyString: String
+        do {
+            requestBodyData = try JSONSerialization.data(withJSONObject: requestBody, options: [.prettyPrinted])
+            requestBodyString = String(data: requestBodyData, encoding: .utf8) ?? "{}"
+            request.httpBody = requestBodyData
+        } catch {
+            return DeploymentTestResult(
+                deploymentName: deploymentName,
+                status: .failure("Failed to encode request body"),
+                isEnabled: false
+            )
+        }
+
+        // Capture request headers for debug
+        var headers: [String: String] = [:]
+        headers["Content-Type"] = "application/json"
+        headers[authHeaderName] = "***" // Mask token
+
+        let startTime = Date()
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            let latency = Date().timeIntervalSince(startTime)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                let debug = DebugInfo(
+                    requestURL: url.absoluteString,
+                    requestHeaders: headers,
+                    requestBody: requestBodyString,
+                    responseStatusCode: nil,
+                    responseBody: "Invalid response type"
+                )
+                return DeploymentTestResult(
+                    deploymentName: deploymentName,
+                    status: .failure("Invalid response"),
+                    isEnabled: false,
+                    debugInfo: debug
+                )
+            }
+
+            let responseBody = String(data: data, encoding: .utf8) ?? ""
+
+            if (200...299).contains(httpResponse.statusCode) {
+                // Success - enable by default
+                return DeploymentTestResult(
+                    deploymentName: deploymentName,
+                    status: .success,
+                    isEnabled: true,
+                    latency: latency
+                )
+            } else {
+                let debug = DebugInfo(
+                    requestURL: url.absoluteString,
+                    requestHeaders: headers,
+                    requestBody: requestBodyString,
+                    responseStatusCode: httpResponse.statusCode,
+                    responseBody: responseBody
+                )
+                return DeploymentTestResult(
+                    deploymentName: deploymentName,
+                    status: .failure("HTTP \(httpResponse.statusCode)"),
+                    isEnabled: false,
+                    debugInfo: debug
+                )
+            }
+        } catch {
+            let debug = DebugInfo(
+                requestURL: url.absoluteString,
+                requestHeaders: headers,
+                requestBody: requestBodyString,
+                responseStatusCode: nil,
+                responseBody: error.localizedDescription
+            )
+            return DeploymentTestResult(
+                deploymentName: deploymentName,
+                status: .failure(error.localizedDescription),
+                isEnabled: false,
+                debugInfo: debug
+            )
+        }
+    }
+
+    // MARK: - Save / Delete
+
     private func saveProvider() {
-        guard let url = URL(string: apiURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        guard let url = URL(string: baseEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)) else {
             return
+        }
+
+        // Get enabled deployments from test results, or parse from text if not tested
+        let enabledDeployments: [String]
+        if testResults.isEmpty {
+            enabledDeployments = deploymentsText
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        } else {
+            enabledDeployments = testResults
+                .filter { $0.isEnabled }
+                .map { $0.deploymentName }
         }
 
         let updated = ProviderConfig(
             id: providerID,
             displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
-            apiURL: url,
+            baseEndpoint: url,
+            apiVersion: apiVersion.trimmingCharacters(in: .whitespacesAndNewlines),
             token: token.trimmingCharacters(in: .whitespacesAndNewlines),
             authHeaderName: authHeaderName.trimmingCharacters(in: .whitespacesAndNewlines),
             category: category,
-            modelName: modelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty 
-                ? category.defaultModelHint 
-                : modelName.trimmingCharacters(in: .whitespacesAndNewlines)
+            deployments: enabledDeployments
         )
 
         var providers = configurationStore.providers

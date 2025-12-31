@@ -12,6 +12,7 @@ struct ActionsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var configurationStore = AppConfigurationStore.shared
     @State private var isEditing = false
+    @State private var isAddingNewAction = false
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -45,7 +46,7 @@ struct ActionsView: View {
                                 NavigationLink(value: action) {
                                     ActionCardView(
                                         action: action,
-                                        providerCount: providerCount(for: action),
+                                        deploymentInfo: deploymentInfo(for: action),
                                         showDragHandle: isEditing,
                                         colors: colors
                                     )
@@ -54,7 +55,7 @@ struct ActionsView: View {
                                 .draggable(action.id.uuidString) {
                                     ActionCardView(
                                         action: action,
-                                        providerCount: providerCount(for: action),
+                                        deploymentInfo: deploymentInfo(for: action),
                                         showDragHandle: false,
                                         colors: colors
                                     )
@@ -81,14 +82,15 @@ struct ActionsView: View {
                 .padding(.vertical, 28)
             }
             .background(colors.background.ignoresSafeArea())
-            .overlay(alignment: .topTrailing) {
-                addButton
-                    .padding(.top, 24)
-                    .padding(.trailing, 24)
-            }
             .navigationDestination(for: ActionConfig.self) { action in
                 ActionDetailView(
                     action: action,
+                    configurationStore: configurationStore
+                )
+            }
+            .navigationDestination(isPresented: $isAddingNewAction) {
+                ActionDetailView(
+                    action: nil,
                     configurationStore: configurationStore
                 )
             }
@@ -100,29 +102,27 @@ struct ActionsView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Action Library")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundColor(colors.textPrimary)
-            Text("Manage your custom actions")
-                .font(.system(size: 15))
-                .foregroundColor(colors.textSecondary)
+        HStack {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Action Library")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+                Text("Manage your custom actions")
+                    .font(.system(size: 15))
+                    .foregroundColor(colors.textSecondary)
+            }
+            
+            Spacer()
+            
+            Button {
+                isAddingNewAction = true
+            } label: {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(colors.accent)
+            }
+            .buttonStyle(.plain)
         }
-    }
-
-    private var addButton: some View {
-        Button(action: {}) {
-            Image(systemName: "plus")
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(colors.chipPrimaryText)
-                .frame(width: 44, height: 44)
-                .background(
-                    Circle()
-                        .fill(colors.accent)
-                )
-                .shadow(color: colors.accent.opacity(0.35), radius: 12, x: 0, y: 8)
-        }
-        .buttonStyle(.plain)
     }
 
     private var emptyStateView: some View {
@@ -147,9 +147,31 @@ struct ActionsView: View {
         .padding(.horizontal, 24)
     }
 
-    private func providerCount(for action: ActionConfig) -> Int {
-        let availableIDs = Set(configurationStore.providers.map(\.id))
-        return action.providerIDs.filter { availableIDs.contains($0) }.count
+    struct DeploymentInfo {
+        let providerCount: Int
+        let deploymentCount: Int
+        let deploymentNames: [String]
+    }
+
+    private func deploymentInfo(for action: ActionConfig) -> DeploymentInfo {
+        let availableProviders = configurationStore.providers
+        var providerIDs = Set<UUID>()
+        var deploymentNames: [String] = []
+        
+        for pd in action.providerDeployments {
+            if let provider = availableProviders.first(where: { $0.id == pd.providerID }) {
+                providerIDs.insert(pd.providerID)
+                // Use deployment name if specified, otherwise use first deployment
+                let name = pd.deployment.isEmpty ? (provider.deployments.first ?? provider.displayName) : pd.deployment
+                deploymentNames.append(name)
+            }
+        }
+        
+        return DeploymentInfo(
+            providerCount: providerIDs.count,
+            deploymentCount: deploymentNames.count,
+            deploymentNames: deploymentNames
+        )
     }
 
     private func reorderAction(from sourceID: UUID, to destinationID: UUID) {
@@ -168,7 +190,7 @@ struct ActionsView: View {
 private extension ActionsView {
     struct ActionCardView: View {
         let action: ActionConfig
-        let providerCount: Int
+        let deploymentInfo: ActionsView.DeploymentInfo
         let showDragHandle: Bool
         let colors: AppColorPalette
 
@@ -190,7 +212,7 @@ private extension ActionsView {
                         .foregroundColor(colors.textSecondary)
                         .lineLimit(2)
 
-                    Text(providerCountText)
+                    Text(summaryText)
                         .font(.system(size: 13))
                         .foregroundColor(colors.textSecondary.opacity(0.8))
                 }
@@ -209,11 +231,15 @@ private extension ActionsView {
             )
         }
 
-        private var providerCountText: String {
-            if providerCount == 1 {
-                return "1 provider"
+        private var summaryText: String {
+            let providerText = deploymentInfo.providerCount == 1 ? "1 provider" : "\(deploymentInfo.providerCount) providers"
+            let modelText = deploymentInfo.deploymentCount == 1 ? "1 model" : "\(deploymentInfo.deploymentCount) models"
+            let modelNames = deploymentInfo.deploymentNames.joined(separator: ", ")
+            
+            if deploymentInfo.deploymentNames.isEmpty {
+                return providerText
             }
-            return "\(providerCount) providers"
+            return "\(providerText), \(modelText) (\(modelNames))"
         }
     }
 }

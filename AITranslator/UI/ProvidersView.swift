@@ -189,13 +189,16 @@ private extension ProvidersView {
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(provider.apiURL.host ?? provider.apiURL.absoluteString)
+                    Text(provider.baseEndpoint.host ?? provider.baseEndpoint.absoluteString)
                         .font(.system(size: 15))
                         .foregroundColor(colors.textSecondary)
 
-                    Text(provider.modelName)
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
+                    // Show deployments as comma-separated list
+                    if !provider.deployments.isEmpty {
+                        Text(provider.deployments.joined(separator: ", "))
+                            .font(.system(size: 13))
+                            .foregroundColor(colors.textSecondary)
+                    }
                 }
             }
             .padding(20)

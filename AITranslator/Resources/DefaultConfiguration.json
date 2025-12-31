@@ -10,8 +10,9 @@
   "providers": {
     "Azure OpenAI": {
       "category": "Azure OpenAI",
-      "model": "model-router",
-      "endpoint": "https://REDACTED_AZURE_ENDPOINT/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview",
+      "baseEndpoint": "https://REDACTED_AZURE_ENDPOINT/openai/deployments",
+      "apiVersion": "2025-01-01-preview",
+      "deployments": ["model-router"],
       "authHeader": "api-key",
       "token": "REDACTED_AZURE_API_KEY"
     }

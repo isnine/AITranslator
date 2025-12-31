@@ -155,11 +155,26 @@ public final class HomeViewModel: ObservableObject {
         guard let action = selectedAction else {
             return false
         }
-        // Check if the action has any valid providers configured
-        let mappedProviders = providers.filter { action.providerIDs.contains($0.id) }
-        // If no specific providers mapped, fall back to first available provider
-        let hasProviders = !mappedProviders.isEmpty || !providers.isEmpty
+        // Check if the action has any valid provider deployments configured
+        let deployments = resolveProviderDeployments(for: action)
+        // If no specific deployments mapped, fall back to first available provider
+        let hasProviders = !deployments.isEmpty || !providers.isEmpty
         return hasProviders
+    }
+
+    /// Resolve provider deployments for an action
+    private func resolveProviderDeployments(for action: ActionConfig) -> [(provider: ProviderConfig, deployment: String)] {
+        var result: [(provider: ProviderConfig, deployment: String)] = []
+        
+        for pd in action.providerDeployments {
+            if let provider = providers.first(where: { $0.id == pd.providerID }) {
+                // If deployment is empty, use first deployment from provider
+                let deployment = pd.deployment.isEmpty ? (provider.deployments.first ?? "") : pd.deployment
+                result.append((provider: provider, deployment: deployment))
+            }
+        }
+        
+        return result
     }
 
     @discardableResult
@@ -194,10 +209,16 @@ public final class HomeViewModel: ObservableObject {
         currentRequestInputText = text
         currentActionShowsDiff = action.showsDiff
 
-        let mappedProviders = providers.filter { action.providerIDs.contains($0.id) }
-        let providersToUse = mappedProviders.isEmpty ? providers.prefix(1).map { $0 } : mappedProviders
+        let deployments = resolveProviderDeployments(for: action)
+        // Fallback to first provider's first deployment if no specific deployments configured
+        let deploymentsToUse: [(provider: ProviderConfig, deployment: String)]
+        if deployments.isEmpty, let firstProvider = providers.first {
+            deploymentsToUse = [(provider: firstProvider, deployment: firstProvider.deployments.first ?? "")]
+        } else {
+            deploymentsToUse = deployments
+        }
 
-        guard !providersToUse.isEmpty else {
+        guard !deploymentsToUse.isEmpty else {
             print("No providers configured.")
             providerRuns = []
             return
@@ -206,8 +227,8 @@ public final class HomeViewModel: ObservableObject {
         let requestID = UUID()
         activeRequestID = requestID
 
-        providerRuns = providersToUse.map {
-            ProviderRunViewState(provider: $0, status: .running(start: Date()))
+        providerRuns = deploymentsToUse.map {
+            ProviderRunViewState(provider: $0.provider, status: .running(start: Date()))
         }
 
         currentRequestTask = Task { [weak self] in
@@ -215,7 +236,7 @@ public final class HomeViewModel: ObservableObject {
                 requestID: requestID,
                 text: text,
                 action: action,
-                providers: Array(providersToUse)
+                providerDeployments: deploymentsToUse
             )
         }
     }
@@ -266,14 +287,14 @@ public final class HomeViewModel: ObservableObject {
         requestID: UUID,
         text: String,
         action: ActionConfig,
-        providers: [ProviderConfig]
+        providerDeployments: [(provider: ProviderConfig, deployment: String)]
     ) async {
         guard !Task.isCancelled else { return }
 
         let results = await llmService.perform(
             text: text,
             with: action,
-            providers: providers,
+            providerDeployments: providerDeployments,
             partialHandler: { [weak self] providerID, update in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
@@ -304,10 +325,11 @@ public final class HomeViewModel: ObservableObject {
         guard !Task.isCancelled else { return }
         guard activeRequestID == requestID else { return }
 
+        let allProviders = providerDeployments.map(\.provider)
         for result in results {
             if providerRuns.contains(where: { $0.provider.id == result.providerID }) {
                 apply(result: result, allowDiff: currentActionShowsDiff)
-            } else if let provider = providers.first(where: { $0.id == result.providerID }) {
+            } else if let provider = allProviders.first(where: { $0.id == result.providerID }) {
                 let runState: ProviderRunViewState.Status
                 switch result.response {
                 case let .success(message):
