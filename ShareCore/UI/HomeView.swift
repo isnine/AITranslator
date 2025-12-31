@@ -236,10 +236,11 @@ public struct HomeView: View {
                             .foregroundColor(colors.chipPrimaryText)
                             .background(
                                 Capsule()
-                                    .fill(colors.accent)
+                                    .fill(viewModel.canSend ? colors.accent : colors.accent.opacity(0.4))
                             )
                         }
                         .buttonStyle(.plain)
+                        .disabled(!viewModel.canSend)
                         #if os(macOS)
                         .keyboardShortcut(.return, modifiers: [.command])
                         #endif
@@ -923,9 +924,10 @@ private final class PastingTextView: NSTextView {
 
         let inset = textContainerInset
         let padding = textContainer?.lineFragmentPadding ?? 0
+        // Draw placeholder at top-left (text cursor position), not vertically centered
         let origin = CGPoint(
             x: inset.width + padding,
-            y: bounds.height - inset.height - placeholder.size().height
+            y: inset.height
         )
         placeholder.draw(at: origin)
     }

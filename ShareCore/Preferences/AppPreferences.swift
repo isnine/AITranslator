@@ -90,7 +90,10 @@ public final class AppPreferences: ObservableObject {
     }
 
     public var effectiveTTSConfiguration: TTSConfiguration {
-        ttsUsesDefaultConfiguration ? .default : ttsConfiguration
+        // When using default configuration but no custom config is set,
+        // return the stored ttsConfiguration (which may be empty)
+        // The actual TTS service will handle empty configuration gracefully
+        ttsConfiguration
     }
 
     public func refreshFromDefaults() {
@@ -129,28 +132,20 @@ public final class AppPreferences: ObservableObject {
         from defaults: UserDefaults
     ) -> (configuration: TTSConfiguration, usesDefault: Bool) {
         let usesDefault = defaults.object(forKey: StorageKeys.ttsUseDefault) as? Bool ?? true
-        let endpointString = defaults.string(forKey: StorageKeys.ttsEndpoint)
-        let apiKey = defaults.string(forKey: StorageKeys.ttsAPIKey)
+        let endpointString = defaults.string(forKey: StorageKeys.ttsEndpoint) ?? ""
+        let apiKey = defaults.string(forKey: StorageKeys.ttsAPIKey) ?? ""
         let model = defaults.string(forKey: StorageKeys.ttsModel)
         let voice = defaults.string(forKey: StorageKeys.ttsVoice)
 
-        let configuration: TTSConfiguration
-        if
-            let endpointString,
-            !endpointString.isEmpty,
-            let endpointURL = URL(string: endpointString),
-            let apiKey,
-            !apiKey.isEmpty
-        {
-            configuration = TTSConfiguration(
-                endpointURL: endpointURL,
-                apiKey: apiKey,
-                model: model?.isEmpty == false ? model! : TTSConfiguration.default.model,
-                voice: voice?.isEmpty == false ? voice! : TTSConfiguration.default.voice
-            )
-        } else {
-            configuration = .default
-        }
+        // Always return the actual stored values, even if empty
+        // Don't fall back to hardcoded defaults - let the UI show what's actually configured
+        let endpointURL = URL(string: endpointString) ?? URL(string: "https://")!
+        let configuration = TTSConfiguration(
+            endpointURL: endpointURL,
+            apiKey: apiKey,
+            model: model?.isEmpty == false ? model! : "gpt-4o-mini-tts",
+            voice: voice?.isEmpty == false ? voice! : "alloy"
+        )
 
         return (configuration, usesDefault)
     }

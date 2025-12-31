@@ -4,7 +4,19 @@
     "" : {
 
     },
+    "·" : {
+
+    },
+    "(%lld)" : {
+
+    },
     "%lld" : {
+
+    },
+    "%lld Actions" : {
+
+    },
+    "%lld Provider" : {
 
     },
     "Action Library" : {
@@ -56,6 +68,9 @@
           }
         }
       }
+    },
+    "Advanced Settings" : {
+
     },
     "All Actions" : {
       "localizations" : {
@@ -170,6 +185,7 @@
       }
     },
     "Configure Azure speech endpoint and API Key for reading translations aloud." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -203,7 +219,10 @@
     "Create your first action by tapping the + button, or import a configuration from Settings." : {
 
     },
-    "Current: %@" : {
+    "Custom" : {
+
+    },
+    "Custom configuration" : {
 
     },
     "Custom Endpoint" : {
@@ -239,6 +258,9 @@
 
     },
     "Duration: %@" : {
+
+    },
+    "Edit JSON configuration" : {
 
     },
     "Editable Context" : {
@@ -356,9 +378,6 @@
         }
       }
     },
-    "Manage, import, or export your configurations." : {
-
-    },
     "New Empty" : {
 
     },
@@ -374,6 +393,9 @@
           }
         }
       }
+    },
+    "No saved configurations" : {
+
     },
     "No text available for speech." : {
       "comment" : "TTS empty input error",
@@ -721,6 +743,7 @@
       }
     },
     "Use Default Configuration" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -729,6 +752,9 @@
           }
         }
       }
+    },
+    "Using default configuration" : {
+
     },
     "Visible when you can edit and replace text" : {
       "localizations" : {

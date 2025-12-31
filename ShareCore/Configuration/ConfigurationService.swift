@@ -99,6 +99,11 @@ public final class ConfigurationService: Sendable {
       if let ttsConfig = ttsEntry.toTTSConfiguration() {
         preferences.setTTSConfiguration(ttsConfig)
       }
+    } else {
+      // No TTS configuration in the imported config - reset to use default
+      preferences.setTTSUsesDefaultConfiguration(true)
+      // Clear custom TTS settings by setting an empty configuration
+      preferences.setTTSConfiguration(.empty)
     }
 
     // Build provider map (name -> UUID)

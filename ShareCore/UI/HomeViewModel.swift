@@ -149,6 +149,19 @@ final class HomeViewModel: ObservableObject {
         return actions.first(where: { $0.id == id }) ?? actions.first
     }
 
+    /// Returns true if the Send button should be enabled.
+    /// Disabled when: no actions available, or selected action has no valid providers.
+    var canSend: Bool {
+        guard let action = selectedAction else {
+            return false
+        }
+        // Check if the action has any valid providers configured
+        let mappedProviders = providers.filter { action.providerIDs.contains($0.id) }
+        // If no specific providers mapped, fall back to first available provider
+        let hasProviders = !mappedProviders.isEmpty || !providers.isEmpty
+        return hasProviders
+    }
+
     @discardableResult
     func selectAction(_ action: ActionConfig) -> Bool {
         guard selectedActionID != action.id else { return false }

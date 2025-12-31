@@ -37,6 +37,10 @@ struct SettingsView: View {
   @State private var showConfigEditor = false
   @State private var configToEdit: ConfigurationFileInfo?
   @State private var editingConfigText = ""
+  
+  // Collapsible section states
+  @State private var isSavedConfigsExpanded = false
+  @State private var isTTSAdvancedExpanded = false
 
   #if os(macOS)
   @ObservedObject private var hotKeyManager = HotKeyManager.shared
@@ -53,7 +57,8 @@ struct SettingsView: View {
   }
 
   init(preferences: AppPreferences = .shared) {
-    let configuration = preferences.ttsUsesDefaultConfiguration ? TTSConfiguration.default : preferences.ttsConfiguration
+    // Always show the actual stored custom TTS configuration (not the hardcoded default)
+    let configuration = preferences.ttsConfiguration
     _preferences = ObservedObject(wrappedValue: preferences)
     _customTTSEndpoint = State(initialValue: configuration.endpointURL.absoluteString)
     _customTTSAPIKey = State(initialValue: configuration.apiKey)
@@ -179,12 +184,8 @@ private extension SettingsView {
       get: { preferences.ttsUsesDefaultConfiguration },
       set: { newValue in
         preferences.setTTSUsesDefaultConfiguration(newValue)
-        if newValue {
-          customTTSEndpoint = TTSConfiguration.default.endpointURL.absoluteString
-          customTTSAPIKey = TTSConfiguration.default.apiKey
-        } else {
-          syncTTSPreferencesFromStore()
-        }
+        // Always sync from store to show the actual stored custom values
+        syncTTSPreferencesFromStore()
       }
     )
   }
@@ -348,63 +349,114 @@ private extension SettingsView {
 
     var ttsPreferenceCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("TTS Settings")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
-                Text("Configure Azure speech endpoint and API Key for reading translations aloud.")
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
+            // Header with toggle
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("TTS Settings")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
+                    Text(isUsingDefaultTTS ? "Using default configuration" : "Custom configuration")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+                Spacer()
+                Toggle("", isOn: defaultToggleBinding)
+                    .labelsHidden()
+                    .tint(colors.accent)
             }
 
-            Toggle("Use Default Configuration", isOn: defaultToggleBinding)
-                .font(.system(size: 14, weight: .medium))
-                .tint(colors.accent)
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Custom Endpoint")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(colors.textSecondary)
-
-                TextField("https://...", text: $customTTSEndpoint)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .padding(.horizontal, 14)
+            // Collapsible advanced settings
+            VStack(spacing: 0) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isTTSAdvancedExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: isTTSAdvancedExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(colors.textSecondary)
+                            .frame(width: 16)
+                        
+                        Text("Advanced Settings")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(colors.textPrimary)
+                        
+                        Spacer()
+                        
+                        if !isUsingDefaultTTS {
+                            Text("Custom")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(colors.accent)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .fill(colors.accent.opacity(0.12))
+                                )
+                        }
+                    }
                     .padding(.vertical, 12)
-                    .foregroundColor(colors.textPrimary)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-                    .disabled(isUsingDefaultTTS)
-                    .autocorrectionDisabled()
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                
+                if isTTSAdvancedExpanded {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Custom Endpoint")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(colors.textSecondary)
+
+                        TextField("https://...", text: $customTTSEndpoint)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .foregroundColor(colors.textPrimary)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(colors.inputBackground)
+                            )
+                            .disabled(isUsingDefaultTTS)
+                            .autocorrectionDisabled()
 #if os(iOS)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
 #endif
 
-                Text("API Key")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(colors.textSecondary)
+                        Text("API Key")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(colors.textSecondary)
 
-                SecureField("Enter Azure Key here", text: $customTTSAPIKey)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .foregroundColor(colors.textPrimary)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-                    .disabled(isUsingDefaultTTS)
-                    .autocorrectionDisabled()
+                        SecureField("Enter Azure Key here", text: $customTTSAPIKey)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .foregroundColor(colors.textPrimary)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(colors.inputBackground)
+                            )
+                            .disabled(isUsingDefaultTTS)
+                            .autocorrectionDisabled()
 #if os(iOS)
-                    .textInputAutocapitalization(.never)
-                    .textContentType(.password)
+                            .textInputAutocapitalization(.never)
+                            .textContentType(.password)
 #endif
+                    }
+                    .padding(.leading, 26)
+                    .padding(.bottom, 8)
+                    .opacity(isUsingDefaultTTS ? 0.55 : 1)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
-            .opacity(isUsingDefaultTTS ? 0.55 : 1)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(colors.inputBackground.opacity(0.5))
+            )
         }
         .padding(18)
         .background(
@@ -415,18 +467,36 @@ private extension SettingsView {
 
     var configurationCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Configuration")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
-                Text("Manage, import, or export your configurations.")
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
+            // Header row with current config info
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Configuration")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
+                    
+                    HStack(spacing: 8) {
+                        if let currentName = configStore.currentConfigurationName {
+                            Text(currentName)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(colors.accent)
+                        }
+                        Text("·")
+                            .foregroundColor(colors.textSecondary)
+                        Text("\(configStore.providers.count) Provider")
+                            .font(.system(size: 13))
+                            .foregroundColor(colors.textSecondary)
+                        Text("·")
+                            .foregroundColor(colors.textSecondary)
+                        Text("\(configStore.actions.count) Actions")
+                            .font(.system(size: 13))
+                            .foregroundColor(colors.textSecondary)
+                    }
+                }
+                Spacer()
             }
 
-            // Action buttons - use grid on iOS, horizontal on macOS
-            #if os(iOS)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+            // Primary action buttons - only Import & Export
+            HStack(spacing: 10) {
                 configActionButton(
                     icon: "square.and.arrow.down",
                     title: "Import",
@@ -442,145 +512,106 @@ private extension SettingsView {
                 ) {
                     prepareAndExport()
                 }
-
-                configActionButton(
-                    icon: "plus.circle",
-                    title: "Save",
-                    isAccent: false
-                ) {
-                    createDefaultTemplate()
-                }
-
-                configActionButton(
-                    icon: "doc.badge.plus",
-                    title: "New",
-                    isAccent: false
-                ) {
-                    createEmptyTemplate()
-                }
             }
-            #else
-            HStack(spacing: 12) {
+
+            // Collapsible Saved Configurations section
+            VStack(spacing: 0) {
                 Button {
-                    isImportPresented = true
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "square.and.arrow.down")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("Import")
-                            .font(.system(size: 14, weight: .medium))
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        isSavedConfigsExpanded.toggle()
                     }
-                    .foregroundColor(colors.accent)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.accent.opacity(0.12))
-                    )
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: isSavedConfigsExpanded ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(colors.textSecondary)
+                            .frame(width: 16)
+                        
+                        Text("Saved Configurations")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(colors.textPrimary)
+                        
+                        if !savedConfigurations.isEmpty {
+                            Text("(\(savedConfigurations.count))")
+                                .font(.system(size: 13))
+                                .foregroundColor(colors.textSecondary)
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-
-                Button {
-                    prepareAndExport()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("Export")
-                            .font(.system(size: 14, weight: .medium))
+                
+                if isSavedConfigsExpanded {
+                    VStack(spacing: 8) {
+                        // Quick action buttons for Save/New
+                        HStack(spacing: 8) {
+                            Button {
+                                createDefaultTemplate()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "plus.circle")
+                                        .font(.system(size: 12, weight: .medium))
+                                    Text("Save Current")
+                                        .font(.system(size: 12, weight: .medium))
+                                }
+                                .foregroundColor(colors.accent)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(colors.accent.opacity(0.12))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Button {
+                                createEmptyTemplate()
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "doc.badge.plus")
+                                        .font(.system(size: 12, weight: .medium))
+                                    Text("New Empty")
+                                        .font(.system(size: 12, weight: .medium))
+                                }
+                                .foregroundColor(colors.textSecondary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .fill(colors.inputBackground)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            
+                            Spacer()
+                        }
+                        .padding(.bottom, 4)
+                        
+                        if savedConfigurations.isEmpty {
+                            Text("No saved configurations")
+                                .font(.system(size: 13))
+                                .foregroundColor(colors.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 8)
+                        } else {
+                            ForEach(savedConfigurations) { config in
+                                savedConfigurationRow(config)
+                            }
+                        }
                     }
-                    .foregroundColor(colors.textPrimary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    createDefaultTemplate()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus.circle")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("Save Current")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(colors.textPrimary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Button {
-                    createEmptyTemplate()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "doc.badge.plus")
-                            .font(.system(size: 14, weight: .medium))
-                        Text("New Empty")
-                            .font(.system(size: 14, weight: .medium))
-                    }
-                    .foregroundColor(colors.textPrimary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-            }
-            #endif
-
-            // Current configuration indicator
-            if let currentName = configStore.currentConfigurationName {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.green)
-                    Text("Current: \(currentName)")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(colors.textPrimary)
-                    Spacer()
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(Color.green.opacity(0.1))
-                )
-            }
-
-            // Current config stats
-            HStack(spacing: 16) {
-                configStatView(count: configStore.providers.count, label: "Providers")
-                configStatView(count: configStore.actions.count, label: "Actions")
-            }
-
-            // Saved configurations list
-            if !savedConfigurations.isEmpty {
-                Divider()
-                    .padding(.vertical, 4)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Saved Configurations")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
-
-                    ForEach(savedConfigurations) { config in
-                        savedConfigurationRow(config)
-                    }
+                    .padding(.leading, 26)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(colors.inputBackground.opacity(0.5))
+            )
         }
         .padding(18)
         .background(
@@ -774,7 +805,6 @@ private extension SettingsView {
         }
     }
 
-    #if os(iOS)
     func configActionButton(
         icon: String,
         title: String,
@@ -798,7 +828,6 @@ private extension SettingsView {
         }
         .buttonStyle(.plain)
     }
-    #endif
 
     func prepareAndExport() {
         let config = ConfigurationService.shared.exportConfiguration(
@@ -886,14 +915,11 @@ private extension SettingsView {
     }
 
     func syncTTSPreferencesFromStore() {
-        if isUsingDefaultTTS {
-            customTTSEndpoint = TTSConfiguration.default.endpointURL.absoluteString
-            customTTSAPIKey = TTSConfiguration.default.apiKey
-        } else {
-            let configuration = preferences.ttsConfiguration
-            customTTSEndpoint = configuration.endpointURL.absoluteString
-            customTTSAPIKey = configuration.apiKey
-        }
+        // Always show the actual stored custom TTS configuration values
+        // This allows user to see what custom values are saved (even when using defaults)
+        let configuration = preferences.ttsConfiguration
+        customTTSEndpoint = configuration.endpointURL.absoluteString
+        customTTSAPIKey = configuration.apiKey
     }
 
     struct LanguageValueView: View {

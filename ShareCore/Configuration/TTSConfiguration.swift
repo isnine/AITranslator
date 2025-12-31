@@ -24,14 +24,11 @@ public struct TTSConfiguration: Equatable {
         self.model = model
         self.voice = voice
     }
-}
 
-public extension TTSConfiguration {
-    static let `default` = TTSConfiguration(
-        endpointURL: URL(
-            string: "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2025-03-01-preview"
-        )!,
-        apiKey: "REDACTED_AZURE_API_KEY",
+    /// Empty configuration with no endpoint or API key
+    public static let empty = TTSConfiguration(
+        endpointURL: URL(string: "https://")!,
+        apiKey: "",
         model: "gpt-4o-mini-tts",
         voice: "alloy"
     )
