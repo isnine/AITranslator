@@ -257,6 +257,9 @@
     "Discard Changes?" : {
 
     },
+    "Done" : {
+
+    },
     "Duration: %@" : {
 
     },
@@ -475,6 +478,9 @@
           }
         }
       }
+    },
+    "Reorder" : {
+
     },
     "Replace" : {
       "localizations" : {

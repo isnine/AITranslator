@@ -20,7 +20,6 @@ struct ActionDetailView: View {
     @State private var selectedProviderIDs: Set<UUID>
     @State private var usageScenes: ActionConfig.UsageScene
     @State private var showsDiff: Bool
-    @State private var isDefault: Bool
 
     init(
         action: ActionConfig,
@@ -34,7 +33,6 @@ struct ActionDetailView: View {
         _selectedProviderIDs = State(initialValue: Set(action.providerIDs))
         _usageScenes = State(initialValue: action.usageScenes)
         _showsDiff = State(initialValue: action.showsDiff)
-        _isDefault = State(initialValue: configurationStore.defaultAction?.id == action.id)
     }
 
     var body: some View {
@@ -76,29 +74,6 @@ struct ActionDetailView: View {
             .buttonStyle(.plain)
 
             Spacer()
-
-            Button {
-                isDefault.toggle()
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isDefault ? "star.fill" : "star")
-                        .font(.system(size: 16, weight: .semibold))
-                    Text("Default")
-                        .font(.system(size: 15, weight: .semibold))
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .foregroundColor(isDefault ? colors.chipPrimaryText : colors.textSecondary)
-                .background(
-                    Capsule()
-                        .fill(isDefault ? colors.accent : colors.cardBackground)
-                        .overlay(
-                            Capsule()
-                                .stroke(colors.accent, lineWidth: isDefault ? 0 : 1.2)
-                        )
-                )
-            }
-            .buttonStyle(.plain)
 
             Button(action: saveAction) {
                 Text("Save")
@@ -333,17 +308,12 @@ struct ActionDetailView: View {
 
         var actions = configurationStore.actions
 
+        // Find and update the action
         if let index = actions.firstIndex(where: { $0.id == actionID }) {
             actions[index] = updated
         } else {
+            // New action
             actions.append(updated)
-        }
-
-        if isDefault {
-            if let index = actions.firstIndex(where: { $0.id == actionID }) {
-                let action = actions.remove(at: index)
-                actions.insert(action, at: 0)
-            }
         }
 
         configurationStore.updateActions(actions)

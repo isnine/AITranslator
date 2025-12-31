@@ -11,6 +11,7 @@ import ShareCore
 struct ActionsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var configurationStore = AppConfigurationStore.shared
+    @State private var isEditing = false
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -21,21 +22,54 @@ struct ActionsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     headerSection
-                    Text("All Actions")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(colors.textPrimary)
 
-                    VStack(spacing: 16) {
-                        ForEach(configurationStore.actions) { action in
-                            NavigationLink(value: action) {
-                                ActionCardView(
-                                    action: action,
-                                    isDefault: action.id == configurationStore.defaultAction?.id,
-                                    providerCount: providerCount(for: action),
-                                    colors: colors
-                                )
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("All Actions")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(colors.textPrimary)
+                            Spacer()
+                            Button {
+                                withAnimation {
+                                    isEditing.toggle()
+                                }
+                            } label: {
+                                Text(isEditing ? "Done" : "Reorder")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(colors.accent)
                             }
-                            .buttonStyle(.plain)
+                        }
+
+                        VStack(spacing: 12) {
+                            ForEach(configurationStore.actions) { action in
+                                NavigationLink(value: action) {
+                                    ActionCardView(
+                                        action: action,
+                                        providerCount: providerCount(for: action),
+                                        showDragHandle: isEditing,
+                                        colors: colors
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .draggable(action.id.uuidString) {
+                                    ActionCardView(
+                                        action: action,
+                                        providerCount: providerCount(for: action),
+                                        showDragHandle: false,
+                                        colors: colors
+                                    )
+                                    .frame(width: 300)
+                                    .opacity(0.8)
+                                }
+                                .dropDestination(for: String.self) { items, _ in
+                                    guard let draggedIDString = items.first,
+                                          let draggedID = UUID(uuidString: draggedIDString) else {
+                                        return false
+                                    }
+                                    reorderAction(from: draggedID, to: action.id)
+                                    return true
+                                }
+                            }
                         }
                     }
 
@@ -117,41 +151,54 @@ struct ActionsView: View {
         let availableIDs = Set(configurationStore.providers.map(\.id))
         return action.providerIDs.filter { availableIDs.contains($0) }.count
     }
+
+    private func reorderAction(from sourceID: UUID, to destinationID: UUID) {
+        guard sourceID != destinationID else { return }
+        var actions = configurationStore.actions
+        guard let sourceIndex = actions.firstIndex(where: { $0.id == sourceID }),
+              let destinationIndex = actions.firstIndex(where: { $0.id == destinationID }) else {
+            return
+        }
+        let movedAction = actions.remove(at: sourceIndex)
+        actions.insert(movedAction, at: destinationIndex)
+        configurationStore.updateActions(actions)
+    }
 }
 
 private extension ActionsView {
     struct ActionCardView: View {
         let action: ActionConfig
-        let isDefault: Bool
         let providerCount: Int
+        let showDragHandle: Bool
         let colors: AppColorPalette
 
         var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 8) {
+            HStack(spacing: 12) {
+                if showDragHandle {
+                    Image(systemName: "line.3.horizontal")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
                     Text(action.name)
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(colors.textPrimary)
 
-                    if isDefault {
-                        Image(systemName: "star.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(colors.accent)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
+                    Text(action.summary)
+                        .font(.system(size: 15))
                         .foregroundColor(colors.textSecondary)
+                        .lineLimit(2)
+
+                    Text(providerCountText)
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary.opacity(0.8))
                 }
 
-                Text(action.summary)
-                    .font(.system(size: 15))
-                    .foregroundColor(colors.textSecondary)
+                Spacer()
 
-                Text(providerCountText)
-                    .font(.system(size: 13))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(colors.textSecondary)
             }
             .padding(20)

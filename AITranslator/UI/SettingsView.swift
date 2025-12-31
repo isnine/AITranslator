@@ -34,9 +34,7 @@ struct SettingsView: View {
   @State private var configToDelete: ConfigurationFileInfo?
   @State private var showSaveDialog = false
   @State private var newConfigName = ""
-  @State private var showConfigEditor = false
-  @State private var configToEdit: ConfigurationFileInfo?
-  @State private var editingConfigText = ""
+  @State private var configEditorItem: ConfigEditorItem?
   
   // Collapsible section states
   @State private var isSavedConfigsExpanded = false
@@ -133,18 +131,16 @@ struct SettingsView: View {
         } message: {
             Text("Configuration exported successfully.")
         }
-        .sheet(isPresented: $showConfigEditor) {
+        .sheet(item: $configEditorItem) { item in
             ConfigurationEditorView(
-                configInfo: configToEdit,
-                initialText: editingConfigText,
+                configInfo: item.configInfo,
+                initialText: item.text,
                 colors: colors,
                 onSave: { updatedText in
-                    saveEditedConfiguration(updatedText)
+                    saveEditedConfiguration(updatedText, for: item.configInfo)
                 },
                 onDismiss: {
-                    showConfigEditor = false
-                    configToEdit = nil
-                    editingConfigText = ""
+                    configEditorItem = nil
                 }
             )
         }
@@ -705,9 +701,7 @@ private extension SettingsView {
         do {
             let data = try Data(contentsOf: config.url)
             if let jsonString = String(data: data, encoding: .utf8) {
-                editingConfigText = jsonString
-                configToEdit = config
-                showConfigEditor = true
+                configEditorItem = ConfigEditorItem(configInfo: config, text: jsonString)
             }
         } catch {
             importError = "Failed to read configuration: \(error.localizedDescription)"
@@ -715,9 +709,7 @@ private extension SettingsView {
         }
     }
 
-    func saveEditedConfiguration(_ text: String) {
-        guard let config = configToEdit else { return }
-        
+    func saveEditedConfiguration(_ text: String, for config: ConfigurationFileInfo) {
         // Validate JSON first
         guard let data = text.data(using: .utf8) else {
             importError = "Invalid text encoding"
@@ -733,9 +725,7 @@ private extension SettingsView {
             try data.write(to: config.url)
             
             refreshSavedConfigurations()
-            showConfigEditor = false
-            configToEdit = nil
-            editingConfigText = ""
+            configEditorItem = nil
         } catch {
             importError = "Invalid configuration: \(error.localizedDescription)"
             showImportError = true
@@ -1080,16 +1070,31 @@ private extension SettingsView {
 // MARK: - Configuration Editor View
 
 struct ConfigurationEditorView: View {
-    let configInfo: ConfigurationFileInfo?
+    let configInfo: ConfigurationFileInfo
     let initialText: String
     let colors: AppColorPalette
     let onSave: (String) -> Void
     let onDismiss: () -> Void
 
-    @State private var editableText: String = ""
+    @State private var editableText: String
     @State private var hasChanges = false
     @State private var showDiscardAlert = false
     @Environment(\.dismiss) private var dismiss
+
+    init(
+        configInfo: ConfigurationFileInfo,
+        initialText: String,
+        colors: AppColorPalette,
+        onSave: @escaping (String) -> Void,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.configInfo = configInfo
+        self.initialText = initialText
+        self.colors = colors
+        self.onSave = onSave
+        self.onDismiss = onDismiss
+        self._editableText = State(initialValue: initialText)
+    }
 
     var body: some View {
         #if os(macOS)
@@ -1105,7 +1110,7 @@ struct ConfigurationEditorView: View {
             // Header
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(configInfo?.name ?? "Configuration")
+                    Text(configInfo.name)
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(colors.textPrimary)
                     Text("Edit JSON configuration")
@@ -1158,9 +1163,6 @@ struct ConfigurationEditorView: View {
         }
         .frame(minWidth: 600, minHeight: 500)
         .background(colors.background)
-        .onAppear {
-            editableText = initialText
-        }
         .onChange(of: editableText) {
             hasChanges = editableText != initialText
         }
@@ -1183,7 +1185,7 @@ struct ConfigurationEditorView: View {
                 .scrollContentBackground(.hidden)
                 .background(colors.background)
                 .padding(.horizontal, 12)
-                .navigationTitle(configInfo?.name ?? "Configuration")
+                .navigationTitle(configInfo.name)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
@@ -1199,9 +1201,6 @@ struct ConfigurationEditorView: View {
                     }
                 }
                 .background(colors.background.ignoresSafeArea())
-        }
-        .onAppear {
-            editableText = initialText
         }
         .onChange(of: editableText) {
             hasChanges = editableText != initialText
@@ -1224,4 +1223,12 @@ struct ConfigurationEditorView: View {
             onDismiss()
         }
     }
+}
+
+// MARK: - Config Editor Item
+
+struct ConfigEditorItem: Identifiable {
+    let id = UUID()
+    let configInfo: ConfigurationFileInfo
+    let text: String
 }

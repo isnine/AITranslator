@@ -13,14 +13,14 @@ public struct AppConfiguration: Codable, Sendable {
   public var preferences: PreferencesConfig?
   public var providers: [String: ProviderEntry]
   public var tts: TTSEntry?
-  public var actions: [String: ActionEntry]
+  public var actions: [ActionEntry]
 
   public init(
     version: String = "1.0.0",
     preferences: PreferencesConfig? = nil,
     providers: [String: ProviderEntry] = [:],
     tts: TTSEntry? = nil,
-    actions: [String: ActionEntry] = [:]
+    actions: [ActionEntry] = []
   ) {
     self.version = version
     self.preferences = preferences
@@ -183,6 +183,7 @@ public extension AppConfiguration {
 
 public extension AppConfiguration {
   struct ActionEntry: Codable, Sendable {
+    public var name: String
     public var summary: String?
     public var prompt: String
     public var providers: [String]
@@ -190,12 +191,14 @@ public extension AppConfiguration {
     public var outputType: String?
 
     public init(
+      name: String,
       summary: String? = nil,
       prompt: String,
       providers: [String],
       scenes: [String]? = nil,
       outputType: String? = nil
     ) {
+      self.name = name
       self.summary = summary
       self.prompt = prompt
       self.providers = providers
@@ -205,7 +208,6 @@ public extension AppConfiguration {
 
     /// Convert to internal ActionConfig
     public func toActionConfig(
-      name: String,
       providerMap: [String: UUID]
     ) -> ActionConfig {
       let providerIDs = providers.compactMap { providerMap[$0] }
@@ -246,7 +248,7 @@ public extension AppConfiguration {
     public static func from(
       _ config: ActionConfig,
       providerNames: [UUID: String]
-    ) -> (name: String, entry: ActionEntry) {
+    ) -> ActionEntry {
       let providerNameList = config.providerIDs.compactMap { providerNames[$0] }
 
       var scenes: [String] = []
@@ -254,14 +256,14 @@ public extension AppConfiguration {
       if config.usageScenes.contains(.contextRead) { scenes.append("contextRead") }
       if config.usageScenes.contains(.contextEdit) { scenes.append("contextEdit") }
 
-      let entry = ActionEntry(
+      return ActionEntry(
+        name: config.name,
         summary: config.summary.isEmpty ? nil : config.summary,
         prompt: config.prompt,
         providers: providerNameList,
         scenes: scenes.count == 3 ? nil : scenes,
         outputType: config.outputType == .plain ? nil : config.outputType.rawValue
       )
-      return (config.name, entry)
     }
   }
 }

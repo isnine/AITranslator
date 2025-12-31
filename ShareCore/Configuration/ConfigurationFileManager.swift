@@ -159,7 +159,7 @@ public final class ConfigurationFileManager: Sendable {
       ),
       providers: [:],
       tts: nil,
-      actions: [:]
+      actions: []
     )
 
     let name = generateUniqueName(base: "Empty Template")

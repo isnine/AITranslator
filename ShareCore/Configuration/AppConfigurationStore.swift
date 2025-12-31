@@ -172,10 +172,10 @@ public final class AppConfigurationStore: ObservableObject {
         
         print("[ConfigStore] Total loaded providers: \(loadedProviders.count)")
         
-        // Build actions
+        // Build actions (actions is now an array, order is preserved)
         var loadedActions: [ActionConfig] = []
-        for (name, entry) in config.actions {
-            let action = entry.toActionConfig(name: name, providerMap: providerNameToID)
+        for entry in config.actions {
+            let action = entry.toActionConfig(providerMap: providerNameToID)
             loadedActions.append(action)
         }
         
@@ -221,17 +221,12 @@ public final class AppConfigurationStore: ObservableObject {
             providerIDToName[provider.id] = uniqueName
         }
         
-        // Build action entries
-        var actionEntries: [String: AppConfiguration.ActionEntry] = [:]
-        for action in actions {
-            let (name, entry) = AppConfiguration.ActionEntry.from(action, providerNames: providerIDToName)
-            var uniqueName = name
-            var counter = 1
-            while actionEntries[uniqueName] != nil {
-                counter += 1
-                uniqueName = "\(name) \(counter)"
-            }
-            actionEntries[uniqueName] = entry
+        // Build action entries (as array to preserve order)
+        let actionEntries = actions.map { action in
+            AppConfiguration.ActionEntry.from(
+                action,
+                providerNames: providerIDToName
+            )
         }
         
         return AppConfiguration(

@@ -116,10 +116,10 @@ public final class ConfigurationService: Sendable {
       }
     }
 
-    // Build actions
+    // Build actions (actions is now an array)
     var actions: [ActionConfig] = []
-    for (name, entry) in config.actions {
-      let action = entry.toActionConfig(name: name, providerMap: providerNameToID)
+    for entry in config.actions {
+      let action = entry.toActionConfig(providerMap: providerNameToID)
       actions.append(action)
     }
 
@@ -155,18 +155,12 @@ public final class ConfigurationService: Sendable {
       providerIDToName[provider.id] = uniqueName
     }
 
-    // Build action entries
-    var actionEntries: [String: AppConfiguration.ActionEntry] = [:]
-    for action in store.actions {
-      let (name, entry) = AppConfiguration.ActionEntry.from(action, providerNames: providerIDToName)
-      // Handle duplicate names
-      var uniqueName = name
-      var counter = 1
-      while actionEntries[uniqueName] != nil {
-        counter += 1
-        uniqueName = "\(name) \(counter)"
-      }
-      actionEntries[uniqueName] = entry
+    // Build action entries (as array to preserve order)
+    let actionEntries = store.actions.map { action in
+      AppConfiguration.ActionEntry.from(
+        action,
+        providerNames: providerIDToName
+      )
     }
 
     // Build preferences
@@ -207,10 +201,10 @@ public final class ConfigurationService: Sendable {
   ) -> Result<Void, ConfigurationError> {
     let providerNames = Set(config.providers.keys)
 
-    for (actionName, action) in config.actions {
+    for action in config.actions {
       for providerName in action.providers {
         if !providerNames.contains(providerName) {
-          return .failure(.missingProvider(providerName, inAction: actionName))
+          return .failure(.missingProvider(providerName, inAction: action.name))
         }
       }
     }
