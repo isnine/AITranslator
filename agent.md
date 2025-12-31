@@ -131,6 +131,192 @@ AITranslator/
 - 管理目标语言、TTS 配置
 - 响应 UserDefaults 变更通知
 
+## 配置读写流程
+
+### 配置架构概述
+
+配置系统采用多层架构，实现了 JSON 配置文件与内存模型之间的双向转换：
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        持久化层                                      │
+├─────────────────────────────────────────────────────────────────────┤
+│  App Group Container                                                │
+│  └── Configurations/                                                │
+│      ├── Default.json          <- 首次启动从 Bundle 复制            │
+│      ├── MyConfig.json         <- 用户自定义配置                    │
+│      └── ...                                                        │
+│                                                                     │
+│  UserDefaults (App Group)                                           │
+│  ├── current_config_name       <- 当前激活的配置名称                 │
+│  ├── target_language           <- 目标语言偏好                      │
+│  └── tts_*                     <- TTS 相关设置                      │
+└─────────────────────────────────────────────────────────────────────┘
+                               ▲
+                               │ 读/写
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        文件管理层                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│  ConfigurationFileManager                                           │
+│  ├── listConfigurations()      -> [ConfigurationFileInfo]           │
+│  ├── loadConfiguration(named:) -> AppConfiguration                  │
+│  ├── saveConfiguration(_:name:)                                     │
+│  └── deleteConfiguration(named:)                                    │
+└─────────────────────────────────────────────────────────────────────┘
+                               ▲
+                               │ AppConfiguration (中间模型)
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        配置仓库层                                    │
+├─────────────────────────────────────────────────────────────────────┤
+│  AppConfigurationStore (单例)                                        │
+│  ├── @Published actions: [ActionConfig]                             │
+│  ├── @Published providers: [ProviderConfig]                         │
+│  ├── updateActions(_:)         -> 更新内存 + 自动保存               │
+│  ├── updateProviders(_:)       -> 更新内存 + 自动保存               │
+│  └── switchConfiguration(to:)  -> 切换配置文件                      │
+└─────────────────────────────────────────────────────────────────────┘
+                               ▲
+                               │ ObservableObject
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                        UI 层                                         │
+├─────────────────────────────────────────────────────────────────────┤
+│  ActionsView / ProvidersView / SettingsView                         │
+│  └── 绑定到 AppConfigurationStore.shared                            │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### 关键数据模型
+
+| 模型                | 职责                                    | 存储位置         |
+| ------------------- | --------------------------------------- | ---------------- |
+| `AppConfiguration`  | JSON 配置文件的 Codable 中间模型        | .json 文件       |
+| `ActionConfig`      | 动作的内存模型（含 UUID）               | 内存             |
+| `ProviderConfig`    | 提供商的内存模型（含 UUID）             | 内存             |
+| `AppPreferences`    | 偏好设置（目标语言、TTS、当前配置名称） | UserDefaults     |
+
+### 启动时加载流程
+
+```swift
+// AppConfigurationStore.init()
+1. 调用 loadConfiguration()
+   │
+   ├─ 2. 从 UserDefaults 读取 currentConfigName
+   │
+   ├─ 3. 尝试加载指定名称的配置文件
+   │     └─ tryLoadConfiguration(named:)
+   │         ├─ configFileManager.loadConfiguration(named:)
+   │         │   └─ JSON 解码 -> AppConfiguration
+   │         └─ applyLoadedConfiguration(_:)
+   │             ├─ 解析 providers -> [ProviderConfig]
+   │             │   └─ ProviderEntry.toProviderConfig(name:)
+   │             ├─ 解析 actions -> [ActionConfig]
+   │             │   └─ ActionEntry.toActionConfig(providerMap:)
+   │             └─ 应用目标语言到 prompt
+   │                 └─ applyTargetLanguage(_:targetLanguage:)
+   │
+   ├─ 4. 若加载失败，尝试加载其他可用配置
+   │     └─ configFileManager.listConfigurations()
+   │
+   └─ 5. 若无可用配置，创建空配置
+         └─ createEmptyConfiguration()
+```
+
+**首次启动特殊处理**：
+- `ConfigurationFileManager` 初始化时检查 `Default.json` 是否存在
+- 若不存在，从 Bundle 中的 `DefaultConfiguration.json` 复制到 App Group 容器
+
+### UI 修改后的保存流程
+
+```swift
+// 用户在 UI 修改 Action 或 Provider 后
+1. UI 调用 store.updateActions(_:) 或 store.updateProviders(_:)
+   │
+   ├─ 2. 应用目标语言模板（仅 Actions）
+   │     └─ applyTargetLanguage(_:targetLanguage:)
+   │
+   ├─ 3. 更新内存中的 @Published 属性
+   │     └─ self.actions = adjusted / self.providers = providers
+   │
+   └─ 4. 自动调用 saveConfiguration()
+         │
+         ├─ 5. buildCurrentConfiguration()
+         │     ├─ 构建 providerEntries: [String: ProviderEntry]
+         │     │   └─ ProviderEntry.from(provider) -> (name, entry)
+         │     ├─ 构建 actionEntries: [ActionEntry]
+         │     │   └─ ActionEntry.from(action, providerNames:)
+         │     └─ 组装 AppConfiguration
+         │
+         └─ 6. configFileManager.saveConfiguration(_:name:)
+               └─ JSON 编码 -> 写入 .json 文件
+```
+
+### 数据转换细节
+
+#### Provider 名称与 UUID 映射
+
+配置文件中 Provider 使用 **名称** 标识，内存模型使用 **UUID**。转换过程：
+
+**加载时**（名称 → UUID）：
+```swift
+// 在 applyLoadedConfiguration(_:) 中
+var providerNameToID: [String: UUID] = [:]
+for (name, entry) in config.providers {
+    if let provider = entry.toProviderConfig(name: name) {
+        providerNameToID[name] = provider.id  // 生成新 UUID
+    }
+}
+// Action 使用此映射解析 providerIDs
+action.toActionConfig(providerMap: providerNameToID)
+```
+
+**保存时**（UUID → 名称）：
+```swift
+// 在 buildCurrentConfiguration() 中
+var providerIDToName: [UUID: String] = [:]
+for provider in providers {
+    let (name, entry) = ProviderEntry.from(provider)
+    providerIDToName[provider.id] = uniqueName
+}
+// Action 使用此映射导出 provider 名称列表
+ActionEntry.from(action, providerNames: providerIDToName)
+```
+
+#### 目标语言动态更新
+
+受管理的动作（Translate/Summarize/Sentence Analysis 等）在以下场景自动更新 Prompt：
+
+1. **加载配置时**：`applyTargetLanguage()` 检测 Prompt 是否匹配模板
+2. **用户切换语言时**：通过 Combine 订阅 `preferences.$targetLanguage` 自动触发更新
+
+```swift
+preferences.$targetLanguage
+    .sink { [weak self] option in
+        let updated = applyTargetLanguage(self.actions, targetLanguage: option)
+        self.actions = updated
+        self.saveConfiguration()
+    }
+```
+
+### 配置服务 (ConfigurationService)
+
+提供配置的导入/导出功能，用于配置迁移或备份：
+
+| 方法                      | 用途                           |
+| ------------------------- | ------------------------------ |
+| `exportConfiguration()`   | 导出当前配置为 JSON Data       |
+| `importConfiguration()`   | 从 JSON 解析 AppConfiguration  |
+| `applyConfiguration()`    | 将配置应用到 Store 和 Preferences |
+
+### 数据一致性保障
+
+1. **自动保存**：每次 `updateActions()` 或 `updateProviders()` 调用后立即持久化
+2. **App Group 共享**：主应用与扩展共享同一配置目录
+3. **UserDefaults 同步**：调用 `defaults.synchronize()` 确保跨进程可见
+4. **Combine 订阅**：偏好变更自动触发配置更新
+
 ## 默认配置
 
 | 动作     | 功能描述                       | 特性                         |
