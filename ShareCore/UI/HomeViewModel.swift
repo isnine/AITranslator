@@ -14,9 +14,9 @@ import AppKit
 #endif
 
 @MainActor
-final class HomeViewModel: ObservableObject {
-    struct ProviderRunViewState: Identifiable {
-        enum Status {
+public final class HomeViewModel: ObservableObject {
+    public struct ProviderRunViewState: Identifiable {
+        public enum Status {
             case idle
             case running(start: Date)
             case streaming(text: String, start: Date)
@@ -31,7 +31,7 @@ final class HomeViewModel: ObservableObject {
             )
             case failure(message: String, duration: TimeInterval)
 
-            var duration: TimeInterval? {
+            public var duration: TimeInterval? {
                 switch self {
                 case .idle, .running, .streaming, .streamingSentencePairs:
                     return nil
@@ -42,17 +42,17 @@ final class HomeViewModel: ObservableObject {
             }
         }
 
-        let provider: ProviderConfig
-        var status: Status
+        public let provider: ProviderConfig
+        public var status: Status
 
-        var id: UUID { provider.id }
+        public var id: UUID { provider.id }
 
-        var durationText: String? {
+        public var durationText: String? {
             guard let duration = status.duration else { return nil }
             return String(format: "%.1fs", duration)
         }
 
-        var isRunning: Bool {
+        public var isRunning: Bool {
             switch status {
             case .running, .streaming, .streamingSentencePairs:
                 return true
@@ -61,7 +61,7 @@ final class HomeViewModel: ObservableObject {
             }
         }
 
-        var startDate: Date? {
+        public var startDate: Date? {
             switch status {
             case let .running(start), let .streaming(_, start), let .streamingSentencePairs(_, start):
                 return start
@@ -71,23 +71,23 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    @Published var inputText: String = "" {
+    @Published public var inputText: String = "" {
         didSet {
             guard inputText != oldValue else { return }
             cancelActiveRequest(clearResults: true)
         }
     }
-    @Published private(set) var actions: [ActionConfig]
-    @Published private(set) var providers: [ProviderConfig]
-    @Published var selectedActionID: UUID?
-    @Published private(set) var providerRuns: [ProviderRunViewState] = []
-    @Published private(set) var speakingProviders: Set<UUID> = []
+    @Published public private(set) var actions: [ActionConfig]
+    @Published public private(set) var providers: [ProviderConfig]
+    @Published public var selectedActionID: UUID?
+    @Published public private(set) var providerRuns: [ProviderRunViewState] = []
+    @Published public private(set) var speakingProviders: Set<UUID> = []
 
-    let placeholderHint: String = NSLocalizedString(
+    public let placeholderHint: String = NSLocalizedString(
         "Enter text and choose an action to get started",
         comment: "Hint shown above the action list when no input or results exist"
     )
-    let inputPlaceholder: String = NSLocalizedString(
+    public let inputPlaceholder: String = NSLocalizedString(
         "Enter text to translate or process...",
         comment: "Placeholder text for the main input editor"
     )
@@ -103,7 +103,7 @@ final class HomeViewModel: ObservableObject {
     private var currentRequestInputText: String = ""
     private var currentActionShowsDiff: Bool = false
 
-    init(
+    public init(
         configurationStore: AppConfigurationStore? = nil,
         llmService: LLMService = .shared,
         textToSpeechService: TextToSpeechService = .shared,
@@ -138,11 +138,11 @@ final class HomeViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
-    var defaultAction: ActionConfig? {
+    public var defaultAction: ActionConfig? {
         actions.first
     }
 
-    var selectedAction: ActionConfig? {
+    public var selectedAction: ActionConfig? {
         guard let id = selectedActionID else {
             return actions.first
         }
@@ -151,7 +151,7 @@ final class HomeViewModel: ObservableObject {
 
     /// Returns true if the Send button should be enabled.
     /// Disabled when: no actions available, or selected action has no valid providers.
-    var canSend: Bool {
+    public var canSend: Bool {
         guard let action = selectedAction else {
             return false
         }
@@ -163,19 +163,19 @@ final class HomeViewModel: ObservableObject {
     }
 
     @discardableResult
-    func selectAction(_ action: ActionConfig) -> Bool {
+    public func selectAction(_ action: ActionConfig) -> Bool {
         guard selectedActionID != action.id else { return false }
         selectedActionID = action.id
         return true
     }
 
-    func updateUsageScene(_ scene: ActionConfig.UsageScene) {
+    public func updateUsageScene(_ scene: ActionConfig.UsageScene) {
         guard usageScene != scene else { return }
         usageScene = scene
         refreshActions()
     }
 
-    func performSelectedAction() {
+    public func performSelectedAction() {
         cancelActiveRequest(clearResults: false)
 
         guard let action = selectedAction else {
@@ -220,7 +220,7 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    func speakResult(_ text: String, providerID: UUID) {
+    public func speakResult(_ text: String, providerID: UUID) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         guard !speakingProviders.contains(providerID) else { return }
@@ -240,11 +240,11 @@ final class HomeViewModel: ObservableObject {
         }
     }
 
-    func isSpeaking(providerID: UUID) -> Bool {
+    public func isSpeaking(providerID: UUID) -> Bool {
         speakingProviders.contains(providerID)
     }
 
-    func openAppSettings() {
+    public func openAppSettings() {
         #if canImport(UIKit)
         guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else {
             return

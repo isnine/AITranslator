@@ -44,7 +44,10 @@ public final class AppConfigurationStore: ObservableObject {
         // Then load from persistence or defaults
         loadConfiguration()
 
+        // Use dropFirst() to skip the initial value emission,
+        // so we only save on actual user-initiated changes
         preferences.$targetLanguage
+            .dropFirst()
             .receive(on: RunLoop.main)
             .sink { [weak self] option in
                 guard let self else { return }

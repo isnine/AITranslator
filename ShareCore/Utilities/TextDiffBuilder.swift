@@ -1,25 +1,25 @@
 import SwiftUI
 
-enum TextDiffBuilder {
-    struct Segment {
-        enum Kind {
+public enum TextDiffBuilder {
+    public struct Segment {
+        public enum Kind {
             case equal
             case added
             case removed
         }
 
-        var kind: Kind
-        var text: String
+        public var kind: Kind
+        public var text: String
     }
 
-    struct Presentation {
-        let originalSegments: [Segment]
-        let revisedSegments: [Segment]
-        let hasRemovals: Bool
-        let hasAdditions: Bool
+    public struct Presentation {
+        public let originalSegments: [Segment]
+        public let revisedSegments: [Segment]
+        public let hasRemovals: Bool
+        public let hasAdditions: Bool
     }
 
-    static func build(original: String, revised: String) -> Presentation? {
+    public static func build(original: String, revised: String) -> Presentation? {
         guard original != revised else {
             return nil
         }
@@ -109,7 +109,7 @@ enum TextDiffBuilder {
         )
     }
 
-    static func attributedString(
+    public static func attributedString(
         for segments: [Segment],
         palette: AppColorPalette,
         colorScheme: ColorScheme

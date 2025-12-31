@@ -19,6 +19,18 @@
     "%lld Provider" : {
 
     },
+    "Action" : {
+      "comment" : "Actions submenu",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动作"
+          }
+        }
+      }
+    },
     "Action Library" : {
       "localizations" : {
         "zh-Hans" : {
@@ -155,6 +167,41 @@
         }
       }
     },
+    "Clipboard Content" : {
+      "comment" : "Menu bar popover section header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板内容"
+          }
+        }
+      }
+    },
+    "Clipboard is empty" : {
+      "comment" : "Menu bar popover empty state",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板为空"
+          }
+        }
+      }
+    },
+    "Clipboard is empty or contains no text." : {
+      "comment" : "Notification body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "剪贴板为空或不包含文本。"
+          }
+        }
+      }
+    },
     "Cmd+Return" : {
 
     },
@@ -201,6 +248,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已配置的提供商"
+          }
+        }
+      }
+    },
+    "Copied!" : {
+      "comment" : "Menu bar popover copied indicator",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已复制！"
           }
         }
       }
@@ -314,11 +373,35 @@
         }
       }
     },
+    "Error" : {
+      "comment" : "Notification title",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "错误"
+          }
+        }
+      }
+    },
     "Export" : {
 
     },
     "Export Successful" : {
 
+    },
+    "Failed to get a response." : {
+      "comment" : "Notification body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取响应失败。"
+          }
+        }
+      }
     },
     "Generating..." : {
       "localizations" : {
@@ -390,8 +473,56 @@
     "New Empty" : {
 
     },
+    "No Action" : {
+      "comment" : "Notification title",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无动作"
+          }
+        }
+      }
+    },
+    "No action is configured." : {
+      "comment" : "Notification body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未配置动作。"
+          }
+        }
+      }
+    },
     "No Actions Yet" : {
 
+    },
+    "No Provider" : {
+      "comment" : "Notification title",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无提供商"
+          }
+        }
+      }
+    },
+    "No provider is configured for this action." : {
+      "comment" : "Notification body",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此动作尚未配置提供商。"
+          }
+        }
+      }
     },
     "No providers configured yet." : {
       "localizations" : {
@@ -406,6 +537,18 @@
     "No saved configurations" : {
 
     },
+    "No Text" : {
+      "comment" : "Notification title",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无文本"
+          }
+        }
+      }
+    },
     "No text available for speech." : {
       "comment" : "TTS empty input error",
       "localizations" : {
@@ -419,6 +562,18 @@
     },
     "OK" : {
 
+    },
+    "Open AITranslator" : {
+      "comment" : "Open main window",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开 AITranslator"
+          }
+        }
+      }
     },
     "Open Settings" : {
       "localizations" : {
@@ -455,6 +610,17 @@
     "Press the shortcut to show/hide the app window from anywhere." : {
 
     },
+    "Processing..." : {
+      "comment" : "Menu bar popover processing state",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "处理中..."
+          }
+        }
+      }
+    },
     "Prompt Template" : {
       "localizations" : {
         "zh-Hans" : {
@@ -475,12 +641,35 @@
         }
       }
     },
+    "Quick Translate" : {
+      "comment" : "Menu bar header",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快速翻译"
+          }
+        }
+      }
+    },
     "Read-Only Context" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "只读上下文"
+          }
+        }
+      }
+    },
+    "Refresh" : {
+      "comment" : "Menu bar popover refresh button",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新"
           }
         }
       }
@@ -510,6 +699,18 @@
     },
     "Reset to default (⌥T)" : {
 
+    },
+    "Result" : {
+      "comment" : "Menu bar popover result header",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "结果"
+          }
+        }
+      }
     },
     "Retry" : {
 
@@ -686,6 +887,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翻译"
+          }
+        }
+      }
+    },
+    "Translate Clipboard" : {
+      "comment" : "Execute action with clipboard",
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译剪贴板"
           }
         }
       }

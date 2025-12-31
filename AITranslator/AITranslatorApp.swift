@@ -43,6 +43,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Register global hotkey (Option + T by default)
     HotKeyManager.shared.register()
 
+    // Setup menu bar status item
+    Task { @MainActor in
+      MenuBarManager.shared.setup()
+    }
+
     // Register this object as a service provider for handling text from right-click menu
     NSApp.servicesProvider = self
 
@@ -57,6 +62,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationWillTerminate(_ notification: Notification) {
     // Unregister global hotkey
     HotKeyManager.shared.unregister()
+    
+    // Teardown menu bar
+    Task { @MainActor in
+      MenuBarManager.shared.teardown()
+    }
   }
 
   /// Service handler for translating text from right-click menu
