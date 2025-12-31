@@ -4,5 +4,23 @@
 <dict>
 	<key>com.apple.developer.translation-ui-provider.network-access</key>
 	<true/>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Translate with Tree²</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>translateText</string>
+			<key>NSPortName</key>
+			<string>AITranslator</string>
+			<key>NSSendTypes</key>
+			<array>
+				<string>NSStringPboardType</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

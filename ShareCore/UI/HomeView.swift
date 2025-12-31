@@ -125,6 +125,15 @@ public struct HomeView: View {
           viewModel.performSelectedAction()
           #endif
         }
+        #if os(macOS)
+        .onReceive(NotificationCenter.default.publisher(for: .serviceTextReceived)) { notification in
+          if let text = notification.userInfo?["text"] as? String {
+            viewModel.inputText = text
+            isInputExpanded = true
+            viewModel.performSelectedAction()
+          }
+        }
+        #endif
         .onChange(of: openFromExtension) {
           viewModel.updateUsageScene(usageScene)
         }
@@ -1057,3 +1066,10 @@ private extension View {
   HomeView(context: nil)
         .preferredColorScheme(.dark)
 }
+
+#if os(macOS)
+extension Notification.Name {
+  /// Notification posted when text is received from macOS Services (right-click menu)
+  static let serviceTextReceived = Notification.Name("serviceTextReceived")
+}
+#endif
