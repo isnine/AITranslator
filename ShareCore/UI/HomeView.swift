@@ -97,8 +97,8 @@ public struct HomeView: View {
                 if shouldShowDefaultAppCard {
                   defaultAppCard
                 }
-              }
                 inputComposer
+              }
                 actionChips
                 if viewModel.providerRuns.isEmpty {
                     hintLabel

@@ -200,11 +200,13 @@ public final class LLMService {
 
         let contentType = (httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
         let isSentencePairsMode = structuredOutputConfig?.primaryField == "sentence_pairs"
+        let isStructuredOutputMode = structuredOutputConfig != nil && !isSentencePairsMode
 
         if contentType.contains("text/event-stream") {
             print("Streaming response from \(provider.displayName)")
             var aggregatedText = ""
             let sentencePairParser = isSentencePairsMode ? StreamingSentencePairParser() : nil
+            let structuredParser = isStructuredOutputMode ? StreamingStructuredOutputParser(config: structuredOutputConfig!) : nil
 
             for try await line in bytes.lines {
                 try Task.checkCancellation()
@@ -226,6 +228,10 @@ public final class LLMService {
                     // Incremental parsing for sentence pairs
                     let pairs = parser.append(deltaText)
                     await partialHandler(provider.id, .sentencePairs(pairs))
+                } else if let parser = structuredParser {
+                    // Incremental parsing for structured output (e.g., grammar check)
+                    let displayText = parser.append(deltaText)
+                    await partialHandler(provider.id, .text(displayText))
                 } else {
                     await partialHandler(provider.id, .text(aggregatedText))
                 }
@@ -247,6 +253,21 @@ public final class LLMService {
                     response: .success(combinedText.isEmpty ? finalText : combinedText),
                     sentencePairs: pairs
                 )
+            }
+
+            // Parse structured output from streamed JSON
+            if let config = structuredOutputConfig {
+                let parsed = parseStructuredOutputFromJSON(finalText, config: config)
+                if let parsed {
+                    return ProviderExecutionResult(
+                        providerID: provider.id,
+                        duration: Date().timeIntervalSince(start),
+                        response: .success(parsed.message),
+                        diffSource: parsed.diffSource,
+                        supplementalTexts: parsed.supplementalTexts,
+                        sentencePairs: []
+                    )
+                }
             }
 
             return ProviderExecutionResult(
@@ -304,6 +325,127 @@ public final class LLMService {
                 translation: translation.trimmingCharacters(in: .whitespacesAndNewlines)
             )
         }
+    }
+
+    /// Parse structured output from raw JSON string (e.g., for grammar check)
+    private func parseStructuredOutputFromJSON(
+        _ jsonString: String,
+        config: ActionConfig.StructuredOutputConfig
+    ) -> ParsedResponse? {
+        guard let data = jsonString.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+
+        guard let primaryValue = json[config.primaryField] as? String,
+              !primaryValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+
+        let trimmedPrimary = primaryValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        var supplemental: [String] = []
+        for field in config.additionalFields {
+            guard let value = json[field] as? String,
+                  !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                continue
+            }
+            supplemental.append(value.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+
+        var sections = [trimmedPrimary]
+        sections.append(contentsOf: supplemental)
+        let combined = sections.joined(separator: "\n\n")
+
+        return ParsedResponse(
+            message: combined,
+            diffSource: trimmedPrimary,
+            supplementalTexts: supplemental,
+            sentencePairs: []
+        )
+    }
+}
+
+/// Incremental parser for streaming structured output (e.g., grammar check).
+/// Extracts field values as they stream in, hiding the JSON structure from the user.
+private final class StreamingStructuredOutputParser {
+    private var buffer = ""
+    private let config: ActionConfig.StructuredOutputConfig
+
+    init(config: ActionConfig.StructuredOutputConfig) {
+        self.config = config
+    }
+
+    /// Append new delta text and return the display text for UI.
+    func append(_ delta: String) -> String {
+        buffer.append(delta)
+        return extractDisplayText()
+    }
+
+    private func extractDisplayText() -> String {
+        // Try to extract the primary field value incrementally
+        // Look for pattern like "revised_text": "..."
+        let primaryField = config.primaryField
+
+        // Pattern to find the start of the primary field value
+        let fieldPattern = "\"\(primaryField)\"\\s*:\\s*\""
+        guard let fieldRegex = try? NSRegularExpression(pattern: fieldPattern, options: []) else {
+            return ""
+        }
+
+        let nsBuffer = buffer as NSString
+        let range = NSRange(location: 0, length: nsBuffer.length)
+        guard let match = fieldRegex.firstMatch(in: buffer, options: [], range: range) else {
+            return ""
+        }
+
+        // Find content after the opening quote
+        let contentStart = match.range.upperBound
+        guard contentStart < nsBuffer.length else { return "" }
+
+        // UTF-16 character constants
+        let backslashChar: unichar = 0x5C  // '\'
+        let quoteChar: unichar = 0x22      // '"'
+        let nChar: unichar = 0x6E          // 'n'
+        let tChar: unichar = 0x74          // 't'
+        let rChar: unichar = 0x72          // 'r'
+
+        // Extract content, handling escaped characters
+        var result = ""
+        var index = contentStart
+        while index < nsBuffer.length {
+            let char = nsBuffer.character(at: index)
+            if char == backslashChar && index + 1 < nsBuffer.length {
+                // Handle escape sequence
+                let nextChar = nsBuffer.character(at: index + 1)
+                switch nextChar {
+                case nChar:
+                    result.append("\n")
+                case tChar:
+                    result.append("\t")
+                case rChar:
+                    result.append("\r")
+                case quoteChar:
+                    result.append("\"")
+                case backslashChar:
+                    result.append("\\")
+                default:
+                    if let scalar = UnicodeScalar(nextChar) {
+                        result.append(Character(scalar))
+                    }
+                }
+                index += 2
+            } else if char == quoteChar {
+                // End of string value
+                break
+            } else {
+                if let scalar = UnicodeScalar(char) {
+                    result.append(Character(scalar))
+                }
+                index += 1
+            }
+        }
+
+        return result
     }
 }
 
