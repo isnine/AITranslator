@@ -146,6 +146,15 @@ public final class ConfigurationFileManager: Sendable {
     return configurationsDirectory.appendingPathComponent("\(sanitizeFilename(name)).json")
   }
 
+  /// Duplicate an existing configuration with a new name
+  public func duplicateConfiguration(from sourceURL: URL) throws -> URL {
+    let sourceConfig = try loadConfiguration(from: sourceURL)
+    let sourceName = sourceURL.deletingPathExtension().lastPathComponent
+    let newName = generateUniqueName(base: "\(sourceName) Copy")
+    try saveConfiguration(sourceConfig, name: newName)
+    return configurationsDirectory.appendingPathComponent("\(sanitizeFilename(newName)).json")
+  }
+
   /// Create an empty configuration template
   public func createEmptyTemplate() throws -> URL {
     let emptyConfig = AppConfiguration(

@@ -542,15 +542,15 @@ private extension SettingsView {
                 
                 if isSavedConfigsExpanded {
                     VStack(spacing: 8) {
-                        // Quick action buttons for Save/New
+                        // Quick action buttons
                         HStack(spacing: 8) {
                             Button {
-                                createDefaultTemplate()
+                                duplicateCurrentConfiguration()
                             } label: {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "plus.circle")
+                                    Image(systemName: "doc.on.doc")
                                         .font(.system(size: 12, weight: .medium))
-                                    Text("Save Current")
+                                    Text("Duplicate")
                                         .font(.system(size: 12, weight: .medium))
                                 }
                                 .foregroundColor(colors.accent)
@@ -562,6 +562,7 @@ private extension SettingsView {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .disabled(configStore.currentConfigurationName == nil)
                             
                             Button {
                                 createEmptyTemplate()
@@ -630,20 +631,36 @@ private extension SettingsView {
     }
 
     func savedConfigurationRow(_ config: ConfigurationFileInfo) -> some View {
-        HStack(spacing: 12) {
+        let isCurrentConfig = configStore.currentConfigurationName == config.name
+        
+        return HStack(spacing: 12) {
             // Tappable area to open editor
             Button {
                 openConfigEditor(config)
             } label: {
                 HStack(spacing: 12) {
-                    Image(systemName: "doc.text")
+                    Image(systemName: isCurrentConfig ? "doc.text.fill" : "doc.text")
                         .font(.system(size: 14))
                         .foregroundColor(colors.accent)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(config.name)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(colors.textPrimary)
+                        HStack(spacing: 6) {
+                            Text(config.name)
+                                .font(.system(size: 14, weight: isCurrentConfig ? .semibold : .medium))
+                                .foregroundColor(colors.textPrimary)
+                            
+                            if isCurrentConfig {
+                                Text("Current")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                            .fill(colors.accent)
+                                    )
+                            }
+                        }
                         Text(config.formattedDate)
                             .font(.system(size: 11))
                             .foregroundColor(colors.textSecondary)
@@ -693,7 +710,11 @@ private extension SettingsView {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colors.inputBackground)
+                .fill(isCurrentConfig ? colors.accent.opacity(0.08) : colors.inputBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(isCurrentConfig ? colors.accent.opacity(0.3) : Color.clear, lineWidth: 1.5)
         )
     }
 
@@ -736,12 +757,18 @@ private extension SettingsView {
         savedConfigurations = ConfigurationFileManager.shared.listConfigurations()
     }
 
-    func createDefaultTemplate() {
+    func duplicateCurrentConfiguration() {
+        guard let currentName = configStore.currentConfigurationName else { return }
+        
+        // Find the current configuration in the list
+        guard let currentConfig = savedConfigurations.first(where: { $0.name == currentName }) else {
+            importError = "Current configuration not found"
+            showImportError = true
+            return
+        }
+        
         do {
-            _ = try ConfigurationFileManager.shared.createDefaultTemplate(
-                from: configStore,
-                preferences: preferences
-            )
+            _ = try ConfigurationFileManager.shared.duplicateConfiguration(from: currentConfig.url)
             refreshSavedConfigurations()
         } catch {
             importError = error.localizedDescription

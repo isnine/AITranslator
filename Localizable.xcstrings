@@ -219,6 +219,9 @@
     "Create your first action by tapping the + button, or import a configuration from Settings." : {
 
     },
+    "Current" : {
+
+    },
     "Custom" : {
 
     },
@@ -258,6 +261,9 @@
 
     },
     "Done" : {
+
+    },
+    "Duplicate" : {
 
     },
     "Duration: %@" : {
@@ -517,9 +523,6 @@
           }
         }
       }
-    },
-    "Save Current" : {
-
     },
     "Saved Configurations" : {
 
