@@ -93,7 +93,9 @@ public struct HomeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
               if !openFromExtension {
+                #if !os(macOS)
                 header
+                #endif
                 if shouldShowDefaultAppCard {
                   defaultAppCard
                 }

@@ -263,6 +263,9 @@
         }
       }
     },
+    "Global Shortcut" : {
+
+    },
     "Grammar Check" : {
       "comment" : "Name of the grammar check action",
       "localizations" : {
@@ -359,6 +362,9 @@
         }
       }
     },
+    "Press the shortcut to show/hide the app window from anywhere." : {
+
+    },
     "Prompt Template" : {
       "localizations" : {
         "zh-Hans" : {
@@ -408,6 +414,9 @@
           }
         }
       }
+    },
+    "Reset to default (⌥T)" : {
+
     },
     "Retry" : {
 
@@ -493,6 +502,9 @@
           }
         }
       }
+    },
+    "Shortcut" : {
+
     },
     "Show diff output" : {
       "localizations" : {

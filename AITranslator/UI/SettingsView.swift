@@ -7,30 +7,38 @@
 
 import SwiftUI
 import ShareCore
+#if os(macOS)
+import Carbon
+#endif
 
 struct SettingsView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(TargetLanguageOption.storageKey, store: AppPreferences.sharedDefaults)
-    private var targetLanguageCode: String = TargetLanguageOption.appLanguage.rawValue
-    @ObservedObject private var preferences: AppPreferences
-    @State private var isLanguagePickerPresented = false
-    @State private var customTTSEndpoint: String
-    @State private var customTTSAPIKey: String
+  @Environment(\.colorScheme) private var colorScheme
+  @AppStorage(TargetLanguageOption.storageKey, store: AppPreferences.sharedDefaults)
+  private var targetLanguageCode: String = TargetLanguageOption.appLanguage.rawValue
+  @ObservedObject private var preferences: AppPreferences
+  @State private var isLanguagePickerPresented = false
+  @State private var customTTSEndpoint: String
+  @State private var customTTSAPIKey: String
+  #if os(macOS)
+  @ObservedObject private var hotKeyManager = HotKeyManager.shared
+  @State private var isRecordingHotKey = false
+  @State private var localEventMonitor: Any?
+  #endif
 
-    private var colors: AppColorPalette {
-        AppColors.palette(for: colorScheme)
-    }
+  private var colors: AppColorPalette {
+    AppColors.palette(for: colorScheme)
+  }
 
-    private var selectedOption: TargetLanguageOption {
-        TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-    }
+  private var selectedOption: TargetLanguageOption {
+    TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
+  }
 
-    init(preferences: AppPreferences = .shared) {
-        let configuration = preferences.ttsUsesDefaultConfiguration ? TTSConfiguration.default : preferences.ttsConfiguration
-        _preferences = ObservedObject(wrappedValue: preferences)
-        _customTTSEndpoint = State(initialValue: configuration.endpointURL.absoluteString)
-        _customTTSAPIKey = State(initialValue: configuration.apiKey)
-    }
+  init(preferences: AppPreferences = .shared) {
+    let configuration = preferences.ttsUsesDefaultConfiguration ? TTSConfiguration.default : preferences.ttsConfiguration
+    _preferences = ObservedObject(wrappedValue: preferences)
+    _customTTSEndpoint = State(initialValue: configuration.endpointURL.absoluteString)
+    _customTTSAPIKey = State(initialValue: configuration.apiKey)
+  }
 
     var body: some View {
         NavigationStack {
@@ -90,35 +98,164 @@ struct SettingsView: View {
         }
     }
 
-    private var preferencesSection: some View {
-        VStack(spacing: 16) {
-            languagePreferenceCard
-            ttsPreferenceCard
-        }
+  private var preferencesSection: some View {
+    VStack(spacing: 16) {
+      languagePreferenceCard
+      #if os(macOS)
+      hotKeyPreferenceCard
+      #endif
+      ttsPreferenceCard
     }
+  }
 }
 
 private extension SettingsView {
-    var isUsingDefaultTTS: Bool {
-        preferences.ttsUsesDefaultConfiguration
+  var isUsingDefaultTTS: Bool {
+    preferences.ttsUsesDefaultConfiguration
+  }
+
+  var defaultToggleBinding: Binding<Bool> {
+    Binding(
+      get: { preferences.ttsUsesDefaultConfiguration },
+      set: { newValue in
+        preferences.setTTSUsesDefaultConfiguration(newValue)
+        if newValue {
+          customTTSEndpoint = TTSConfiguration.default.endpointURL.absoluteString
+          customTTSAPIKey = TTSConfiguration.default.apiKey
+        } else {
+          syncTTSPreferencesFromStore()
+        }
+      }
+    )
+  }
+
+  #if os(macOS)
+  var hotKeyPreferenceCard: some View {
+    VStack(alignment: .leading, spacing: 16) {
+      VStack(alignment: .leading, spacing: 6) {
+        Text("Global Shortcut")
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundColor(colors.textPrimary)
+        Text("Press the shortcut to show/hide the app window from anywhere.")
+          .font(.system(size: 13))
+          .foregroundColor(colors.textSecondary)
+      }
+
+      HStack {
+        Text("Shortcut")
+          .font(.system(size: 14, weight: .medium))
+          .foregroundColor(colors.textPrimary)
+
+        Spacer()
+
+        Button {
+          startRecordingHotKey()
+        } label: {
+          Text(isRecordingHotKey ? "Press keys..." : hotKeyManager.configuration.displayString)
+            .font(.system(size: 14, weight: .medium, design: .monospaced))
+            .foregroundColor(isRecordingHotKey ? colors.accent : colors.textPrimary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+              RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isRecordingHotKey ? colors.accent.opacity(0.15) : colors.inputBackground)
+            )
+            .overlay(
+              RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isRecordingHotKey ? colors.accent : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+
+        if hotKeyManager.configuration != .default {
+          Button {
+            hotKeyManager.updateConfiguration(.default)
+          } label: {
+            Image(systemName: "arrow.counterclockwise")
+              .font(.system(size: 12, weight: .medium))
+              .foregroundColor(colors.textSecondary)
+          }
+          .buttonStyle(.plain)
+          .help("Reset to default (⌥T)")
+        }
+      }
+    }
+    .padding(18)
+    .background(
+      RoundedRectangle(cornerRadius: 20, style: .continuous)
+        .fill(colors.cardBackground)
+    )
+  }
+
+  func startRecordingHotKey() {
+    isRecordingHotKey = true
+
+    // 临时注销快捷键以便捕获新按键
+    HotKeyManager.shared.unregister()
+
+    localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+      self.handleKeyEvent(event)
+      return nil
+    }
+  }
+
+  func stopRecordingHotKey() {
+    isRecordingHotKey = false
+
+    if let monitor = localEventMonitor {
+      NSEvent.removeMonitor(monitor)
+      localEventMonitor = nil
     }
 
-    var defaultToggleBinding: Binding<Bool> {
-        Binding(
-            get: { preferences.ttsUsesDefaultConfiguration },
-            set: { newValue in
-                preferences.setTTSUsesDefaultConfiguration(newValue)
-                if newValue {
-                    customTTSEndpoint = TTSConfiguration.default.endpointURL.absoluteString
-                    customTTSAPIKey = TTSConfiguration.default.apiKey
-                } else {
-                    syncTTSPreferencesFromStore()
-                }
-            }
-        )
+    // 重新注册快捷键
+    HotKeyManager.shared.register()
+  }
+
+  func handleKeyEvent(_ event: NSEvent) {
+    // 忽略纯修饰键按下
+    let keyCode = event.keyCode
+
+    // 检查是否按下了 Escape 取消录制
+    if keyCode == UInt16(kVK_Escape) {
+      stopRecordingHotKey()
+      return
     }
 
-    var languagePreferenceCard: some View {
+    // 需要至少一个修饰键
+    let modifierFlags = event.modifierFlags
+    var carbonModifiers: UInt32 = 0
+
+    if modifierFlags.contains(.command) {
+      carbonModifiers |= UInt32(cmdKey)
+    }
+    if modifierFlags.contains(.option) {
+      carbonModifiers |= UInt32(optionKey)
+    }
+    if modifierFlags.contains(.control) {
+      carbonModifiers |= UInt32(controlKey)
+    }
+    if modifierFlags.contains(.shift) {
+      carbonModifiers |= UInt32(shiftKey)
+    }
+
+    // 至少需要一个修饰键 (Command, Option, Control)
+    let hasRequiredModifier = modifierFlags.contains(.command)
+      || modifierFlags.contains(.option)
+      || modifierFlags.contains(.control)
+
+    guard hasRequiredModifier else { return }
+
+    let newConfiguration = HotKeyConfiguration(
+      keyCode: UInt32(keyCode),
+      modifiers: carbonModifiers
+    )
+
+    hotKeyManager.updateConfiguration(newConfiguration)
+    stopRecordingHotKey()
+  }
+  #endif
+
+  var languagePreferenceCard: some View {
         VStack(spacing: 0) {
             Button {
                 isLanguagePickerPresented = true
