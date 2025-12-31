@@ -19,7 +19,7 @@ struct ActionDetailView: View {
     @State private var prompt: String
     @State private var selectedProviderIDs: Set<UUID>
     @State private var usageScenes: ActionConfig.UsageScene
-    @State private var showsDiff: Bool
+    @State private var outputType: OutputType
 
     init(
         action: ActionConfig,
@@ -32,7 +32,7 @@ struct ActionDetailView: View {
         _prompt = State(initialValue: action.prompt)
         _selectedProviderIDs = State(initialValue: Set(action.providerIDs))
         _usageScenes = State(initialValue: action.usageScenes)
-        _showsDiff = State(initialValue: action.showsDiff)
+        _outputType = State(initialValue: action.outputType)
     }
 
     var body: some View {
@@ -132,25 +132,70 @@ struct ActionDetailView: View {
     }
 
     private var optionsSection: some View {
-        section(title: "Options") {
-            Toggle(isOn: $showsDiff) {
+        section(title: "Output Type") {
+            VStack(spacing: 12) {
+                outputTypeRow(
+                    type: .plain,
+                    title: "Plain Text",
+                    description: "Standard text output without special formatting"
+                )
+                outputTypeRow(
+                    type: .diff,
+                    title: "Show Diff",
+                    description: "Highlights differences between original and AI output"
+                )
+                outputTypeRow(
+                    type: .sentencePairs,
+                    title: "Sentence Pairs",
+                    description: "Display original and translation side by side"
+                )
+                outputTypeRow(
+                    type: .grammarCheck,
+                    title: "Grammar Check",
+                    description: "Show revised text with grammar explanations"
+                )
+            }
+        }
+    }
+    
+    private func outputTypeRow(
+        type: OutputType,
+        title: LocalizedStringKey,
+        description: LocalizedStringKey
+    ) -> some View {
+        let isSelected = outputType == type
+        return Button {
+            outputType = type
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Show diff output")
+                    Text(title)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(colors.textPrimary)
-                    Text("Highlights differences between original and AI output")
+                    Text(description)
                         .font(.system(size: 13))
                         .foregroundColor(colors.textSecondary)
                 }
+
+                Spacer()
+
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20))
+                    .foregroundColor(isSelected ? colors.accent : colors.textSecondary.opacity(0.6))
             }
-            .toggleStyle(SwitchToggleStyle(tint: colors.accent))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colors.inputBackground)
+                    .fill(colors.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(isSelected ? colors.accent : colors.cardBackground, lineWidth: 2)
+                    )
             )
         }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -303,7 +348,7 @@ struct ActionDetailView: View {
             prompt: prompt.trimmingCharacters(in: .whitespacesAndNewlines),
             providerIDs: orderedProviderIDs,
             usageScenes: usageScenes,
-            showsDiff: showsDiff
+            outputType: outputType
         )
 
         var actions = configurationStore.actions

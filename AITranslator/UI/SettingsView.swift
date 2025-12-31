@@ -21,6 +21,8 @@ struct SettingsView: View {
   @State private var isLanguagePickerPresented = false
   @State private var customTTSEndpoint: String
   @State private var customTTSAPIKey: String
+  @State private var customTTSModel: String
+  @State private var customTTSVoice: String
 
   // Configuration import/export state
   @State private var isImportPresented = false
@@ -60,6 +62,8 @@ struct SettingsView: View {
     _preferences = ObservedObject(wrappedValue: preferences)
     _customTTSEndpoint = State(initialValue: configuration.endpointURL.absoluteString)
     _customTTSAPIKey = State(initialValue: configuration.apiKey)
+    _customTTSModel = State(initialValue: configuration.model)
+    _customTTSVoice = State(initialValue: configuration.voice)
   }
 
     var body: some View {
@@ -97,6 +101,12 @@ struct SettingsView: View {
             persistCustomTTSConfiguration()
         }
         .onChange(of: customTTSAPIKey) {
+            persistCustomTTSConfiguration()
+        }
+        .onChange(of: customTTSModel) {
+            persistCustomTTSConfiguration()
+        }
+        .onChange(of: customTTSVoice) {
             persistCustomTTSConfiguration()
         }
         .onReceive(preferences.$ttsUsesDefaultConfiguration) { _ in
@@ -439,6 +449,46 @@ private extension SettingsView {
 #if os(iOS)
                             .textInputAutocapitalization(.never)
                             .textContentType(.password)
+#endif
+
+                        Text("Model")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(colors.textSecondary)
+
+                        TextField("gpt-4o-mini-tts", text: $customTTSModel)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .foregroundColor(colors.textPrimary)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(colors.inputBackground)
+                            )
+                            .disabled(isUsingDefaultTTS)
+                            .autocorrectionDisabled()
+#if os(iOS)
+                            .textInputAutocapitalization(.never)
+#endif
+
+                        Text("Voice")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(colors.textSecondary)
+
+                        TextField("alloy", text: $customTTSVoice)
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 12)
+                            .foregroundColor(colors.textPrimary)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(colors.inputBackground)
+                            )
+                            .disabled(isUsingDefaultTTS)
+                            .autocorrectionDisabled()
+#if os(iOS)
+                            .textInputAutocapitalization(.never)
 #endif
                     }
                     .padding(.leading, 26)
@@ -921,13 +971,20 @@ private extension SettingsView {
         }
 
         let trimmedKey = customTTSAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedModel = customTTSModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedVoice = customTTSVoice.trimmingCharacters(in: .whitespacesAndNewlines)
+        
         let configuration = TTSConfiguration(
             endpointURL: endpointURL,
-            apiKey: trimmedKey
+            apiKey: trimmedKey,
+            model: trimmedModel.isEmpty ? "gpt-4o-mini-tts" : trimmedModel,
+            voice: trimmedVoice.isEmpty ? "alloy" : trimmedVoice
         )
 
         customTTSEndpoint = trimmedEndpoint
         customTTSAPIKey = trimmedKey
+        customTTSModel = configuration.model
+        customTTSVoice = configuration.voice
         preferences.setTTSConfiguration(configuration)
     }
 
@@ -937,6 +994,8 @@ private extension SettingsView {
         let configuration = preferences.ttsConfiguration
         customTTSEndpoint = configuration.endpointURL.absoluteString
         customTTSAPIKey = configuration.apiKey
+        customTTSModel = configuration.model
+        customTTSVoice = configuration.voice
     }
 
     struct LanguageValueView: View {

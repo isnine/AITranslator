@@ -71,7 +71,14 @@
         }
       }
     },
+    "Add a provider to start using translation features." : {
+
+    },
+    "Add Provider" : {
+
+    },
     "Add providers from the desktop app to sync them here." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -94,6 +101,12 @@
         }
       }
     },
+    "alloy" : {
+
+    },
+    "API Endpoint" : {
+
+    },
     "API Key" : {
       "localizations" : {
         "zh-Hans" : {
@@ -103,6 +116,9 @@
           }
         }
       }
+    },
+    "API Token" : {
+
     },
     "App" : {
       "localizations" : {
@@ -125,6 +141,12 @@
       }
     },
     "Are you sure you want to delete \"%@\"?" : {
+
+    },
+    "Are you sure you want to delete \"%@\"? This action cannot be undone." : {
+
+    },
+    "Auth Header Name" : {
 
     },
     "Available inside the app" : {
@@ -252,6 +274,9 @@
         }
       }
     },
+    "Connection" : {
+
+    },
     "Copied!" : {
       "comment" : "Menu bar popover copied indicator",
       "extractionState" : "stale",
@@ -297,6 +322,9 @@
         }
       }
     },
+    "Danger Zone" : {
+
+    },
     "Default" : {
       "localizations" : {
         "zh-Hans" : {
@@ -313,10 +341,19 @@
     "Delete Configuration" : {
 
     },
+    "Delete Provider" : {
+
+    },
     "Discard" : {
 
     },
     "Discard Changes?" : {
+
+    },
+    "Display Name" : {
+
+    },
+    "Display original and translation side by side" : {
 
     },
     "Done" : {
@@ -373,6 +410,9 @@
         }
       }
     },
+    "Enter your API key" : {
+
+    },
     "Error" : {
       "comment" : "Notification title",
       "extractionState" : "stale",
@@ -416,9 +456,11 @@
     "Global Shortcut" : {
 
     },
+    "gpt-4o-mini-tts" : {
+
+    },
     "Grammar Check" : {
       "comment" : "Name of the grammar check action",
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -469,6 +511,12 @@
           }
         }
       }
+    },
+    "Model" : {
+
+    },
+    "Model Name" : {
+
     },
     "New Empty" : {
 
@@ -586,6 +634,7 @@
       }
     },
     "Options" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -594,6 +643,12 @@
           }
         }
       }
+    },
+    "Output Type" : {
+
+    },
+    "Plain Text" : {
+
     },
     "Polish" : {
       "comment" : "Name of the polish action",
@@ -630,6 +685,9 @@
           }
         }
       }
+    },
+    "Provider Category" : {
+
     },
     "Providers" : {
       "localizations" : {
@@ -769,6 +827,9 @@
         }
       }
     },
+    "Sentence Pairs" : {
+
+    },
     "Sentence Translate" : {
       "comment" : "Name of the sentence-by-sentence translation action",
       "localizations" : {
@@ -803,7 +864,11 @@
     "Shortcut" : {
 
     },
+    "Show Diff" : {
+
+    },
     "Show diff output" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -812,6 +877,9 @@
           }
         }
       }
+    },
+    "Show revised text with grammar explanations" : {
+
     },
     "Speak" : {
       "comment" : "TTS action button label",
@@ -858,6 +926,9 @@
           }
         }
       }
+    },
+    "Standard text output without special formatting" : {
+
     },
     "Summarize" : {
       "comment" : "Name of the summarize action",
@@ -997,6 +1068,9 @@
           }
         }
       }
+    },
+    "Voice" : {
+
     },
     "You have unsaved changes. Are you sure you want to discard them?" : {
 
