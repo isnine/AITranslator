@@ -7,16 +7,29 @@
 
 import Foundation
 
-/// Manages multiple configuration files stored in the app's documents directory
+/// Manages multiple configuration files stored in the App Group shared container
 public final class ConfigurationFileManager: Sendable {
   public static let shared = ConfigurationFileManager()
 
   private let fileManager = FileManager.default
 
-  /// Directory where configuration files are stored
+  /// App Group identifier for shared container
+  private static let appGroupIdentifier = "group.com.zanderwang.AITranslator"
+
+  /// Directory where configuration files are stored (App Group shared container)
   public var configurationsDirectory: URL {
-    let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-    let configDir = appSupport.appendingPathComponent("Configurations", isDirectory: true)
+    guard let containerURL = fileManager.containerURL(
+      forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
+    ) else {
+      // Fallback to application support if App Group is unavailable
+      let appSupport = fileManager.urls(
+        for: .applicationSupportDirectory,
+        in: .userDomainMask
+      ).first!
+      return appSupport.appendingPathComponent("Configurations", isDirectory: true)
+    }
+
+    let configDir = containerURL.appendingPathComponent("Configurations", isDirectory: true)
 
     if !fileManager.fileExists(atPath: configDir.path) {
       try? fileManager.createDirectory(at: configDir, withIntermediateDirectories: true)

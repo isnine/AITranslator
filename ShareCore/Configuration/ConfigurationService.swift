@@ -91,18 +91,17 @@ public final class ConfigurationService: Sendable {
       // Hotkey is platform-specific, handled separately
     }
 
-    // Apply TTS
+    // Apply TTS - always apply from config file
     if let ttsEntry = config.tts {
-      if let usesDefault = ttsEntry.useDefault {
-        preferences.setTTSUsesDefaultConfiguration(usesDefault)
-      }
-      if let ttsConfig = ttsEntry.toTTSConfiguration() {
-        preferences.setTTSConfiguration(ttsConfig)
-      }
+      // Apply useDefault flag
+      let usesDefault = ttsEntry.useDefault ?? true
+      preferences.setTTSUsesDefaultConfiguration(usesDefault)
+      // Always apply the TTS configuration from the file
+      let ttsConfig = ttsEntry.toTTSConfiguration()
+      preferences.setTTSConfiguration(ttsConfig)
     } else {
-      // No TTS configuration in the imported config - reset to use default
+      // No TTS configuration in the imported config - reset to empty
       preferences.setTTSUsesDefaultConfiguration(true)
-      // Clear custom TTS settings by setting an empty configuration
       preferences.setTTSConfiguration(.empty)
     }
 

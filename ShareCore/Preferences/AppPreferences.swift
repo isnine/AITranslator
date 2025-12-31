@@ -21,6 +21,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var targetLanguage: TargetLanguageOption
     @Published public private(set) var ttsConfiguration: TTSConfiguration
     @Published public private(set) var ttsUsesDefaultConfiguration: Bool
+    @Published public private(set) var currentConfigName: String?
 
     private let defaults: UserDefaults
     private var notificationObserver: NSObjectProtocol?
@@ -31,6 +32,7 @@ public final class AppPreferences: ObservableObject {
         let ttsState = AppPreferences.readTTSConfiguration(from: defaults)
         self.ttsConfiguration = ttsState.configuration
         self.ttsUsesDefaultConfiguration = ttsState.usesDefault
+        self.currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
 
         notificationObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
@@ -89,6 +91,20 @@ public final class AppPreferences: ObservableObject {
         defaults.synchronize()
     }
 
+    public func setCurrentConfigName(_ name: String?) {
+        guard currentConfigName != name else {
+            return
+        }
+
+        currentConfigName = name
+        if let name = name {
+            defaults.set(name, forKey: StorageKeys.currentConfigName)
+        } else {
+            defaults.removeObject(forKey: StorageKeys.currentConfigName)
+        }
+        defaults.synchronize()
+    }
+
     public var effectiveTTSConfiguration: TTSConfiguration {
         // When using default configuration but no custom config is set,
         // return the stored ttsConfiguration (which may be empty)
@@ -110,6 +126,11 @@ public final class AppPreferences: ObservableObject {
 
         if ttsUsesDefaultConfiguration != ttsState.usesDefault {
             ttsUsesDefaultConfiguration = ttsState.usesDefault
+        }
+
+        let storedConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
+        if currentConfigName != storedConfigName {
+            currentConfigName = storedConfigName
         }
     }
 
@@ -152,6 +173,7 @@ public final class AppPreferences: ObservableObject {
 }
 
 private enum StorageKeys {
+    static let currentConfigName = "current_config_name"
     static let ttsUseDefault = "tts_use_default_configuration"
     static let ttsEndpoint = "tts_endpoint_url"
     static let ttsAPIKey = "tts_api_key"

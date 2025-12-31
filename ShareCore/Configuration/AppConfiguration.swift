@@ -152,13 +152,12 @@ public extension AppConfiguration {
     }
 
     /// Convert to internal TTSConfiguration
-    public func toTTSConfiguration() -> TTSConfiguration? {
-      guard let endpoint, let url = URL(string: endpoint), let apiKey else {
-        return nil
-      }
+    public func toTTSConfiguration() -> TTSConfiguration {
+      // Always return a configuration, using empty values if not provided
+      let endpointURL = endpoint.flatMap { URL(string: $0) } ?? URL(string: "https://")!
       return TTSConfiguration(
-        endpointURL: url,
-        apiKey: apiKey,
+        endpointURL: endpointURL,
+        apiKey: apiKey ?? "",
         model: model ?? "gpt-4o-mini-tts",
         voice: voice ?? "alloy"
       )

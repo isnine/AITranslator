@@ -15,33 +15,10 @@ public final class AppConfigurationStore: ObservableObject {
     @Published public private(set) var actions: [ActionConfig]
     @Published public private(set) var providers: [ProviderConfig]
     @Published public private(set) var currentConfigurationName: String?
-    
+
     private let preferences: AppPreferences
+    private let configFileManager: ConfigurationFileManager
     private var cancellables: Set<AnyCancellable> = []
-    
-    private let fileManager = FileManager.default
-    
-    /// Directory for storing configuration files
-    private var configurationDirectory: URL {
-        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let configDir = appSupport.appendingPathComponent("AITranslator", isDirectory: true)
-        
-        if !fileManager.fileExists(atPath: configDir.path) {
-            try? fileManager.createDirectory(at: configDir, withIntermediateDirectories: true)
-        }
-        
-        return configDir
-    }
-    
-    /// Path to the active configuration file
-    private var activeConfigURL: URL {
-        configurationDirectory.appendingPathComponent("active-config.json")
-    }
-    
-    /// Path to store current configuration name
-    private var configNameURL: URL {
-        configurationDirectory.appendingPathComponent("config-name.txt")
-    }
 
     public var defaultAction: ActionConfig? {
         actions.first
@@ -51,15 +28,19 @@ public final class AppConfigurationStore: ObservableObject {
         providers.first
     }
 
-    private init(preferences: AppPreferences = .shared) {
+    private init(
+        preferences: AppPreferences = .shared,
+        configFileManager: ConfigurationFileManager = .shared
+    ) {
         self.preferences = preferences
+        self.configFileManager = configFileManager
         preferences.refreshFromDefaults()
-        
+
         // Initialize with empty arrays first
         self.providers = []
         self.actions = []
         self.currentConfigurationName = nil
-        
+
         // Then load from persistence or defaults
         loadConfiguration()
 
@@ -76,7 +57,7 @@ public final class AppConfigurationStore: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     // MARK: - Public Methods
 
     public func updateActions(_ actions: [ActionConfig]) {
@@ -92,57 +73,52 @@ public final class AppConfigurationStore: ObservableObject {
         self.providers = providers
         saveConfiguration()
     }
-    
+
     public func setCurrentConfigurationName(_ name: String?) {
         self.currentConfigurationName = name
-        saveConfigurationName(name)
+        preferences.setCurrentConfigName(name)
     }
-    
-    // MARK: - Persistence using JSON files
-    
+
+    // MARK: - Persistence using ConfigurationFileManager
+
     private func loadConfiguration() {
-        print("[ConfigStore] activeConfigURL: \(activeConfigURL.path)")
-        print("[ConfigStore] File exists: \(fileManager.fileExists(atPath: activeConfigURL.path))")
-        
-        // Try to load from active config file
-        if fileManager.fileExists(atPath: activeConfigURL.path) {
-            do {
-                let data = try Data(contentsOf: activeConfigURL)
-                print("[ConfigStore] Loaded active config, size: \(data.count) bytes")
-                let config = try JSONDecoder().decode(AppConfiguration.self, from: data)
-                print("[ConfigStore] Decoded active config, providers count: \(config.providers.count)")
-                
-                applyLoadedConfiguration(config)
-                loadConfigurationName()
+        // Step 1: Read current config name from UserDefaults
+        let storedName = preferences.currentConfigName
+        print("[ConfigStore] Stored config name from UserDefaults: \(storedName ?? "nil")")
+
+        // Step 2: Try to load the named configuration
+        if let name = storedName {
+            if tryLoadConfiguration(named: name) {
+                print("[ConfigStore] ✅ Successfully loaded config: '\(name)'")
                 return
-            } catch {
-                print("[ConfigStore] Failed to load active configuration: \(error)")
+            }
+            print("[ConfigStore] ⚠️ Failed to load stored config '\(name)', trying fallback...")
+        }
+
+        // Step 3: Fallback - try to load any available configuration
+        let availableConfigs = configFileManager.listConfigurations()
+        print("[ConfigStore] Available configs: \(availableConfigs.map { $0.name })")
+
+        for configInfo in availableConfigs {
+            if tryLoadConfiguration(named: configInfo.name) {
+                print("[ConfigStore] ✅ Loaded fallback config: '\(configInfo.name)'")
+                preferences.setCurrentConfigName(configInfo.name)
+                return
             }
         }
-        
-        // First launch: load from bundled default config
-        print("[ConfigStore] Loading bundled default configuration...")
-        loadBundledDefaultConfiguration()
+
+        // Step 4: No configuration available - create empty configuration
+        print("[ConfigStore] ⚠️ No configurations available, creating empty configuration...")
+        createEmptyConfiguration()
     }
-    
-    private func loadBundledDefaultConfiguration() {
-        guard let url = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
-            print("[ConfigStore] DefaultConfiguration.json not found in bundle")
-            return
-        }
-        
-        print("[ConfigStore] Found bundled config at: \(url.path)")
-        
+
+    private func tryLoadConfiguration(named name: String) -> Bool {
         do {
-            let data = try Data(contentsOf: url)
-            print("[ConfigStore] Bundled config size: \(data.count) bytes")
-            
-            let config = try JSONDecoder().decode(AppConfiguration.self, from: data)
-            print("[ConfigStore] Decoded bundled config, providers count: \(config.providers.count)")
-            
+            let config = try configFileManager.loadConfiguration(named: name)
             applyLoadedConfiguration(config)
-            self.currentConfigurationName = "Default"
-            
+            self.currentConfigurationName = name
+            preferences.setCurrentConfigName(name)
+
             // Apply preferences if present
             if let prefsConfig = config.preferences {
                 if let targetLang = prefsConfig.targetLanguage,
@@ -150,22 +126,30 @@ public final class AppConfigurationStore: ObservableObject {
                     preferences.setTargetLanguage(option)
                 }
             }
-            
+
             // Apply TTS if present
             if let ttsEntry = config.tts {
-                if let usesDefault = ttsEntry.useDefault {
-                    preferences.setTTSUsesDefaultConfiguration(usesDefault)
-                }
-                if let ttsConfig = ttsEntry.toTTSConfiguration() {
-                    preferences.setTTSConfiguration(ttsConfig)
-                }
+                let usesDefault = ttsEntry.useDefault ?? true
+                preferences.setTTSUsesDefaultConfiguration(usesDefault)
+                let ttsConfig = ttsEntry.toTTSConfiguration()
+                preferences.setTTSConfiguration(ttsConfig)
             }
-            
-            saveConfiguration()
-            saveConfigurationName("Default")
+
+            return true
         } catch {
-            print("Failed to load bundled default configuration: \(error)")
+            print("[ConfigStore] Failed to load config '\(name)': \(error)")
+            return false
         }
+    }
+
+    private func createEmptyConfiguration() {
+        self.providers = []
+        self.actions = []
+        self.currentConfigurationName = "New Configuration"
+        preferences.setCurrentConfigName("New Configuration")
+
+        // Save the empty configuration
+        saveConfiguration()
     }
     
     private func applyLoadedConfiguration(_ config: AppConfiguration) {
@@ -205,15 +189,18 @@ public final class AppConfigurationStore: ObservableObject {
     }
     
     private func saveConfiguration() {
+        guard let configName = currentConfigurationName else {
+            print("[ConfigStore] No current configuration name set, skipping save")
+            return
+        }
+
         let config = buildCurrentConfiguration()
-        
+
         do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-            let data = try encoder.encode(config)
-            try data.write(to: activeConfigURL)
+            try configFileManager.saveConfiguration(config, name: configName)
+            print("[ConfigStore] ✅ Saved configuration to '\(configName).json'")
         } catch {
-            print("Failed to save configuration: \(error)")
+            print("[ConfigStore] ❌ Failed to save configuration: \(error)")
         }
     }
     
@@ -260,41 +247,28 @@ public final class AppConfigurationStore: ObservableObject {
             actions: actionEntries
         )
     }
-    
-    private func saveConfigurationName(_ name: String?) {
-        do {
-            if let name = name {
-                try name.write(to: configNameURL, atomically: true, encoding: .utf8)
-            } else if fileManager.fileExists(atPath: configNameURL.path) {
-                try fileManager.removeItem(at: configNameURL)
-            }
-        } catch {
-            print("Failed to save configuration name: \(error)")
-        }
-    }
-    
-    private func loadConfigurationName() {
-        guard fileManager.fileExists(atPath: configNameURL.path) else {
-            currentConfigurationName = nil
-            return
-        }
-        
-        do {
-            currentConfigurationName = try String(contentsOf: configNameURL, encoding: .utf8)
-        } catch {
-            print("Failed to load configuration name: \(error)")
-            currentConfigurationName = nil
-        }
-    }
-    
+
     /// Reset to bundled default configuration
     public func resetToDefault() {
-        // Remove active config file
-        try? fileManager.removeItem(at: activeConfigURL)
-        try? fileManager.removeItem(at: configNameURL)
-        
-        // Reload from bundled defaults
-        loadBundledDefaultConfiguration()
+        // Try to load the "Default" configuration from ConfigurationFileManager
+        if tryLoadConfiguration(named: "Default") {
+            print("[ConfigStore] ✅ Reset to Default configuration")
+            return
+        }
+
+        // If Default doesn't exist, create empty configuration
+        print("[ConfigStore] Default configuration not found, creating empty configuration")
+        createEmptyConfiguration()
+    }
+
+    /// Switch to a different configuration by name
+    public func switchConfiguration(to name: String) -> Bool {
+        if tryLoadConfiguration(named: name) {
+            print("[ConfigStore] ✅ Switched to configuration: '\(name)'")
+            return true
+        }
+        print("[ConfigStore] ❌ Failed to switch to configuration: '\(name)'")
+        return false
     }
 
     private static func applyTargetLanguage(
