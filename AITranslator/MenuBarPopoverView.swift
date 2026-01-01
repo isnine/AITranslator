@@ -14,12 +14,19 @@ import Combine
 struct MenuBarPopoverView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: HomeViewModel
+    @ObservedObject private var hotKeyManager = HotKeyManager.shared
     @State private var clipboardText: String = ""
     @State private var clipboardMonitorTimer: Timer?
+    @State private var showHotkeyHint: Bool = true
     let onClose: () -> Void
     
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
+    }
+
+    /// Whether the quick translate hotkey is configured
+    private var isHotkeyConfigured: Bool {
+        !hotKeyManager.quickTranslateConfiguration.isEmpty
     }
     
     init(onClose: @escaping () -> Void) {
@@ -122,22 +129,53 @@ struct MenuBarPopoverView: View {
     }
     
     private var headerSection: some View {
-        HStack {
-            Text("Quick Translate")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(colors.textPrimary)
-            
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Quick Translate")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+                
+                Spacer()
+                
+                Button {
+                    onClose()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Hotkey hint when not configured
+            if !isHotkeyConfigured && showHotkeyHint {
+                hotkeyHintView
+            }
+        }
+    }
+
+    private var hotkeyHintView: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "keyboard")
+                .font(.system(size: 10))
+                .foregroundColor(colors.textSecondary.opacity(0.8))
+
+            Text("Set a shortcut in Settings → Hotkeys")
+                .font(.system(size: 11))
+                .foregroundColor(colors.textSecondary.opacity(0.8))
+
             Spacer()
-            
+
             Button {
-                onClose()
+                showHotkeyHint = false
             } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 18))
-                    .foregroundColor(colors.textSecondary)
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(colors.textSecondary.opacity(0.6))
             }
             .buttonStyle(.plain)
         }
+        .padding(.top, 2)
     }
     
     private var clipboardPreview: some View {
@@ -165,6 +203,11 @@ struct MenuBarPopoverView: View {
                 Text("\(clipboardText.count)")
                     .font(.system(size: 11))
                     .foregroundColor(colors.textSecondary.opacity(0.7))
+
+                // Input speak button (only show when TTS is configured)
+                if AppPreferences.shared.ttsConfiguration.isValid {
+                    inputSpeakButton
+                }
             }
         }
         .padding(.horizontal, 12)
@@ -173,6 +216,26 @@ struct MenuBarPopoverView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(colors.inputBackground)
         )
+    }
+
+    @ViewBuilder
+    private var inputSpeakButton: some View {
+        Button {
+            viewModel.speakInputText()
+        } label: {
+            if viewModel.isSpeakingInputText {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .tint(colors.accent)
+            } else {
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.accent)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(viewModel.isSpeakingInputText)
     }
     
     private var actionChips: some View {

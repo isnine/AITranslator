@@ -87,6 +87,7 @@ public final class HomeViewModel: ObservableObject {
     @Published public var selectedActionID: UUID?
     @Published public private(set) var providerRuns: [ProviderRunViewState] = []
     @Published public private(set) var speakingProviders: Set<String> = []
+    @Published public private(set) var isSpeakingInputText: Bool = false
     @Published public private(set) var isLoadingConfiguration: Bool = true
 
     public let placeholderHint: String = NSLocalizedString(
@@ -277,6 +278,27 @@ public final class HomeViewModel: ObservableObject {
             }
             _ = await MainActor.run { [weak self] in
                 self?.speakingProviders.remove(runID)
+            }
+        }
+    }
+
+    /// Speak the input text using TTS
+    public func speakInputText() {
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !isSpeakingInputText else { return }
+
+        isSpeakingInputText = true
+
+        _ = Task { [weak self] in
+            guard let self else { return }
+            do {
+                try await self.textToSpeechService.speak(text: trimmed)
+            } catch {
+                print("TTS playback failed for input text: \(error)")
+            }
+            _ = await MainActor.run { [weak self] in
+                self?.isSpeakingInputText = false
             }
         }
     }

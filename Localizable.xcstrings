@@ -904,6 +904,9 @@
     "Separate multiple deployments with commas" : {
 
     },
+    "Set a shortcut in Settings → Hotkeys" : {
+
+    },
     "Set Tree² Lang as the default translation app" : {
       "localizations" : {
         "zh-Hans" : {

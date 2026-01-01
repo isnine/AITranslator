@@ -257,6 +257,12 @@ public struct HomeView: View {
                     Spacer()
 
                     if !isCollapsed {
+                        // Input speak button (only show when TTS is configured)
+                        if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            && AppPreferences.shared.ttsConfiguration.isValid {
+                            inputSpeakButton
+                        }
+
                         Button {
                             viewModel.performSelectedAction()
                         } label: {
@@ -297,30 +303,57 @@ public struct HomeView: View {
 
     private var collapsedInputSummary: some View {
         let displayText = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isInputExpanded = true
+        return HStack(spacing: 8) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isInputExpanded = true
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Text(displayText.isEmpty ? viewModel.inputPlaceholder : displayText)
+                        .font(.system(size: 15))
+                        .foregroundColor(displayText.isEmpty ? colors.textSecondary : colors.textPrimary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+
+            if !displayText.isEmpty && AppPreferences.shared.ttsConfiguration.isValid {
+                inputSpeakButton
+                    .padding(.trailing, 12)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var inputSpeakButton: some View {
+        Button {
+            viewModel.speakInputText()
         } label: {
-            HStack(spacing: 12) {
-                Text(displayText.isEmpty ? viewModel.inputPlaceholder : displayText)
-                    .font(.system(size: 15))
-                    .foregroundColor(displayText.isEmpty ? colors.textSecondary : colors.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-
-                Spacer(minLength: 8)
-
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(colors.textSecondary)
+            if viewModel.isSpeakingInputText {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .tint(colors.accent)
+            } else {
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.accent)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(viewModel.isSpeakingInputText)
     }
 
     private var expandedInputEditor: some View {
