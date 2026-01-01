@@ -63,6 +63,7 @@ public extension AppConfiguration {
     public var baseEndpoint: String?
     public var apiVersion: String?
     public var deployments: [String]?
+    public var enabledDeployments: [String]?
     // Legacy format fields (for backward compatibility)
     public var model: String?
     public var endpoint: String?
@@ -74,6 +75,7 @@ public extension AppConfiguration {
       baseEndpoint: String? = nil,
       apiVersion: String? = nil,
       deployments: [String]? = nil,
+      enabledDeployments: [String]? = nil,
       model: String? = nil,
       endpoint: String? = nil,
       authHeader: String? = nil,
@@ -83,6 +85,7 @@ public extension AppConfiguration {
       self.baseEndpoint = baseEndpoint
       self.apiVersion = apiVersion
       self.deployments = deployments
+      self.enabledDeployments = enabledDeployments
       self.model = model
       self.endpoint = endpoint
       self.authHeader = authHeader
@@ -113,6 +116,7 @@ public extension AppConfiguration {
       if let baseEndpointStr = baseEndpoint, let baseURL = URL(string: baseEndpointStr) {
         let version = apiVersion ?? "2024-02-15-preview"
         let deploymentList = deployments ?? []
+        let enabledSet = enabledDeployments.map { Set($0) } ?? Set(deploymentList)
         
         return ProviderConfig(
           displayName: name,
@@ -121,7 +125,8 @@ public extension AppConfiguration {
           token: token,
           authHeaderName: resolvedAuthHeader,
           category: providerCategory,
-          deployments: deploymentList
+          deployments: deploymentList,
+          enabledDeployments: enabledSet
         )
       }
       
@@ -149,6 +154,7 @@ public extension AppConfiguration {
         baseEndpoint: config.baseEndpoint.absoluteString,
         apiVersion: config.apiVersion,
         deployments: config.deployments,
+        enabledDeployments: Array(config.enabledDeployments),
         model: nil,
         endpoint: nil,
         authHeader: config.authHeaderName,
@@ -218,8 +224,6 @@ public extension AppConfiguration {
     public var name: String
     public var summary: String?
     public var prompt: String
-    /// Provider references - can be either "ProviderName" (legacy) or "ProviderName:deployment"
-    public var providers: [String]
     public var scenes: [String]?
     public var outputType: String?
 
@@ -227,46 +231,18 @@ public extension AppConfiguration {
       name: String,
       summary: String? = nil,
       prompt: String,
-      providers: [String],
       scenes: [String]? = nil,
       outputType: String? = nil
     ) {
       self.name = name
       self.summary = summary
       self.prompt = prompt
-      self.providers = providers
       self.scenes = scenes
       self.outputType = outputType
     }
 
     /// Convert to internal ActionConfig
-    /// providerMap: [providerName: (id, deployments)]
-    public func toActionConfig(
-      providerMap: [String: UUID],
-      providerDeploymentsMap: [String: (id: UUID, deployments: [String])]
-    ) -> ActionConfig {
-      var providerDeployments: [ProviderDeployment] = []
-      
-      for providerRef in providers {
-        // Check if it's "ProviderName:deployment" format
-        if let colonIndex = providerRef.firstIndex(of: ":") {
-          let providerName = String(providerRef[..<colonIndex])
-          let deployment = String(providerRef[providerRef.index(after: colonIndex)...])
-          
-          if let providerID = providerMap[providerName] {
-            providerDeployments.append(ProviderDeployment(providerID: providerID, deployment: deployment))
-          }
-        } else {
-          // Legacy format - use first deployment
-          if let info = providerDeploymentsMap[providerRef] {
-            let deployment = info.deployments.first ?? ""
-            providerDeployments.append(ProviderDeployment(providerID: info.id, deployment: deployment))
-          } else if let providerID = providerMap[providerRef] {
-            providerDeployments.append(ProviderDeployment(providerID: providerID, deployment: ""))
-          }
-        }
-      }
-
+    public func toActionConfig() -> ActionConfig {
       let resolvedOutputType = OutputType(rawValue: outputType ?? "") ?? .plain
 
       let usageScenes: ActionConfig.UsageScene
@@ -293,39 +269,13 @@ public extension AppConfiguration {
         name: name,
         summary: summary ?? "",
         prompt: prompt,
-        providerDeployments: providerDeployments,
         usageScenes: usageScenes,
         outputType: resolvedOutputType
       )
     }
-    
-    /// Legacy conversion method for backward compatibility
-    public func toActionConfig(
-      providerMap: [String: UUID]
-    ) -> ActionConfig {
-      // Build a simple deployments map from provider map
-      var deploymentsMap: [String: (id: UUID, deployments: [String])] = [:]
-      for (name, id) in providerMap {
-        deploymentsMap[name] = (id: id, deployments: [])
-      }
-      return toActionConfig(providerMap: providerMap, providerDeploymentsMap: deploymentsMap)
-    }
 
     /// Create from internal ActionConfig
-    public static func from(
-      _ config: ActionConfig,
-      providerNames: [UUID: String]
-    ) -> ActionEntry {
-      // Create provider references with deployment info
-      let providerRefs: [String] = config.providerDeployments.compactMap { deployment in
-        guard let name = providerNames[deployment.providerID] else { return nil }
-        if deployment.deployment.isEmpty {
-          return name
-        } else {
-          return "\(name):\(deployment.deployment)"
-        }
-      }
-
+    public static func from(_ config: ActionConfig) -> ActionEntry {
       var scenes: [String] = []
       if config.usageScenes.contains(.app) { scenes.append("app") }
       if config.usageScenes.contains(.contextRead) { scenes.append("contextRead") }
@@ -335,7 +285,6 @@ public extension AppConfiguration {
         name: config.name,
         summary: config.summary.isEmpty ? nil : config.summary,
         prompt: config.prompt,
-        providers: providerRefs,
         scenes: scenes.count == 3 ? nil : scenes,
         outputType: config.outputType == .plain ? nil : config.outputType.rawValue
       )

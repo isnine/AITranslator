@@ -262,9 +262,102 @@ public final class AppConfigurationStore: ObservableObject {
     createEmptyConfiguration()
   }
 
+  /// Minimum supported configuration version
+  private static let minimumVersion = "1.1.0"
+
+  /// Check if a configuration version is compatible (>= 1.1.0)
+  private func isVersionCompatible(_ version: String) -> Bool {
+    let components = version.split(separator: ".").compactMap { Int($0) }
+    let minComponents = Self.minimumVersion.split(separator: ".").compactMap { Int($0) }
+
+    guard components.count >= 2 && minComponents.count >= 2 else {
+      return false
+    }
+
+    // Compare major version
+    if components[0] > minComponents[0] { return true }
+    if components[0] < minComponents[0] { return false }
+
+    // Compare minor version
+    if components[1] >= minComponents[1] { return true }
+    return false
+  }
+
+  /// Load the bundled default configuration and switch to it
+  private func loadAndSwitchToDefault() -> Bool {
+    // First, copy the bundled default to configurations directory (overwriting existing)
+    let defaultConfigURL = configFileManager.configurationsDirectory.appendingPathComponent("Default.json")
+
+    guard let bundleURL = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
+      print("[ConfigStore] ❌ Bundled default configuration not found")
+      return false
+    }
+
+    do {
+      // Remove existing Default.json if present
+      if FileManager.default.fileExists(atPath: defaultConfigURL.path) {
+        try FileManager.default.removeItem(at: defaultConfigURL)
+      }
+      // Copy bundled default
+      try FileManager.default.copyItem(at: bundleURL, to: defaultConfigURL)
+      print("[ConfigStore] ✅ Copied bundled default configuration to Default.json")
+    } catch {
+      print("[ConfigStore] ❌ Failed to copy bundled default: \(error)")
+      return false
+    }
+
+    // Load the default configuration directly
+    do {
+      let config = try configFileManager.loadConfiguration(named: "Default")
+      
+      // Validate before applying
+      let validationResult = ConfigurationValidator.shared.validate(config)
+      self.lastValidationResult = validationResult
+
+      if validationResult.hasErrors {
+        print("[ConfigStore] ❌ Default configuration has validation errors")
+        return false
+      }
+
+      applyLoadedConfiguration(config)
+      self.currentConfigurationName = "Default"
+      preferences.setCurrentConfigName("Default")
+      
+      // Apply preferences if present
+      if let prefsConfig = config.preferences {
+        if let targetLang = prefsConfig.targetLanguage,
+           let option = TargetLanguageOption(rawValue: targetLang) {
+          preferences.setTargetLanguage(option)
+        }
+      }
+
+      // Apply TTS if present
+      if let ttsEntry = config.tts {
+        let usesDefault = ttsEntry.useDefault ?? true
+        preferences.setTTSUsesDefaultConfiguration(usesDefault)
+        let ttsConfig = ttsEntry.toTTSConfiguration()
+        preferences.setTTSConfiguration(ttsConfig)
+      }
+
+      configFileManager.startMonitoring(configurationNamed: "Default")
+      print("[ConfigStore] ✅ Switched to Default configuration with version 1.1.0")
+      return true
+    } catch {
+      print("[ConfigStore] ❌ Failed to load default configuration: \(error)")
+      return false
+    }
+  }
+
   private func tryLoadConfiguration(named name: String) -> Bool {
     do {
       let config = try configFileManager.loadConfiguration(named: name)
+
+      // Check version compatibility - require 1.1.0 or higher
+      if !isVersionCompatible(config.version) {
+        print("[ConfigStore] ⚠️ Configuration '\(name)' has incompatible version: \(config.version)")
+        print("[ConfigStore] 🔄 Will load default configuration with version 1.1.0")
+        return loadAndSwitchToDefault()
+      }
 
       // Validate the loaded configuration
       let validationResult = ConfigurationValidator.shared.validate(config)
@@ -349,10 +442,7 @@ public final class AppConfigurationStore: ObservableObject {
     // Build actions (actions is now an array, order is preserved)
     var loadedActions: [ActionConfig] = []
     for entry in config.actions {
-      let action = entry.toActionConfig(
-        providerMap: providerNameToID,
-        providerDeploymentsMap: providerDeploymentsMap
-      )
+      let action = entry.toActionConfig()
       loadedActions.append(action)
     }
 
@@ -421,14 +511,11 @@ public final class AppConfigurationStore: ObservableObject {
 
     // Build action entries (as array to preserve order)
     let actionEntries = actions.map { action in
-      AppConfiguration.ActionEntry.from(
-        action,
-        providerNames: providerIDToName
-      )
+      AppConfiguration.ActionEntry.from(action)
     }
 
     return AppConfiguration(
-      version: "1.0.0",
+      version: "1.1.0",
       preferences: AppConfiguration.PreferencesConfig(
         targetLanguage: preferences.targetLanguage.rawValue
       ),

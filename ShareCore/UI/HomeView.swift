@@ -29,7 +29,7 @@ public struct HomeView: View {
   @StateObject private var viewModel: HomeViewModel
   @State private var hasTriggeredAutoRequest = false
   @State private var isInputExpanded: Bool
-  @State private var showingProviderInfo: UUID?
+  @State private var showingProviderInfo: String?
   var openFromExtension: Bool {
     #if canImport(TranslationUIProvider)
     return context != nil
@@ -383,12 +383,12 @@ public struct HomeView: View {
     }
 
     private func providerResultCard(for run: HomeViewModel.ProviderRunViewState) -> some View {
-        let providerID = run.provider.id
+        let runID = run.id
         return VStack(alignment: .leading, spacing: 12) {
             content(for: run)
 
             // Bottom info bar
-            bottomInfoBar(for: run, providerID: providerID)
+            bottomInfoBar(for: run)
         }
         .padding(18)
         .background(
@@ -396,7 +396,7 @@ public struct HomeView: View {
                 .fill(colors.cardBackground)
         )
         .overlay(alignment: .topTrailing) {
-            if showingProviderInfo == providerID {
+            if showingProviderInfo == runID {
                 providerInfoPopover(for: run)
                     .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)))
             }
@@ -406,9 +406,11 @@ public struct HomeView: View {
 
     @ViewBuilder
     private func bottomInfoBar(
-        for run: HomeViewModel.ProviderRunViewState,
-        providerID: UUID
+        for run: HomeViewModel.ProviderRunViewState
     ) -> some View {
+        let runID = run.id
+        let showModelName = viewModel.providerRuns.count > 1
+        
         switch run.status {
         case .idle, .running:
             EmptyView()
@@ -419,6 +421,11 @@ public struct HomeView: View {
                     .progressViewStyle(.circular)
                     .controlSize(.small)
                     .tint(colors.accent)
+                if showModelName {
+                    Text(run.modelDisplayName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
                 Text("Generating...")
                     .font(.system(size: 13))
                     .foregroundColor(colors.textSecondary)
@@ -432,6 +439,11 @@ public struct HomeView: View {
                     .progressViewStyle(.circular)
                     .controlSize(.small)
                     .tint(colors.accent)
+                if showModelName {
+                    Text(run.modelDisplayName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
                 Text("Translating...")
                     .font(.system(size: 13))
                     .foregroundColor(colors.textSecondary)
@@ -441,7 +453,7 @@ public struct HomeView: View {
 
         case let .success(_, copyText, _, _, _, sentencePairs):
             HStack(spacing: 12) {
-                // Status + Duration + Info
+                // Status + Duration + Model Name + Info
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(colors.success)
@@ -453,14 +465,20 @@ public struct HomeView: View {
                             .foregroundColor(colors.textSecondary)
                     }
 
-                    providerInfoButton(providerID: providerID)
+                    if showModelName {
+                        Text(run.modelDisplayName)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(colors.textSecondary)
+                    }
+
+                    providerInfoButton(runID: runID)
                 }
 
                 Spacer()
 
                 // Action buttons
                 if sentencePairs.isEmpty {
-                    actionButtons(copyText: copyText, providerID: providerID)
+                    actionButtons(copyText: copyText, runID: runID)
                 }
             }
 
@@ -477,7 +495,13 @@ public struct HomeView: View {
                             .foregroundColor(colors.textSecondary)
                     }
 
-                    providerInfoButton(providerID: run.provider.id)
+                    if showModelName {
+                        Text(run.modelDisplayName)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(colors.textSecondary)
+                    }
+
+                    providerInfoButton(runID: runID)
                 }
 
                 Spacer()
@@ -485,7 +509,7 @@ public struct HomeView: View {
                 // Retry button
                 Button {
                     viewModel.performSelectedAction()
-                } label: {
+                } label:{
                     Label("Retry", systemImage: "arrow.clockwise")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(colors.accent)
@@ -496,7 +520,7 @@ public struct HomeView: View {
     }
 
     @ViewBuilder
-    private func actionButtons(copyText: String, providerID: UUID) -> some View {
+    private func actionButtons(copyText: String, runID: String) -> some View {
         #if canImport(TranslationUIProvider)
         if let context, context.allowsReplacement {
             Button {
@@ -508,26 +532,26 @@ public struct HomeView: View {
             .buttonStyle(.plain)
             .foregroundColor(colors.accent)
 
-            compactSpeakButton(for: copyText, providerID: providerID)
+            compactSpeakButton(for: copyText, runID: runID)
             compactCopyButton(for: copyText)
         } else {
-            compactSpeakButton(for: copyText, providerID: providerID)
+            compactSpeakButton(for: copyText, runID: runID)
             compactCopyButton(for: copyText)
         }
         #else
-        compactSpeakButton(for: copyText, providerID: providerID)
+        compactSpeakButton(for: copyText, runID: runID)
         compactCopyButton(for: copyText)
         #endif
     }
 
     @ViewBuilder
-    private func providerInfoButton(providerID: UUID) -> some View {
+    private func providerInfoButton(runID: String) -> some View {
         Button {
             withAnimation {
-                if showingProviderInfo == providerID {
+                if showingProviderInfo == runID {
                     showingProviderInfo = nil
                 } else {
-                    showingProviderInfo = providerID
+                    showingProviderInfo = runID
                 }
             }
         } label: {
@@ -544,7 +568,7 @@ public struct HomeView: View {
             Text(run.provider.displayName)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(colors.textPrimary)
-            Text(run.provider.modelName)
+            Text(run.modelDisplayName)
                 .font(.system(size: 12))
                 .foregroundColor(colors.textSecondary)
             if let duration = run.durationText {
@@ -590,10 +614,10 @@ public struct HomeView: View {
     }
 
     @ViewBuilder
-    private func compactSpeakButton(for text: String, providerID: UUID) -> some View {
-        let isSpeaking = viewModel.isSpeaking(providerID: providerID)
+    private func compactSpeakButton(for text: String, runID: String) -> some View {
+        let isSpeaking = viewModel.isSpeaking(runID: runID)
         Button {
-            viewModel.speakResult(text, providerID: providerID)
+            viewModel.speakResult(text, runID: runID)
         } label: {
             if isSpeaking {
                 ProgressView()

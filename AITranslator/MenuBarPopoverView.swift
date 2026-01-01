@@ -193,10 +193,11 @@ struct MenuBarPopoverView: View {
     // MARK: - Reused from HomeView
     
     private func providerResultCard(for run: HomeViewModel.ProviderRunViewState) -> some View {
-        let providerID = run.provider.id
+        let runID = run.id
+        let showModelName = viewModel.providerRuns.count > 1
         return VStack(alignment: .leading, spacing: 10) {
             content(for: run)
-            bottomInfoBar(for: run, providerID: providerID)
+            bottomInfoBar(for: run, runID: runID, showModelName: showModelName)
         }
         .padding(14)
         .background(
@@ -208,7 +209,8 @@ struct MenuBarPopoverView: View {
     @ViewBuilder
     private func bottomInfoBar(
         for run: HomeViewModel.ProviderRunViewState,
-        providerID: UUID
+        runID: String,
+        showModelName: Bool
     ) -> some View {
         switch run.status {
         case .idle, .running:
@@ -217,6 +219,11 @@ struct MenuBarPopoverView: View {
                     .progressViewStyle(.circular)
                     .controlSize(.small)
                     .tint(colors.accent)
+                if showModelName {
+                    Text(run.modelDisplayName)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
                 Text("Processing...")
                     .font(.system(size: 12))
                     .foregroundColor(colors.textSecondary)
@@ -229,6 +236,11 @@ struct MenuBarPopoverView: View {
                     .progressViewStyle(.circular)
                     .controlSize(.small)
                     .tint(colors.accent)
+                if showModelName {
+                    Text(run.modelDisplayName)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
                 Text("Generating...")
                     .font(.system(size: 12))
                     .foregroundColor(colors.textSecondary)
@@ -242,6 +254,11 @@ struct MenuBarPopoverView: View {
                     .progressViewStyle(.circular)
                     .controlSize(.small)
                     .tint(colors.accent)
+                if showModelName {
+                    Text(run.modelDisplayName)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
                 Text("Translating...")
                     .font(.system(size: 12))
                     .foregroundColor(colors.textSecondary)
@@ -261,10 +278,16 @@ struct MenuBarPopoverView: View {
                         .foregroundColor(colors.textSecondary)
                 }
 
+                if showModelName {
+                    Text(run.modelDisplayName)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
+
                 Spacer()
 
                 if sentencePairs.isEmpty {
-                    compactSpeakButton(for: copyText, providerID: providerID)
+                    compactSpeakButton(for: copyText, runID: runID)
                     compactCopyButton(for: copyText)
                 }
             }
@@ -277,6 +300,12 @@ struct MenuBarPopoverView: View {
 
                 if let duration = run.durationText {
                     Text(duration)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                if showModelName {
+                    Text(run.modelDisplayName)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(colors.textSecondary)
                 }
@@ -308,10 +337,10 @@ struct MenuBarPopoverView: View {
     }
     
     @ViewBuilder
-    private func compactSpeakButton(for text: String, providerID: UUID) -> some View {
-        let isSpeaking = viewModel.isSpeaking(providerID: providerID)
+    private func compactSpeakButton(for text: String, runID: String) -> some View {
+        let isSpeaking = viewModel.isSpeaking(runID: runID)
         Button {
-            viewModel.speakResult(text, providerID: providerID)
+            viewModel.speakResult(text, runID: runID)
         } label: {
             if isSpeaking {
                 ProgressView()

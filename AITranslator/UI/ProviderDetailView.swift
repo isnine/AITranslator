@@ -22,6 +22,7 @@ struct ProviderDetailView: View {
     @State private var authHeaderName: String
     @State private var category: ProviderCategory
     @State private var deploymentsText: String  // comma-separated input
+    @State private var enabledDeploymentsSet: Set<String>  // Track which deployments are enabled
     @State private var showDeleteConfirmation = false
 
     // Test states
@@ -74,6 +75,7 @@ struct ProviderDetailView: View {
             _authHeaderName = State(initialValue: provider.authHeaderName)
             _category = State(initialValue: provider.category)
             _deploymentsText = State(initialValue: provider.deployments.joined(separator: ", "))
+            _enabledDeploymentsSet = State(initialValue: provider.enabledDeployments)
         } else {
             self.providerID = UUID()
             self.isNewProvider = true
@@ -84,6 +86,7 @@ struct ProviderDetailView: View {
             _authHeaderName = State(initialValue: "api-key")
             _category = State(initialValue: .azureOpenAI)
             _deploymentsText = State(initialValue: "")
+            _enabledDeploymentsSet = State(initialValue: [])
         }
     }
 
@@ -215,6 +218,14 @@ struct ProviderDetailView: View {
         }
     }
 
+    /// Current parsed deployments from the text field
+    private var currentDeployments: [String] {
+        deploymentsText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
     private var deploymentsSection: some View {
         section(title: "Deployments") {
             VStack(alignment: .leading, spacing: 12) {
@@ -233,9 +244,20 @@ struct ProviderDetailView: View {
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .fill(colors.inputBackground)
                         )
-                        .onChange(of: deploymentsText) { _ in
+                        .onChange(of: deploymentsText) { _, newValue in
                             // Clear test results when deployments change
                             testResults = []
+                            // Update enabledDeploymentsSet: new deployments are enabled by default
+                            let newDeployments = newValue
+                                .split(separator: ",")
+                                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                .filter { !$0.isEmpty }
+                            // Keep existing enabled state for deployments that still exist
+                            // Enable new deployments by default
+                            let newSet = Set(newDeployments)
+                            let stillEnabled = enabledDeploymentsSet.intersection(newSet)
+                            let newlyAdded = newSet.subtracting(enabledDeploymentsSet)
+                            enabledDeploymentsSet = stillEnabled.union(newlyAdded)
                         }
 
                     Text("Separate multiple deployments with commas")
@@ -272,7 +294,7 @@ struct ProviderDetailView: View {
                 .buttonStyle(.plain)
                 .disabled(!canTest || isTesting)
 
-                // Test results list
+                // Test results list (shown after testing)
                 if !testResults.isEmpty {
                     VStack(spacing: 8) {
                         ForEach($testResults) { $result in
@@ -281,8 +303,63 @@ struct ProviderDetailView: View {
                     }
                     .padding(.top, 8)
                 }
+                // Enabled deployments list (shown when not testing)
+                else if !currentDeployments.isEmpty {
+                    enabledDeploymentsListSection
+                }
             }
         }
+    }
+
+    /// UI section for toggling which deployments are enabled
+    private var enabledDeploymentsListSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Enabled Deployments")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(colors.textSecondary)
+                .padding(.top, 8)
+
+            VStack(spacing: 8) {
+                ForEach(currentDeployments, id: \.self) { deployment in
+                    deploymentToggleRow(deployment: deployment)
+                }
+            }
+        }
+    }
+
+    /// A single row with toggle for enabling/disabling a deployment
+    private func deploymentToggleRow(deployment: String) -> some View {
+        let isEnabled = enabledDeploymentsSet.contains(deployment)
+        return HStack(spacing: 12) {
+            Button {
+                if isEnabled {
+                    enabledDeploymentsSet.remove(deployment)
+                } else {
+                    enabledDeploymentsSet.insert(deployment)
+                }
+            } label: {
+                Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundColor(isEnabled ? colors.accent : colors.textSecondary)
+            }
+            .buttonStyle(.plain)
+
+            Text(deployment)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(colors.textPrimary)
+
+            Spacer()
+
+            Text(isEnabled ? "Enabled" : "Disabled")
+                .font(.system(size: 12))
+                .foregroundColor(isEnabled ? colors.success : colors.textSecondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(colors.cardBackground)
+        )
     }
 
     private var canTest: Bool {
@@ -713,17 +790,21 @@ struct ProviderDetailView: View {
             return
         }
 
-        // Get enabled deployments from test results, or parse from text if not tested
-        let enabledDeployments: [String]
-        if testResults.isEmpty {
-            enabledDeployments = deploymentsText
-                .split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                .filter { !$0.isEmpty }
+        // Get all deployments from text input
+        let allDeployments = deploymentsText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        
+        // Get enabled deployments based on current state
+        let enabledDeploymentSet: Set<String>
+        if !testResults.isEmpty {
+            // If we have test results, use them (only enable successful + user-selected ones)
+            enabledDeploymentSet = Set(testResults.filter(\.isEnabled).map(\.deploymentName))
         } else {
-            enabledDeployments = testResults
-                .filter { $0.isEnabled }
-                .map { $0.deploymentName }
+            // Use the enabledDeploymentsSet state (respects user toggles)
+            // Only include deployments that are in the current list
+            enabledDeploymentSet = enabledDeploymentsSet.intersection(Set(allDeployments))
         }
 
         let updated = ProviderConfig(
@@ -734,7 +815,8 @@ struct ProviderDetailView: View {
             token: token.trimmingCharacters(in: .whitespacesAndNewlines),
             authHeaderName: authHeaderName.trimmingCharacters(in: .whitespacesAndNewlines),
             category: category,
-            deployments: enabledDeployments
+            deployments: allDeployments,
+            enabledDeployments: enabledDeploymentSet
         )
 
         var providers = configurationStore.providers
@@ -754,19 +836,9 @@ struct ProviderDetailView: View {
     }
 
     private func deleteProvider() {
-        // First, clean up actions that reference this provider
-        let updatedActions = configurationStore.actions.map { action -> ActionConfig in
-            var mutableAction = action
-            mutableAction.providerDeployments.removeAll { $0.providerID == providerID }
-            return mutableAction
-        }
-        
-        // Update actions first (without triggering save yet by using internal method)
         var providers = configurationStore.providers
         providers.removeAll { $0.id == providerID }
         
-        // Update both actions and providers
-        _ = configurationStore.updateActions(updatedActions)
         if let result = configurationStore.updateProviders(providers), result.hasErrors {
             validationErrorMessage = result.errors.map(\.message).joined(separator: "\n")
             showValidationError = true

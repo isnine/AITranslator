@@ -18,7 +18,6 @@ struct ActionDetailView: View {
     @State private var name: String
     @State private var summary: String
     @State private var prompt: String
-    @State private var selectedDeployments: Set<ProviderDeployment>
     @State private var usageScenes: ActionConfig.UsageScene
     @State private var outputType: OutputType
 
@@ -38,7 +37,6 @@ struct ActionDetailView: View {
             _name = State(initialValue: action.name)
             _summary = State(initialValue: action.summary)
             _prompt = State(initialValue: action.prompt)
-            _selectedDeployments = State(initialValue: Set(action.providerDeployments))
             _usageScenes = State(initialValue: action.usageScenes)
             _outputType = State(initialValue: action.outputType)
         } else {
@@ -47,7 +45,6 @@ struct ActionDetailView: View {
             _name = State(initialValue: "")
             _summary = State(initialValue: "")
             _prompt = State(initialValue: "Translate the following text to {targetLanguage}:\n\n{text}")
-            _selectedDeployments = State(initialValue: [])
             _usageScenes = State(initialValue: .app)
             _outputType = State(initialValue: .plain)
         }
@@ -60,7 +57,6 @@ struct ActionDetailView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     basicInfoSection
                     promptSection
-                    providerSection
                     usageSection
                     optionsSection
                 }
@@ -132,72 +128,6 @@ struct ActionDetailView: View {
                     .scrollContentBackground(.hidden)
             }
         }
-    }
-
-    private var providerSection: some View {
-        section(title: "Select Deployments") {
-            VStack(spacing: 16) {
-                ForEach(configurationStore.providers) { provider in
-                    if !provider.deployments.isEmpty {
-                        providerDeploymentsCard(for: provider)
-                    }
-                }
-            }
-        }
-    }
-
-    private func providerDeploymentsCard(for provider: ProviderConfig) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Provider header
-            Text(provider.displayName)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(colors.textPrimary)
-            
-            // Deployments list
-            VStack(spacing: 8) {
-                ForEach(provider.deployments, id: \.self) { deployment in
-                    deploymentRow(provider: provider, deployment: deployment)
-                }
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(colors.cardBackground)
-        )
-    }
-
-    private func deploymentRow(provider: ProviderConfig, deployment: String) -> some View {
-        let providerDeployment = ProviderDeployment(providerID: provider.id, deployment: deployment)
-        let isSelected = selectedDeployments.contains(providerDeployment)
-        
-        return Button {
-            toggleDeployment(providerDeployment)
-        } label: {
-            HStack(alignment: .center, spacing: 12) {
-                Text(deployment)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(colors.textPrimary)
-
-                Spacer()
-
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? colors.accent : colors.textSecondary.opacity(0.6))
-                    .font(.system(size: 20))
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(colors.inputBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(isSelected ? colors.accent : Color.clear, lineWidth: 2)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     private var usageSection: some View {
@@ -353,14 +283,6 @@ struct ActionDetailView: View {
         .buttonStyle(.plain)
     }
 
-    private func toggleDeployment(_ deployment: ProviderDeployment) {
-        if selectedDeployments.contains(deployment) {
-            selectedDeployments.remove(deployment)
-        } else {
-            selectedDeployments.insert(deployment)
-        }
-    }
-
     private func toggleScene(_ scene: ActionConfig.UsageScene) {
         if usageScenes.contains(scene) {
             usageScenes.remove(scene)
@@ -373,14 +295,11 @@ struct ActionDetailView: View {
     }
 
     private func saveAction() {
-        let orderedDeployments = Array(selectedDeployments)
-
         let updated = ActionConfig(
             id: actionID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             summary: summary.trimmingCharacters(in: .whitespacesAndNewlines),
             prompt: prompt.trimmingCharacters(in: .whitespacesAndNewlines),
-            providerDeployments: orderedDeployments,
             usageScenes: usageScenes,
             outputType: outputType
         )

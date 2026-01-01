@@ -16,11 +16,13 @@ struct HotKeyConfiguration: Equatable, Codable {
   var keyCode: UInt32
   var modifiers: UInt32
 
-  /// Default shortcut: Option + T
-  static let `default` = HotKeyConfiguration(
-    keyCode: UInt32(kVK_ANSI_T),
-    modifiers: UInt32(optionKey)
-  )
+  /// Empty configuration (no shortcut set)
+  static let empty = HotKeyConfiguration(keyCode: 0, modifiers: 0)
+
+  /// Whether the configuration is empty (no shortcut set)
+  var isEmpty: Bool {
+    keyCode == 0 && modifiers == 0
+  }
 
   /// Returns the display string for modifier keys
   var modifiersDisplayString: String {
@@ -39,59 +41,131 @@ struct HotKeyConfiguration: Equatable, Codable {
 
   /// Returns the full shortcut display string
   var displayString: String {
-    modifiersDisplayString + keyDisplayString
+    if isEmpty { return "Click to set" }
+    return modifiersDisplayString + keyDisplayString
+  }
+}
+
+/// Type of hotkey action
+enum HotKeyType: Int, CaseIterable {
+  case mainApp = 1
+  case quickTranslate = 2
+
+  var displayName: String {
+    switch self {
+    case .mainApp: return "Main App"
+    case .quickTranslate: return "Quick Translate"
+    }
+  }
+
+  var description: String {
+    switch self {
+    case .mainApp: return "Show/hide the main application window."
+    case .quickTranslate: return "Show/hide the menu bar quick translate popover."
+    }
+  }
+
+  fileprivate var storageKeyCode: String {
+    switch self {
+    case .mainApp: return "hotkey_main_keycode"
+    case .quickTranslate: return "hotkey_quick_keycode"
+    }
+  }
+
+  fileprivate var storageModifiers: String {
+    switch self {
+    case .mainApp: return "hotkey_main_modifiers"
+    case .quickTranslate: return "hotkey_quick_modifiers"
+    }
+  }
+
+  fileprivate var signature: String {
+    switch self {
+    case .mainApp: return "AITM"
+    case .quickTranslate: return "AITQ"
+    }
   }
 }
 
 /// Singleton class for managing global hotkeys.
-/// Default shortcut is Option + T to show/hide the app window.
+/// Supports two independent hotkeys: one for main app, one for quick translate.
 final class HotKeyManager: ObservableObject {
   static let shared = HotKeyManager()
 
-  private var eventHotKey: EventHotKeyRef?
   private var eventHandler: EventHandlerRef?
+  private var registeredHotKeys: [HotKeyType: EventHotKeyRef] = [:]
   private var cancellables = Set<AnyCancellable>()
 
-  /// Current hotkey configuration
-  @Published private(set) var configuration: HotKeyConfiguration
-
-  /// Storage keys
-  private static let storageKeyCode = "hotkey_keycode"
-  private static let storageModifiers = "hotkey_modifiers"
+  /// Current hotkey configurations
+  @Published private(set) var mainAppConfiguration: HotKeyConfiguration
+  @Published private(set) var quickTranslateConfiguration: HotKeyConfiguration
 
   private init() {
     let defaults = AppPreferences.sharedDefaults
-    let storedKeyCode = defaults.object(forKey: Self.storageKeyCode) as? UInt32
-    let storedModifiers = defaults.object(forKey: Self.storageModifiers) as? UInt32
 
-    if let keyCode = storedKeyCode, let modifiers = storedModifiers {
-      configuration = HotKeyConfiguration(keyCode: keyCode, modifiers: modifiers)
+    // Load main app hotkey
+    let mainKeyCode = defaults.object(forKey: HotKeyType.mainApp.storageKeyCode) as? UInt32
+    let mainModifiers = defaults.object(forKey: HotKeyType.mainApp.storageModifiers) as? UInt32
+    if let keyCode = mainKeyCode, let modifiers = mainModifiers, keyCode != 0 {
+      mainAppConfiguration = HotKeyConfiguration(keyCode: keyCode, modifiers: modifiers)
     } else {
-      configuration = .default
+      mainAppConfiguration = .empty
+    }
+
+    // Load quick translate hotkey
+    let quickKeyCode = defaults.object(forKey: HotKeyType.quickTranslate.storageKeyCode) as? UInt32
+    let quickModifiers = defaults.object(
+      forKey: HotKeyType.quickTranslate.storageModifiers
+    ) as? UInt32
+    if let keyCode = quickKeyCode, let modifiers = quickModifiers, keyCode != 0 {
+      quickTranslateConfiguration = HotKeyConfiguration(keyCode: keyCode, modifiers: modifiers)
+    } else {
+      quickTranslateConfiguration = .empty
     }
   }
 
-  /// Updates the hotkey configuration
-  func updateConfiguration(_ newConfiguration: HotKeyConfiguration) {
-    guard configuration != newConfiguration else { return }
+  /// Returns the configuration for a specific hotkey type
+  func configuration(for type: HotKeyType) -> HotKeyConfiguration {
+    switch type {
+    case .mainApp: return mainAppConfiguration
+    case .quickTranslate: return quickTranslateConfiguration
+    }
+  }
+
+  /// Updates the hotkey configuration for a specific type
+  func updateConfiguration(_ newConfiguration: HotKeyConfiguration, for type: HotKeyType) {
+    let currentConfig = configuration(for: type)
+    guard currentConfig != newConfiguration else { return }
 
     // Unregister the old hotkey first
-    unregisterHotKey()
+    unregisterHotKey(for: type)
 
     // Update configuration
-    configuration = newConfiguration
+    switch type {
+    case .mainApp:
+      mainAppConfiguration = newConfiguration
+    case .quickTranslate:
+      quickTranslateConfiguration = newConfiguration
+    }
 
     // Save to UserDefaults
     let defaults = AppPreferences.sharedDefaults
-    defaults.set(newConfiguration.keyCode, forKey: Self.storageKeyCode)
-    defaults.set(newConfiguration.modifiers, forKey: Self.storageModifiers)
+    defaults.set(newConfiguration.keyCode, forKey: type.storageKeyCode)
+    defaults.set(newConfiguration.modifiers, forKey: type.storageModifiers)
     defaults.synchronize()
 
-    // Register the new hotkey
-    registerHotKey()
+    // Register the new hotkey if not empty
+    if !newConfiguration.isEmpty {
+      registerHotKey(for: type)
+    }
   }
 
-  /// Registers the global hotkey
+  /// Clears the hotkey configuration for a specific type
+  func clearConfiguration(for type: HotKeyType) {
+    updateConfiguration(.empty, for: type)
+  }
+
+  /// Registers all global hotkeys
   func register() {
     guard eventHandler == nil else { return }
 
@@ -104,7 +178,7 @@ final class HotKeyManager: ObservableObject {
     let handlerResult = InstallEventHandler(
       GetApplicationEventTarget(),
       { _, event, _ -> OSStatus in
-        HotKeyManager.shared.handleHotKeyEvent()
+        HotKeyManager.shared.handleHotKeyEvent(event)
         return noErr
       },
       1,
@@ -118,43 +192,56 @@ final class HotKeyManager: ObservableObject {
       return
     }
 
-    registerHotKey()
+    // Register all configured hotkeys
+    for type in HotKeyType.allCases {
+      let config = configuration(for: type)
+      if !config.isEmpty {
+        registerHotKey(for: type)
+      }
+    }
   }
 
-  /// Registers the hotkey with the system
-  private func registerHotKey() {
-    guard eventHotKey == nil else { return }
+  /// Registers a specific hotkey with the system
+  private func registerHotKey(for type: HotKeyType) {
+    guard registeredHotKeys[type] == nil else { return }
+
+    let config = configuration(for: type)
+    guard !config.isEmpty else { return }
 
     var hotKeyID = EventHotKeyID()
-    hotKeyID.signature = OSType("AITR".fourCharCodeValue)
-    hotKeyID.id = 1
+    hotKeyID.signature = OSType(type.signature.fourCharCodeValue)
+    hotKeyID.id = UInt32(type.rawValue)
 
-    // Register the hotkey
+    var hotKeyRef: EventHotKeyRef?
     let registerResult = RegisterEventHotKey(
-      configuration.keyCode,
-      configuration.modifiers,
+      config.keyCode,
+      config.modifiers,
       hotKeyID,
       GetApplicationEventTarget(),
       0,
-      &eventHotKey
+      &hotKeyRef
     )
 
-    if registerResult != noErr {
-      print("Failed to register hotkey: \(registerResult)")
+    if registerResult == noErr, let ref = hotKeyRef {
+      registeredHotKeys[type] = ref
+    } else {
+      print("Failed to register hotkey for \(type): \(registerResult)")
     }
   }
 
-  /// Unregisters the hotkey from the system
-  private func unregisterHotKey() {
-    if let hotKey = eventHotKey {
+  /// Unregisters a specific hotkey from the system
+  private func unregisterHotKey(for type: HotKeyType) {
+    if let hotKey = registeredHotKeys[type] {
       UnregisterEventHotKey(hotKey)
-      eventHotKey = nil
+      registeredHotKeys[type] = nil
     }
   }
 
-  /// Unregisters the global hotkey and removes event handler
+  /// Unregisters all global hotkeys and removes event handler
   func unregister() {
-    unregisterHotKey()
+    for type in HotKeyType.allCases {
+      unregisterHotKey(for: type)
+    }
 
     if let handler = eventHandler {
       RemoveEventHandler(handler)
@@ -163,33 +250,55 @@ final class HotKeyManager: ObservableObject {
   }
 
   /// Handles the hotkey event
-  private func handleHotKeyEvent() {
+  private func handleHotKeyEvent(_ event: EventRef?) {
+    guard let event = event else { return }
+
+    var hotKeyID = EventHotKeyID()
+    let result = GetEventParameter(
+      event,
+      EventParamName(kEventParamDirectObject),
+      EventParamType(typeEventHotKeyID),
+      nil,
+      MemoryLayout<EventHotKeyID>.size,
+      nil,
+      &hotKeyID
+    )
+
+    guard result == noErr else { return }
+
     DispatchQueue.main.async {
-      self.toggleAppVisibility()
+      if let type = HotKeyType(rawValue: Int(hotKeyID.id)) {
+        self.executeAction(for: type)
+      }
     }
   }
 
-  /// Toggles the app window visibility
-  private func toggleAppVisibility() {
-    // Check if the app is active and has visible windows
+  /// Executes the action for a specific hotkey type
+  private func executeAction(for type: HotKeyType) {
+    switch type {
+    case .mainApp:
+      toggleMainAppVisibility()
+    case .quickTranslate:
+      NotificationCenter.default.post(name: .toggleMenuBarPopover, object: nil)
+    }
+  }
+
+  /// Toggles the main app window visibility
+  private func toggleMainAppVisibility() {
     let hasVisibleWindow = NSApp.windows.contains { window in
       window.isVisible && !window.isMiniaturized && window.canBecomeMain
     }
 
     if NSApp.isActive && hasVisibleWindow {
-      // App is active with visible windows, hide it
       NSApp.hide(nil)
     } else {
-      // App is not active or has no visible windows, show it
       NSApp.activate(ignoringOtherApps: true)
 
-      // If no visible windows, show the first available window
       if !hasVisibleWindow {
         if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
           window.makeKeyAndOrderFront(nil)
         }
       } else {
-        // Activate existing visible window
         for window in NSApp.windows where window.isVisible && window.canBecomeMain {
           window.makeKeyAndOrderFront(nil)
           break
@@ -197,6 +306,12 @@ final class HotKeyManager: ObservableObject {
       }
     }
   }
+}
+
+// MARK: - Notification Extension
+
+extension Notification.Name {
+  static let toggleMenuBarPopover = Notification.Name("toggleMenuBarPopover")
 }
 
 // MARK: - String Extension

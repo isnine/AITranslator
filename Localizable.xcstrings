@@ -195,6 +195,9 @@
         }
       }
     },
+    "Clear shortcut" : {
+
+    },
     "Clipboard Content" : {
       "comment" : "Menu bar popover section header",
       "extractionState" : "stale",
@@ -368,6 +371,9 @@
     "Deployments" : {
 
     },
+    "Disabled" : {
+
+    },
     "Discard" : {
 
     },
@@ -404,6 +410,12 @@
           }
         }
       }
+    },
+    "Enabled" : {
+
+    },
+    "Enabled Deployments" : {
+
     },
     "Enter Azure Key here" : {
       "localizations" : {
@@ -480,7 +492,7 @@
         }
       }
     },
-    "Global Shortcut" : {
+    "Global Shortcuts" : {
 
     },
     "gpt-4o-mini-tts" : {
@@ -686,7 +698,7 @@
         }
       }
     },
-    "Press the shortcut to show/hide the app window from anywhere." : {
+    "Press shortcuts to show/hide windows from anywhere." : {
 
     },
     "Processing..." : {
@@ -779,9 +791,6 @@
         }
       }
     },
-    "Reset to default (⌥T)" : {
-
-    },
     "Result" : {
       "comment" : "Menu bar popover result header",
       "extractionState" : "stale",
@@ -808,9 +817,6 @@
       }
     },
     "Saved Configurations" : {
-
-    },
-    "Select Deployments" : {
 
     },
     "Select Providers" : {
@@ -891,9 +897,6 @@
           }
         }
       }
-    },
-    "Shortcut" : {
-
     },
     "Show Diff" : {
 

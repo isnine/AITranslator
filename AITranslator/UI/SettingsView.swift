@@ -44,7 +44,7 @@ struct SettingsView: View {
 
   #if os(macOS)
   @ObservedObject private var hotKeyManager = HotKeyManager.shared
-  @State private var isRecordingHotKey = false
+  @State private var recordingHotKeyType: HotKeyType?
   @State private var localEventMonitor: Any?
   #endif
 
@@ -200,52 +200,19 @@ private extension SettingsView {
   var hotKeyPreferenceCard: some View {
     VStack(alignment: .leading, spacing: 16) {
       VStack(alignment: .leading, spacing: 6) {
-        Text("Global Shortcut")
+        Text("Global Shortcuts")
           .font(.system(size: 16, weight: .semibold))
           .foregroundColor(colors.textPrimary)
-        Text("Press the shortcut to show/hide the app window from anywhere.")
+        Text("Press shortcuts to show/hide windows from anywhere.")
           .font(.system(size: 13))
           .foregroundColor(colors.textSecondary)
       }
 
-      HStack {
-        Text("Shortcut")
-          .font(.system(size: 14, weight: .medium))
-          .foregroundColor(colors.textPrimary)
+      // Main App Shortcut
+      hotKeyRow(for: .mainApp)
 
-        Spacer()
-
-        Button {
-          startRecordingHotKey()
-        } label: {
-          Text(isRecordingHotKey ? "Press keys..." : hotKeyManager.configuration.displayString)
-            .font(.system(size: 14, weight: .medium, design: .monospaced))
-            .foregroundColor(isRecordingHotKey ? colors.accent : colors.textPrimary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(
-              RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isRecordingHotKey ? colors.accent.opacity(0.15) : colors.inputBackground)
-            )
-            .overlay(
-              RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(isRecordingHotKey ? colors.accent : Color.clear, lineWidth: 2)
-            )
-        }
-        .buttonStyle(.plain)
-
-        if hotKeyManager.configuration != .default {
-          Button {
-            hotKeyManager.updateConfiguration(.default)
-          } label: {
-            Image(systemName: "arrow.counterclockwise")
-              .font(.system(size: 12, weight: .medium))
-              .foregroundColor(colors.textSecondary)
-          }
-          .buttonStyle(.plain)
-          .help("Reset to default (⌥T)")
-        }
-      }
+      // Quick Translate Shortcut
+      hotKeyRow(for: .quickTranslate)
     }
     .padding(18)
     .background(
@@ -254,20 +221,78 @@ private extension SettingsView {
     )
   }
 
-  func startRecordingHotKey() {
-    isRecordingHotKey = true
+  @ViewBuilder
+  func hotKeyRow(for type: HotKeyType) -> some View {
+    let config = hotKeyManager.configuration(for: type)
+    let isRecording = recordingHotKeyType == type
+
+    VStack(alignment: .leading, spacing: 8) {
+      HStack {
+        VStack(alignment: .leading, spacing: 2) {
+          Text(type.displayName)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(colors.textPrimary)
+          Text(type.description)
+            .font(.system(size: 12))
+            .foregroundColor(colors.textSecondary)
+        }
+
+        Spacer()
+
+        Button {
+          startRecordingHotKey(for: type)
+        } label: {
+          Text(isRecording ? "Press keys..." : config.displayString)
+            .font(.system(size: 14, weight: .medium, design: .monospaced))
+            .foregroundColor(isRecording ? colors.accent : colors.textPrimary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+              RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isRecording ? colors.accent.opacity(0.15) : colors.inputBackground)
+            )
+            .overlay(
+              RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(isRecording ? colors.accent : Color.clear, lineWidth: 2)
+            )
+        }
+        .buttonStyle(.plain)
+
+        if !config.isEmpty {
+          Button {
+            hotKeyManager.clearConfiguration(for: type)
+          } label: {
+            Image(systemName: "xmark.circle.fill")
+              .font(.system(size: 14, weight: .medium))
+              .foregroundColor(colors.textSecondary)
+          }
+          .buttonStyle(.plain)
+          .help("Clear shortcut")
+        }
+      }
+    }
+    .padding(.horizontal, 12)
+    .padding(.vertical, 10)
+    .background(
+      RoundedRectangle(cornerRadius: 12, style: .continuous)
+        .fill(colors.inputBackground.opacity(0.5))
+    )
+  }
+
+  func startRecordingHotKey(for type: HotKeyType) {
+    recordingHotKeyType = type
 
     // 临时注销快捷键以便捕获新按键
     HotKeyManager.shared.unregister()
 
     localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-      self.handleKeyEvent(event)
+      self.handleKeyEvent(event, for: type)
       return nil
     }
   }
 
   func stopRecordingHotKey() {
-    isRecordingHotKey = false
+    recordingHotKeyType = nil
 
     if let monitor = localEventMonitor {
       NSEvent.removeMonitor(monitor)
@@ -278,7 +303,7 @@ private extension SettingsView {
     HotKeyManager.shared.register()
   }
 
-  func handleKeyEvent(_ event: NSEvent) {
+  func handleKeyEvent(_ event: NSEvent, for type: HotKeyType) {
     // 忽略纯修饰键按下
     let keyCode = event.keyCode
 
@@ -317,7 +342,7 @@ private extension SettingsView {
       modifiers: carbonModifiers
     )
 
-    hotKeyManager.updateConfiguration(newConfiguration)
+    hotKeyManager.updateConfiguration(newConfiguration, for: type)
     stopRecordingHotKey()
   }
   #endif

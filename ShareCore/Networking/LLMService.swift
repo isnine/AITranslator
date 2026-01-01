@@ -26,7 +26,7 @@ public final class LLMService {
         text: String,
         with action: ActionConfig,
         providerDeployments: [(provider: ProviderConfig, deployment: String)],
-        partialHandler: (@MainActor @Sendable (UUID, StreamingUpdate) -> Void)? = nil,
+        partialHandler: (@MainActor @Sendable (UUID, String, StreamingUpdate) -> Void)? = nil,
         completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)? = nil
     ) async -> [ProviderExecutionResult] {
         await withTaskGroup(of: ProviderExecutionResult?.self) { group in
@@ -68,7 +68,7 @@ public final class LLMService {
         text: String,
         with action: ActionConfig,
         providers: [ProviderConfig],
-        partialHandler: (@MainActor @Sendable (UUID, StreamingUpdate) -> Void)? = nil,
+        partialHandler: (@MainActor @Sendable (UUID, String, StreamingUpdate) -> Void)? = nil,
         completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)? = nil
     ) async -> [ProviderExecutionResult] {
         // Use the first deployment for each provider
@@ -89,7 +89,7 @@ public final class LLMService {
         action: ActionConfig,
         provider: ProviderConfig,
         deployment: String = "",
-        partialHandler: (@MainActor @Sendable (UUID, StreamingUpdate) -> Void)?
+        partialHandler: (@MainActor @Sendable (UUID, String, StreamingUpdate) -> Void)?
     ) async throws -> ProviderExecutionResult {
         let start = Date()
 
@@ -160,6 +160,7 @@ public final class LLMService {
                     start: start,
                     request: request,
                     provider: provider,
+                    deployment: deployment,
                     decoder: decoder,
                     structuredOutputConfig: structuredOutputConfig,
                     partialHandler: partialHandler
@@ -186,6 +187,7 @@ public final class LLMService {
                 guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
                 return ProviderExecutionResult(
                     providerID: provider.id,
+                    deployment: deployment,
                     duration: Date().timeIntervalSince(start),
                     response: .success(trimmed),
                     diffSource: parsed.diffSource?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -198,6 +200,7 @@ public final class LLMService {
         } catch {
             return ProviderExecutionResult(
                 providerID: provider.id,
+                deployment: deployment,
                 duration: Date().timeIntervalSince(start),
                 response: .failure(error)
             )
@@ -208,9 +211,10 @@ public final class LLMService {
         start: Date,
         request: URLRequest,
         provider: ProviderConfig,
+        deployment: String,
         decoder: JSONDecoder,
         structuredOutputConfig: ActionConfig.StructuredOutputConfig?,
-        partialHandler: @MainActor @Sendable (UUID, StreamingUpdate) -> Void
+        partialHandler: @MainActor @Sendable (UUID, String, StreamingUpdate) -> Void
     ) async throws -> ProviderExecutionResult {
         let (bytes, response) = try await urlSession.bytes(for: request)
 
@@ -259,13 +263,13 @@ public final class LLMService {
                 if let parser = sentencePairParser {
                     // Incremental parsing for sentence pairs
                     let pairs = parser.append(deltaText)
-                    await partialHandler(provider.id, .sentencePairs(pairs))
+                    await partialHandler(provider.id, deployment, .sentencePairs(pairs))
                 } else if let parser = structuredParser {
                     // Incremental parsing for structured output (e.g., grammar check)
                     let displayText = parser.append(deltaText)
-                    await partialHandler(provider.id, .text(displayText))
+                    await partialHandler(provider.id, deployment, .text(displayText))
                 } else {
-                    await partialHandler(provider.id, .text(aggregatedText))
+                    await partialHandler(provider.id, deployment, .text(aggregatedText))
                 }
             }
 
@@ -281,6 +285,7 @@ public final class LLMService {
                 let combinedText = pairs.map { "\($0.original)\n\($0.translation)" }.joined(separator: "\n\n")
                 return ProviderExecutionResult(
                     providerID: provider.id,
+                    deployment: deployment,
                     duration: Date().timeIntervalSince(start),
                     response: .success(combinedText.isEmpty ? finalText : combinedText),
                     sentencePairs: pairs
@@ -293,6 +298,7 @@ public final class LLMService {
                 if let parsed {
                     return ProviderExecutionResult(
                         providerID: provider.id,
+                        deployment: deployment,
                         duration: Date().timeIntervalSince(start),
                         response: .success(parsed.message),
                         diffSource: parsed.diffSource,
@@ -304,6 +310,7 @@ public final class LLMService {
 
             return ProviderExecutionResult(
                 providerID: provider.id,
+                deployment: deployment,
                 duration: Date().timeIntervalSince(start),
                 response: .success(finalText)
             )
@@ -323,13 +330,14 @@ public final class LLMService {
             guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
 
             if !parsed.sentencePairs.isEmpty {
-                await partialHandler(provider.id, .sentencePairs(parsed.sentencePairs))
+                await partialHandler(provider.id, deployment, .sentencePairs(parsed.sentencePairs))
             } else {
-                await partialHandler(provider.id, .text(trimmed))
+                await partialHandler(provider.id, deployment, .text(trimmed))
             }
 
             return ProviderExecutionResult(
                 providerID: provider.id,
+                deployment: deployment,
                 duration: Date().timeIntervalSince(start),
                 response: .success(trimmed),
                 sentencePairs: parsed.sentencePairs

@@ -34,15 +34,18 @@ struct ProvidersView: View {
 
                             VStack(spacing: 16) {
                                 ForEach(configurationStore.providers) { provider in
-                                    NavigationLink(value: provider) {
-                                        ProviderCardView(
-                                            provider: provider,
-                                            isDefault: provider.id == configurationStore.defaultProvider?.id,
-                                            status: status(for: provider),
-                                            colors: colors
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
+                                    ProviderCardView(
+                                        provider: provider,
+                                        isDefault: provider.id == configurationStore.defaultProvider?.id,
+                                        status: status(for: provider),
+                                        colors: colors,
+                                        onToggleDeployment: { deployment, enabled in
+                                            toggleDeployment(for: provider, deployment: deployment, enabled: enabled)
+                                        },
+                                        onNavigate: {
+                                            selectedProvider = provider
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -52,7 +55,7 @@ struct ProvidersView: View {
                 .padding(.vertical, 28)
             }
             .background(colors.background.ignoresSafeArea())
-            .navigationDestination(for: ProviderConfig.self) { provider in
+            .navigationDestination(item: $selectedProvider) { provider in
                 ProviderDetailView(
                     provider: provider,
                     configurationStore: configurationStore
@@ -135,6 +138,21 @@ struct ProvidersView: View {
         }
         return .active
     }
+    
+    private func toggleDeployment(for provider: ProviderConfig, deployment: String, enabled: Bool) {
+        var updatedProvider = provider
+        if enabled {
+            updatedProvider.enabledDeployments.insert(deployment)
+        } else {
+            updatedProvider.enabledDeployments.remove(deployment)
+        }
+        
+        var providers = configurationStore.providers
+        if let index = providers.firstIndex(where: { $0.id == provider.id }) {
+            providers[index] = updatedProvider
+            _ = configurationStore.updateProviders(providers)
+        }
+    }
 }
 
 private extension ProvidersView {
@@ -157,48 +175,56 @@ private extension ProvidersView {
         let isDefault: Bool
         let status: Status
         let colors: AppColorPalette
+        let onToggleDeployment: (String, Bool) -> Void
+        let onNavigate: () -> Void
 
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 8) {
-                    Text(provider.displayName)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(colors.textPrimary)
+                // Header row with navigation
+                Button(action: onNavigate) {
+                    HStack(alignment: .center, spacing: 8) {
+                        Text(provider.displayName)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(colors.textPrimary)
 
-                    if isDefault {
-                        Text("Default")
-                            .font(.system(size: 12, weight: .semibold))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(
-                                Capsule()
-                                    .fill(colors.chipSecondaryBackground)
-                            )
-                            .foregroundColor(colors.chipSecondaryText)
-                    }
+                        if isDefault {
+                            Text("Default")
+                                .font(.system(size: 12, weight: .semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Capsule()
+                                        .fill(colors.chipSecondaryBackground)
+                                )
+                                .foregroundColor(colors.chipSecondaryText)
+                        }
 
-                    Spacer()
+                        Spacer()
 
-                    Image(systemName: status.iconName)
-                        .font(.system(size: 18))
-                        .foregroundColor(status == .active ? colors.success : colors.error)
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(colors.textSecondary)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(provider.baseEndpoint.host ?? provider.baseEndpoint.absoluteString)
-                        .font(.system(size: 15))
-                        .foregroundColor(colors.textSecondary)
-
-                    // Show deployments as comma-separated list
-                    if !provider.deployments.isEmpty {
-                        Text(provider.deployments.joined(separator: ", "))
-                            .font(.system(size: 13))
+                        Image(systemName: status.iconName)
+                            .font(.system(size: 18))
+                            .foregroundColor(status == .active ? colors.success : colors.error)
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(colors.textSecondary)
                     }
+                }
+                .buttonStyle(.plain)
+
+                // Endpoint info
+                Text(provider.baseEndpoint.host ?? provider.baseEndpoint.absoluteString)
+                    .font(.system(size: 15))
+                    .foregroundColor(colors.textSecondary)
+
+                // Deployments list with toggles
+                if !provider.deployments.isEmpty {
+                    VStack(spacing: 8) {
+                        ForEach(provider.deployments, id: \.self) { deployment in
+                            deploymentToggleRow(deployment: deployment)
+                        }
+                    }
+                    .padding(.top, 4)
                 }
             }
             .padding(20)
@@ -206,6 +232,36 @@ private extension ProvidersView {
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .fill(colors.cardBackground)
+            )
+        }
+        
+        private func deploymentToggleRow(deployment: String) -> some View {
+            let isEnabled = provider.enabledDeployments.contains(deployment)
+            return HStack(spacing: 12) {
+                Button {
+                    onToggleDeployment(deployment, !isEnabled)
+                } label: {
+                    Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 20))
+                        .foregroundColor(isEnabled ? colors.accent : colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+
+                Text(deployment)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.textPrimary)
+
+                Spacer()
+
+                Text(isEnabled ? "Enabled" : "Disabled")
+                    .font(.system(size: 12))
+                    .foregroundColor(isEnabled ? colors.success : colors.textSecondary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(colors.inputBackground)
             )
         }
     }

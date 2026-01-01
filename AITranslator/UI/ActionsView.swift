@@ -162,22 +162,22 @@ struct ActionsView: View {
         let deploymentNames: [String]
     }
 
+    /// Get global deployment info (all enabled deployments across all providers)
     private func deploymentInfo(for action: ActionConfig) -> DeploymentInfo {
         let availableProviders = configurationStore.providers
-        var providerIDs = Set<UUID>()
+        var providerCount = 0
         var deploymentNames: [String] = []
         
-        for pd in action.providerDeployments {
-            if let provider = availableProviders.first(where: { $0.id == pd.providerID }) {
-                providerIDs.insert(pd.providerID)
-                // Use deployment name if specified, otherwise use first deployment
-                let name = pd.deployment.isEmpty ? (provider.deployments.first ?? provider.displayName) : pd.deployment
-                deploymentNames.append(name)
+        for provider in availableProviders {
+            let enabledInProvider = provider.deployments.filter { provider.enabledDeployments.contains($0) }
+            if !enabledInProvider.isEmpty {
+                providerCount += 1
+                deploymentNames.append(contentsOf: enabledInProvider)
             }
         }
         
         return DeploymentInfo(
-            providerCount: providerIDs.count,
+            providerCount: providerCount,
             deploymentCount: deploymentNames.count,
             deploymentNames: deploymentNames
         )

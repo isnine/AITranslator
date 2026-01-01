@@ -118,10 +118,7 @@ public final class ConfigurationService: Sendable {
     // Build actions (actions is now an array)
     var actions: [ActionConfig] = []
     for entry in config.actions {
-      let action = entry.toActionConfig(
-        providerMap: providerNameToID,
-        providerDeploymentsMap: providerDeploymentsMap
-      )
+      let action = entry.toActionConfig()
       actions.append(action)
     }
 
@@ -159,10 +156,7 @@ public final class ConfigurationService: Sendable {
 
     // Build action entries (as array to preserve order)
     let actionEntries = store.actions.map { action in
-      AppConfiguration.ActionEntry.from(
-        action,
-        providerNames: providerIDToName
-      )
+      AppConfiguration.ActionEntry.from(action)
     }
 
     // Build preferences

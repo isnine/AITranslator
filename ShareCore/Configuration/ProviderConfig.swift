@@ -17,8 +17,10 @@ public struct ProviderConfig: Identifiable, Hashable, Codable {
     public var token: String
     public var authHeaderName: String
     public var category: ProviderCategory
-    /// Verified deployment names that passed connection test
+    /// All available deployment names
     public var deployments: [String]
+    /// Deployments that are enabled for use (subset of deployments)
+    public var enabledDeployments: Set<String>
 
     /// Computed property to get full API URL for a specific deployment
     public func apiURL(for deployment: String) -> URL {
@@ -50,7 +52,8 @@ public struct ProviderConfig: Identifiable, Hashable, Codable {
         token: String,
         authHeaderName: String = "api-key",
         category: ProviderCategory = .custom,
-        deployments: [String] = []
+        deployments: [String] = [],
+        enabledDeployments: Set<String>? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -60,6 +63,8 @@ public struct ProviderConfig: Identifiable, Hashable, Codable {
         self.authHeaderName = authHeaderName
         self.category = category
         self.deployments = deployments
+        // If enabledDeployments not specified, enable all deployments by default
+        self.enabledDeployments = enabledDeployments ?? Set(deployments)
     }
 
     /// Legacy initializer for backward compatibility with old JSON format
@@ -98,17 +103,20 @@ public struct ProviderConfig: Identifiable, Hashable, Codable {
                 baseComponents.path = pathComponents.joined(separator: "/")
                 self.baseEndpoint = baseComponents.url ?? apiURL
                 self.deployments = [deploymentName]
+                self.enabledDeployments = Set([deploymentName])
             } else {
                 // Fallback: use original URL as base
                 var baseComponents = components
                 baseComponents.queryItems = nil
                 self.baseEndpoint = baseComponents.url ?? apiURL
                 self.deployments = modelName.map { [$0] } ?? []
+                self.enabledDeployments = Set(self.deployments)
             }
         } else {
             self.baseEndpoint = apiURL
             self.apiVersion = "2024-02-15-preview"
             self.deployments = modelName.map { [$0] } ?? []
+            self.enabledDeployments = Set(self.deployments)
         }
     }
 }

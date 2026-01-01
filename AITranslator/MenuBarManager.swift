@@ -27,6 +27,24 @@ final class MenuBarManager: NSObject, ObservableObject {
     private override init() {
         self.configurationStore = .shared
         super.init()
+        
+        // Listen for toggle popover notification from HotKeyManager
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTogglePopover),
+            name: .toggleMenuBarPopover,
+            object: nil
+        )
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleTogglePopover() {
+        Task { @MainActor in
+            togglePopover(nil)
+        }
     }
     
     /// Setup the menu bar status item
@@ -81,6 +99,11 @@ final class MenuBarManager: NSObject, ObservableObject {
         }
     }
     
+    /// Public method to toggle popover visibility
+    func toggle() {
+        togglePopover(nil)
+    }
+    
     private func showPopover() {
         guard let button = statusItem?.button,
               let popover = popover else { return }
@@ -107,9 +130,5 @@ final class MenuBarManager: NSObject, ObservableObject {
             self.eventMonitor = nil
         }
     }
-}
-
-extension Notification.Name {
-    static let showMainWindow = Notification.Name("showMainWindow")
 }
 #endif

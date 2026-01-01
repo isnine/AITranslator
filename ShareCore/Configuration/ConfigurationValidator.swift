@@ -50,47 +50,38 @@ public struct ConfigurationValidator: Sendable {
   ) -> ConfigurationValidationResult {
     var issues: [ConfigurationValidationIssue] = []
 
-    // Build provider lookup
-    let providerMap = Dictionary(uniqueKeysWithValues: providers.map { ($0.id, $0) })
-
-    // Validate each action's provider references
+    // Validate each action
     for action in actions {
-      for deployment in action.providerDeployments {
-        // Check if provider exists
-        guard let provider = providerMap[deployment.providerID] else {
-          issues.append(
-            .providerNotFound(
-              providerID: deployment.providerID.uuidString,
-              referencedBy: action.name
-            )
-          )
-          continue
-        }
-
-        // Check if deployment exists in provider
-        if !deployment.deployment.isEmpty
-          && !provider.deployments.contains(deployment.deployment)
-        {
-          issues.append(
-            .deploymentNotFound(
-              deployment: deployment.deployment,
-              provider: provider.displayName,
-              referencedBy: action.name
-            )
-          )
-        }
+      // Validate action has a name
+      if action.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        issues.append(.emptyActionName)
       }
 
-      // Warn if action has no providers
-      if action.providerDeployments.isEmpty {
-        issues.append(.actionHasNoProviders(actionName: action.name))
+      // Validate action has a prompt
+      if action.prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        issues.append(.emptyActionPrompt(actionName: action.name))
       }
     }
 
-    // Warn about unused providers
-    let usedProviderIDs = Set(actions.flatMap { $0.providerDeployments.map(\.providerID) })
-    for provider in providers where !usedProviderIDs.contains(provider.id) {
-      issues.append(.unusedProvider(providerName: provider.displayName))
+    // Check for duplicate action names
+    var seenNames: Set<String> = []
+    for action in actions {
+      if seenNames.contains(action.name) {
+        issues.append(.duplicateActionName(actionName: action.name))
+      }
+      seenNames.insert(action.name)
+    }
+
+    // Validate providers have enabled deployments
+    for provider in providers {
+      if provider.enabledDeployments.isEmpty {
+        issues.append(.noEnabledDeployments(providerName: provider.displayName))
+      }
+    }
+
+    // Warn if no providers configured at all
+    if providers.isEmpty {
+      issues.append(.noProvidersConfigured)
     }
 
     return ConfigurationValidationResult(issues: issues)
@@ -172,18 +163,6 @@ public struct ConfigurationValidator: Sendable {
   ) -> [ConfigurationValidationIssue] {
     var issues: [ConfigurationValidationIssue] = []
 
-    let providerNames = Set(providers.keys)
-
-    // Build deployment lookup: [providerName: Set<deployments>]
-    var providerDeployments: [String: Set<String>] = [:]
-    for (name, entry) in providers {
-      var deployments = Set(entry.deployments ?? [])
-      if let model = entry.model, !model.isEmpty {
-        deployments.insert(model)
-      }
-      providerDeployments[name] = deployments
-    }
-
     for action in actions {
       // Validate action has a name
       if action.name.isEmpty {
@@ -193,40 +172,6 @@ public struct ConfigurationValidator: Sendable {
       // Validate action has a prompt
       if action.prompt.isEmpty {
         issues.append(.emptyActionPrompt(actionName: action.name))
-      }
-
-      // Validate provider references
-      if action.providers.isEmpty {
-        issues.append(.actionHasNoProviders(actionName: action.name))
-      }
-
-      for providerRef in action.providers {
-        let (providerName, deploymentName) = parseProviderReference(providerRef)
-
-        // Check if provider exists
-        guard providerNames.contains(providerName) else {
-          issues.append(
-            .providerNotFound(
-              providerID: providerName,
-              referencedBy: action.name
-            )
-          )
-          continue
-        }
-
-        // Check if specific deployment exists
-        if let deploymentName, !deploymentName.isEmpty {
-          let validDeployments = providerDeployments[providerName] ?? []
-          if !validDeployments.contains(deploymentName) {
-            issues.append(
-              .deploymentNotFound(
-                deployment: deploymentName,
-                provider: providerName,
-                referencedBy: action.name
-              )
-            )
-          }
-        }
       }
 
       // Validate output type
@@ -244,6 +189,15 @@ public struct ConfigurationValidator: Sendable {
         issues.append(.duplicateActionName(actionName: action.name))
       }
       seenNames.insert(action.name)
+    }
+
+    // Check if any providers have enabled deployments
+    let hasEnabledDeployments = providers.values.contains { entry in
+      let enabled = entry.enabledDeployments ?? entry.deployments ?? []
+      return !enabled.isEmpty
+    }
+    if !hasEnabledDeployments && !providers.isEmpty {
+      issues.append(.noEnabledDeployments(providerName: ""))
     }
 
     return issues
@@ -330,14 +284,12 @@ public enum ConfigurationValidationIssue: Sendable, Equatable {
   case missingEndpoint(provider: String)
   case emptyToken(provider: String)
   case noDeployments(provider: String)
-  case unusedProvider(providerName: String)
+  case noEnabledDeployments(providerName: String)
+  case noProvidersConfigured
 
   // Action issues
   case emptyActionName
   case emptyActionPrompt(actionName: String)
-  case actionHasNoProviders(actionName: String)
-  case providerNotFound(providerID: String, referencedBy: String)
-  case deploymentNotFound(deployment: String, provider: String, referencedBy: String)
   case invalidOutputType(actionName: String, outputType: String)
   case duplicateActionName(actionName: String)
 
@@ -354,18 +306,16 @@ public enum ConfigurationValidationIssue: Sendable, Equatable {
       .invalidProviderCategory,
       .invalidEndpointURL,
       .missingEndpoint,
-      .providerNotFound,
-      .deploymentNotFound,
       .invalidOutputType:
       return .error
 
     // Warnings - allow saving but notify user
     case .emptyToken,
       .noDeployments,
-      .unusedProvider,
+      .noEnabledDeployments,
+      .noProvidersConfigured,
       .emptyActionName,
       .emptyActionPrompt,
-      .actionHasNoProviders,
       .duplicateActionName,
       .invalidTTSEndpoint,
       .emptyTTSApiKey:
@@ -390,18 +340,17 @@ public enum ConfigurationValidationIssue: Sendable, Equatable {
       return "Provider '\(provider)' has empty API token"
     case .noDeployments(let provider):
       return "Provider '\(provider)' has no deployments configured"
-    case .unusedProvider(let providerName):
-      return "Provider '\(providerName)' is not used by any action"
+    case .noEnabledDeployments(let providerName):
+      if providerName.isEmpty {
+        return "No enabled deployments found across all providers"
+      }
+      return "Provider '\(providerName)' has no enabled deployments"
+    case .noProvidersConfigured:
+      return "No providers configured"
     case .emptyActionName:
       return "Action has empty name"
     case .emptyActionPrompt(let actionName):
       return "Action '\(actionName)' has empty prompt"
-    case .actionHasNoProviders(let actionName):
-      return "Action '\(actionName)' has no providers configured"
-    case .providerNotFound(let providerID, let referencedBy):
-      return "Action '\(referencedBy)' references unknown provider: '\(providerID)'"
-    case .deploymentNotFound(let deployment, let provider, let referencedBy):
-      return "Action '\(referencedBy)' references unknown deployment '\(deployment)' in provider '\(provider)'"
     case .invalidOutputType(let actionName, let outputType):
       return "Action '\(actionName)' has invalid output type: '\(outputType)'"
     case .duplicateActionName(let actionName):

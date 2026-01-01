@@ -9,6 +9,7 @@ import Foundation
 
 public struct ProviderExecutionResult {
     public let providerID: UUID
+    public let deployment: String
     public let duration: TimeInterval
     public let response: Result<String, Error>
     public let diffSource: String?
@@ -17,6 +18,7 @@ public struct ProviderExecutionResult {
 
     public init(
         providerID: UUID,
+        deployment: String = "",
         duration: TimeInterval,
         response: Result<String, Error>,
         diffSource: String? = nil,
@@ -24,6 +26,7 @@ public struct ProviderExecutionResult {
         sentencePairs: [SentencePair] = []
     ) {
         self.providerID = providerID
+        self.deployment = deployment
         self.duration = duration
         self.response = response
         self.diffSource = diffSource

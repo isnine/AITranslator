@@ -43,9 +43,14 @@ public final class HomeViewModel: ObservableObject {
         }
 
         public let provider: ProviderConfig
+        public let deployment: String
         public var status: Status
 
-        public var id: UUID { provider.id }
+        /// Use a composite id to uniquely identify provider + deployment
+        public var id: String { "\(provider.id.uuidString)-\(deployment)" }
+
+        /// Model name for display (shows deployment name)
+        public var modelDisplayName: String { deployment }
 
         public var durationText: String? {
             guard let duration = status.duration else { return nil }
@@ -81,7 +86,7 @@ public final class HomeViewModel: ObservableObject {
     @Published public private(set) var providers: [ProviderConfig]
     @Published public var selectedActionID: UUID?
     @Published public private(set) var providerRuns: [ProviderRunViewState] = []
-    @Published public private(set) var speakingProviders: Set<UUID> = []
+    @Published public private(set) var speakingProviders: Set<String> = []
 
     public let placeholderHint: String = NSLocalizedString(
         "Enter text and choose an action to get started",
@@ -150,26 +155,21 @@ public final class HomeViewModel: ObservableObject {
     }
 
     /// Returns true if the Send button should be enabled.
-    /// Disabled when: no actions available, or selected action has no valid providers.
+    /// Disabled when: no actions available, or no enabled deployments across all providers.
     public var canSend: Bool {
-        guard let action = selectedAction else {
+        guard selectedAction != nil else {
             return false
         }
-        // Check if the action has any valid provider deployments configured
-        let deployments = resolveProviderDeployments(for: action)
-        // If no specific deployments mapped, fall back to first available provider
-        let hasProviders = !deployments.isEmpty || !providers.isEmpty
-        return hasProviders
+        // Check if any provider has enabled deployments
+        return providers.contains { !$0.enabledDeployments.isEmpty }
     }
 
-    /// Resolve provider deployments for an action
-    private func resolveProviderDeployments(for action: ActionConfig) -> [(provider: ProviderConfig, deployment: String)] {
+    /// Get all enabled provider deployments across all providers
+    private func getAllEnabledDeployments() -> [(provider: ProviderConfig, deployment: String)] {
         var result: [(provider: ProviderConfig, deployment: String)] = []
         
-        for pd in action.providerDeployments {
-            if let provider = providers.first(where: { $0.id == pd.providerID }) {
-                // If deployment is empty, use first deployment from provider
-                let deployment = pd.deployment.isEmpty ? (provider.deployments.first ?? "") : pd.deployment
+        for provider in providers {
+            for deployment in provider.deployments where provider.enabledDeployments.contains(deployment) {
                 result.append((provider: provider, deployment: deployment))
             }
         }
@@ -209,17 +209,11 @@ public final class HomeViewModel: ObservableObject {
         currentRequestInputText = text
         currentActionShowsDiff = action.showsDiff
 
-        let deployments = resolveProviderDeployments(for: action)
-        // Fallback to first provider's first deployment if no specific deployments configured
-        let deploymentsToUse: [(provider: ProviderConfig, deployment: String)]
-        if deployments.isEmpty, let firstProvider = providers.first {
-            deploymentsToUse = [(provider: firstProvider, deployment: firstProvider.deployments.first ?? "")]
-        } else {
-            deploymentsToUse = deployments
-        }
+        // Use all enabled deployments across all providers
+        let deploymentsToUse = getAllEnabledDeployments()
 
         guard !deploymentsToUse.isEmpty else {
-            print("No providers configured.")
+            print("No enabled deployments configured.")
             providerRuns = []
             return
         }
@@ -228,7 +222,7 @@ public final class HomeViewModel: ObservableObject {
         activeRequestID = requestID
 
         providerRuns = deploymentsToUse.map {
-            ProviderRunViewState(provider: $0.provider, status: .running(start: Date()))
+            ProviderRunViewState(provider: $0.provider, deployment: $0.deployment, status: .running(start: Date()))
         }
 
         currentRequestTask = Task { [weak self] in
@@ -241,28 +235,28 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
-    public func speakResult(_ text: String, providerID: UUID) {
+    public func speakResult(_ text: String, runID: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        guard !speakingProviders.contains(providerID) else { return }
+        guard !speakingProviders.contains(runID) else { return }
 
-        speakingProviders.insert(providerID)
+        speakingProviders.insert(runID)
 
         _ = Task { [weak self] in
             guard let self else { return }
             do {
                 try await self.textToSpeechService.speak(text: trimmed)
             } catch {
-                print("TTS playback failed for provider \(providerID): \(error)")
+                print("TTS playback failed for run \(runID): \(error)")
             }
             _ = await MainActor.run { [weak self] in
-                self?.speakingProviders.remove(providerID)
+                self?.speakingProviders.remove(runID)
             }
         }
     }
 
-    public func isSpeaking(providerID: UUID) -> Bool {
-        speakingProviders.contains(providerID)
+    public func isSpeaking(runID: String) -> Bool {
+        speakingProviders.contains(runID)
     }
 
     public func openAppSettings() {
@@ -295,10 +289,11 @@ public final class HomeViewModel: ObservableObject {
             text: text,
             with: action,
             providerDeployments: providerDeployments,
-            partialHandler: { [weak self] providerID, update in
+            partialHandler: { [weak self] providerID, deployment, update in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
-                guard let index = self.providerRuns.firstIndex(where: { $0.provider.id == providerID }) else {
+                let compositeID = "\(providerID.uuidString)-\(deployment)"
+                guard let index = self.providerRuns.firstIndex(where: { $0.id == compositeID }) else {
                     return
                 }
                 let startDate = self.providerRuns[index].startDate ?? Date()
@@ -318,18 +313,18 @@ public final class HomeViewModel: ObservableObject {
             completionHandler: { [weak self] result in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
-                self.apply(result: result, allowDiff: self.currentActionShowsDiff)
+                self.apply(result: result, deployment: result.deployment, allowDiff: self.currentActionShowsDiff)
             }
         )
 
         guard !Task.isCancelled else { return }
         guard activeRequestID == requestID else { return }
 
-        let allProviders = providerDeployments.map(\.provider)
         for result in results {
-            if providerRuns.contains(where: { $0.provider.id == result.providerID }) {
-                apply(result: result, allowDiff: currentActionShowsDiff)
-            } else if let provider = allProviders.first(where: { $0.id == result.providerID }) {
+            let compositeID = "\(result.providerID.uuidString)-\(result.deployment)"
+            if providerRuns.contains(where: { $0.id == compositeID }) {
+                apply(result: result, deployment: result.deployment, allowDiff: currentActionShowsDiff)
+            } else if let providerDeployment = providerDeployments.first(where: { $0.provider.id == result.providerID && $0.deployment == result.deployment }) {
                 let runState: ProviderRunViewState.Status
                 switch result.response {
                 case let .success(message):
@@ -346,7 +341,7 @@ public final class HomeViewModel: ObservableObject {
                 case let .failure(error):
                     runState = .failure(message: error.localizedDescription, duration: result.duration)
                 }
-                providerRuns.append(.init(provider: provider, status: runState))
+                providerRuns.append(.init(provider: providerDeployment.provider, deployment: result.deployment, status: runState))
             }
         }
 
@@ -365,8 +360,9 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
-    private func apply(result: ProviderExecutionResult, allowDiff: Bool) {
-        guard let index = providerRuns.firstIndex(where: { $0.provider.id == result.providerID }) else {
+    private func apply(result: ProviderExecutionResult, deployment: String, allowDiff: Bool) {
+        let compositeID = "\(result.providerID.uuidString)-\(deployment)"
+        guard let index = providerRuns.firstIndex(where: { $0.id == compositeID }) else {
             return
         }
 
