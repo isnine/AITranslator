@@ -28,37 +28,62 @@ struct MenuBarPopoverView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            headerSection
-            
-            Divider()
-                .background(colors.divider)
-            
-            // Clipboard content preview
-            clipboardPreview
-            
-            // Action chips
-            actionChips
-            
-            // Result section - reusing HomeView's result rendering
-            if !viewModel.providerRuns.isEmpty {
+        ZStack {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header
+                headerSection
+                
                 Divider()
                     .background(colors.divider)
-                resultSection
+                
+                // Clipboard content preview
+                clipboardPreview
+                
+                // Action chips
+                actionChips
+                
+                // Result section - reusing HomeView's result rendering
+                if !viewModel.providerRuns.isEmpty {
+                    Divider()
+                        .background(colors.divider)
+                    resultSection
+                }
+                
+                Spacer(minLength: 0)
             }
-            
-            Spacer(minLength: 0)
+            .padding(16)
+            .frame(width: 360, height: 420)
+            .background(colors.background)
+
+            // Loading overlay when configuration is loading
+            if viewModel.isLoadingConfiguration {
+                configurationLoadingOverlay
+            }
         }
-        .padding(16)
         .frame(width: 360, height: 420)
-        .background(colors.background)
         .onAppear {
+            // Refresh configuration first, then load clipboard and execute
+            viewModel.refreshConfiguration()
             loadClipboardAndExecute()
             startClipboardMonitor()
         }
         .onDisappear {
             stopClipboardMonitor()
+        }
+    }
+
+    private var configurationLoadingOverlay: some View {
+        ZStack {
+            colors.background.opacity(0.95)
+            VStack(spacing: 12) {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(colors.accent)
+                    .controlSize(.regular)
+                Text("Loading...")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
+            }
         }
     }
     

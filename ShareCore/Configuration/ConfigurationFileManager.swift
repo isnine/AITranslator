@@ -7,6 +7,9 @@
 
 import Foundation
 import Combine
+#if os(macOS)
+import AppKit
+#endif
 
 /// Notification posted when a configuration file changes externally
 public extension Notification.Name {
@@ -31,32 +34,197 @@ public final class ConfigurationFileManager: @unchecked Sendable {
   /// Publisher for file change events
   public let fileChangePublisher = PassthroughSubject<ConfigurationFileChangeEvent, Never>()
 
-  /// Directory where configuration files are stored (App Group shared container)
+  /// Publisher for configuration directory changes
+  public let configDirectoryChangedPublisher = PassthroughSubject<Void, Never>()
+
+  /// Cached custom directory URL
+  private var cachedCustomDirectory: URL?
+
+  /// Directory where configuration files are stored
+  /// Priority: Custom Directory > iCloud > App Group > Application Support
   public var configurationsDirectory: URL {
-    guard let containerURL = fileManager.containerURL(
+    // 1. Check for custom directory from preferences
+    if let customDir = AppPreferences.shared.customConfigDirectory {
+      ensureDirectoryExists(customDir)
+      return customDir
+    }
+
+    // 2. Check if iCloud is enabled and available
+    if AppPreferences.shared.useICloudForConfig,
+       let iCloudURL = AppPreferences.iCloudDocumentsURL {
+      let configDir = iCloudURL.appendingPathComponent("Tree2Lang", isDirectory: true)
+      ensureDirectoryExists(configDir)
+      return configDir
+    }
+
+    // 3. Fallback to App Group shared container
+    if let containerURL = fileManager.containerURL(
       forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
-    ) else {
-      // Fallback to application support if App Group is unavailable
-      let appSupport = fileManager.urls(
-        for: .applicationSupportDirectory,
-        in: .userDomainMask
-      ).first!
-      return appSupport.appendingPathComponent("Configurations", isDirectory: true)
+    ) {
+      let configDir = containerURL.appendingPathComponent("Configurations", isDirectory: true)
+      ensureDirectoryExists(configDir)
+      return configDir
     }
 
-    let configDir = containerURL.appendingPathComponent("Configurations", isDirectory: true)
-
-    if !fileManager.fileExists(atPath: configDir.path) {
-      try? fileManager.createDirectory(at: configDir, withIntermediateDirectories: true)
-    }
-
+    // 4. Final fallback to application support
+    let appSupport = fileManager.urls(
+      for: .applicationSupportDirectory,
+      in: .userDomainMask
+    ).first!
+    let configDir = appSupport.appendingPathComponent("Configurations", isDirectory: true)
+    ensureDirectoryExists(configDir)
     return configDir
+  }
+
+  /// Returns the current storage location type
+  public var currentStorageLocation: StorageLocation {
+    if AppPreferences.shared.customConfigDirectory != nil {
+      return .custom
+    }
+    if AppPreferences.shared.useICloudForConfig && AppPreferences.iCloudDocumentsURL != nil {
+      return .iCloud
+    }
+    return .local
+  }
+
+  /// Storage location types
+  public enum StorageLocation: String, CaseIterable {
+    case local = "Local"
+    case iCloud = "iCloud Drive"
+    case custom = "Custom Folder"
+
+    public var description: String {
+      switch self {
+      case .local:
+        return "Stored in app container"
+      case .iCloud:
+        return "Synced across devices"
+      case .custom:
+        return "Custom folder location"
+      }
+    }
+
+    public var icon: String {
+      switch self {
+      case .local:
+        return "folder.fill"
+      case .iCloud:
+        return "icloud.fill"
+      case .custom:
+        return "folder.badge.gearshape"
+      }
+    }
+  }
+
+  private func ensureDirectoryExists(_ url: URL) {
+    if !fileManager.fileExists(atPath: url.path) {
+      try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+    }
   }
 
   private init() {
     // Copy bundled default configuration on first run if no configs exist
     ensureBundledDefaultExists()
   }
+
+  // MARK: - Storage Location Management
+
+  /// Switch to iCloud storage
+  /// - Parameter migrate: If true, migrate existing configurations to iCloud
+  /// - Returns: Success status
+  @discardableResult
+  public func switchToICloud(migrate: Bool = true) -> Bool {
+    guard AppPreferences.isICloudAvailable else {
+      print("[ConfigFileManager] ❌ iCloud is not available")
+      return false
+    }
+
+    let oldDirectory = configurationsDirectory
+
+    // Clear custom directory first
+    AppPreferences.shared.setCustomConfigDirectory(nil)
+
+    // Enable iCloud
+    AppPreferences.shared.setUseICloudForConfig(true)
+
+    let newDirectory = configurationsDirectory
+
+    if migrate && oldDirectory != newDirectory {
+      migrateConfigurations(from: oldDirectory, to: newDirectory)
+    }
+
+    configDirectoryChangedPublisher.send()
+    print("[ConfigFileManager] ✅ Switched to iCloud storage")
+    return true
+  }
+
+  /// Switch to local storage
+  /// - Parameter migrate: If true, migrate existing configurations to local
+  public func switchToLocal(migrate: Bool = true) {
+    let oldDirectory = configurationsDirectory
+
+    // Clear custom directory and disable iCloud
+    AppPreferences.shared.setCustomConfigDirectory(nil)
+    AppPreferences.shared.setUseICloudForConfig(false)
+
+    let newDirectory = configurationsDirectory
+
+    if migrate && oldDirectory != newDirectory {
+      migrateConfigurations(from: oldDirectory, to: newDirectory)
+    }
+
+    configDirectoryChangedPublisher.send()
+    print("[ConfigFileManager] ✅ Switched to local storage")
+  }
+
+  /// Switch to a custom directory
+  /// - Parameters:
+  ///   - url: The custom directory URL
+  ///   - migrate: If true, migrate existing configurations
+  public func switchToCustomDirectory(_ url: URL, migrate: Bool = true) {
+    let oldDirectory = configurationsDirectory
+
+    // Disable iCloud and set custom directory
+    AppPreferences.shared.setUseICloudForConfig(false)
+    AppPreferences.shared.setCustomConfigDirectory(url)
+
+    let newDirectory = configurationsDirectory
+
+    if migrate && oldDirectory != newDirectory {
+      migrateConfigurations(from: oldDirectory, to: newDirectory)
+    }
+
+    configDirectoryChangedPublisher.send()
+    print("[ConfigFileManager] ✅ Switched to custom directory: \(url.path)")
+  }
+
+  /// Migrate configurations from one directory to another
+  private func migrateConfigurations(from source: URL, to destination: URL) {
+    ensureDirectoryExists(destination)
+
+    guard let files = try? fileManager.contentsOfDirectory(
+      at: source,
+      includingPropertiesForKeys: nil,
+      options: [.skipsHiddenFiles]
+    ) else {
+      return
+    }
+
+    for file in files where file.pathExtension == "json" {
+      let destFile = destination.appendingPathComponent(file.lastPathComponent)
+      if !fileManager.fileExists(atPath: destFile.path) {
+        try? fileManager.copyItem(at: file, to: destFile)
+        print("[ConfigFileManager] Migrated: \(file.lastPathComponent)")
+      }
+    }
+  }
+
+  /// Reveal the configurations directory in Finder (macOS only)
+  #if os(macOS)
+  public func revealInFinder() {
+    NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: configurationsDirectory.path)
+  }
+  #endif
 
   /// Ensure the bundled default configuration is copied to the configurations directory on first run
   private func ensureBundledDefaultExists() {

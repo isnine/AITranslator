@@ -40,6 +40,10 @@ struct SettingsView: View {
   
   // Collapsible section states
   @State private var isSavedConfigsExpanded = false
+  @State private var isStorageSettingsExpanded = false
+  
+  // Storage location state for UI refresh
+  @State private var currentStorageLocation: ConfigurationFileManager.StorageLocation = .local
   
   // Sync control flag to prevent update loops
   @State private var isUpdatingFromPreferences = false
@@ -614,6 +618,9 @@ private extension SettingsView {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(colors.inputBackground.opacity(0.5))
             )
+
+            // Storage Location Settings
+            storageLocationSection
         }
         .padding(18)
         .background(
@@ -813,6 +820,242 @@ private extension SettingsView {
             importError = error.localizedDescription
             showImportError = true
         }
+    }
+
+    // MARK: - Storage Location Section
+
+    var storageLocationSection: some View {
+        VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isStorageSettingsExpanded.toggle()
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: isStorageSettingsExpanded ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
+                        .frame(width: 16)
+                    
+                    Text("Storage Location")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(colors.textPrimary)
+                    
+                    Spacer()
+                    
+                    // Current location indicator
+                    HStack(spacing: 4) {
+                        Image(systemName: currentStorageLocation.icon)
+                            .font(.system(size: 11))
+                        Text(currentStorageLocation.rawValue)
+                            .font(.system(size: 12))
+                    }
+                    .foregroundColor(colors.accent)
+                }
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            
+            if isStorageSettingsExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Choose where to store your configuration files.")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                        .padding(.bottom, 4)
+                    
+                    // Current path display
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Current Path")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(colors.textSecondary)
+                        
+                        HStack {
+                            Text(shortenedPath(ConfigurationFileManager.shared.configurationsDirectory))
+                                .font(.system(size: 12, design: .monospaced))
+                                .foregroundColor(colors.textPrimary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            
+                            Spacer()
+                            
+                            #if os(macOS)
+                            Button {
+                                ConfigurationFileManager.shared.revealInFinder()
+                            } label: {
+                                Text("Reveal")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(colors.accent)
+                            }
+                            .buttonStyle(.plain)
+                            #endif
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(colors.inputBackground)
+                        )
+                    }
+                    
+                    // Storage options
+                    VStack(spacing: 8) {
+                        storageOptionButton(
+                            location: .local,
+                            isSelected: currentStorageLocation == .local
+                        ) {
+                            ConfigurationFileManager.shared.switchToLocal(migrate: true)
+                            updateStorageLocation()
+                        }
+                        
+                        storageOptionButton(
+                            location: .iCloud,
+                            isSelected: currentStorageLocation == .iCloud,
+                            isDisabled: !AppPreferences.isICloudAvailable
+                        ) {
+                            ConfigurationFileManager.shared.switchToICloud(migrate: true)
+                            updateStorageLocation()
+                        }
+                        
+                        #if os(macOS)
+                        storageOptionButton(
+                            location: .custom,
+                            isSelected: currentStorageLocation == .custom
+                        ) {
+                            selectCustomFolder()
+                        }
+                        #endif
+                    }
+                    
+                    // iCloud sync hint
+                    if currentStorageLocation == .iCloud {
+                        HStack(spacing: 6) {
+                            Image(systemName: "checkmark.icloud.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.green)
+                            Text("Configurations will sync across all your devices via iCloud.")
+                                .font(.system(size: 11))
+                                .foregroundColor(colors.textSecondary)
+                        }
+                        .padding(.top, 4)
+                    }
+                }
+                .padding(.leading, 26)
+                .padding(.bottom, 8)
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(colors.inputBackground.opacity(0.5))
+        )
+        .onAppear {
+            updateStorageLocation()
+        }
+        .onReceive(ConfigurationFileManager.shared.configDirectoryChangedPublisher) { _ in
+            updateStorageLocation()
+        }
+    }
+
+    func updateStorageLocation() {
+        currentStorageLocation = ConfigurationFileManager.shared.currentStorageLocation
+        refreshSavedConfigurations()
+    }
+
+    #if os(macOS)
+    func selectCustomFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.canCreateDirectories = true
+        panel.title = "Select Configuration Folder"
+        panel.message = "Choose a folder to store your configuration files."
+        panel.prompt = "Select"
+        
+        panel.begin { response in
+            if response == .OK, let url = panel.url {
+                // Start accessing security-scoped resource
+                guard url.startAccessingSecurityScopedResource() else {
+                    DispatchQueue.main.async {
+                        self.importError = "Unable to access the selected folder."
+                        self.showImportError = true
+                    }
+                    return
+                }
+                
+                DispatchQueue.main.async {
+                    ConfigurationFileManager.shared.switchToCustomDirectory(url, migrate: true)
+                    self.updateStorageLocation()
+                }
+            }
+        }
+    }
+    #endif
+
+    func storageOptionButton(
+        location: ConfigurationFileManager.StorageLocation,
+        isSelected: Bool,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: location.icon)
+                    .font(.system(size: 14))
+                    .foregroundColor(isSelected ? colors.accent : colors.textSecondary)
+                    .frame(width: 20)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(location.rawValue)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(isDisabled ? colors.textSecondary.opacity(0.5) : colors.textPrimary)
+                    Text(location.description)
+                        .font(.system(size: 11))
+                        .foregroundColor(colors.textSecondary)
+                }
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(colors.accent)
+                }
+                
+                if isDisabled && location == .iCloud {
+                    Text("Not available")
+                        .font(.system(size: 10))
+                        .foregroundColor(colors.textSecondary.opacity(0.7))
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(isSelected ? colors.accent.opacity(0.1) : colors.inputBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(isSelected ? colors.accent.opacity(0.3) : Color.clear, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1)
+    }
+
+    func shortenedPath(_ url: URL) -> String {
+        let path = url.path
+        #if os(macOS)
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        if path.hasPrefix(home) {
+            return "~" + path.dropFirst(home.count)
+        }
+        #endif
+        return path
     }
 
     func configStatView(count: Int, label: String) -> some View {

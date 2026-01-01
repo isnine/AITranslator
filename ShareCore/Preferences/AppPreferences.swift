@@ -21,6 +21,8 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var targetLanguage: TargetLanguageOption
     @Published public private(set) var ttsConfiguration: TTSConfiguration
     @Published public private(set) var currentConfigName: String?
+    @Published public private(set) var customConfigDirectory: URL?
+    @Published public private(set) var useICloudForConfig: Bool
 
     private let defaults: UserDefaults
     private var notificationObserver: NSObjectProtocol?
@@ -30,6 +32,8 @@ public final class AppPreferences: ObservableObject {
         self.targetLanguage = AppPreferences.readTargetLanguage(from: defaults)
         self.ttsConfiguration = AppPreferences.readTTSConfiguration(from: defaults)
         self.currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
+        self.customConfigDirectory = AppPreferences.readCustomConfigDirectory(from: defaults)
+        self.useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
 
         notificationObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
@@ -94,6 +98,49 @@ public final class AppPreferences: ObservableObject {
         ttsConfiguration
     }
 
+    public func setCustomConfigDirectory(_ url: URL?) {
+        guard customConfigDirectory != url else { return }
+
+        customConfigDirectory = url
+        if let url = url {
+            #if os(macOS)
+            // Store bookmark data for security-scoped access (macOS only)
+            if let bookmarkData = try? url.bookmarkData(
+                options: .withSecurityScope,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            ) {
+                defaults.set(bookmarkData, forKey: StorageKeys.customConfigDirectory)
+            }
+            #else
+            // On iOS, just store the path directly (custom folders not supported)
+            defaults.set(url.path, forKey: StorageKeys.customConfigDirectory)
+            #endif
+        } else {
+            defaults.removeObject(forKey: StorageKeys.customConfigDirectory)
+        }
+        defaults.synchronize()
+    }
+
+    public func setUseICloudForConfig(_ useICloud: Bool) {
+        guard useICloudForConfig != useICloud else { return }
+
+        useICloudForConfig = useICloud
+        defaults.set(useICloud, forKey: StorageKeys.useICloudForConfig)
+        defaults.synchronize()
+    }
+
+    /// Returns the iCloud Documents directory URL if available
+    public static var iCloudDocumentsURL: URL? {
+        FileManager.default.url(forUbiquityContainerIdentifier: nil)?
+            .appendingPathComponent("Documents", isDirectory: true)
+    }
+
+    /// Check if iCloud is available
+    public static var isICloudAvailable: Bool {
+        FileManager.default.ubiquityIdentityToken != nil
+    }
+
     public func refreshFromDefaults() {
         defaults.synchronize()
         let resolved = AppPreferences.readTargetLanguage(from: defaults)
@@ -110,6 +157,42 @@ public final class AppPreferences: ObservableObject {
         if currentConfigName != storedConfigName {
             currentConfigName = storedConfigName
         }
+
+        let storedCustomDir = AppPreferences.readCustomConfigDirectory(from: defaults)
+        if customConfigDirectory != storedCustomDir {
+            customConfigDirectory = storedCustomDir
+        }
+
+        let storedUseICloud = defaults.bool(forKey: StorageKeys.useICloudForConfig)
+        if useICloudForConfig != storedUseICloud {
+            useICloudForConfig = storedUseICloud
+        }
+    }
+
+    private static func readCustomConfigDirectory(from defaults: UserDefaults) -> URL? {
+        #if os(macOS)
+        guard let bookmarkData = defaults.data(forKey: StorageKeys.customConfigDirectory) else {
+            return nil
+        }
+
+        var isStale = false
+        guard let url = try? URL(
+            resolvingBookmarkData: bookmarkData,
+            options: .withSecurityScope,
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        ) else {
+            return nil
+        }
+
+        // Start accessing security-scoped resource
+        _ = url.startAccessingSecurityScopedResource()
+        return url
+        #else
+        // On iOS, custom directories are not fully supported
+        // Just return nil as we use iCloud or local storage
+        return nil
+        #endif
     }
 
     private static func resolveSharedDefaults() -> UserDefaults {
@@ -149,4 +232,6 @@ private enum StorageKeys {
     static let ttsAPIKey = "tts_api_key"
     static let ttsModel = "tts_model"
     static let ttsVoice = "tts_voice"
+    static let customConfigDirectory = "custom_config_directory"
+    static let useICloudForConfig = "use_icloud_for_config"
 }

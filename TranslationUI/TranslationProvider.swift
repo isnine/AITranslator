@@ -17,6 +17,10 @@ final class TranslationProviderExtension: TranslationUIProviderExtension {
     required init() {
         UserDefaults.standard.addSuite(named: AppPreferences.appGroupSuiteName)
         AppPreferences.shared.refreshFromDefaults()
+        // Force reload configuration from disk to ensure we have the latest config
+        // This is critical because the extension may have been launched after
+        // the main app modified the configuration
+        AppConfigurationStore.shared.reloadCurrentConfiguration()
     }
 
     var body: some TranslationUIProviderExtensionScene {

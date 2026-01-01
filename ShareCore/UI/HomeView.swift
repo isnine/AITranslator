@@ -90,39 +90,54 @@ public struct HomeView: View {
   }
 
   public var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-              if !openFromExtension {
-                #if !os(macOS)
-                header
-                #endif
-                if shouldShowDefaultAppCard {
-                  defaultAppCard
+        ZStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                  if !openFromExtension {
+                    #if !os(macOS)
+                    header
+                    #endif
+                    if shouldShowDefaultAppCard {
+                      defaultAppCard
+                    }
+                    inputComposer
+                  }
+                    actionChips
+                    if viewModel.providerRuns.isEmpty {
+                        hintLabel
+                    } else {
+                        providerResultsSection
+                    }
                 }
-                inputComposer
-              }
-                actionChips
-                if viewModel.providerRuns.isEmpty {
-                    hintLabel
-                } else {
-                    providerResultsSection
-                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 28)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 28)
+            .background(colors.background.ignoresSafeArea())
+            .scrollIndicators(.hidden)
+
+            // Loading overlay when configuration is loading
+            if viewModel.isLoadingConfiguration {
+                configurationLoadingOverlay
+            }
         }
-        .background(colors.background.ignoresSafeArea())
-        .scrollIndicators(.hidden)
         .onAppear {
           AppPreferences.shared.refreshFromDefaults()
-          viewModel.updateUsageScene(usageScene)
+
           #if canImport(TranslationUIProvider)
-          guard openFromExtension, !hasTriggeredAutoRequest else { return }
-          if let inputText = initialContextInput {
-            viewModel.inputText = inputText
+          // For extension context: refresh configuration first, then execute
+          if openFromExtension && !hasTriggeredAutoRequest {
+            viewModel.refreshConfiguration()
+            viewModel.updateUsageScene(usageScene)
+            if let inputText = initialContextInput {
+              viewModel.inputText = inputText
+            }
+            hasTriggeredAutoRequest = true
+            viewModel.performSelectedAction()
+          } else {
+            viewModel.updateUsageScene(usageScene)
           }
-          hasTriggeredAutoRequest = true
-          viewModel.performSelectedAction()
+          #else
+          viewModel.updateUsageScene(usageScene)
           #endif
         }
         #if os(macOS)
@@ -142,6 +157,22 @@ public struct HomeView: View {
           viewModel.updateUsageScene(usageScene)
         }
         #endif
+    }
+
+    private var configurationLoadingOverlay: some View {
+        ZStack {
+            colors.background.opacity(0.9)
+            VStack(spacing: 12) {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(colors.accent)
+                    .controlSize(.regular)
+                Text("Loading configuration...")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textSecondary)
+            }
+        }
+        .ignoresSafeArea()
     }
 
     private var header: some View {

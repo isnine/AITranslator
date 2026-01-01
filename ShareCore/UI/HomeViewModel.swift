@@ -87,6 +87,7 @@ public final class HomeViewModel: ObservableObject {
     @Published public var selectedActionID: UUID?
     @Published public private(set) var providerRuns: [ProviderRunViewState] = []
     @Published public private(set) var speakingProviders: Set<String> = []
+    @Published public private(set) var isLoadingConfiguration: Bool = true
 
     public let placeholderHint: String = NSLocalizedString(
         "Enter text and choose an action to get started",
@@ -123,6 +124,7 @@ public final class HomeViewModel: ObservableObject {
         self.providers = store.providers
         self.selectedActionID = store.defaultAction?.id
         self.actions = []
+        self.isLoadingConfiguration = true
 
         refreshActions()
 
@@ -141,6 +143,9 @@ public final class HomeViewModel: ObservableObject {
                 self?.providers = $0
             }
             .store(in: &cancellables)
+
+        // Configuration is already loaded from the store's init
+        isLoadingConfiguration = false
     }
 
     public var defaultAction: ActionConfig? {
@@ -152,6 +157,27 @@ public final class HomeViewModel: ObservableObject {
             return actions.first
         }
         return actions.first(where: { $0.id == id }) ?? actions.first
+    }
+
+    /// Refresh configuration from store before performing actions.
+    /// This ensures the extension/popover has the latest configuration.
+    public func refreshConfiguration() {
+        isLoadingConfiguration = true
+
+        // Reload configuration from the store
+        configurationStore.reloadCurrentConfiguration()
+
+        // Update local state from refreshed store
+        allActions = configurationStore.actions
+        providers = configurationStore.providers
+        refreshActions()
+
+        // Update selected action to match the new configuration
+        if let firstAction = actions.first {
+            selectedActionID = firstAction.id
+        }
+
+        isLoadingConfiguration = false
     }
 
     /// Returns true if the Send button should be enabled.

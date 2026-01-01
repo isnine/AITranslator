@@ -189,6 +189,9 @@
         }
       }
     },
+    "Choose where to store your configuration files." : {
+
+    },
     "Clear shortcut" : {
 
     },
@@ -244,6 +247,9 @@
 
     },
     "Configuration exported successfully." : {
+
+    },
+    "Configurations will sync across all your devices via iCloud." : {
 
     },
     "Configure AI providers" : {
@@ -316,6 +322,9 @@
 
     },
     "Current" : {
+
+    },
+    "Current Path" : {
 
     },
     "Custom" : {
@@ -546,6 +555,12 @@
     "Load" : {
 
     },
+    "Loading configuration..." : {
+
+    },
+    "Loading..." : {
+
+    },
     "Manage your custom actions" : {
       "localizations" : {
         "zh-Hans" : {
@@ -648,6 +663,9 @@
           }
         }
       }
+    },
+    "Not available" : {
+
     },
     "OK" : {
 
@@ -811,6 +829,9 @@
     "Retry" : {
 
     },
+    "Reveal" : {
+
+    },
     "Save" : {
       "localizations" : {
         "zh-Hans" : {
@@ -967,6 +988,9 @@
       }
     },
     "Standard text output without special formatting" : {
+
+    },
+    "Storage Location" : {
 
     },
     "Summarize" : {

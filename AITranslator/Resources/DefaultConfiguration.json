@@ -18,12 +18,12 @@
       "token": "REDACTED_AZURE_API_KEY"
     }
   },
-  "tts": {
-    "useDefault": true,
-    "endpoint": "https://api.openai.com/v1/audio/speech",
-    "apiKey": "",
-    "model": "gpt-4o-mini-tts",
-    "voice": "alloy"
+  "tts" : {
+    "apiKey" : "REDACTED_AZURE_API_KEY",
+    "endpoint" : "https:\/\/REDACTED_AZURE_ENDPOINT\/openai\/deployments\/gpt-4o-mini-tts\/audio\/speech?api-version=2025-03-01-preview",
+    "model" : "gpt-4o-mini-tts",
+    "useDefault" : true,
+    "voice" : "alloy"
   },
   "actions": [
     {
