@@ -333,8 +333,6 @@ public final class AppConfigurationStore: ObservableObject {
 
       // Apply TTS if present
       if let ttsEntry = config.tts {
-        let usesDefault = ttsEntry.useDefault ?? true
-        preferences.setTTSUsesDefaultConfiguration(usesDefault)
         let ttsConfig = ttsEntry.toTTSConfiguration()
         preferences.setTTSConfiguration(ttsConfig)
       }
@@ -394,8 +392,6 @@ public final class AppConfigurationStore: ObservableObject {
 
       // Apply TTS if present
       if let ttsEntry = config.tts {
-        let usesDefault = ttsEntry.useDefault ?? true
-        preferences.setTTSUsesDefaultConfiguration(usesDefault)
         let ttsConfig = ttsEntry.toTTSConfiguration()
         preferences.setTTSConfiguration(ttsConfig)
       }
@@ -521,8 +517,7 @@ public final class AppConfigurationStore: ObservableObject {
       ),
       providers: providerEntries,
       tts: AppConfiguration.TTSEntry.from(
-        preferences.effectiveTTSConfiguration,
-        usesDefault: preferences.ttsUsesDefaultConfiguration
+        preferences.effectiveTTSConfiguration
       ),
       actions: actionEntries
     )

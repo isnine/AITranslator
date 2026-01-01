@@ -91,9 +91,6 @@
         }
       }
     },
-    "Advanced Settings" : {
-
-    },
     "All Actions" : {
       "localizations" : {
         "zh-Hans" : {
@@ -103,9 +100,6 @@
           }
         }
       }
-    },
-    "alloy" : {
-
     },
     "API Key" : {
       "localizations" : {
@@ -273,6 +267,9 @@
         }
       }
     },
+    "Configure text-to-speech for reading results aloud." : {
+
+    },
     "Configured Providers" : {
       "localizations" : {
         "zh-Hans" : {
@@ -324,10 +321,8 @@
     "Custom" : {
 
     },
-    "Custom configuration" : {
-
-    },
     "Custom Endpoint" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -395,6 +390,12 @@
     "Duration: %@" : {
 
     },
+    "e.g. alloy" : {
+
+    },
+    "e.g. gpt-4o-mini-tts" : {
+
+    },
     "e.g., model-router, gpt-5, gpt-4o" : {
 
     },
@@ -417,7 +418,14 @@
     "Enabled Deployments" : {
 
     },
+    "Endpoint" : {
+
+    },
+    "Enter API Key here" : {
+
+    },
     "Enter Azure Key here" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -493,9 +501,6 @@
       }
     },
     "Global Shortcuts" : {
-
-    },
-    "gpt-4o-mini-tts" : {
 
     },
     "Grammar Check" : {
@@ -1085,9 +1090,6 @@
           }
         }
       }
-    },
-    "Using default configuration" : {
-
     },
     "Validation Failed" : {
 

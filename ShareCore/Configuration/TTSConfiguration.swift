@@ -16,8 +16,8 @@ public struct TTSConfiguration: Equatable {
     public init(
         endpointURL: URL,
         apiKey: String,
-        model: String = "gpt-4o-mini-tts",
-        voice: String = "alloy"
+        model: String,
+        voice: String
     ) {
         self.endpointURL = endpointURL
         self.apiKey = apiKey
@@ -29,7 +29,12 @@ public struct TTSConfiguration: Equatable {
     public static let empty = TTSConfiguration(
         endpointURL: URL(string: "https://")!,
         apiKey: "",
-        model: "gpt-4o-mini-tts",
-        voice: "alloy"
+        model: "",
+        voice: ""
     )
+    
+    /// Whether the configuration is valid for making TTS requests
+    public var isValid: Bool {
+        !apiKey.isEmpty && endpointURL.absoluteString != "https://" && !model.isEmpty && !voice.isEmpty
+    }
 }

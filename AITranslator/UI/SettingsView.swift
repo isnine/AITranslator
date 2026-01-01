@@ -40,7 +40,9 @@ struct SettingsView: View {
   
   // Collapsible section states
   @State private var isSavedConfigsExpanded = false
-  @State private var isTTSAdvancedExpanded = false
+  
+  // Sync control flag to prevent update loops
+  @State private var isUpdatingFromPreferences = false
 
   #if os(macOS)
   @ObservedObject private var hotKeyManager = HotKeyManager.shared
@@ -98,22 +100,23 @@ struct SettingsView: View {
             preferences.setTargetLanguage(option)
         }
         .onChange(of: customTTSEndpoint) {
+            guard !isUpdatingFromPreferences else { return }
             persistCustomTTSConfiguration()
         }
         .onChange(of: customTTSAPIKey) {
+            guard !isUpdatingFromPreferences else { return }
             persistCustomTTSConfiguration()
         }
         .onChange(of: customTTSModel) {
+            guard !isUpdatingFromPreferences else { return }
             persistCustomTTSConfiguration()
         }
         .onChange(of: customTTSVoice) {
+            guard !isUpdatingFromPreferences else { return }
             persistCustomTTSConfiguration()
         }
-        .onReceive(preferences.$ttsUsesDefaultConfiguration) { _ in
-            syncTTSPreferencesFromStore()
-        }
         .onReceive(preferences.$ttsConfiguration) { _ in
-            guard !isUsingDefaultTTS else { return }
+            // Always sync TTS configuration to UI when it changes
             syncTTSPreferencesFromStore()
         }
         .fileImporter(
@@ -181,21 +184,6 @@ struct SettingsView: View {
 }
 
 private extension SettingsView {
-  var isUsingDefaultTTS: Bool {
-    preferences.ttsUsesDefaultConfiguration
-  }
-
-  var defaultToggleBinding: Binding<Bool> {
-    Binding(
-      get: { preferences.ttsUsesDefaultConfiguration },
-      set: { newValue in
-        preferences.setTTSUsesDefaultConfiguration(newValue)
-        // Always sync from store to show the actual stored custom values
-        syncTTSPreferencesFromStore()
-      }
-    )
-  }
-
   #if os(macOS)
   var hotKeyPreferenceCard: some View {
     VStack(alignment: .leading, spacing: 16) {
@@ -380,154 +368,96 @@ private extension SettingsView {
 
     var ttsPreferenceCard: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Header with toggle
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("TTS Settings")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(colors.textPrimary)
-                    Text(isUsingDefaultTTS ? "Using default configuration" : "Custom configuration")
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
-                }
-                Spacer()
-                Toggle("", isOn: defaultToggleBinding)
-                    .labelsHidden()
-                    .tint(colors.accent)
+            // Header
+            VStack(alignment: .leading, spacing: 4) {
+                Text("TTS Settings")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+                Text("Configure text-to-speech for reading results aloud.")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
             }
 
-            // Collapsible advanced settings
-            VStack(spacing: 0) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isTTSAdvancedExpanded.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: isTTSAdvancedExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(colors.textSecondary)
-                            .frame(width: 16)
-                        
-                        Text("Advanced Settings")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(colors.textPrimary)
-                        
-                        Spacer()
-                        
-                        if !isUsingDefaultTTS {
-                            Text("Custom")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(colors.accent)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .fill(colors.accent.opacity(0.12))
-                                )
-                        }
-                    }
+            // TTS configuration fields
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Endpoint")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+
+                TextField("https://...", text: $customTTSEndpoint)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 14)
                     .padding(.vertical, 12)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                
-                if isTTSAdvancedExpanded {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Custom Endpoint")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(colors.textSecondary)
-
-                        TextField("https://...", text: $customTTSEndpoint)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 14))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .foregroundColor(colors.textPrimary)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(colors.inputBackground)
-                            )
-                            .disabled(isUsingDefaultTTS)
-                            .autocorrectionDisabled()
+                    .foregroundColor(colors.textPrimary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                    .autocorrectionDisabled()
 #if os(iOS)
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.URL)
 #endif
 
-                        Text("API Key")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(colors.textSecondary)
+                Text("API Key")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
 
-                        SecureField("Enter Azure Key here", text: $customTTSAPIKey)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 14))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .foregroundColor(colors.textPrimary)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(colors.inputBackground)
-                            )
-                            .disabled(isUsingDefaultTTS)
-                            .autocorrectionDisabled()
+                SecureField("Enter API Key here", text: $customTTSAPIKey)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .foregroundColor(colors.textPrimary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                    .autocorrectionDisabled()
 #if os(iOS)
-                            .textInputAutocapitalization(.never)
-                            .textContentType(.password)
+                    .textInputAutocapitalization(.never)
+                    .textContentType(.password)
 #endif
 
-                        Text("Model")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(colors.textSecondary)
+                Text("Model")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
 
-                        TextField("gpt-4o-mini-tts", text: $customTTSModel)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 14))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .foregroundColor(colors.textPrimary)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(colors.inputBackground)
-                            )
-                            .disabled(isUsingDefaultTTS)
-                            .autocorrectionDisabled()
+                TextField("e.g. gpt-4o-mini-tts", text: $customTTSModel)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .foregroundColor(colors.textPrimary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                    .autocorrectionDisabled()
 #if os(iOS)
-                            .textInputAutocapitalization(.never)
+                    .textInputAutocapitalization(.never)
 #endif
 
-                        Text("Voice")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(colors.textSecondary)
+                Text("Voice")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
 
-                        TextField("alloy", text: $customTTSVoice)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 14))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .foregroundColor(colors.textPrimary)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(colors.inputBackground)
-                            )
-                            .disabled(isUsingDefaultTTS)
-                            .autocorrectionDisabled()
+                TextField("e.g. alloy", text: $customTTSVoice)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .foregroundColor(colors.textPrimary)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.inputBackground)
+                    )
+                    .autocorrectionDisabled()
 #if os(iOS)
-                            .textInputAutocapitalization(.never)
+                    .textInputAutocapitalization(.never)
 #endif
-                    }
-                    .padding(.leading, 26)
-                    .padding(.bottom, 8)
-                    .opacity(isUsingDefaultTTS ? 0.55 : 1)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(colors.inputBackground.opacity(0.5))
-            )
         }
         .padding(18)
         .background(
@@ -985,14 +915,10 @@ private extension SettingsView {
     }
 
     func persistCustomTTSConfiguration() {
-        guard !isUsingDefaultTTS else { return }
-
         let trimmedEndpoint = customTTSEndpoint
             .trimmingCharacters(in: .whitespacesAndNewlines)
 
-        guard !trimmedEndpoint.isEmpty, let endpointURL = URL(string: trimmedEndpoint) else {
-            return
-        }
+        let endpointURL = URL(string: trimmedEndpoint) ?? URL(string: "https://")!
 
         let trimmedKey = customTTSAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedModel = customTTSModel.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1001,20 +927,19 @@ private extension SettingsView {
         let configuration = TTSConfiguration(
             endpointURL: endpointURL,
             apiKey: trimmedKey,
-            model: trimmedModel.isEmpty ? "gpt-4o-mini-tts" : trimmedModel,
-            voice: trimmedVoice.isEmpty ? "alloy" : trimmedVoice
+            model: trimmedModel,
+            voice: trimmedVoice
         )
 
-        customTTSEndpoint = trimmedEndpoint
-        customTTSAPIKey = trimmedKey
-        customTTSModel = configuration.model
-        customTTSVoice = configuration.voice
         preferences.setTTSConfiguration(configuration)
     }
 
     func syncTTSPreferencesFromStore() {
         // Always show the actual stored custom TTS configuration values
         // This allows user to see what custom values are saved (even when using defaults)
+        isUpdatingFromPreferences = true
+        defer { isUpdatingFromPreferences = false }
+        
         let configuration = preferences.ttsConfiguration
         customTTSEndpoint = configuration.endpointURL.absoluteString
         customTTSAPIKey = configuration.apiKey

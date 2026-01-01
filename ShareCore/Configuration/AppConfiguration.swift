@@ -169,20 +169,17 @@ public extension AppConfiguration {
 
 public extension AppConfiguration {
   struct TTSEntry: Codable, Sendable {
-    public var useDefault: Bool?
     public var endpoint: String?
     public var apiKey: String?
     public var model: String?
     public var voice: String?
 
     public init(
-      useDefault: Bool? = nil,
       endpoint: String? = nil,
       apiKey: String? = nil,
       model: String? = nil,
       voice: String? = nil
     ) {
-      self.useDefault = useDefault
       self.endpoint = endpoint
       self.apiKey = apiKey
       self.model = model
@@ -191,23 +188,18 @@ public extension AppConfiguration {
 
     /// Convert to internal TTSConfiguration
     public func toTTSConfiguration() -> TTSConfiguration {
-      // Always return a configuration, using empty values if not provided
       let endpointURL = endpoint.flatMap { URL(string: $0) } ?? URL(string: "https://")!
       return TTSConfiguration(
         endpointURL: endpointURL,
         apiKey: apiKey ?? "",
-        model: model ?? "gpt-4o-mini-tts",
-        voice: voice ?? "alloy"
+        model: model ?? "",
+        voice: voice ?? ""
       )
     }
 
     /// Create from internal TTSConfiguration
-    public static func from(
-      _ config: TTSConfiguration,
-      usesDefault: Bool
-    ) -> TTSEntry {
+    public static func from(_ config: TTSConfiguration) -> TTSEntry {
       TTSEntry(
-        useDefault: usesDefault,
         endpoint: config.endpointURL.absoluteString,
         apiKey: config.apiKey,
         model: config.model,

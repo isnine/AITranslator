@@ -210,16 +210,14 @@ public struct ConfigurationValidator: Sendable {
   ) -> [ConfigurationValidationIssue] {
     var issues: [ConfigurationValidationIssue] = []
 
-    // Only validate if not using default
-    let usesDefault = tts.useDefault ?? true
-    if !usesDefault {
-      if let endpoint = tts.endpoint, URL(string: endpoint) == nil {
-        issues.append(.invalidTTSEndpoint(url: endpoint))
-      }
+    // Validate endpoint URL format if provided
+    if let endpoint = tts.endpoint, !endpoint.isEmpty, URL(string: endpoint) == nil {
+      issues.append(.invalidTTSEndpoint(url: endpoint))
+    }
 
-      if tts.apiKey?.isEmpty ?? true {
-        issues.append(.emptyTTSApiKey)
-      }
+    // Warn if API key is empty (TTS won't work without it)
+    if tts.apiKey?.isEmpty ?? true {
+      issues.append(.emptyTTSApiKey)
     }
 
     return issues

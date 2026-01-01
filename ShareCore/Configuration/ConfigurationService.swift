@@ -90,15 +90,11 @@ public final class ConfigurationService: Sendable {
 
     // Apply TTS - always apply from config file
     if let ttsEntry = config.tts {
-      // Apply useDefault flag
-      let usesDefault = ttsEntry.useDefault ?? true
-      preferences.setTTSUsesDefaultConfiguration(usesDefault)
       // Always apply the TTS configuration from the file
       let ttsConfig = ttsEntry.toTTSConfiguration()
       preferences.setTTSConfiguration(ttsConfig)
     } else {
       // No TTS configuration in the imported config - reset to empty
-      preferences.setTTSUsesDefaultConfiguration(true)
       preferences.setTTSConfiguration(.empty)
     }
 
@@ -166,8 +162,7 @@ public final class ConfigurationService: Sendable {
 
     // Build TTS
     let ttsEntry = AppConfiguration.TTSEntry.from(
-      preferences.effectiveTTSConfiguration,
-      usesDefault: preferences.ttsUsesDefaultConfiguration
+      preferences.effectiveTTSConfiguration
     )
 
     return AppConfiguration(

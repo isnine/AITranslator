@@ -20,7 +20,6 @@ public final class AppPreferences: ObservableObject {
 
     @Published public private(set) var targetLanguage: TargetLanguageOption
     @Published public private(set) var ttsConfiguration: TTSConfiguration
-    @Published public private(set) var ttsUsesDefaultConfiguration: Bool
     @Published public private(set) var currentConfigName: String?
 
     private let defaults: UserDefaults
@@ -29,9 +28,7 @@ public final class AppPreferences: ObservableObject {
     private init(defaults: UserDefaults = AppPreferences.resolveSharedDefaults()) {
         self.defaults = defaults
         self.targetLanguage = AppPreferences.readTargetLanguage(from: defaults)
-        let ttsState = AppPreferences.readTTSConfiguration(from: defaults)
-        self.ttsConfiguration = ttsState.configuration
-        self.ttsUsesDefaultConfiguration = ttsState.usesDefault
+        self.ttsConfiguration = AppPreferences.readTTSConfiguration(from: defaults)
         self.currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
 
         notificationObserver = NotificationCenter.default.addObserver(
@@ -79,18 +76,6 @@ public final class AppPreferences: ObservableObject {
         defaults.synchronize()
     }
 
-    public func setTTSUsesDefaultConfiguration(_ usesDefault: Bool) {
-        guard ttsUsesDefaultConfiguration != usesDefault else {
-            defaults.set(usesDefault, forKey: StorageKeys.ttsUseDefault)
-            defaults.synchronize()
-            return
-        }
-
-        ttsUsesDefaultConfiguration = usesDefault
-        defaults.set(usesDefault, forKey: StorageKeys.ttsUseDefault)
-        defaults.synchronize()
-    }
-
     public func setCurrentConfigName(_ name: String?) {
         guard currentConfigName != name else {
             return
@@ -106,9 +91,6 @@ public final class AppPreferences: ObservableObject {
     }
 
     public var effectiveTTSConfiguration: TTSConfiguration {
-        // When using default configuration but no custom config is set,
-        // return the stored ttsConfiguration (which may be empty)
-        // The actual TTS service will handle empty configuration gracefully
         ttsConfiguration
     }
 
@@ -119,13 +101,9 @@ public final class AppPreferences: ObservableObject {
             targetLanguage = resolved
         }
 
-        let ttsState = AppPreferences.readTTSConfiguration(from: defaults)
-        if ttsConfiguration != ttsState.configuration {
-            ttsConfiguration = ttsState.configuration
-        }
-
-        if ttsUsesDefaultConfiguration != ttsState.usesDefault {
-            ttsUsesDefaultConfiguration = ttsState.usesDefault
+        let ttsConfig = AppPreferences.readTTSConfiguration(from: defaults)
+        if ttsConfiguration != ttsConfig {
+            ttsConfiguration = ttsConfig
         }
 
         let storedConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
@@ -149,32 +127,24 @@ public final class AppPreferences: ObservableObject {
         return TargetLanguageOption(rawValue: stored ?? "") ?? .appLanguage
     }
 
-    private static func readTTSConfiguration(
-        from defaults: UserDefaults
-    ) -> (configuration: TTSConfiguration, usesDefault: Bool) {
-        let usesDefault = defaults.object(forKey: StorageKeys.ttsUseDefault) as? Bool ?? true
+    private static func readTTSConfiguration(from defaults: UserDefaults) -> TTSConfiguration {
         let endpointString = defaults.string(forKey: StorageKeys.ttsEndpoint) ?? ""
         let apiKey = defaults.string(forKey: StorageKeys.ttsAPIKey) ?? ""
-        let model = defaults.string(forKey: StorageKeys.ttsModel)
-        let voice = defaults.string(forKey: StorageKeys.ttsVoice)
+        let model = defaults.string(forKey: StorageKeys.ttsModel) ?? ""
+        let voice = defaults.string(forKey: StorageKeys.ttsVoice) ?? ""
 
-        // Always return the actual stored values, even if empty
-        // Don't fall back to hardcoded defaults - let the UI show what's actually configured
         let endpointURL = URL(string: endpointString) ?? URL(string: "https://")!
-        let configuration = TTSConfiguration(
+        return TTSConfiguration(
             endpointURL: endpointURL,
             apiKey: apiKey,
-            model: model?.isEmpty == false ? model! : "gpt-4o-mini-tts",
-            voice: voice?.isEmpty == false ? voice! : "alloy"
+            model: model,
+            voice: voice
         )
-
-        return (configuration, usesDefault)
     }
 }
 
 private enum StorageKeys {
     static let currentConfigName = "current_config_name"
-    static let ttsUseDefault = "tts_use_default_configuration"
     static let ttsEndpoint = "tts_endpoint_url"
     static let ttsAPIKey = "tts_api_key"
     static let ttsModel = "tts_model"
