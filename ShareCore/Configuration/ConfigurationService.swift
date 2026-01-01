@@ -47,15 +47,12 @@ public final class ConfigurationService: Sendable {
       let decoder = JSONDecoder()
       let config = try decoder.decode(AppConfiguration.self, from: data)
 
-      // Validate version
-      guard isVersionSupported(config.version) else {
-        return .failure(.unsupportedVersion(config.version))
-      }
+      // Use ConfigurationValidator for comprehensive validation
+      let validationResult = ConfigurationValidator.shared.validate(config)
 
-      // Validate providers exist for actions
-      let validationResult = validateConfiguration(config)
-      if case .failure(let error) = validationResult {
-        return .failure(error)
+      // Only fail on errors, not warnings
+      if validationResult.hasErrors {
+        return .failure(.validationFailed(validationResult))
       }
 
       return .success(config)
@@ -194,35 +191,29 @@ public final class ConfigurationService: Sendable {
     return try? encoder.encode(config)
   }
 
-  private func isVersionSupported(_ version: String) -> Bool {
-    // Support version 1.x.x
-    let components = version.split(separator: ".").compactMap { Int($0) }
-    guard let major = components.first else { return false }
-    return major == 1
-  }
+  /// Validate configuration before saving
+  /// Returns validation result with all issues found
+  @MainActor
+  public func validateCurrentConfiguration(
+    from store: AppConfigurationStore,
+    preferences: AppPreferences
+  ) -> ConfigurationValidationResult {
+    // First validate in-memory configuration
+    let inMemoryResult = ConfigurationValidator.shared.validateInMemory(
+      actions: store.actions,
+      providers: store.providers
+    )
 
-  private func validateConfiguration(
-    _ config: AppConfiguration
-  ) -> Result<Void, ConfigurationError> {
-    let providerNames = Set(config.providers.keys)
+    // Then build and validate the full configuration
+    let config = buildAppConfiguration(from: store, preferences: preferences)
+    let fullResult = ConfigurationValidator.shared.validate(config)
 
-    for action in config.actions {
-      for providerRef in action.providers {
-        // Extract provider name (handle "ProviderName:deployment" format)
-        let providerName: String
-        if let colonIndex = providerRef.firstIndex(of: ":") {
-          providerName = String(providerRef[..<colonIndex])
-        } else {
-          providerName = providerRef
-        }
-        
-        if !providerNames.contains(providerName) {
-          return .failure(.missingProvider(providerName, inAction: action.name))
-        }
-      }
+    // Combine issues (deduplicate if needed)
+    let allIssues = inMemoryResult.issues + fullResult.issues.filter { issue in
+      !inMemoryResult.issues.contains(issue)
     }
 
-    return .success(())
+    return ConfigurationValidationResult(issues: allIssues)
   }
 }
 
@@ -231,8 +222,14 @@ public final class ConfigurationService: Sendable {
 public enum ConfigurationError: LocalizedError, Sendable {
   case invalidData
   case decodingFailed(Error)
+  case encodingFailed(Error)
   case unsupportedVersion(String)
   case missingProvider(String, inAction: String)
+  case missingDeployment(deployment: String, provider: String, inAction: String)
+  case validationFailed(ConfigurationValidationResult)
+  case fileNotFound(name: String)
+  case fileWriteFailed(Error)
+  case fileReadFailed(Error)
 
   public var errorDescription: String? {
     switch self {
@@ -240,10 +237,23 @@ public enum ConfigurationError: LocalizedError, Sendable {
       return "Invalid configuration data"
     case .decodingFailed(let error):
       return "Failed to decode configuration: \(error.localizedDescription)"
+    case .encodingFailed(let error):
+      return "Failed to encode configuration: \(error.localizedDescription)"
     case .unsupportedVersion(let version):
       return "Unsupported configuration version: \(version)"
     case .missingProvider(let provider, let action):
       return "Action '\(action)' references unknown provider '\(provider)'"
+    case .missingDeployment(let deployment, let provider, let action):
+      return "Action '\(action)' references unknown deployment '\(deployment)' in provider '\(provider)'"
+    case .validationFailed(let result):
+      let errorMessages = result.errors.map(\.message).joined(separator: "; ")
+      return "Configuration validation failed: \(errorMessages)"
+    case .fileNotFound(let name):
+      return "Configuration file not found: '\(name)'"
+    case .fileWriteFailed(let error):
+      return "Failed to write configuration file: \(error.localizedDescription)"
+    case .fileReadFailed(let error):
+      return "Failed to read configuration file: \(error.localizedDescription)"
     }
   }
 }

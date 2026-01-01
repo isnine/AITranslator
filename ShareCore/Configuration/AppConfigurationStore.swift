@@ -10,288 +10,496 @@ import Combine
 
 @MainActor
 public final class AppConfigurationStore: ObservableObject {
-    public static let shared = AppConfigurationStore()
+  public static let shared = AppConfigurationStore()
 
-    @Published public private(set) var actions: [ActionConfig]
-    @Published public private(set) var providers: [ProviderConfig]
-    @Published public private(set) var currentConfigurationName: String?
+  @Published public private(set) var actions: [ActionConfig]
+  @Published public private(set) var providers: [ProviderConfig]
+  @Published public private(set) var currentConfigurationName: String?
 
-    private let preferences: AppPreferences
-    private let configFileManager: ConfigurationFileManager
-    private var cancellables: Set<AnyCancellable> = []
+  /// Last validation result from loading or saving
+  @Published public private(set) var lastValidationResult: ConfigurationValidationResult?
 
-    public var defaultAction: ActionConfig? {
-        actions.first
-    }
+  /// Whether auto-save is currently suspended (to prevent save loops during file reload)
+  private var isSaveSuspended = false
 
-    public var defaultProvider: ProviderConfig? {
-        providers.first
-    }
+  /// Timestamp of last file modification we initiated
+  private var lastSaveTimestamp: Date?
 
-    private init(
-        preferences: AppPreferences = .shared,
-        configFileManager: ConfigurationFileManager = .shared
-    ) {
-        self.preferences = preferences
-        self.configFileManager = configFileManager
-        preferences.refreshFromDefaults()
+  /// Debounce interval for file change events (to avoid duplicate reloads)
+  private static let fileChangeDebounceInterval: TimeInterval = 0.5
 
-        // Initialize with empty arrays first
-        self.providers = []
-        self.actions = []
-        self.currentConfigurationName = nil
+  private let preferences: AppPreferences
+  private let configFileManager: ConfigurationFileManager
+  private var cancellables: Set<AnyCancellable> = []
 
-        // Then load from persistence or defaults
-        loadConfiguration()
+  public var defaultAction: ActionConfig? {
+    actions.first
+  }
 
-        // Use dropFirst() to skip the initial value emission,
-        // so we only save on actual user-initiated changes
-        preferences.$targetLanguage
-            .dropFirst()
-            .receive(on: RunLoop.main)
-            .sink { [weak self] option in
-                guard let self else { return }
-                let updated = AppConfigurationStore.applyTargetLanguage(
-                    self.actions,
-                    targetLanguage: option
-                )
-                self.actions = updated
-                self.saveConfiguration()
-            }
-            .store(in: &cancellables)
-    }
+  public var defaultProvider: ProviderConfig? {
+    providers.first
+  }
 
-    // MARK: - Public Methods
+  private init(
+    preferences: AppPreferences = .shared,
+    configFileManager: ConfigurationFileManager = .shared
+  ) {
+    self.preferences = preferences
+    self.configFileManager = configFileManager
+    preferences.refreshFromDefaults()
 
-    public func updateActions(_ actions: [ActionConfig]) {
-        let adjusted = AppConfigurationStore.applyTargetLanguage(
-            actions,
-            targetLanguage: preferences.targetLanguage
+    // Initialize with empty arrays first
+    self.providers = []
+    self.actions = []
+    self.currentConfigurationName = nil
+    self.lastValidationResult = nil
+
+    // Then load from persistence or defaults
+    loadConfiguration()
+
+    // Subscribe to file change events
+    setupFileChangeObserver()
+
+    // Use dropFirst() to skip the initial value emission,
+    // so we only save on actual user-initiated changes
+    preferences.$targetLanguage
+      .dropFirst()
+      .receive(on: RunLoop.main)
+      .sink { [weak self] option in
+        guard let self else { return }
+        let updated = AppConfigurationStore.applyTargetLanguage(
+          self.actions,
+          targetLanguage: option
         )
-        self.actions = adjusted
-        saveConfiguration()
-    }
+        self.actions = updated
+        self.saveConfiguration()
+      }
+      .store(in: &cancellables)
+  }
 
-    public func updateProviders(_ providers: [ProviderConfig]) {
-        self.providers = providers
-        saveConfiguration()
-    }
+  // MARK: - File Change Observer
 
-    public func setCurrentConfigurationName(_ name: String?) {
-        self.currentConfigurationName = name
-        preferences.setCurrentConfigName(name)
-    }
-
-    // MARK: - Persistence using ConfigurationFileManager
-
-    private func loadConfiguration() {
-        // Step 1: Read current config name from UserDefaults
-        let storedName = preferences.currentConfigName
-        print("[ConfigStore] Stored config name from UserDefaults: \(storedName ?? "nil")")
-
-        // Step 2: Try to load the named configuration
-        if let name = storedName {
-            if tryLoadConfiguration(named: name) {
-                print("[ConfigStore] ✅ Successfully loaded config: '\(name)'")
-                return
-            }
-            print("[ConfigStore] ⚠️ Failed to load stored config '\(name)', trying fallback...")
+  private func setupFileChangeObserver() {
+    configFileManager.fileChangePublisher
+      .debounce(for: .seconds(Self.fileChangeDebounceInterval), scheduler: DispatchQueue.main)
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] event in
+        guard let self else { return }
+        Task { @MainActor in
+          await self.handleFileChange(event)
         }
+      }
+      .store(in: &cancellables)
+  }
 
-        // Step 3: Fallback - try to load any available configuration
-        let availableConfigs = configFileManager.listConfigurations()
-        print("[ConfigStore] Available configs: \(availableConfigs.map { $0.name })")
+  private func handleFileChange(_ event: ConfigurationFileChangeEvent) async {
+    // Only process changes to the current configuration
+    guard event.name == currentConfigurationName else { return }
 
-        for configInfo in availableConfigs {
-            if tryLoadConfiguration(named: configInfo.name) {
-                print("[ConfigStore] ✅ Loaded fallback config: '\(configInfo.name)'")
-                preferences.setCurrentConfigName(configInfo.name)
-                return
-            }
-        }
+    // Ignore changes we initiated ourselves (within debounce window)
+    if let lastSave = lastSaveTimestamp,
+      event.timestamp.timeIntervalSince(lastSave) < Self.fileChangeDebounceInterval
+    {
+      print("[ConfigStore] Ignoring file change - self-initiated save")
+      return
+    }
 
-        // Step 4: No configuration available - create empty configuration
-        print("[ConfigStore] ⚠️ No configurations available, creating empty configuration...")
+    switch event.changeType {
+    case .modified:
+      print("[ConfigStore] 🔄 External file modification detected, reloading...")
+      reloadCurrentConfiguration()
+
+    case .deleted:
+      print("[ConfigStore] ⚠️ Configuration file deleted externally")
+      // Try to switch to another available configuration
+      let availableConfigs = configFileManager.listConfigurations()
+      if let firstConfig = availableConfigs.first {
+        _ = switchConfiguration(to: firstConfig.name)
+      } else {
         createEmptyConfiguration()
+      }
+
+    case .renamed:
+      print("[ConfigStore] ⚠️ Configuration file renamed externally")
+      // Try to find the file under a new name or reload
+      reloadCurrentConfiguration()
+    }
+  }
+
+  // MARK: - Public Methods
+
+  /// Update actions with validation
+  /// Returns validation result (nil if validation passed or was skipped)
+  @discardableResult
+  public func updateActions(_ actions: [ActionConfig]) -> ConfigurationValidationResult? {
+    let adjusted = AppConfigurationStore.applyTargetLanguage(
+      actions,
+      targetLanguage: preferences.targetLanguage
+    )
+
+    // Validate before applying
+    let validationResult = ConfigurationValidator.shared.validateInMemory(
+      actions: adjusted,
+      providers: providers
+    )
+
+    self.lastValidationResult = validationResult
+
+    // Apply changes even with warnings, but log them
+    if validationResult.hasWarnings {
+      for warning in validationResult.warnings {
+        print("[ConfigStore] ⚠️ Validation warning: \(warning.message)")
+      }
     }
 
-    private func tryLoadConfiguration(named name: String) -> Bool {
-        do {
-            let config = try configFileManager.loadConfiguration(named: name)
-            applyLoadedConfiguration(config)
-            self.currentConfigurationName = name
-            preferences.setCurrentConfigName(name)
+    self.actions = adjusted
+    saveConfiguration()
 
-            // Apply preferences if present
-            if let prefsConfig = config.preferences {
-                if let targetLang = prefsConfig.targetLanguage,
-                   let option = TargetLanguageOption(rawValue: targetLang) {
-                    preferences.setTargetLanguage(option)
-                }
-            }
+    return validationResult.issues.isEmpty ? nil : validationResult
+  }
 
-            // Apply TTS if present
-            if let ttsEntry = config.tts {
-                let usesDefault = ttsEntry.useDefault ?? true
-                preferences.setTTSUsesDefaultConfiguration(usesDefault)
-                let ttsConfig = ttsEntry.toTTSConfiguration()
-                preferences.setTTSConfiguration(ttsConfig)
-            }
+  /// Update providers with validation
+  /// Returns validation result (nil if validation passed or was skipped)
+  @discardableResult
+  public func updateProviders(_ providers: [ProviderConfig]) -> ConfigurationValidationResult? {
+    // Validate before applying
+    let validationResult = ConfigurationValidator.shared.validateInMemory(
+      actions: actions,
+      providers: providers
+    )
 
-            return true
-        } catch {
-            print("[ConfigStore] Failed to load config '\(name)': \(error)")
-            return false
-        }
+    self.lastValidationResult = validationResult
+
+    // Apply changes even with warnings, but log them
+    if validationResult.hasWarnings {
+      for warning in validationResult.warnings {
+        print("[ConfigStore] ⚠️ Validation warning: \(warning.message)")
+      }
     }
 
-    private func createEmptyConfiguration() {
-        self.providers = []
-        self.actions = []
-        self.currentConfigurationName = "New Configuration"
-        preferences.setCurrentConfigName("New Configuration")
+    self.providers = providers
+    saveConfiguration()
 
-        // Save the empty configuration
-        saveConfiguration()
-    }
-    
-    private func applyLoadedConfiguration(_ config: AppConfiguration) {
-        // Build provider map
-        var loadedProviders: [ProviderConfig] = []
-        var providerNameToID: [String: UUID] = [:]
-        
-        print("[ConfigStore] Parsing \(config.providers.count) providers from config")
-        
-        for (name, entry) in config.providers {
-            print("[ConfigStore] Trying to parse provider: '\(name)' with category: '\(entry.category)'")
-            if let provider = entry.toProviderConfig(name: name) {
-                loadedProviders.append(provider)
-                providerNameToID[name] = provider.id
-                print("[ConfigStore] ✅ Successfully parsed provider: '\(name)'")
-            } else {
-                print("[ConfigStore] ❌ Failed to parse provider: '\(name)' - toProviderConfig returned nil")
-            }
-        }
-        
-        print("[ConfigStore] Total loaded providers: \(loadedProviders.count)")
-        
-        // Build actions (actions is now an array, order is preserved)
-        var loadedActions: [ActionConfig] = []
-        for entry in config.actions {
-            let action = entry.toActionConfig(providerMap: providerNameToID)
-            loadedActions.append(action)
-        }
-        
-        print("[ConfigStore] Total loaded actions: \(loadedActions.count)")
-        
-        self.providers = loadedProviders
-        self.actions = AppConfigurationStore.applyTargetLanguage(
-            loadedActions,
-            targetLanguage: preferences.targetLanguage
-        )
-    }
-    
-    private func saveConfiguration() {
-        guard let configName = currentConfigurationName else {
-            print("[ConfigStore] No current configuration name set, skipping save")
-            return
-        }
+    return validationResult.issues.isEmpty ? nil : validationResult
+  }
 
-        let config = buildCurrentConfiguration()
+  public func setCurrentConfigurationName(_ name: String?) {
+    self.currentConfigurationName = name
+    preferences.setCurrentConfigName(name)
 
-        do {
-            try configFileManager.saveConfiguration(config, name: configName)
-            print("[ConfigStore] ✅ Saved configuration to '\(configName).json'")
-        } catch {
-            print("[ConfigStore] ❌ Failed to save configuration: \(error)")
-        }
+    // Update file monitoring
+    if let previousName = currentConfigurationName, previousName != name {
+      configFileManager.stopMonitoring(configurationNamed: previousName)
     }
-    
-    private func buildCurrentConfiguration() -> AppConfiguration {
-        // Build provider entries
-        var providerEntries: [String: AppConfiguration.ProviderEntry] = [:]
-        var providerIDToName: [UUID: String] = [:]
-        
-        for provider in providers {
-            let (name, entry) = AppConfiguration.ProviderEntry.from(provider)
-            var uniqueName = name
-            var counter = 1
-            while providerEntries[uniqueName] != nil {
-                counter += 1
-                uniqueName = "\(name) \(counter)"
-            }
-            providerEntries[uniqueName] = entry
-            providerIDToName[provider.id] = uniqueName
-        }
-        
-        // Build action entries (as array to preserve order)
-        let actionEntries = actions.map { action in
-            AppConfiguration.ActionEntry.from(
-                action,
-                providerNames: providerIDToName
-            )
-        }
-        
-        return AppConfiguration(
-            version: "1.0.0",
-            preferences: AppConfiguration.PreferencesConfig(
-                targetLanguage: preferences.targetLanguage.rawValue
-            ),
-            providers: providerEntries,
-            tts: AppConfiguration.TTSEntry.from(
-                preferences.effectiveTTSConfiguration,
-                usesDefault: preferences.ttsUsesDefaultConfiguration
-            ),
-            actions: actionEntries
-        )
+    if let newName = name {
+      configFileManager.startMonitoring(configurationNamed: newName)
+    }
+  }
+
+  /// Reload the current configuration from disk
+  public func reloadCurrentConfiguration() {
+    guard let name = currentConfigurationName else { return }
+
+    // Suspend auto-save during reload to prevent loops
+    isSaveSuspended = true
+    defer { isSaveSuspended = false }
+
+    if tryLoadConfiguration(named: name) {
+      print("[ConfigStore] ✅ Reloaded configuration: '\(name)'")
+    } else {
+      print("[ConfigStore] ❌ Failed to reload configuration: '\(name)'")
+    }
+  }
+
+  /// Validate current in-memory configuration
+  public func validateCurrentConfiguration() -> ConfigurationValidationResult {
+    let result = ConfigurationValidator.shared.validateInMemory(
+      actions: actions,
+      providers: providers
+    )
+    self.lastValidationResult = result
+    return result
+  }
+
+  /// Force save current configuration (bypassing validation errors)
+  public func forceSaveConfiguration() {
+    saveConfiguration(force: true)
+  }
+
+  // MARK: - Persistence using ConfigurationFileManager
+
+  private func loadConfiguration() {
+    // Step 1: Read current config name from UserDefaults
+    let storedName = preferences.currentConfigName
+    print("[ConfigStore] Stored config name from UserDefaults: \(storedName ?? "nil")")
+
+    // Step 2: Try to load the named configuration
+    if let name = storedName {
+      if tryLoadConfiguration(named: name) {
+        print("[ConfigStore] ✅ Successfully loaded config: '\(name)'")
+        // Start monitoring this file
+        configFileManager.startMonitoring(configurationNamed: name)
+        return
+      }
+      print("[ConfigStore] ⚠️ Failed to load stored config '\(name)', trying fallback...")
     }
 
-    /// Reset to bundled default configuration
-    public func resetToDefault() {
-        // Try to load the "Default" configuration from ConfigurationFileManager
-        if tryLoadConfiguration(named: "Default") {
-            print("[ConfigStore] ✅ Reset to Default configuration")
-            return
-        }
+    // Step 3: Fallback - try to load any available configuration
+    let availableConfigs = configFileManager.listConfigurations()
+    print("[ConfigStore] Available configs: \(availableConfigs.map { $0.name })")
 
-        // If Default doesn't exist, create empty configuration
-        print("[ConfigStore] Default configuration not found, creating empty configuration")
-        createEmptyConfiguration()
+    for configInfo in availableConfigs {
+      if tryLoadConfiguration(named: configInfo.name) {
+        print("[ConfigStore] ✅ Loaded fallback config: '\(configInfo.name)'")
+        preferences.setCurrentConfigName(configInfo.name)
+        configFileManager.startMonitoring(configurationNamed: configInfo.name)
+        return
+      }
     }
 
-    /// Switch to a different configuration by name
-    public func switchConfiguration(to name: String) -> Bool {
-        if tryLoadConfiguration(named: name) {
-            print("[ConfigStore] ✅ Switched to configuration: '\(name)'")
-            return true
+    // Step 4: No configuration available - create empty configuration
+    print("[ConfigStore] ⚠️ No configurations available, creating empty configuration...")
+    createEmptyConfiguration()
+  }
+
+  private func tryLoadConfiguration(named name: String) -> Bool {
+    do {
+      let config = try configFileManager.loadConfiguration(named: name)
+
+      // Validate the loaded configuration
+      let validationResult = ConfigurationValidator.shared.validate(config)
+      self.lastValidationResult = validationResult
+
+      if validationResult.hasErrors {
+        print("[ConfigStore] ❌ Configuration '\(name)' has validation errors:")
+        for error in validationResult.errors {
+          print("[ConfigStore]   - \(error.message)")
         }
-        print("[ConfigStore] ❌ Failed to switch to configuration: '\(name)'")
+        // Still load with warnings, but fail on errors
         return false
-    }
+      }
 
-    private static func applyTargetLanguage(
-        _ actions: [ActionConfig],
-        targetLanguage: TargetLanguageOption
-    ) -> [ActionConfig] {
-        actions.map { action in
-            guard let template = ManagedActionTemplate(action: action) else {
-                return action
-            }
-
-            var updated = action
-
-            if template.shouldUpdatePrompt(currentPrompt: action.prompt) {
-                updated.prompt = template.prompt(for: targetLanguage)
-            }
-
-            if let summaryText = template.summary(for: targetLanguage),
-               template.shouldUpdateSummary(currentSummary: action.summary) {
-                updated.summary = summaryText
-            }
-
-            return updated
+      if validationResult.hasWarnings {
+        print("[ConfigStore] ⚠️ Configuration '\(name)' has validation warnings:")
+        for warning in validationResult.warnings {
+          print("[ConfigStore]   - \(warning.message)")
         }
+      }
+
+      applyLoadedConfiguration(config)
+      self.currentConfigurationName = name
+      preferences.setCurrentConfigName(name)
+
+      // Apply preferences if present
+      if let prefsConfig = config.preferences {
+        if let targetLang = prefsConfig.targetLanguage,
+          let option = TargetLanguageOption(rawValue: targetLang)
+        {
+          preferences.setTargetLanguage(option)
+        }
+      }
+
+      // Apply TTS if present
+      if let ttsEntry = config.tts {
+        let usesDefault = ttsEntry.useDefault ?? true
+        preferences.setTTSUsesDefaultConfiguration(usesDefault)
+        let ttsConfig = ttsEntry.toTTSConfiguration()
+        preferences.setTTSConfiguration(ttsConfig)
+      }
+
+      return true
+    } catch {
+      print("[ConfigStore] Failed to load config '\(name)': \(error)")
+      return false
     }
+  }
+
+  private func createEmptyConfiguration() {
+    self.providers = []
+    self.actions = []
+    self.currentConfigurationName = "New Configuration"
+    preferences.setCurrentConfigName("New Configuration")
+
+    // Save the empty configuration
+    saveConfiguration()
+  }
+
+  private func applyLoadedConfiguration(_ config: AppConfiguration) {
+    // Build provider map
+    var loadedProviders: [ProviderConfig] = []
+    var providerNameToID: [String: UUID] = [:]
+    var providerDeploymentsMap: [String: (id: UUID, deployments: [String])] = [:]
+
+    print("[ConfigStore] Parsing \(config.providers.count) providers from config")
+
+    for (name, entry) in config.providers {
+      print("[ConfigStore] Trying to parse provider: '\(name)' with category: '\(entry.category)'")
+      if let provider = entry.toProviderConfig(name: name) {
+        loadedProviders.append(provider)
+        providerNameToID[name] = provider.id
+        providerDeploymentsMap[name] = (id: provider.id, deployments: provider.deployments)
+        print("[ConfigStore] ✅ Successfully parsed provider: '\(name)'")
+      } else {
+        print("[ConfigStore] ❌ Failed to parse provider: '\(name)' - toProviderConfig returned nil")
+      }
+    }
+
+    print("[ConfigStore] Total loaded providers: \(loadedProviders.count)")
+
+    // Build actions (actions is now an array, order is preserved)
+    var loadedActions: [ActionConfig] = []
+    for entry in config.actions {
+      let action = entry.toActionConfig(
+        providerMap: providerNameToID,
+        providerDeploymentsMap: providerDeploymentsMap
+      )
+      loadedActions.append(action)
+    }
+
+    print("[ConfigStore] Total loaded actions: \(loadedActions.count)")
+
+    self.providers = loadedProviders
+    self.actions = AppConfigurationStore.applyTargetLanguage(
+      loadedActions,
+      targetLanguage: preferences.targetLanguage
+    )
+  }
+
+  private func saveConfiguration(force: Bool = false) {
+    // Skip if save is suspended (during reload)
+    guard !isSaveSuspended else {
+      print("[ConfigStore] Save suspended, skipping")
+      return
+    }
+
+    guard let configName = currentConfigurationName else {
+      print("[ConfigStore] No current configuration name set, skipping save")
+      return
+    }
+
+    // Validate before saving (unless forcing)
+    if !force {
+      let validationResult = validateCurrentConfiguration()
+      if validationResult.hasErrors {
+        print("[ConfigStore] ❌ Cannot save - validation errors:")
+        for error in validationResult.errors {
+          print("[ConfigStore]   - \(error.message)")
+        }
+        return
+      }
+    }
+
+    let config = buildCurrentConfiguration()
+
+    do {
+      // Record timestamp before save
+      lastSaveTimestamp = Date()
+
+      try configFileManager.saveConfiguration(config, name: configName)
+      print("[ConfigStore] ✅ Saved configuration to '\(configName).json'")
+    } catch {
+      print("[ConfigStore] ❌ Failed to save configuration: \(error)")
+    }
+  }
+
+  private func buildCurrentConfiguration() -> AppConfiguration {
+    // Build provider entries
+    var providerEntries: [String: AppConfiguration.ProviderEntry] = [:]
+    var providerIDToName: [UUID: String] = [:]
+
+    for provider in providers {
+      let (name, entry) = AppConfiguration.ProviderEntry.from(provider)
+      var uniqueName = name
+      var counter = 1
+      while providerEntries[uniqueName] != nil {
+        counter += 1
+        uniqueName = "\(name) \(counter)"
+      }
+      providerEntries[uniqueName] = entry
+      providerIDToName[provider.id] = uniqueName
+    }
+
+    // Build action entries (as array to preserve order)
+    let actionEntries = actions.map { action in
+      AppConfiguration.ActionEntry.from(
+        action,
+        providerNames: providerIDToName
+      )
+    }
+
+    return AppConfiguration(
+      version: "1.0.0",
+      preferences: AppConfiguration.PreferencesConfig(
+        targetLanguage: preferences.targetLanguage.rawValue
+      ),
+      providers: providerEntries,
+      tts: AppConfiguration.TTSEntry.from(
+        preferences.effectiveTTSConfiguration,
+        usesDefault: preferences.ttsUsesDefaultConfiguration
+      ),
+      actions: actionEntries
+    )
+  }
+
+  /// Reset to bundled default configuration
+  public func resetToDefault() {
+    // Stop monitoring current config
+    if let name = currentConfigurationName {
+      configFileManager.stopMonitoring(configurationNamed: name)
+    }
+
+    // Try to load the "Default" configuration from ConfigurationFileManager
+    if tryLoadConfiguration(named: "Default") {
+      print("[ConfigStore] ✅ Reset to Default configuration")
+      configFileManager.startMonitoring(configurationNamed: "Default")
+      return
+    }
+
+    // If Default doesn't exist, create empty configuration
+    print("[ConfigStore] Default configuration not found, creating empty configuration")
+    createEmptyConfiguration()
+  }
+
+  /// Switch to a different configuration by name
+  public func switchConfiguration(to name: String) -> Bool {
+    // Stop monitoring current config
+    if let currentName = currentConfigurationName {
+      configFileManager.stopMonitoring(configurationNamed: currentName)
+    }
+
+    if tryLoadConfiguration(named: name) {
+      print("[ConfigStore] ✅ Switched to configuration: '\(name)'")
+      configFileManager.startMonitoring(configurationNamed: name)
+      return true
+    }
+    print("[ConfigStore] ❌ Failed to switch to configuration: '\(name)'")
+    return false
+  }
+
+  private static func applyTargetLanguage(
+    _ actions: [ActionConfig],
+    targetLanguage: TargetLanguageOption
+  ) -> [ActionConfig] {
+    actions.map { action in
+      guard let template = ManagedActionTemplate(action: action) else {
+        return action
+      }
+
+      var updated = action
+
+      if template.shouldUpdatePrompt(currentPrompt: action.prompt) {
+        updated.prompt = template.prompt(for: targetLanguage)
+      }
+
+      if let summaryText = template.summary(for: targetLanguage),
+        template.shouldUpdateSummary(currentSummary: action.summary)
+      {
+        updated.summary = summaryText
+      }
+
+      return updated
+    }
+  }
 }
 
 // MARK: - Managed Action Templates (for language updates)

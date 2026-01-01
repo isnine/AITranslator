@@ -781,25 +781,24 @@ private extension SettingsView {
     }
 
     func saveEditedConfiguration(_ text: String, for config: ConfigurationFileInfo) {
-        // Validate JSON first
+        // At this point, validation has already passed in ConfigurationEditorView
         guard let data = text.data(using: .utf8) else {
-            importError = "Invalid text encoding"
-            showImportError = true
             return
         }
-        
+
         do {
-            // Try to parse to validate
-            _ = try JSONDecoder().decode(AppConfiguration.self, from: data)
-            
             // Write back to file
             try data.write(to: config.url)
-            
+
+            // Refresh saved configurations list
             refreshSavedConfigurations()
+
+            // Close editor only on success
             configEditorItem = nil
         } catch {
-            importError = "Invalid configuration: \(error.localizedDescription)"
+            importError = "Failed to save configuration: \(error.localizedDescription)"
             showImportError = true
+            // Don't close editor on save failure
         }
     }
 
@@ -1165,6 +1164,8 @@ struct ConfigurationEditorView: View {
     @State private var editableText: String
     @State private var hasChanges = false
     @State private var showDiscardAlert = false
+    @State private var showValidationError = false
+    @State private var validationErrorMessage = ""
     @Environment(\.dismiss) private var dismiss
 
     init(
@@ -1220,7 +1221,7 @@ struct ConfigurationEditorView: View {
                     )
 
                     Button("Save") {
-                        onSave(editableText)
+                        validateAndSave()
                     }
                     .buttonStyle(.plain)
                     .foregroundColor(.white)
@@ -1260,6 +1261,11 @@ struct ConfigurationEditorView: View {
         } message: {
             Text("You have unsaved changes. Are you sure you want to discard them?")
         }
+        .alert("Validation Failed", isPresented: $showValidationError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(validationErrorMessage)
+        }
     }
     #endif
 
@@ -1281,7 +1287,7 @@ struct ConfigurationEditorView: View {
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Save") {
-                            onSave(editableText)
+                            validateAndSave()
                         }
                         .disabled(!hasChanges)
                     }
@@ -1299,6 +1305,11 @@ struct ConfigurationEditorView: View {
         } message: {
             Text("You have unsaved changes. Are you sure you want to discard them?")
         }
+        .alert("Validation Failed", isPresented: $showValidationError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(validationErrorMessage)
+        }
     }
     #endif
 
@@ -1307,6 +1318,58 @@ struct ConfigurationEditorView: View {
             showDiscardAlert = true
         } else {
             onDismiss()
+        }
+    }
+
+    private func validateAndSave() {
+        // Validate JSON format
+        guard let data = editableText.data(using: .utf8) else {
+            validationErrorMessage = "Invalid text encoding"
+            showValidationError = true
+            return
+        }
+
+        do {
+            // Try to parse JSON
+            let config = try JSONDecoder().decode(AppConfiguration.self, from: data)
+
+            // Validate configuration using ConfigurationValidator
+            let validationResult = ConfigurationValidator.shared.validate(config)
+
+            if validationResult.hasErrors {
+                validationErrorMessage = validationResult.errors.map(\.message).joined(separator: "\n")
+                showValidationError = true
+                return
+            }
+
+            // Show warnings but still allow save
+            if validationResult.hasWarnings {
+                print("[ConfigEditor] ⚠️ Saving with warnings:")
+                for warning in validationResult.warnings {
+                    print("[ConfigEditor]   - \(warning.message)")
+                }
+            }
+
+            // Call onSave only if validation passed
+            onSave(editableText)
+        } catch let decodingError as DecodingError {
+            // Provide more helpful error messages for JSON errors
+            switch decodingError {
+            case .dataCorrupted(let context):
+                validationErrorMessage = "JSON format error: \(context.debugDescription)"
+            case .keyNotFound(let key, let context):
+                validationErrorMessage = "Missing required field '\(key.stringValue)' at \(context.codingPath.map(\.stringValue).joined(separator: "."))"
+            case .typeMismatch(let type, let context):
+                validationErrorMessage = "Type mismatch for \(type) at \(context.codingPath.map(\.stringValue).joined(separator: ".")): \(context.debugDescription)"
+            case .valueNotFound(let type, let context):
+                validationErrorMessage = "Missing value for \(type) at \(context.codingPath.map(\.stringValue).joined(separator: "."))"
+            @unknown default:
+                validationErrorMessage = "JSON parsing error: \(decodingError.localizedDescription)"
+            }
+            showValidationError = true
+        } catch {
+            validationErrorMessage = "Invalid configuration: \(error.localizedDescription)"
+            showValidationError = true
         }
     }
 }

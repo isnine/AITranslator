@@ -22,6 +22,10 @@ struct ActionDetailView: View {
     @State private var usageScenes: ActionConfig.UsageScene
     @State private var outputType: OutputType
 
+    // Validation error state
+    @State private var showValidationError = false
+    @State private var validationErrorMessage = ""
+
     init(
         action: ActionConfig?,
         configurationStore: AppConfigurationStore
@@ -66,6 +70,11 @@ struct ActionDetailView: View {
         }
         .background(colors.background.ignoresSafeArea())
         .navigationBarBackButtonHidden(true)
+        .alert("Validation Failed", isPresented: $showValidationError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(validationErrorMessage)
+        }
     }
 
     private var colors: AppColorPalette {
@@ -386,8 +395,12 @@ struct ActionDetailView: View {
             actions.append(updated)
         }
 
-        configurationStore.updateActions(actions)
-        dismiss()
+        if let result = configurationStore.updateActions(actions), result.hasErrors {
+            validationErrorMessage = result.errors.map(\.message).joined(separator: "\n")
+            showValidationError = true
+        } else {
+            dismiss()
+        }
     }
 }
 

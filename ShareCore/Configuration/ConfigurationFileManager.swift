@@ -6,15 +6,30 @@
 //
 
 import Foundation
+import Combine
+
+/// Notification posted when a configuration file changes externally
+public extension Notification.Name {
+  static let configurationFileDidChange = Notification.Name("configurationFileDidChange")
+}
 
 /// Manages multiple configuration files stored in the App Group shared container
-public final class ConfigurationFileManager: Sendable {
+public final class ConfigurationFileManager: @unchecked Sendable {
   public static let shared = ConfigurationFileManager()
 
   private let fileManager = FileManager.default
 
   /// App Group identifier for shared container
   private static let appGroupIdentifier = "group.com.zanderwang.AITranslator"
+
+  /// File monitoring sources keyed by file URL
+  private var fileSources: [URL: DispatchSourceFileSystemObject] = [:]
+
+  /// Lock for thread-safe access to fileSources
+  private let sourcesLock = NSLock()
+
+  /// Publisher for file change events
+  public let fileChangePublisher = PassthroughSubject<ConfigurationFileChangeEvent, Never>()
 
   /// Directory where configuration files are stored (App Group shared container)
   public var configurationsDirectory: URL {
@@ -224,5 +239,159 @@ public struct ConfigurationFileInfo: Identifiable, Sendable {
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .abbreviated
     return formatter.localizedString(for: modifiedDate, relativeTo: Date())
+  }
+}
+
+// MARK: - File Change Event
+
+/// Represents a file change event for configuration files
+public struct ConfigurationFileChangeEvent: Sendable {
+  public enum ChangeType: Sendable {
+    case modified
+    case deleted
+    case renamed
+  }
+
+  public let name: String
+  public let url: URL
+  public let changeType: ChangeType
+  public let timestamp: Date
+
+  public init(name: String, url: URL, changeType: ChangeType, timestamp: Date = Date()) {
+    self.name = name
+    self.url = url
+    self.changeType = changeType
+    self.timestamp = timestamp
+  }
+}
+
+// MARK: - File Monitoring Extension
+
+extension ConfigurationFileManager {
+  /// Start monitoring a configuration file for external changes
+  public func startMonitoring(configurationNamed name: String) {
+    let sanitizedName = sanitizeFilename(name)
+    let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
+    startMonitoring(url: fileURL)
+  }
+
+  /// Start monitoring a file URL for changes
+  public func startMonitoring(url: URL) {
+    sourcesLock.lock()
+    defer { sourcesLock.unlock() }
+
+    // Don't monitor if already monitoring
+    guard fileSources[url] == nil else { return }
+
+    let fileDescriptor = open(url.path, O_EVTONLY)
+    guard fileDescriptor >= 0 else {
+      print("[ConfigFileManager] Failed to open file for monitoring: \(url.path)")
+      return
+    }
+
+    let source = DispatchSource.makeFileSystemObjectSource(
+      fileDescriptor: fileDescriptor,
+      eventMask: [.write, .delete, .rename, .extend],
+      queue: DispatchQueue.global(qos: .utility)
+    )
+
+    source.setEventHandler { [weak self] in
+      guard let self else { return }
+      let flags = source.data
+      let name = url.deletingPathExtension().lastPathComponent
+
+      let changeType: ConfigurationFileChangeEvent.ChangeType
+      if flags.contains(.delete) {
+        changeType = .deleted
+        // Stop monitoring deleted files
+        self.stopMonitoring(url: url)
+      } else if flags.contains(.rename) {
+        changeType = .renamed
+      } else {
+        changeType = .modified
+      }
+
+      let event = ConfigurationFileChangeEvent(
+        name: name,
+        url: url,
+        changeType: changeType
+      )
+
+      // Publish the event
+      self.fileChangePublisher.send(event)
+
+      // Also post a notification for backward compatibility
+      NotificationCenter.default.post(
+        name: .configurationFileDidChange,
+        object: self,
+        userInfo: ["event": event]
+      )
+    }
+
+    source.setCancelHandler {
+      close(fileDescriptor)
+    }
+
+    fileSources[url] = source
+    source.resume()
+
+    print("[ConfigFileManager] Started monitoring: \(url.lastPathComponent)")
+  }
+
+  /// Stop monitoring a specific file
+  public func stopMonitoring(url: URL) {
+    sourcesLock.lock()
+    defer { sourcesLock.unlock() }
+
+    if let source = fileSources.removeValue(forKey: url) {
+      source.cancel()
+      print("[ConfigFileManager] Stopped monitoring: \(url.lastPathComponent)")
+    }
+  }
+
+  /// Stop monitoring a configuration by name
+  public func stopMonitoring(configurationNamed name: String) {
+    let sanitizedName = sanitizeFilename(name)
+    let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
+    stopMonitoring(url: fileURL)
+  }
+
+  /// Stop all file monitoring
+  public func stopAllMonitoring() {
+    sourcesLock.lock()
+    defer { sourcesLock.unlock() }
+
+    for (_, source) in fileSources {
+      source.cancel()
+    }
+    fileSources.removeAll()
+
+    print("[ConfigFileManager] Stopped all file monitoring")
+  }
+
+  /// Check if a file is being monitored
+  public func isMonitoring(url: URL) -> Bool {
+    sourcesLock.lock()
+    defer { sourcesLock.unlock() }
+    return fileSources[url] != nil
+  }
+
+  /// Get the file URL for a configuration name
+  public func configurationURL(forName name: String) -> URL {
+    let sanitizedName = sanitizeFilename(name)
+    return configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
+  }
+
+  /// Check if a configuration file exists
+  public func configurationExists(named name: String) -> Bool {
+    let url = configurationURL(forName: name)
+    return fileManager.fileExists(atPath: url.path)
+  }
+
+  /// Get the modification date of a configuration file
+  public func modificationDate(forName name: String) -> Date? {
+    let url = configurationURL(forName: name)
+    let attributes = try? fileManager.attributesOfItem(atPath: url.path)
+    return attributes?[.modificationDate] as? Date
   }
 }

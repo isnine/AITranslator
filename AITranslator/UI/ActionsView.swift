@@ -14,6 +14,10 @@ struct ActionsView: View {
     @State private var isEditing = false
     @State private var isAddingNewAction = false
 
+    // Validation error state
+    @State private var showValidationError = false
+    @State private var validationErrorMessage = ""
+
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
@@ -99,6 +103,11 @@ struct ActionsView: View {
 #if os(iOS)
         .toolbar(.hidden, for: .navigationBar)
 #endif
+        .alert("Validation Failed", isPresented: $showValidationError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(validationErrorMessage)
+        }
     }
 
     private var headerSection: some View {
@@ -183,7 +192,10 @@ struct ActionsView: View {
         }
         let movedAction = actions.remove(at: sourceIndex)
         actions.insert(movedAction, at: destinationIndex)
-        configurationStore.updateActions(actions)
+        if let result = configurationStore.updateActions(actions), result.hasErrors {
+            validationErrorMessage = result.errors.map(\.message).joined(separator: "\n")
+            showValidationError = true
+        }
     }
 }
 

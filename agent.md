@@ -23,7 +23,10 @@ AITranslator/
 │   │   ├── ActionConfig.swift       # 动作配置模型（支持结构化输出/diff对比）
 │   │   ├── ProviderConfig.swift     # 提供商配置模型
 │   │   ├── ProviderCategory.swift   # 提供商类别枚举
-│   │   ├── AppConfigurationStore.swift # 单例配置仓库
+│   │   ├── AppConfigurationStore.swift # 单例配置仓库（支持双向同步）
+│   │   ├── ConfigurationFileManager.swift # 配置文件管理（支持文件监控）
+│   │   ├── ConfigurationValidator.swift  # 配置验证器
+│   │   ├── ConfigurationService.swift    # 配置导入/导出服务
 │   │   └── TTSConfiguration.swift   # TTS 配置模型
 │   ├── Networking/
 │   │   ├── LLMService.swift         # LLM 请求服务（支持流式/结构化输出）
@@ -95,6 +98,9 @@ AITranslator/
 - 启动时注入默认提供商（Azure OpenAI model-router + gpt-5-nano）
 - 预置 5 个动作模板
 - 响应目标语言变更，自动更新受管理的动作 Prompt
+- **双向同步**：UI 修改自动保存到文件，文件变更自动重新加载到内存
+- **配置验证**：更新和加载时自动验证配置完整性
+- **文件监控**：通过 DispatchSource 监控配置文件的外部修改
 
 ### HomeView / HomeViewModel
 
@@ -190,12 +196,12 @@ AITranslator/
 
 ### 关键数据模型
 
-| 模型                | 职责                                    | 存储位置         |
-| ------------------- | --------------------------------------- | ---------------- |
-| `AppConfiguration`  | JSON 配置文件的 Codable 中间模型        | .json 文件       |
-| `ActionConfig`      | 动作的内存模型（含 UUID）               | 内存             |
-| `ProviderConfig`    | 提供商的内存模型（含 UUID）             | 内存             |
-| `AppPreferences`    | 偏好设置（目标语言、TTS、当前配置名称） | UserDefaults     |
+| 模型               | 职责                                    | 存储位置     |
+| ------------------ | --------------------------------------- | ------------ |
+| `AppConfiguration` | JSON 配置文件的 Codable 中间模型        | .json 文件   |
+| `ActionConfig`     | 动作的内存模型（含 UUID）               | 内存         |
+| `ProviderConfig`   | 提供商的内存模型（含 UUID）             | 内存         |
+| `AppPreferences`   | 偏好设置（目标语言、TTS、当前配置名称） | UserDefaults |
 
 ### 启动时加载流程
 
@@ -225,6 +231,7 @@ AITranslator/
 ```
 
 **首次启动特殊处理**：
+
 - `ConfigurationFileManager` 初始化时检查 `Default.json` 是否存在
 - 若不存在，从 Bundle 中的 `DefaultConfiguration.json` 复制到 App Group 容器
 
@@ -260,6 +267,7 @@ AITranslator/
 配置文件中 Provider 使用 **名称** 标识，内存模型使用 **UUID**。转换过程：
 
 **加载时**（名称 → UUID）：
+
 ```swift
 // 在 applyLoadedConfiguration(_:) 中
 var providerNameToID: [String: UUID] = [:]
@@ -273,6 +281,7 @@ action.toActionConfig(providerMap: providerNameToID)
 ```
 
 **保存时**（UUID → 名称）：
+
 ```swift
 // 在 buildCurrentConfiguration() 中
 var providerIDToName: [UUID: String] = [:]
@@ -304,11 +313,161 @@ preferences.$targetLanguage
 
 提供配置的导入/导出功能，用于配置迁移或备份：
 
-| 方法                      | 用途                           |
-| ------------------------- | ------------------------------ |
-| `exportConfiguration()`   | 导出当前配置为 JSON Data       |
-| `importConfiguration()`   | 从 JSON 解析 AppConfiguration  |
-| `applyConfiguration()`    | 将配置应用到 Store 和 Preferences |
+| 方法                             | 用途                                |
+| -------------------------------- | ----------------------------------- |
+| `exportConfiguration()`          | 导出当前配置为 JSON Data            |
+| `importConfiguration()`          | 从 JSON 解析 AppConfiguration       |
+| `applyConfiguration()`           | 将配置应用到 Store 和 Preferences   |
+| `validateCurrentConfiguration()` | 验证当前配置并返回 ValidationResult |
+
+### 配置同步与验证机制
+
+#### 双向同步架构
+
+配置系统实现了 UI ↔ 内存 ↔ 文件 的完整双向同步：
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        双向同步流程                                  │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌─────────┐    updateActions()    ┌─────────────────┐              │
+│  │   UI    │ ──────────────────────>│ ConfigStore     │              │
+│  │         │                       │ (内存)           │              │
+│  │         │ <───@Published────────│                 │              │
+│  └─────────┘                       └────────┬────────┘              │
+│                                             │                       │
+│                                    saveConfiguration()              │
+│                                             │                       │
+│                                             ▼                       │
+│                                    ┌─────────────────┐              │
+│                                    │  JSON 文件       │              │
+│                                    │  (.json)        │              │
+│                                    └────────┬────────┘              │
+│                                             │                       │
+│                               DispatchSource 监控                    │
+│                                             │                       │
+│                                             ▼                       │
+│  ┌─────────────────┐           ┌─────────────────┐                  │
+│  │ fileChange      │◀──────────│ ConfigFile      │                  │
+│  │ Publisher       │           │ Manager         │                  │
+│  └────────┬────────┘           └─────────────────┘                  │
+│           │                                                         │
+│           │ Combine 订阅                                             │
+│           ▼                                                         │
+│  ┌─────────────────┐                                                │
+│  │ handleFileChange│────> reloadCurrentConfiguration()              │
+│  └─────────────────┘                                                │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### 文件监控机制
+
+`ConfigurationFileManager` 使用 `DispatchSource` 监控配置文件变化：
+
+```swift
+// 启动监控
+configFileManager.startMonitoring(configurationNamed: "Default")
+
+// 接收文件变化事件
+configFileManager.fileChangePublisher
+    .debounce(for: .seconds(0.5), scheduler: DispatchQueue.main)
+    .sink { event in
+        switch event.changeType {
+        case .modified:
+            store.reloadCurrentConfiguration()
+        case .deleted:
+            // 切换到其他配置或创建空配置
+        case .renamed:
+            // 尝试重新加载
+        }
+    }
+```
+
+**防止保存循环**：
+
+- 保存前记录 `lastSaveTimestamp`
+- 收到文件变更事件时检查时间戳，忽略自身触发的变更
+- 使用 0.5 秒 debounce 合并连续事件
+
+#### 配置验证器 (ConfigurationValidator)
+
+验证器检查配置的完整性和一致性：
+
+| 验证项             | 严重性  | 说明                                            |
+| ------------------ | ------- | ----------------------------------------------- |
+| 版本格式           | Error   | 检查版本号格式是否为 X.Y.Z                      |
+| 版本兼容性         | Error   | 仅支持 1.x.x 版本                               |
+| Provider 分类      | Error   | 检查 category 是否为已知类型                    |
+| Endpoint URL       | Error   | 检查 URL 格式是否有效                           |
+| Provider 引用      | Error   | Action 引用的 Provider 必须存在                 |
+| Deployment 引用    | Error   | Action 引用的 Deployment 必须在 Provider 中存在 |
+| 空 Token           | Warning | Provider 的 API Token 为空                      |
+| 无 Deployment      | Warning | Provider 没有配置任何 Deployment                |
+| 未使用的 Provider  | Warning | Provider 未被任何 Action 引用                   |
+| Action 无 Provider | Warning | Action 没有配置任何 Provider                    |
+| 重复 Action 名称   | Warning | 存在同名 Action                                 |
+
+#### 验证结果模型
+
+```swift
+public struct ConfigurationValidationResult {
+    public let issues: [ConfigurationValidationIssue]
+
+    public var isValid: Bool { !hasErrors }
+    public var hasErrors: Bool   // 包含 Error 级别问题
+    public var hasWarnings: Bool // 包含 Warning 级别问题
+
+    public var errors: [ConfigurationValidationIssue]
+    public var warnings: [ConfigurationValidationIssue]
+}
+
+public enum ConfigurationValidationIssue {
+    case providerNotFound(providerID: String, referencedBy: String)
+    case deploymentNotFound(deployment: String, provider: String, referencedBy: String)
+    case unsupportedVersion(version: String, supportedRange: String)
+    // ... 更多验证问题
+
+    public var severity: ValidationSeverity // .error 或 .warning
+    public var message: String              // 人类可读的描述
+}
+```
+
+#### 验证时机
+
+| 时机              | 验证级别 | 行为                                  |
+| ----------------- | -------- | ------------------------------------- |
+| 加载配置时        | 完整验证 | Error 阻止加载，Warning 仅记录日志    |
+| UI 更新 Actions   | 内存验证 | 返回 ValidationResult，Error 阻止保存 |
+| UI 更新 Providers | 内存验证 | 返回 ValidationResult，Error 阻止保存 |
+| 导入配置时        | 完整验证 | Error 返回失败结果                    |
+| 保存配置时        | 完整验证 | Error 阻止保存（可用 forceSave 跳过） |
+
+#### 使用示例
+
+```swift
+// 更新 Actions 并获取验证结果
+let result = store.updateActions(newActions)
+if let result, result.hasWarnings {
+    // 显示警告给用户
+    for warning in result.warnings {
+        print("⚠️ \(warning.message)")
+    }
+}
+
+// 手动验证当前配置
+let validationResult = store.validateCurrentConfiguration()
+if validationResult.hasErrors {
+    // 处理错误
+}
+
+// 强制保存（跳过验证）
+store.forceSaveConfiguration()
+
+// 重新加载配置（从文件）
+store.reloadCurrentConfiguration()
+```
 
 ### 数据一致性保障
 
@@ -316,6 +475,9 @@ preferences.$targetLanguage
 2. **App Group 共享**：主应用与扩展共享同一配置目录
 3. **UserDefaults 同步**：调用 `defaults.synchronize()` 确保跨进程可见
 4. **Combine 订阅**：偏好变更自动触发配置更新
+5. **文件监控**：通过 DispatchSource 监控外部文件修改，自动重新加载
+6. **防止保存循环**：记录保存时间戳，忽略自身触发的文件变更事件
+7. **验证保障**：加载和保存时验证配置完整性，Error 级别问题阻止操作
 
 ## 默认配置
 

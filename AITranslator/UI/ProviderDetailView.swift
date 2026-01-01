@@ -30,6 +30,10 @@ struct ProviderDetailView: View {
     @State private var showDebugSheet = false
     @State private var debugInfo: DebugInfo?
 
+    // Validation error state
+    @State private var showValidationError = false
+    @State private var validationErrorMessage = ""
+
     struct DeploymentTestResult: Identifiable {
         let id = UUID()
         let deploymentName: String
@@ -113,6 +117,11 @@ struct ProviderDetailView: View {
         }
         .sheet(isPresented: $showDebugSheet) {
             debugSheet
+        }
+        .alert("Validation Failed", isPresented: $showValidationError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(validationErrorMessage)
         }
     }
 
@@ -736,15 +745,34 @@ struct ProviderDetailView: View {
             providers.append(updated)
         }
 
-        configurationStore.updateProviders(providers)
-        dismiss()
+        if let result = configurationStore.updateProviders(providers), result.hasErrors {
+            validationErrorMessage = result.errors.map(\.message).joined(separator: "\n")
+            showValidationError = true
+        } else {
+            dismiss()
+        }
     }
 
     private func deleteProvider() {
+        // First, clean up actions that reference this provider
+        let updatedActions = configurationStore.actions.map { action -> ActionConfig in
+            var mutableAction = action
+            mutableAction.providerDeployments.removeAll { $0.providerID == providerID }
+            return mutableAction
+        }
+        
+        // Update actions first (without triggering save yet by using internal method)
         var providers = configurationStore.providers
         providers.removeAll { $0.id == providerID }
-        configurationStore.updateProviders(providers)
-        dismiss()
+        
+        // Update both actions and providers
+        _ = configurationStore.updateActions(updatedActions)
+        if let result = configurationStore.updateProviders(providers), result.hasErrors {
+            validationErrorMessage = result.errors.map(\.message).joined(separator: "\n")
+            showValidationError = true
+        } else {
+            dismiss()
+        }
     }
 }
 
