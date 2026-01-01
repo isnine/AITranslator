@@ -37,9 +37,6 @@ public final class ConfigurationFileManager: @unchecked Sendable {
   /// Publisher for configuration directory changes
   public let configDirectoryChangedPublisher = PassthroughSubject<Void, Never>()
 
-  /// Cached custom directory URL
-  private var cachedCustomDirectory: URL?
-
   /// Directory where configuration files are stored
   /// Priority: Custom Directory > iCloud > App Group > Application Support
   public var configurationsDirectory: URL {

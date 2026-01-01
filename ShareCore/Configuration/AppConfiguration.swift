@@ -94,16 +94,10 @@ public extension AppConfiguration {
 
     /// Convert to internal ProviderConfig
     public func toProviderConfig(name: String) -> ProviderConfig? {
-      print("[ProviderEntry] Looking for category: '\(category)'")
-      print("[ProviderEntry] Available categories: \(ProviderCategory.allCases.map { "'\($0.rawValue)'" }.joined(separator: ", "))")
-      
       guard let providerCategory = ProviderCategory(rawValue: category)
         ?? ProviderCategory.allCases.first(where: { $0.displayName == category }) else {
-        print("[ProviderEntry] ❌ Unknown category: '\(category)'")
         return nil
       }
-      
-      print("[ProviderEntry] ✅ Matched category: \(providerCategory.rawValue)")
 
       let resolvedAuthHeader: String
       if let authHeader, !authHeader.isEmpty {
@@ -132,7 +126,6 @@ public extension AppConfiguration {
       
       // Legacy format: full endpoint URL
       guard let endpointStr = endpoint, let url = URL(string: endpointStr) else {
-        print("[ProviderEntry] ❌ Invalid URL: '\(endpoint ?? "")'")
         return nil
       }
 

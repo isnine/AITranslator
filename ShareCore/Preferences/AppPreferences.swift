@@ -51,11 +51,7 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setTargetLanguage(_ option: TargetLanguageOption) {
-        guard targetLanguage != option else {
-            defaults.set(option.rawValue, forKey: TargetLanguageOption.storageKey)
-            defaults.synchronize()
-            return
-        }
+        guard targetLanguage != option else { return }
 
         targetLanguage = option
         defaults.set(option.rawValue, forKey: TargetLanguageOption.storageKey)
@@ -63,14 +59,7 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setTTSConfiguration(_ configuration: TTSConfiguration) {
-        guard ttsConfiguration != configuration else {
-            defaults.set(configuration.endpointURL.absoluteString, forKey: StorageKeys.ttsEndpoint)
-            defaults.set(configuration.apiKey, forKey: StorageKeys.ttsAPIKey)
-            defaults.set(configuration.model, forKey: StorageKeys.ttsModel)
-            defaults.set(configuration.voice, forKey: StorageKeys.ttsVoice)
-            defaults.synchronize()
-            return
-        }
+        guard ttsConfiguration != configuration else { return }
 
         ttsConfiguration = configuration
         defaults.set(configuration.endpointURL.absoluteString, forKey: StorageKeys.ttsEndpoint)
@@ -81,21 +70,15 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setCurrentConfigName(_ name: String?) {
-        guard currentConfigName != name else {
-            return
-        }
+        guard currentConfigName != name else { return }
 
         currentConfigName = name
-        if let name = name {
+        if let name {
             defaults.set(name, forKey: StorageKeys.currentConfigName)
         } else {
             defaults.removeObject(forKey: StorageKeys.currentConfigName)
         }
         defaults.synchronize()
-    }
-
-    public var effectiveTTSConfiguration: TTSConfiguration {
-        ttsConfiguration
     }
 
     public func setCustomConfigDirectory(_ url: URL?) {

@@ -184,13 +184,18 @@ public final class AppConfigurationStore: ObservableObject {
   }
 
   public func setCurrentConfigurationName(_ name: String?) {
+    let previousName = currentConfigurationName
+    guard previousName != name else { return }
+
+    // Update file monitoring for the old config
+    if let previousName {
+      configFileManager.stopMonitoring(configurationNamed: previousName)
+    }
+
     self.currentConfigurationName = name
     preferences.setCurrentConfigName(name)
 
-    // Update file monitoring
-    if let previousName = currentConfigurationName, previousName != name {
-      configFileManager.stopMonitoring(configurationNamed: previousName)
-    }
+    // Start monitoring the new config
     if let newName = name {
       configFileManager.startMonitoring(configurationNamed: newName)
     }
@@ -517,7 +522,7 @@ public final class AppConfigurationStore: ObservableObject {
       ),
       providers: providerEntries,
       tts: AppConfiguration.TTSEntry.from(
-        preferences.effectiveTTSConfiguration
+        preferences.ttsConfiguration
       ),
       actions: actionEntries
     )

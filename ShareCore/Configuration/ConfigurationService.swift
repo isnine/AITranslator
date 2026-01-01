@@ -162,7 +162,7 @@ public final class ConfigurationService: Sendable {
 
     // Build TTS
     let ttsEntry = AppConfiguration.TTSEntry.from(
-      preferences.effectiveTTSConfiguration
+      preferences.ttsConfiguration
     )
 
     return AppConfiguration(

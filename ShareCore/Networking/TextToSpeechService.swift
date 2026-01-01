@@ -33,7 +33,7 @@ public final class TextToSpeechService {
             throw TextToSpeechServiceError.emptyInput
         }
 
-        let configuration = preferences.effectiveTTSConfiguration
+        let configuration = preferences.ttsConfiguration
         var request = URLRequest(url: configuration.endpointURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

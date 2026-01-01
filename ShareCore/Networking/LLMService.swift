@@ -63,27 +63,6 @@ public final class LLMService {
         }
     }
 
-    /// Legacy perform method using providers only (backward compatible)
-    public func perform(
-        text: String,
-        with action: ActionConfig,
-        providers: [ProviderConfig],
-        partialHandler: (@MainActor @Sendable (UUID, String, StreamingUpdate) -> Void)? = nil,
-        completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)? = nil
-    ) async -> [ProviderExecutionResult] {
-        // Use the first deployment for each provider
-        let deployments = providers.map { provider in
-            (provider: provider, deployment: provider.deployments.first ?? "")
-        }
-        return await perform(
-            text: text,
-            with: action,
-            providerDeployments: deployments,
-            partialHandler: partialHandler,
-            completionHandler: completionHandler
-        )
-    }
-
     private func sendRequest(
         text: String,
         action: ActionConfig,
