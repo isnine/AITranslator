@@ -5,6 +5,7 @@
 //  Created by Codex on 2025/10/19.
 //
 import Foundation
+import CryptoKit
 
 /// Represents a streaming update that can be either plain text or sentence pairs.
 public enum StreamingUpdate: Sendable {
@@ -19,6 +20,24 @@ public final class LLMService {
 
     public init(urlSession: URLSession = .shared) {
         self.urlSession = urlSession
+    }
+
+    // MARK: - HMAC Signing for Built-in Cloud Provider
+
+    /// Generates HMAC-SHA256 signature for Built-in Cloud provider requests
+    private func generateSignature(timestamp: String, path: String) -> String {
+        let message = "\(timestamp):\(path)"
+        let key = SymmetricKey(data: Data(hexString: ProviderConfig.builtInCloudSecret) ?? Data())
+        let signature = HMAC<SHA256>.authenticationCode(for: Data(message.utf8), using: key)
+        return Data(signature).hexEncodedString()
+    }
+
+    /// Applies Built-in Cloud authentication headers to a request
+    private func applyBuiltInCloudAuth(to request: inout URLRequest, path: String) {
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        let signature = generateSignature(timestamp: timestamp, path: path)
+        request.setValue(timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signature, forHTTPHeaderField: "X-Signature")
     }
 
     /// Performs requests using provider deployments (new API)
@@ -74,7 +93,13 @@ public final class LLMService {
 
         // Use specific deployment URL if provided, otherwise use default
         let requestURL: URL
-        if deployment.isEmpty {
+        if provider.category.usesBuiltInProxy {
+            // Built-in Cloud: route through CloudFlare worker
+            let effectiveDeployment = deployment.isEmpty ? ProviderConfig.builtInCloudDefaultModel : deployment
+            requestURL = ProviderConfig.builtInCloudEndpoint
+                .appendingPathComponent(effectiveDeployment)
+                .appendingPathComponent("chat/completions")
+        } else if deployment.isEmpty {
             requestURL = provider.apiURL
         } else {
             requestURL = provider.apiURL(for: deployment)
@@ -83,8 +108,17 @@ public final class LLMService {
         var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(provider.token, forHTTPHeaderField: provider.authHeaderName)
-        let structuredOutputConfig = provider.category == .azureOpenAI ? action.structuredOutput : nil
+
+        // Apply authentication based on provider type
+        if provider.category.usesBuiltInProxy {
+            let effectiveDeployment = deployment.isEmpty ? ProviderConfig.builtInCloudDefaultModel : deployment
+            let path = "/\(effectiveDeployment)/chat/completions"
+            applyBuiltInCloudAuth(to: &request, path: path)
+        } else {
+            request.setValue(provider.token, forHTTPHeaderField: provider.authHeaderName)
+        }
+
+        let structuredOutputConfig = provider.category == .azureOpenAI || provider.category == .builtInCloud ? action.structuredOutput : nil
         // Enable streaming for both regular and structured output (sentence pairs)
         let enableStreaming = partialHandler != nil
         if enableStreaming {
@@ -865,5 +899,34 @@ private extension JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         return encoder
+    }
+}
+
+// MARK: - Data Hex Extensions
+
+private extension Data {
+    /// Initialize Data from a hex string
+    init?(hexString: String) {
+        let hex = hexString.lowercased()
+        guard hex.count % 2 == 0 else { return nil }
+
+        var data = Data(capacity: hex.count / 2)
+        var index = hex.startIndex
+
+        while index < hex.endIndex {
+            let nextIndex = hex.index(index, offsetBy: 2)
+            guard let byte = UInt8(hex[index..<nextIndex], radix: 16) else {
+                return nil
+            }
+            data.append(byte)
+            index = nextIndex
+        }
+
+        self = data
+    }
+
+    /// Convert Data to hex string
+    func hexEncodedString() -> String {
+        map { String(format: "%02x", $0) }.joined()
     }
 }

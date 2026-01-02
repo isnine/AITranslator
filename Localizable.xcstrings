@@ -574,6 +574,9 @@
     "Model" : {
 
     },
+    "Model Selection" : {
+
+    },
     "New Empty" : {
 
     },
@@ -745,7 +748,7 @@
         }
       }
     },
-    "Provider Category" : {
+    "Provider Type" : {
 
     },
     "Providers" : {
@@ -778,6 +781,9 @@
           }
         }
       }
+    },
+    "Ready to use - No API key required" : {
+
     },
     "Refresh" : {
       "comment" : "Menu bar popover refresh button",
@@ -865,6 +871,9 @@
           }
         }
       }
+    },
+    "Select the models you want to use" : {
+
     },
     "Send" : {
       "localizations" : {

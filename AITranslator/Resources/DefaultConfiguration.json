@@ -1,13 +1,13 @@
 {
   "version": "1.1.0",
   "preferences": {
-    "targetLanguage": "Simplified Chinese",
-    "hotkey": {
-      "key": "Space",
-      "modifiers": ["command", "shift"]
-    }
+    "targetLanguage": "Simplified Chinese"
   },
   "providers": {
+    "Built-in Cloud": {
+      "category": "Built-in Cloud",
+      "enabledDeployments": ["model-router", "gpt-4.1-nano"]
+    },
     "Azure OpenAI": {
       "category": "Azure OpenAI",
       "baseEndpoint": "https://REDACTED_AZURE_ENDPOINT/openai/deployments",
@@ -18,12 +18,12 @@
       "token": "REDACTED_AZURE_API_KEY"
     }
   },
-  "tts" : {
-    "apiKey" : "REDACTED_AZURE_API_KEY",
-    "endpoint" : "https:\/\/REDACTED_AZURE_ENDPOINT\/openai\/deployments\/gpt-4o-mini-tts\/audio\/speech?api-version=2025-03-01-preview",
-    "model" : "gpt-4o-mini-tts",
-    "useDefault" : true,
-    "voice" : "alloy"
+  "tts": {
+    "apiKey": "REDACTED_AZURE_API_KEY",
+    "endpoint": "https://REDACTED_AZURE_ENDPOINT/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2025-03-01-preview",
+    "model": "gpt-4o-mini-tts",
+    "useDefault": true,
+    "voice": "alloy"
   },
   "actions": [
     {

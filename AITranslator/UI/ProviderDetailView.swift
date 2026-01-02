@@ -79,14 +79,15 @@ struct ProviderDetailView: View {
         } else {
             self.providerID = UUID()
             self.isNewProvider = true
-            _displayName = State(initialValue: "")
+            // Default to Built-in Cloud for new providers
+            _displayName = State(initialValue: "Built-in Cloud")
             _baseEndpoint = State(initialValue: "")
             _apiVersion = State(initialValue: "2024-02-15-preview")
             _token = State(initialValue: "")
             _authHeaderName = State(initialValue: "api-key")
-            _category = State(initialValue: .azureOpenAI)
-            _deploymentsText = State(initialValue: "")
-            _enabledDeploymentsSet = State(initialValue: [])
+            _category = State(initialValue: .builtInCloud)
+            _deploymentsText = State(initialValue: ProviderConfig.builtInCloudAvailableModels.joined(separator: ", "))
+            _enabledDeploymentsSet = State(initialValue: Set(ProviderConfig.builtInCloudAvailableModels))
         }
     }
 
@@ -95,10 +96,15 @@ struct ProviderDetailView: View {
             headerBar
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    basicInfoSection
-                    connectionSection
-                    deploymentsSection
                     categorySection
+
+                    if category == .builtInCloud {
+                        builtInCloudSection
+                    } else {
+                        basicInfoSection
+                        connectionSection
+                        deploymentsSection
+                    }
 
                     if !isNewProvider {
                         deleteSection
@@ -163,10 +169,14 @@ struct ProviderDetailView: View {
     }
 
     private var canSave: Bool {
-        !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !baseEndpoint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        URL(string: baseEndpoint) != nil &&
-        hasEnabledDeployments
+        if category == .builtInCloud {
+            // Built-in Cloud needs at least one model enabled
+            return !enabledDeploymentsSet.isEmpty
+        }
+        return !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !baseEndpoint.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            URL(string: baseEndpoint) != nil &&
+            hasEnabledDeployments
     }
 
     private var hasEnabledDeployments: Bool {
@@ -532,9 +542,9 @@ struct ProviderDetailView: View {
     }
 
     private var categorySection: some View {
-        section(title: "Provider Category") {
+        section(title: "Provider Type") {
             VStack(spacing: 12) {
-                ForEach(ProviderCategory.allCases, id: \.self) { cat in
+                ForEach(ProviderCategory.editableCategories, id: \.self) { cat in
                     categoryRow(cat)
                 }
             }
@@ -544,14 +554,22 @@ struct ProviderDetailView: View {
     private func categoryRow(_ cat: ProviderCategory) -> some View {
         let isSelected = category == cat
         return Button {
-            category = cat
+            withAnimation(.easeInOut(duration: 0.2)) {
+                category = cat
+                // Reset fields when switching categories
+                if cat == .builtInCloud {
+                    displayName = "Built-in Cloud"
+                    deploymentsText = ProviderConfig.builtInCloudAvailableModels.joined(separator: ", ")
+                    enabledDeploymentsSet = Set(ProviderConfig.builtInCloudAvailableModels)
+                }
+            }
         } label: {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(cat.displayName)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(colors.textPrimary)
-                    Text(cat.defaultModelHint)
+                    Text(cat.categoryDescription)
                         .font(.system(size: 13))
                         .foregroundColor(colors.textSecondary)
                 }
@@ -571,6 +589,80 @@ struct ProviderDetailView: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .stroke(isSelected ? colors.accent : colors.cardBackground, lineWidth: 2)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var builtInCloudSection: some View {
+        section(title: "Model Selection") {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Select the models you want to use")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.textSecondary)
+
+                ForEach(ProviderConfig.builtInCloudAvailableModels, id: \.self) { model in
+                    builtInCloudModelRow(model: model)
+                }
+
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(colors.success)
+                    Text("Ready to use - No API key required")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+
+    private func builtInCloudModelRow(model: String) -> some View {
+        let isEnabled = enabledDeploymentsSet.contains(model)
+        let modelDescription: String = {
+            switch model {
+            case "model-router":
+                return "Smart routing - automatically selects the best model"
+            case "gpt-4.1-nano":
+                return "Fast & efficient - optimized for quick responses"
+            default:
+                return model
+            }
+        }()
+
+        return Button {
+            if isEnabled {
+                enabledDeploymentsSet.remove(model)
+            } else {
+                enabledDeploymentsSet.insert(model)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundColor(isEnabled ? colors.accent : colors.textSecondary)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(model)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
+                    Text(modelDescription)
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(colors.cardBackground)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(isEnabled ? colors.accent : colors.cardBackground, lineWidth: 2)
                     )
             )
         }
@@ -786,38 +878,55 @@ struct ProviderDetailView: View {
     // MARK: - Save / Delete
 
     private func saveProvider() {
-        guard let url = URL(string: baseEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)) else {
-            return
-        }
+        let updated: ProviderConfig
 
-        // Get all deployments from text input
-        let allDeployments = deploymentsText
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-        
-        // Get enabled deployments based on current state
-        let enabledDeploymentSet: Set<String>
-        if !testResults.isEmpty {
-            // If we have test results, use them (only enable successful + user-selected ones)
-            enabledDeploymentSet = Set(testResults.filter(\.isEnabled).map(\.deploymentName))
+        if category == .builtInCloud {
+            // Built-in Cloud uses built-in configuration with selected models
+            updated = ProviderConfig(
+                id: providerID,
+                displayName: "Built-in Cloud",
+                baseEndpoint: ProviderConfig.builtInCloudEndpoint,
+                apiVersion: "2025-01-01-preview",
+                token: "",
+                authHeaderName: "api-key",
+                category: .builtInCloud,
+                deployments: ProviderConfig.builtInCloudAvailableModels,
+                enabledDeployments: enabledDeploymentsSet
+            )
         } else {
-            // Use the enabledDeploymentsSet state (respects user toggles)
-            // Only include deployments that are in the current list
-            enabledDeploymentSet = enabledDeploymentsSet.intersection(Set(allDeployments))
-        }
+            guard let url = URL(string: baseEndpoint.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+                return
+            }
 
-        let updated = ProviderConfig(
-            id: providerID,
-            displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
-            baseEndpoint: url,
-            apiVersion: apiVersion.trimmingCharacters(in: .whitespacesAndNewlines),
-            token: token.trimmingCharacters(in: .whitespacesAndNewlines),
-            authHeaderName: authHeaderName.trimmingCharacters(in: .whitespacesAndNewlines),
-            category: category,
-            deployments: allDeployments,
-            enabledDeployments: enabledDeploymentSet
-        )
+            // Get all deployments from text input
+            let allDeployments = deploymentsText
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+
+            // Get enabled deployments based on current state
+            let enabledDeploymentSet: Set<String>
+            if !testResults.isEmpty {
+                // If we have test results, use them (only enable successful + user-selected ones)
+                enabledDeploymentSet = Set(testResults.filter(\.isEnabled).map(\.deploymentName))
+            } else {
+                // Use the enabledDeploymentsSet state (respects user toggles)
+                // Only include deployments that are in the current list
+                enabledDeploymentSet = enabledDeploymentsSet.intersection(Set(allDeployments))
+            }
+
+            updated = ProviderConfig(
+                id: providerID,
+                displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
+                baseEndpoint: url,
+                apiVersion: apiVersion.trimmingCharacters(in: .whitespacesAndNewlines),
+                token: token.trimmingCharacters(in: .whitespacesAndNewlines),
+                authHeaderName: authHeaderName.trimmingCharacters(in: .whitespacesAndNewlines),
+                category: category,
+                deployments: allDeployments,
+                enabledDeployments: enabledDeploymentSet
+            )
+        }
 
         var providers = configurationStore.providers
 

@@ -68,7 +68,7 @@ public extension AppConfiguration {
     public var model: String?
     public var endpoint: String?
     public var authHeader: String?
-    public var token: String
+    public var token: String?
 
     public init(
       category: String,
@@ -79,7 +79,7 @@ public extension AppConfiguration {
       model: String? = nil,
       endpoint: String? = nil,
       authHeader: String? = nil,
-      token: String
+      token: String? = nil
     ) {
       self.category = category
       self.baseEndpoint = baseEndpoint
@@ -99,6 +99,12 @@ public extension AppConfiguration {
         return nil
       }
 
+      // Built-in Cloud category uses built-in configuration
+      if providerCategory == .builtInCloud {
+        let enabledSet = enabledDeployments.map { Set($0) }
+        return ProviderConfig.builtInCloudProvider(enabledModels: enabledSet)
+      }
+
       let resolvedAuthHeader: String
       if let authHeader, !authHeader.isEmpty {
         resolvedAuthHeader = authHeader
@@ -116,7 +122,7 @@ public extension AppConfiguration {
           displayName: name,
           baseEndpoint: baseURL,
           apiVersion: version,
-          token: token,
+          token: token ?? "",
           authHeaderName: resolvedAuthHeader,
           category: providerCategory,
           deployments: deploymentList,
@@ -133,7 +139,7 @@ public extension AppConfiguration {
       return ProviderConfig(
         displayName: name,
         apiURL: url,
-        token: token,
+        token: token ?? "",
         authHeaderName: resolvedAuthHeader,
         category: providerCategory,
         modelName: model
@@ -142,6 +148,22 @@ public extension AppConfiguration {
 
     /// Create from internal ProviderConfig (always uses new format)
     public static func from(_ config: ProviderConfig) -> (name: String, entry: ProviderEntry) {
+      // Built-in Cloud only needs category and enabled deployments
+      if config.category == .builtInCloud {
+        let entry = ProviderEntry(
+          category: config.category.rawValue,
+          baseEndpoint: nil,
+          apiVersion: nil,
+          deployments: nil,
+          enabledDeployments: Array(config.enabledDeployments),
+          model: nil,
+          endpoint: nil,
+          authHeader: nil,
+          token: nil
+        )
+        return (config.displayName, entry)
+      }
+
       let entry = ProviderEntry(
         category: config.category.rawValue,
         baseEndpoint: config.baseEndpoint.absoluteString,

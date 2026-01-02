@@ -22,6 +22,35 @@ public struct ProviderConfig: Identifiable, Hashable, Codable {
     /// Deployments that are enabled for use (subset of deployments)
     public var enabledDeployments: Set<String>
 
+    // MARK: - Built-in Cloud Constants
+
+    /// CloudFlare worker endpoint for Built-in Cloud provider
+    public static let builtInCloudEndpoint = URL(string: "https://translator-api.zanderwang.com")!
+
+    /// Available models for Built-in Cloud provider
+    public static let builtInCloudAvailableModels = ["model-router", "gpt-4.1-nano"]
+
+    /// Default model for Built-in Cloud provider
+    public static let builtInCloudDefaultModel = "model-router"
+
+    /// Shared secret for HMAC signing (used with Built-in Cloud provider)
+    public static let builtInCloudSecret = "REDACTED_HMAC_SECRET"
+
+    /// Creates a Built-in Cloud provider config with specified models
+    public static func builtInCloudProvider(enabledModels: Set<String>? = nil) -> ProviderConfig {
+        let enabled = enabledModels ?? Set(builtInCloudAvailableModels)
+        return ProviderConfig(
+            displayName: "Built-in Cloud",
+            baseEndpoint: builtInCloudEndpoint,
+            apiVersion: "2025-01-01-preview",
+            token: "",
+            authHeaderName: "api-key",
+            category: .builtInCloud,
+            deployments: builtInCloudAvailableModels,
+            enabledDeployments: enabled
+        )
+    }
+
     /// Computed property to get full API URL for a specific deployment
     public func apiURL(for deployment: String) -> URL {
         let path = baseEndpoint.appendingPathComponent(deployment)

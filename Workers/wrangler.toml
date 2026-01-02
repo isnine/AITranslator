@@ -1,0 +1,11 @@
+name = "aitranslator"
+main = "azureProxyWorker.ts"
+compatibility_date = "2024-01-01"
+
+# The worker is deployed at: https://aitranslator.xiaozwan.workers.dev/
+
+# Environment variables (secrets should be set via `wrangler secret put`)
+# Required secrets:
+# - APP_SECRET: The HMAC shared secret for request signing
+# - AZURE_API_KEY: Azure OpenAI API key
+# - AZURE_ENDPOINT: Azure OpenAI endpoint URL

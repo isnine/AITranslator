@@ -122,10 +122,16 @@ public struct ConfigurationValidator: Sendable {
 
     for (name, entry) in providers {
       // Validate category
-      if ProviderCategory(rawValue: entry.category) == nil
-        && ProviderCategory.allCases.first(where: { $0.displayName == entry.category }) == nil
-      {
+      let category = ProviderCategory(rawValue: entry.category)
+        ?? ProviderCategory.allCases.first(where: { $0.displayName == entry.category })
+
+      if category == nil {
         issues.append(.invalidProviderCategory(provider: name, category: entry.category))
+      }
+
+      // Built-in Cloud doesn't need endpoint or token validation
+      if category == .builtInCloud {
+        continue
       }
 
       // Validate endpoint URL
@@ -142,7 +148,7 @@ public struct ConfigurationValidator: Sendable {
       }
 
       // Validate token is not empty
-      if entry.token.isEmpty {
+      if entry.token?.isEmpty ?? true {
         issues.append(.emptyToken(provider: name))
       }
 

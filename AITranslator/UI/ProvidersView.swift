@@ -133,6 +133,10 @@ struct ProvidersView: View {
     }
 
     private func status(for provider: ProviderConfig) -> ProviderCardView.Status {
+        // Built-in Cloud is always active (uses built-in authentication)
+        if provider.category == .builtInCloud {
+            return .active
+        }
         if provider.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return .inactive
         }
