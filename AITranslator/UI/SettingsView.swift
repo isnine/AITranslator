@@ -40,7 +40,6 @@ struct SettingsView: View {
   @State private var configEditorItem: ConfigEditorItem?
   
   // Collapsible section states
-  @State private var isSavedConfigsExpanded = false
   @State private var isStorageSettingsExpanded = false
   
   // Storage location state for UI refresh
@@ -586,120 +585,67 @@ private extension SettingsView {
                 Spacer()
             }
 
-            // Primary action buttons - only Import & Export
-            HStack(spacing: 10) {
-                configActionButton(
-                    icon: "square.and.arrow.down",
-                    title: "Import",
-                    isAccent: true
-                ) {
-                    isImportPresented = true
-                }
-
-                configActionButton(
-                    icon: "square.and.arrow.up",
-                    title: "Export",
-                    isAccent: false
-                ) {
-                    prepareAndExport()
-                }
-            }
-
-            // Collapsible Saved Configurations section
-            VStack(spacing: 0) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        isSavedConfigsExpanded.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: isSavedConfigsExpanded ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(colors.textSecondary)
-                            .frame(width: 16)
-                        
-                        Text("Saved Configurations")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(colors.textPrimary)
-                        
-                        if !savedConfigurations.isEmpty {
-                            Text("(\(savedConfigurations.count))")
-                                .font(.system(size: 13))
-                                .foregroundColor(colors.textSecondary)
+            // Saved Configurations section (displayed directly without collapsing)
+            VStack(spacing: 8) {
+                // Quick action buttons
+                HStack(spacing: 8) {
+                    Button {
+                        duplicateCurrentConfiguration()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 12, weight: .medium))
+                            Text("Duplicate")
+                                .font(.system(size: 12, weight: .medium))
                         }
-                        
-                        Spacer()
+                        .foregroundColor(colors.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(colors.accent.opacity(0.12))
+                        )
                     }
-                    .padding(.vertical, 12)
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    .disabled(configStore.currentConfigurationName == nil)
+                    
+                    Button {
+                        createEmptyTemplate()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "doc.badge.plus")
+                                .font(.system(size: 12, weight: .medium))
+                            Text("New Empty")
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(colors.textSecondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(colors.inputBackground)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Spacer()
                 }
-                .buttonStyle(.plain)
+                .padding(.bottom, 4)
                 
-                if isSavedConfigsExpanded {
-                    VStack(spacing: 8) {
-                        // Quick action buttons
-                        HStack(spacing: 8) {
-                            Button {
-                                duplicateCurrentConfiguration()
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "doc.on.doc")
-                                        .font(.system(size: 12, weight: .medium))
-                                    Text("Duplicate")
-                                        .font(.system(size: 12, weight: .medium))
-                                }
-                                .foregroundColor(colors.accent)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .fill(colors.accent.opacity(0.12))
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(configStore.currentConfigurationName == nil)
-                            
-                            Button {
-                                createEmptyTemplate()
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "doc.badge.plus")
-                                        .font(.system(size: 12, weight: .medium))
-                                    Text("New Empty")
-                                        .font(.system(size: 12, weight: .medium))
-                                }
-                                .foregroundColor(colors.textSecondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .fill(colors.inputBackground)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Spacer()
-                        }
-                        .padding(.bottom, 4)
-                        
-                        if savedConfigurations.isEmpty {
-                            Text("No saved configurations")
-                                .font(.system(size: 13))
-                                .foregroundColor(colors.textSecondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, 8)
-                        } else {
-                            ForEach(savedConfigurations) { config in
-                                savedConfigurationRow(config)
-                            }
-                        }
+                if savedConfigurations.isEmpty {
+                    Text("No saved configurations")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
+                } else {
+                    ForEach(savedConfigurations) { config in
+                        savedConfigurationRow(config)
                     }
-                    .padding(.leading, 26)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 4)
+            .padding(.vertical, 12)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(colors.inputBackground.opacity(0.5))
