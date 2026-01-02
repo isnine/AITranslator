@@ -12,17 +12,48 @@ public struct TTSConfiguration: Equatable {
     public var apiKey: String
     public var model: String
     public var voice: String
+    public var useBuiltInCloud: Bool
 
     public init(
         endpointURL: URL,
         apiKey: String,
         model: String,
-        voice: String
+        voice: String,
+        useBuiltInCloud: Bool = false
     ) {
         self.endpointURL = endpointURL
         self.apiKey = apiKey
         self.model = model
         self.voice = voice
+        self.useBuiltInCloud = useBuiltInCloud
+    }
+
+    // MARK: - Built-in Cloud Constants
+
+    /// Built-in cloud TTS endpoint (via CloudFlare Worker)
+    public static let builtInCloudEndpoint = URL(string: "https://aitranslator.xiaozwan.workers.dev/tts")!
+
+    /// Available voices for built-in cloud TTS
+    public static let builtInCloudVoices = ["alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"]
+
+    /// Default voice for built-in cloud TTS
+    public static let builtInCloudDefaultVoice = "alloy"
+
+    /// Built-in cloud TTS model
+    public static let builtInCloudModel = "gpt-4o-mini-tts"
+
+    /// Shared secret for HMAC signing (same as LLM)
+    public static let builtInCloudSecret = "REDACTED_HMAC_SECRET"
+
+    /// Create a built-in cloud TTS configuration
+    public static func builtInCloud(voice: String = builtInCloudDefaultVoice) -> TTSConfiguration {
+        TTSConfiguration(
+            endpointURL: builtInCloudEndpoint,
+            apiKey: "", // Not needed for built-in cloud
+            model: builtInCloudModel,
+            voice: voice,
+            useBuiltInCloud: true
+        )
     }
 
     /// Empty configuration with no endpoint or API key
@@ -32,9 +63,12 @@ public struct TTSConfiguration: Equatable {
         model: "",
         voice: ""
     )
-    
+
     /// Whether the configuration is valid for making TTS requests
     public var isValid: Bool {
-        !apiKey.isEmpty && endpointURL.absoluteString != "https://" && !model.isEmpty && !voice.isEmpty
+        if useBuiltInCloud {
+            return !voice.isEmpty
+        }
+        return !apiKey.isEmpty && endpointURL.absoluteString != "https://" && !model.isEmpty && !voice.isEmpty
     }
 }

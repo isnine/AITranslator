@@ -62,6 +62,7 @@ public final class AppPreferences: ObservableObject {
         guard ttsConfiguration != configuration else { return }
 
         ttsConfiguration = configuration
+        defaults.set(configuration.useBuiltInCloud, forKey: StorageKeys.ttsUseBuiltInCloud)
         defaults.set(configuration.endpointURL.absoluteString, forKey: StorageKeys.ttsEndpoint)
         defaults.set(configuration.apiKey, forKey: StorageKeys.ttsAPIKey)
         defaults.set(configuration.model, forKey: StorageKeys.ttsModel)
@@ -194,6 +195,14 @@ public final class AppPreferences: ObservableObject {
     }
 
     private static func readTTSConfiguration(from defaults: UserDefaults) -> TTSConfiguration {
+        let useBuiltInCloud = defaults.bool(forKey: StorageKeys.ttsUseBuiltInCloud)
+        
+        // If using built-in cloud, only voice matters
+        if useBuiltInCloud {
+            let voice = defaults.string(forKey: StorageKeys.ttsVoice) ?? TTSConfiguration.builtInCloudDefaultVoice
+            return TTSConfiguration.builtInCloud(voice: voice)
+        }
+        
         let endpointString = defaults.string(forKey: StorageKeys.ttsEndpoint) ?? ""
         let apiKey = defaults.string(forKey: StorageKeys.ttsAPIKey) ?? ""
         let model = defaults.string(forKey: StorageKeys.ttsModel) ?? ""
@@ -211,6 +220,7 @@ public final class AppPreferences: ObservableObject {
 
 private enum StorageKeys {
     static let currentConfigName = "current_config_name"
+    static let ttsUseBuiltInCloud = "tts_use_builtin_cloud"
     static let ttsEndpoint = "tts_endpoint_url"
     static let ttsAPIKey = "tts_api_key"
     static let ttsModel = "tts_model"

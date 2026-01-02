@@ -499,6 +499,9 @@
         }
       }
     },
+    "Free TTS service powered by the app" : {
+
+    },
     "Generating..." : {
       "localizations" : {
         "zh-Hans" : {
@@ -543,7 +546,7 @@
         }
       }
     },
-    "https://..." : {
+    "https://xxx.openai.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2025-03-01-preview" : {
 
     },
     "Import" : {
@@ -1115,6 +1118,9 @@
           }
         }
       }
+    },
+    "Use Built-in Cloud" : {
+
     },
     "Use Default Configuration" : {
       "extractionState" : "stale",

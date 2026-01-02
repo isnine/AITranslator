@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CryptoKit
 #if canImport(AVFoundation)
 import AVFoundation
 #endif
@@ -34,20 +35,13 @@ public final class TextToSpeechService {
         }
 
         let configuration = preferences.ttsConfiguration
-        var request = URLRequest(url: configuration.endpointURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
-        request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
-        request.timeoutInterval = 60
 
-        let body: [String: Any] = [
-            "model": configuration.model,
-            "input": trimmed,
-            "voice": configuration.voice
-        ]
-
-        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        var request: URLRequest
+        if configuration.useBuiltInCloud {
+            request = try buildBuiltInCloudRequest(text: trimmed, configuration: configuration)
+        } else {
+            request = buildCustomRequest(text: trimmed, configuration: configuration)
+        }
 
         let (data, response) = try await urlSession.data(for: request)
 
@@ -64,6 +58,65 @@ public final class TextToSpeechService {
         }
 
         try await playAudio(with: data)
+    }
+
+    // MARK: - Request Building
+
+    private func buildBuiltInCloudRequest(text: String, configuration: TTSConfiguration) throws -> URLRequest {
+        var request = URLRequest(url: TTSConfiguration.builtInCloudEndpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 60
+
+        // Add HMAC signature
+        let timestamp = String(Int(Date().timeIntervalSince1970))
+        let path = "/tts"
+        let signature = generateSignature(timestamp: timestamp, path: path)
+
+        request.setValue(timestamp, forHTTPHeaderField: "X-Timestamp")
+        request.setValue(signature, forHTTPHeaderField: "X-Signature")
+
+        let body: [String: Any] = [
+            "model": TTSConfiguration.builtInCloudModel,
+            "input": text,
+            "voice": configuration.voice
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
+        return request
+    }
+
+    private func buildCustomRequest(text: String, configuration: TTSConfiguration) -> URLRequest {
+        var request = URLRequest(url: configuration.endpointURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 60
+
+        let body: [String: Any] = [
+            "model": configuration.model,
+            "input": text,
+            "voice": configuration.voice
+        ]
+
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
+        return request
+    }
+
+    // MARK: - HMAC Signature
+
+    private func generateSignature(timestamp: String, path: String) -> String {
+        let message = "\(timestamp):\(path)"
+        guard let secretData = Data(hexString: TTSConfiguration.builtInCloudSecret),
+              let messageData = message.data(using: .utf8) else {
+            return ""
+        }
+
+        let key = SymmetricKey(data: secretData)
+        let signature = HMAC<SHA256>.authenticationCode(for: messageData, using: key)
+        return Data(signature).map { String(format: "%02x", $0) }.joined()
     }
 
     @MainActor
@@ -103,5 +156,29 @@ public enum TextToSpeechServiceError: LocalizedError {
         case .platformUnsupported:
             return NSLocalizedString("Speech playback is not supported on this platform.", comment: "TTS platform unsupported error")
         }
+    }
+}
+
+// MARK: - Data Hex Extensions
+
+private extension Data {
+    /// Initialize Data from a hex string
+    init?(hexString: String) {
+        let hex = hexString.lowercased()
+        guard hex.count % 2 == 0 else { return nil }
+
+        var data = Data(capacity: hex.count / 2)
+        var index = hex.startIndex
+
+        while index < hex.endIndex {
+            let nextIndex = hex.index(index, offsetBy: 2)
+            guard let byte = UInt8(hex[index..<nextIndex], radix: 16) else {
+                return nil
+            }
+            data.append(byte)
+            index = nextIndex
+        }
+
+        self = data
     }
 }

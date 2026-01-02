@@ -188,21 +188,29 @@ public extension AppConfiguration {
     public var apiKey: String?
     public var model: String?
     public var voice: String?
+    public var useBuiltInCloud: Bool?
 
     public init(
       endpoint: String? = nil,
       apiKey: String? = nil,
       model: String? = nil,
-      voice: String? = nil
+      voice: String? = nil,
+      useBuiltInCloud: Bool? = nil
     ) {
       self.endpoint = endpoint
       self.apiKey = apiKey
       self.model = model
       self.voice = voice
+      self.useBuiltInCloud = useBuiltInCloud
     }
 
     /// Convert to internal TTSConfiguration
     public func toTTSConfiguration() -> TTSConfiguration {
+      // If using built-in cloud, return built-in configuration
+      if useBuiltInCloud == true {
+        return TTSConfiguration.builtInCloud(voice: voice ?? TTSConfiguration.builtInCloudDefaultVoice)
+      }
+
       let endpointURL = endpoint.flatMap { URL(string: $0) } ?? URL(string: "https://")!
       return TTSConfiguration(
         endpointURL: endpointURL,
@@ -214,11 +222,22 @@ public extension AppConfiguration {
 
     /// Create from internal TTSConfiguration
     public static func from(_ config: TTSConfiguration) -> TTSEntry {
-      TTSEntry(
+      if config.useBuiltInCloud {
+        return TTSEntry(
+          endpoint: nil,
+          apiKey: nil,
+          model: nil,
+          voice: config.voice,
+          useBuiltInCloud: true
+        )
+      }
+
+      return TTSEntry(
         endpoint: config.endpointURL.absoluteString,
         apiKey: config.apiKey,
         model: config.model,
-        voice: config.voice
+        voice: config.voice,
+        useBuiltInCloud: nil
       )
     }
   }

@@ -5,12 +5,17 @@
  * Security: Requests must include X-Timestamp and X-Signature headers.
  * The signature is HMAC-SHA256(secret, timestamp:path) and timestamp must be
  * within 120 seconds of current time.
+ *
+ * Routes:
+ * - /tts - Text-to-Speech requests, proxied to TTS_ENDPOINT
+ * - /{model}/chat/completions - LLM chat requests, proxied to AZURE_ENDPOINT
  */
 
 interface Env {
   APP_SECRET: string;
   AZURE_ENDPOINT: string;
   AZURE_API_KEY: string;
+  TTS_ENDPOINT: string;
 }
 
 interface AuthResult {
@@ -46,70 +51,135 @@ export default {
       );
     }
 
-    // Extract and validate the model from the request path
     const url = new URL(request.url);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    const requestedModel = pathParts[0];
+    const path = url.pathname;
 
-    if (!requestedModel || !ALLOWED_MODELS.includes(requestedModel)) {
-      return buildResponse(
-        JSON.stringify({
-          error: "Invalid model",
-          message: `Model '${requestedModel}' is not allowed. Allowed models: ${ALLOWED_MODELS.join(
-            ", "
-          )}`,
-        }),
-        400,
-        "application/json"
-      );
+    // Route: /tts - Text-to-Speech
+    if (path === "/tts") {
+      return handleTTSRequest(request, env);
     }
 
-    try {
-      if (!env.AZURE_ENDPOINT) {
-        return buildResponse(
-          JSON.stringify({
-            error: "Configuration error",
-            message: "AZURE_ENDPOINT not configured",
-          }),
-          500,
-          "application/json"
-        );
-      }
-
-      const targetURL = buildAzureURL(request, env.AZURE_ENDPOINT);
-      const forwardHeaders = cloneHeaders(request.headers);
-
-      // Remove signature headers before forwarding
-      forwardHeaders.delete("X-Timestamp");
-      forwardHeaders.delete("X-Signature");
-
-      forwardHeaders.set("api-key", env.AZURE_API_KEY);
-      forwardHeaders.set("host", targetURL.host);
-
-      const upstreamResponse = await fetch(targetURL.toString(), {
-        method: request.method,
-        headers: forwardHeaders,
-        body: shouldHaveBody(request.method) ? request.body : null,
-        redirect: "manual",
-      });
-
-      const responseHeaders = new Headers(upstreamResponse.headers);
-      applyCors(responseHeaders);
-
-      return new Response(upstreamResponse.body, {
-        status: upstreamResponse.status,
-        headers: responseHeaders,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      return buildResponse(
-        JSON.stringify({ error: "Upstream request failed", message }),
-        502,
-        "application/json"
-      );
-    }
+    // Route: /{model}/chat/completions - LLM Chat
+    return handleLLMRequest(request, env);
   },
 };
+
+// MARK: - TTS Handler
+
+async function handleTTSRequest(request: Request, env: Env): Promise<Response> {
+  try {
+    if (!env.TTS_ENDPOINT) {
+      return buildResponse(
+        JSON.stringify({
+          error: "Configuration error",
+          message: "TTS_ENDPOINT not configured",
+        }),
+        500,
+        "application/json"
+      );
+    }
+
+    const ttsURL = new URL(env.TTS_ENDPOINT);
+    const forwardHeaders = cloneHeaders(request.headers);
+
+    // Remove signature headers before forwarding
+    forwardHeaders.delete("X-Timestamp");
+    forwardHeaders.delete("X-Signature");
+
+    // Set Azure API key
+    forwardHeaders.set("api-key", env.AZURE_API_KEY);
+    forwardHeaders.set("host", ttsURL.host);
+
+    const upstreamResponse = await fetch(ttsURL.toString(), {
+      method: request.method,
+      headers: forwardHeaders,
+      body: shouldHaveBody(request.method) ? request.body : null,
+      redirect: "manual",
+    });
+
+    const responseHeaders = new Headers(upstreamResponse.headers);
+    applyCors(responseHeaders);
+
+    return new Response(upstreamResponse.body, {
+      status: upstreamResponse.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return buildResponse(
+      JSON.stringify({ error: "TTS request failed", message }),
+      502,
+      "application/json"
+    );
+  }
+}
+
+// MARK: - LLM Handler
+
+async function handleLLMRequest(request: Request, env: Env): Promise<Response> {
+  // Extract and validate the model from the request path
+  const url = new URL(request.url);
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const requestedModel = pathParts[0];
+
+  if (!requestedModel || !ALLOWED_MODELS.includes(requestedModel)) {
+    return buildResponse(
+      JSON.stringify({
+        error: "Invalid model",
+        message: `Model '${requestedModel}' is not allowed. Allowed models: ${ALLOWED_MODELS.join(
+          ", "
+        )}`,
+      }),
+      400,
+      "application/json"
+    );
+  }
+
+  try {
+    if (!env.AZURE_ENDPOINT) {
+      return buildResponse(
+        JSON.stringify({
+          error: "Configuration error",
+          message: "AZURE_ENDPOINT not configured",
+        }),
+        500,
+        "application/json"
+      );
+    }
+
+    const targetURL = buildAzureURL(request, env.AZURE_ENDPOINT);
+    const forwardHeaders = cloneHeaders(request.headers);
+
+    // Remove signature headers before forwarding
+    forwardHeaders.delete("X-Timestamp");
+    forwardHeaders.delete("X-Signature");
+
+    forwardHeaders.set("api-key", env.AZURE_API_KEY);
+    forwardHeaders.set("host", targetURL.host);
+
+    const upstreamResponse = await fetch(targetURL.toString(), {
+      method: request.method,
+      headers: forwardHeaders,
+      body: shouldHaveBody(request.method) ? request.body : null,
+      redirect: "manual",
+    });
+
+    const responseHeaders = new Headers(upstreamResponse.headers);
+    applyCors(responseHeaders);
+
+    return new Response(upstreamResponse.body, {
+      status: upstreamResponse.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return buildResponse(
+      JSON.stringify({ error: "Upstream request failed", message }),
+      502,
+      "application/json"
+    );
+  }
+}
 
 async function isAuthorized(
   request: Request,

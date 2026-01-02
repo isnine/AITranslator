@@ -23,6 +23,7 @@ struct SettingsView: View {
   @State private var customTTSAPIKey: String
   @State private var customTTSModel: String
   @State private var customTTSVoice: String
+  @State private var ttsUseBuiltInCloud: Bool
 
   // Configuration import/export state
   @State private var isImportPresented = false
@@ -70,6 +71,7 @@ struct SettingsView: View {
     _customTTSAPIKey = State(initialValue: configuration.apiKey)
     _customTTSModel = State(initialValue: configuration.model)
     _customTTSVoice = State(initialValue: configuration.voice)
+    _ttsUseBuiltInCloud = State(initialValue: configuration.useBuiltInCloud)
   }
 
     var body: some View {
@@ -116,6 +118,10 @@ struct SettingsView: View {
             persistCustomTTSConfiguration()
         }
         .onChange(of: customTTSVoice) {
+            guard !isUpdatingFromPreferences else { return }
+            persistCustomTTSConfiguration()
+        }
+        .onChange(of: ttsUseBuiltInCloud) {
             guard !isUpdatingFromPreferences else { return }
             persistCustomTTSConfiguration()
         }
@@ -382,85 +388,165 @@ private extension SettingsView {
                     .foregroundColor(colors.textSecondary)
             }
 
+            // Built-in Cloud Toggle
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Use Built-in Cloud")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(colors.textPrimary)
+                    Text("Free TTS service powered by the app")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                }
+                Spacer()
+                Toggle("", isOn: $ttsUseBuiltInCloud)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(colors.inputBackground)
+            )
+
             // TTS configuration fields
             VStack(alignment: .leading, spacing: 12) {
-                Text("Endpoint")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(colors.textSecondary)
+                if ttsUseBuiltInCloud {
+                    // Built-in Cloud mode: only show voice picker
+                    Text("Voice")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
 
-                TextField("https://...", text: $customTTSEndpoint)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
+                    Menu {
+                        ForEach(TTSConfiguration.builtInCloudVoices, id: \.self) { voice in
+                            Button(action: {
+                                customTTSVoice = voice
+                            }) {
+                                HStack {
+                                    Text(voice.capitalized)
+                                    if customTTSVoice == voice {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(customTTSVoice.isEmpty ? "Select a voice" : customTTSVoice.capitalized)
+                                .font(.system(size: 14))
+                                .foregroundColor(customTTSVoice.isEmpty ? colors.textSecondary : colors.textPrimary)
+                            Spacer()
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 12))
+                                .foregroundColor(colors.textSecondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(colors.inputBackground)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    // Custom mode: show all fields
+                    Text("Endpoint")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
+
+                    ZStack(alignment: .leading) {
+                        if customTTSEndpoint.isEmpty || customTTSEndpoint == "https://" || customTTSEndpoint == TTSConfiguration.builtInCloudEndpoint.absoluteString {
+                            Text("https://xxx.openai.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2025-03-01-preview")
+                                .font(.system(size: 14))
+                                .foregroundColor(colors.textSecondary.opacity(0.6))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        TextField("", text: Binding(
+                            get: {
+                                // Don't show built-in cloud endpoint in custom mode
+                                if customTTSEndpoint == TTSConfiguration.builtInCloudEndpoint.absoluteString {
+                                    return ""
+                                }
+                                return customTTSEndpoint == "https://" ? "" : customTTSEndpoint
+                            },
+                            set: { customTTSEndpoint = $0 }
+                        ))
+                            .textFieldStyle(.plain)
+                            .font(.system(size: 14))
+                            .foregroundColor(colors.textPrimary)
+                            .autocorrectionDisabled()
+#if os(iOS)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+#endif
+                    }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 12)
-                    .foregroundColor(colors.textPrimary)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(colors.inputBackground)
                     )
-                    .autocorrectionDisabled()
+
+                    Text("API Key")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
+
+                    SecureField("Enter API Key here", text: $customTTSAPIKey)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .foregroundColor(colors.textPrimary)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(colors.inputBackground)
+                        )
+                        .autocorrectionDisabled()
 #if os(iOS)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .textContentType(.password)
 #endif
 
-                Text("API Key")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(colors.textSecondary)
+                    Text("Model")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
 
-                SecureField("Enter API Key here", text: $customTTSAPIKey)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .foregroundColor(colors.textPrimary)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-                    .autocorrectionDisabled()
+                    TextField("e.g. gpt-4o-mini-tts", text: $customTTSModel)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .foregroundColor(colors.textPrimary)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(colors.inputBackground)
+                        )
+                        .autocorrectionDisabled()
 #if os(iOS)
-                    .textInputAutocapitalization(.never)
-                    .textContentType(.password)
+                        .textInputAutocapitalization(.never)
 #endif
 
-                Text("Model")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(colors.textSecondary)
+                    Text("Voice")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary)
 
-                TextField("e.g. gpt-4o-mini-tts", text: $customTTSModel)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .foregroundColor(colors.textPrimary)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-                    .autocorrectionDisabled()
+                    TextField("e.g. alloy", text: $customTTSVoice)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 14))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .foregroundColor(colors.textPrimary)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(colors.inputBackground)
+                        )
+                        .autocorrectionDisabled()
 #if os(iOS)
-                    .textInputAutocapitalization(.never)
+                        .textInputAutocapitalization(.never)
 #endif
-
-                Text("Voice")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(colors.textSecondary)
-
-                TextField("e.g. alloy", text: $customTTSVoice)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 14))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .foregroundColor(colors.textPrimary)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-                    .autocorrectionDisabled()
-#if os(iOS)
-                    .textInputAutocapitalization(.never)
-#endif
+                }
             }
         }
         .padding(18)
@@ -1158,23 +1244,30 @@ private extension SettingsView {
     }
 
     func persistCustomTTSConfiguration() {
-        let trimmedEndpoint = customTTSEndpoint
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let endpointURL = URL(string: trimmedEndpoint) ?? URL(string: "https://")!
-
-        let trimmedKey = customTTSAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedModel = customTTSModel.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedVoice = customTTSVoice.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        let configuration = TTSConfiguration(
-            endpointURL: endpointURL,
-            apiKey: trimmedKey,
-            model: trimmedModel,
-            voice: trimmedVoice
-        )
 
-        preferences.setTTSConfiguration(configuration)
+        if ttsUseBuiltInCloud {
+            // Built-in cloud mode: only voice matters
+            let configuration = TTSConfiguration.builtInCloud(
+                voice: trimmedVoice.isEmpty ? TTSConfiguration.builtInCloudDefaultVoice : trimmedVoice
+            )
+            preferences.setTTSConfiguration(configuration)
+        } else {
+            // Custom mode: use all fields
+            let trimmedEndpoint = customTTSEndpoint
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let endpointURL = URL(string: trimmedEndpoint) ?? URL(string: "https://")!
+            let trimmedKey = customTTSAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedModel = customTTSModel.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let configuration = TTSConfiguration(
+                endpointURL: endpointURL,
+                apiKey: trimmedKey,
+                model: trimmedModel,
+                voice: trimmedVoice
+            )
+            preferences.setTTSConfiguration(configuration)
+        }
     }
 
     func syncTTSPreferencesFromStore() {
@@ -1184,10 +1277,14 @@ private extension SettingsView {
         defer { isUpdatingFromPreferences = false }
         
         let configuration = preferences.ttsConfiguration
-        customTTSEndpoint = configuration.endpointURL.absoluteString
-        customTTSAPIKey = configuration.apiKey
-        customTTSModel = configuration.model
+        ttsUseBuiltInCloud = configuration.useBuiltInCloud
         customTTSVoice = configuration.voice
+
+        if !configuration.useBuiltInCloud {
+            customTTSEndpoint = configuration.endpointURL.absoluteString
+            customTTSAPIKey = configuration.apiKey
+            customTTSModel = configuration.model
+        }
     }
 
     struct LanguageValueView: View {
