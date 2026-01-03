@@ -191,7 +191,8 @@ private extension ProvidersView {
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(colors.textPrimary)
 
-                        if isDefault {
+                        // Hide Default badge for Built-in Cloud
+                        if isDefault && provider.category != .builtInCloud {
                             Text("Default")
                                 .font(.system(size: 12, weight: .semibold))
                                 .padding(.horizontal, 8)
@@ -216,10 +217,12 @@ private extension ProvidersView {
                 }
                 .buttonStyle(.plain)
 
-                // Endpoint info
-                Text(provider.baseEndpoint.host ?? provider.baseEndpoint.absoluteString)
-                    .font(.system(size: 15))
-                    .foregroundColor(colors.textSecondary)
+                // Endpoint info (hide for Built-in Cloud)
+                if provider.category != .builtInCloud {
+                    Text(provider.baseEndpoint.host ?? provider.baseEndpoint.absoluteString)
+                        .font(.system(size: 15))
+                        .foregroundColor(colors.textSecondary)
+                }
 
                 // Deployments list with toggles
                 if !provider.deployments.isEmpty {

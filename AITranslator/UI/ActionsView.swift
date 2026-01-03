@@ -219,8 +219,8 @@ private extension ActionsView {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(colors.textPrimary)
 
-                    Text(action.summary)
-                        .font(.system(size: 15))
+                    Text(action.prompt)
+                        .font(.system(size: 14))
                         .foregroundColor(colors.textSecondary)
                         .lineLimit(2)
 

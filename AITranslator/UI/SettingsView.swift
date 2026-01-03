@@ -610,12 +610,12 @@ private extension SettingsView {
                     .disabled(configStore.currentConfigurationName == nil)
                     
                     Button {
-                        createEmptyTemplate()
+                        createFromDefaultTemplate()
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: "doc.badge.plus")
                                 .font(.system(size: 12, weight: .medium))
-                            Text("New Empty")
+                            Text("New")
                                 .font(.system(size: 12, weight: .medium))
                         }
                         .foregroundColor(colors.textSecondary)
@@ -844,9 +844,9 @@ private extension SettingsView {
         }
     }
 
-    func createEmptyTemplate() {
+    func createFromDefaultTemplate() {
         do {
-            _ = try ConfigurationFileManager.shared.createEmptyTemplate()
+            _ = try ConfigurationFileManager.shared.createFromDefaultTemplate()
             refreshSavedConfigurations()
         } catch {
             importError = error.localizedDescription

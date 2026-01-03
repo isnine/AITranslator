@@ -219,6 +219,7 @@ public enum ConfigurationError: LocalizedError, Sendable {
   case fileNotFound(name: String)
   case fileWriteFailed(Error)
   case fileReadFailed(Error)
+  case bundledConfigNotFound
 
   public var errorDescription: String? {
     switch self {
@@ -243,6 +244,8 @@ public enum ConfigurationError: LocalizedError, Sendable {
       return "Failed to write configuration file: \(error.localizedDescription)"
     case .fileReadFailed(let error):
       return "Failed to read configuration file: \(error.localizedDescription)"
+    case .bundledConfigNotFound:
+      return "Bundled default configuration not found in app bundle"
     }
   }
 }

@@ -27,6 +27,7 @@ public typealias AppTranslationContext = Never
 public struct HomeView: View {
   @Environment(\.colorScheme) private var colorScheme
   @StateObject private var viewModel: HomeViewModel
+  @ObservedObject private var preferences = AppPreferences.shared
   @State private var hasTriggeredAutoRequest = false
   @State private var isInputExpanded: Bool
   @State private var showingProviderInfo: String?
@@ -43,6 +44,13 @@ public struct HomeView: View {
     AppColors.palette(for: colorScheme)
   }
 
+  /// Hides the keyboard on iOS
+  private func hideKeyboard() {
+    #if os(iOS)
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    #endif
+  }
+
   private var usageScene: ActionConfig.UsageScene {
     #if canImport(TranslationUIProvider)
     guard let context else { return .app }
@@ -56,7 +64,7 @@ public struct HomeView: View {
     #if os(macOS)
     return false
     #else
-    return true
+    return !preferences.defaultAppHintDismissed
     #endif
   }
 
@@ -114,6 +122,11 @@ public struct HomeView: View {
             }
             .background(colors.background.ignoresSafeArea())
             .scrollIndicators(.hidden)
+            #if os(iOS)
+            .onTapGesture {
+                hideKeyboard()
+            }
+            #endif
 
             // Loading overlay when configuration is loading
             if viewModel.isLoadingConfiguration {
@@ -182,34 +195,48 @@ public struct HomeView: View {
     }
 
     private var defaultAppCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "info.circle.fill")
-                    .foregroundColor(colors.accent)
-                    .font(.system(size: 20))
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "info.circle.fill")
+                .foregroundColor(colors.accent)
+                .font(.system(size: 20))
 
-                Text("Set Tree² Lang as the default translation app")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(colors.textPrimary)
+            Text("Set Tree² Lang as the default translation app")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
 
-                Button(action: viewModel.openAppSettings) {
-                    Text("Open Settings")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(colors.cardBackground)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule()
-                                .fill(colors.accent)
-                        )
-                }
-                .buttonStyle(.plain)
+            Spacer()
+
+            Button(action: viewModel.openAppSettings) {
+                Text("Open Settings")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(colors.cardBackground)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(
+                        Capsule()
+                            .fill(colors.accent)
+                    )
             }
+            .buttonStyle(.plain)
 
+            Button {
+                AppPreferences.shared.setDefaultAppHintDismissed(true)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+                    .padding(6)
+                    .background(
+                        Circle()
+                            .fill(colors.inputBackground)
+                    )
+            }
+            .buttonStyle(.plain)
         }
-        .padding(20)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(colors.cardBackground)
         )
     }
@@ -264,6 +291,7 @@ public struct HomeView: View {
                         }
 
                         Button {
+                            hideKeyboard()
                             viewModel.performSelectedAction()
                         } label: {
                             HStack(spacing: 6) {

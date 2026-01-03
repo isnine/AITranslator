@@ -335,24 +335,19 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     return configurationsDirectory.appendingPathComponent("\(sanitizeFilename(newName)).json")
   }
 
-  /// Create an empty configuration template
-  public func createEmptyTemplate() throws -> URL {
-    let emptyConfig = AppConfiguration(
-      version: "1.0.0",
-      preferences: AppConfiguration.PreferencesConfig(
-        targetLanguage: "Simplified Chinese",
-        hotkey: AppConfiguration.HotkeyConfig(
-          key: "Space",
-          modifiers: ["command", "shift"]
-        )
-      ),
-      providers: [:],
-      tts: nil,
-      actions: []
-    )
-
-    let name = generateUniqueName(base: "Empty Template")
-    try saveConfiguration(emptyConfig, name: name)
+  /// Create a new configuration from the bundled default template
+  public func createFromDefaultTemplate() throws -> URL {
+    // Find bundled default configuration
+    guard let bundleURL = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
+      throw ConfigurationError.bundledConfigNotFound
+    }
+    
+    // Load the bundled configuration
+    let bundledConfig = try loadConfiguration(from: bundleURL)
+    
+    // Generate a unique name
+    let name = generateUniqueName(base: "New Configuration")
+    try saveConfiguration(bundledConfig, name: name)
 
     return configurationsDirectory.appendingPathComponent("\(sanitizeFilename(name)).json")
   }

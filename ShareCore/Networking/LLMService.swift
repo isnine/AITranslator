@@ -22,6 +22,21 @@ public final class LLMService {
         self.urlSession = urlSession
     }
 
+    // MARK: - Prompt Placeholder Substitution
+
+    /// Replaces placeholders in the prompt with actual values.
+    /// Supported placeholders:
+    /// - `{{targetLanguage}}` - The user's configured target language (e.g., "Simplified Chinese", "English")
+    private func substitutePromptPlaceholders(_ prompt: String) -> String {
+        var result = prompt
+        
+        // Replace {{targetLanguage}} with the actual target language
+        let targetLanguage = AppPreferences.shared.targetLanguage.promptDescriptor
+        result = result.replacingOccurrences(of: "{{targetLanguage}}", with: targetLanguage)
+        
+        return result
+    }
+
     // MARK: - HMAC Signing for Built-in Cloud Provider
 
     /// Generates HMAC-SHA256 signature for Built-in Cloud provider requests
@@ -131,8 +146,10 @@ public final class LLMService {
                 .init(role: "user", content: text)
             ]
         } else {
+            // Substitute placeholders like {{targetLanguage}} with actual values
+            let processedPrompt = substitutePromptPlaceholders(action.prompt)
             messages = [
-                .init(role: "system", content: action.prompt),
+                .init(role: "system", content: processedPrompt),
                 .init(role: "user", content: text)
             ]
         }

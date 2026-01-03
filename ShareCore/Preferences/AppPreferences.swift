@@ -23,6 +23,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var currentConfigName: String?
     @Published public private(set) var customConfigDirectory: URL?
     @Published public private(set) var useICloudForConfig: Bool
+    @Published public private(set) var defaultAppHintDismissed: Bool
 
     private let defaults: UserDefaults
     private var notificationObserver: NSObjectProtocol?
@@ -34,6 +35,7 @@ public final class AppPreferences: ObservableObject {
         self.currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
         self.customConfigDirectory = AppPreferences.readCustomConfigDirectory(from: defaults)
         self.useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
+        self.defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
 
         notificationObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
@@ -111,6 +113,14 @@ public final class AppPreferences: ObservableObject {
 
         useICloudForConfig = useICloud
         defaults.set(useICloud, forKey: StorageKeys.useICloudForConfig)
+        defaults.synchronize()
+    }
+
+    public func setDefaultAppHintDismissed(_ dismissed: Bool) {
+        guard defaultAppHintDismissed != dismissed else { return }
+
+        defaultAppHintDismissed = dismissed
+        defaults.set(dismissed, forKey: StorageKeys.defaultAppHintDismissed)
         defaults.synchronize()
     }
 
@@ -227,4 +237,5 @@ private enum StorageKeys {
     static let ttsVoice = "tts_voice"
     static let customConfigDirectory = "custom_config_directory"
     static let useICloudForConfig = "use_icloud_for_config"
+    static let defaultAppHintDismissed = "default_app_hint_dismissed"
 }
