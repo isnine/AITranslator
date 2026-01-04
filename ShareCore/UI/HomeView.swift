@@ -214,7 +214,7 @@ public struct HomeView: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
                     .background(
-                        Capsule()
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .fill(colors.accent)
                     )
             }
@@ -309,7 +309,7 @@ public struct HomeView: View {
                             .padding(.vertical, 10)
                             .foregroundColor(colors.chipPrimaryText)
                             .background(
-                                Capsule()
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
                                     .fill(viewModel.canSend ? colors.accent : colors.accent.opacity(0.4))
                             )
                         }
@@ -451,7 +451,7 @@ public struct HomeView: View {
                 .padding(.horizontal, 18)
                 .padding(.vertical, 10)
                 .background(
-                    Capsule()
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
                 )
         }

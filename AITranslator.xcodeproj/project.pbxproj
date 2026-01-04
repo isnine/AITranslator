@@ -623,7 +623,7 @@
 				DEVELOPMENT_TEAM = JW2LR94V6G;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TranslationUI/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tree² Lang";
+				INFOPLIST_KEY_CFBundleDisplayName = "Tree² Translator";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -656,7 +656,7 @@
 				DEVELOPMENT_TEAM = JW2LR94V6G;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TranslationUI/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tree² Lang";
+				INFOPLIST_KEY_CFBundleDisplayName = "Tree² Translator";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (

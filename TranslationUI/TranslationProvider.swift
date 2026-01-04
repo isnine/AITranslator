@@ -25,7 +25,7 @@ final class TranslationProviderExtension: TranslationUIProviderExtension {
 
     var body: some TranslationUIProviderExtensionScene {
         TranslationUIProviderSelectedTextScene { context in
-            HomeView(context: context)
+            ExtensionCompactView(context: context)
         }
     }
 }

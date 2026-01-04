@@ -1,213 +1,110 @@
 //
-//  MenuBarPopoverView.swift
-//  AITranslator
+//  ExtensionCompactView.swift
+//  ShareCore
 //
-//  Created by AI Assistant on 2025/12/31.
+//  Created by AI Assistant on 2026/01/04.
 //
 
-#if os(macOS)
+#if canImport(UIKit) && canImport(TranslationUIProvider)
 import SwiftUI
-import ShareCore
-import Combine
+import TranslationUIProvider
 
-/// A compact popover view for menu bar quick translation
-struct MenuBarPopoverView: View {
+/// A compact view for iOS Translation Extension, mirroring the Mac MenuBarPopoverView style
+public struct ExtensionCompactView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: HomeViewModel
-    @ObservedObject private var hotKeyManager = HotKeyManager.shared
-    @State private var clipboardText: String = ""
-    @State private var clipboardMonitorTimer: Timer?
-    @State private var showHotkeyHint: Bool = true
-    let onClose: () -> Void
+    @State private var hasTriggeredAutoRequest = false
+    
+    private let context: TranslationUIProviderContext
     
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
-
-    /// Whether the quick translate hotkey is configured
-    private var isHotkeyConfigured: Bool {
-        !hotKeyManager.quickTranslateConfiguration.isEmpty
+    
+    private var usageScene: ActionConfig.UsageScene {
+        context.allowsReplacement ? .contextEdit : .contextRead
     }
     
-    init(onClose: @escaping () -> Void) {
-        self.onClose = onClose
-        _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: .app))
+    private var inputText: String {
+        guard let text = context.inputText else { return "" }
+        return String(text.characters)
     }
     
-    var body: some View {
+    public init(context: TranslationUIProviderContext) {
+        self.context = context
+        let initialScene: ActionConfig.UsageScene = context.allowsReplacement ? .contextEdit : .contextRead
+        _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
+    }
+    
+    public var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 12) {
-                // Header
-                headerSection
+                // Selected text preview (single line)
+                selectedTextPreview
                 
+                // Divider line between original text and actions
                 Divider()
                     .background(colors.divider)
-                
-                // Clipboard content preview
-                clipboardPreview
                 
                 // Action chips
                 actionChips
                 
-                // Result section - reusing HomeView's result rendering
+                // Result section
                 if !viewModel.providerRuns.isEmpty {
-                    Divider()
-                        .background(colors.divider)
                     resultSection
+                } else if !viewModel.isLoadingConfiguration {
+                    hintLabel
                 }
                 
                 Spacer(minLength: 0)
             }
             .padding(16)
-            .frame(width: 360, height: 420)
-            .background(colors.background)
-
+            
             // Loading overlay when configuration is loading
             if viewModel.isLoadingConfiguration {
                 configurationLoadingOverlay
             }
         }
-        .frame(width: 360, height: 420)
         .onAppear {
-            // Refresh configuration first, then load clipboard and execute
-            viewModel.refreshConfiguration()
-            loadClipboardAndExecute()
-            startClipboardMonitor()
-        }
-        .onDisappear {
-            stopClipboardMonitor()
-        }
-    }
-
-    private var configurationLoadingOverlay: some View {
-        ZStack {
-            colors.background.opacity(0.95)
-            VStack(spacing: 12) {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(colors.accent)
-                    .controlSize(.regular)
-                Text("Loading...")
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
+            AppPreferences.shared.refreshFromDefaults()
+            
+            if !hasTriggeredAutoRequest {
+                viewModel.refreshConfiguration()
+                viewModel.updateUsageScene(usageScene)
+                viewModel.inputText = inputText
+                hasTriggeredAutoRequest = true
+                viewModel.performSelectedAction()
             }
         }
-    }
-    
-    private func loadClipboardAndExecute() {
-        clipboardText = NSPasteboard.general.string(forType: .string)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        
-        if !clipboardText.isEmpty {
-            viewModel.inputText = clipboardText
-            viewModel.performSelectedAction()
+        .onChange(of: context.allowsReplacement) {
+            viewModel.updateUsageScene(usageScene)
         }
     }
     
-    private func startClipboardMonitor() {
-        // Monitor clipboard every 0.5 seconds
-        clipboardMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            checkClipboardChange()
-        }
-    }
+    // MARK: - Selected Text Preview
     
-    private func stopClipboardMonitor() {
-        clipboardMonitorTimer?.invalidate()
-        clipboardMonitorTimer = nil
-    }
-    
-    private func checkClipboardChange() {
-        let newClipboardText = NSPasteboard.general.string(forType: .string)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        
-        // Only trigger if clipboard content changed and is not empty
-        if newClipboardText != clipboardText && !newClipboardText.isEmpty {
-            clipboardText = newClipboardText
-            viewModel.inputText = newClipboardText
-            viewModel.performSelectedAction()
-        }
-    }
-    
-    private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("Quick Translate")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
-                
-                Spacer()
-                
-                Button {
-                    onClose()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(colors.textSecondary)
-                }
-                .buttonStyle(.plain)
-            }
-
-            // Hotkey hint when not configured
-            if !isHotkeyConfigured && showHotkeyHint {
-                hotkeyHintView
-            }
-        }
-    }
-
-    private var hotkeyHintView: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "keyboard")
-                .font(.system(size: 10))
-                .foregroundColor(colors.textSecondary.opacity(0.8))
-
-            Text("Set a shortcut in Settings → Hotkeys")
-                .font(.system(size: 11))
-                .foregroundColor(colors.textSecondary.opacity(0.8))
-
-            Spacer()
-
-            Button {
-                showHotkeyHint = false
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(colors.textSecondary.opacity(0.6))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.top, 2)
-    }
-    
-    private var clipboardPreview: some View {
+    private var selectedTextPreview: some View {
         HStack(spacing: 8) {
             Image(systemName: "doc.on.clipboard")
                 .font(.system(size: 12))
                 .foregroundColor(colors.textSecondary)
             
-            if clipboardText.isEmpty {
-                Text("Clipboard is empty")
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
-                    .italic()
-            } else {
-                Text(clipboardText)
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
+            Text(inputText)
+                .font(.system(size: 14))
+                .foregroundColor(colors.textPrimary)
+                .lineLimit(1)
+                .truncationMode(.tail)
             
             Spacer(minLength: 0)
             
-            if !clipboardText.isEmpty {
-                Text("\(clipboardText.count)")
-                    .font(.system(size: 11))
-                    .foregroundColor(colors.textSecondary.opacity(0.7))
-
-                // Input speak button (only show when TTS is configured)
-                if AppPreferences.shared.ttsConfiguration.isValid {
-                    inputSpeakButton
-                }
+            // Character count
+            Text("\(inputText.count)")
+                .font(.system(size: 11))
+                .foregroundColor(colors.textSecondary.opacity(0.7))
+            
+            // TTS speak button (only show when TTS is configured)
+            if AppPreferences.shared.ttsConfiguration.isValid && !inputText.isEmpty {
+                inputSpeakButton
             }
         }
         .padding(.horizontal, 12)
@@ -217,7 +114,7 @@ struct MenuBarPopoverView: View {
                 .fill(colors.inputBackground)
         )
     }
-
+    
     @ViewBuilder
     private var inputSpeakButton: some View {
         Button {
@@ -230,13 +127,15 @@ struct MenuBarPopoverView: View {
                     .tint(colors.accent)
             } else {
                 Image(systemName: "speaker.wave.2.fill")
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundColor(colors.accent)
             }
         }
         .buttonStyle(.plain)
         .disabled(viewModel.isSpeakingInputText)
     }
+    
+    // MARK: - Action Chips
     
     private var actionChips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -267,6 +166,18 @@ struct MenuBarPopoverView: View {
         .buttonStyle(.plain)
     }
     
+    // MARK: - Hint Label
+    
+    private var hintLabel: some View {
+        Text(viewModel.placeholderHint)
+            .font(.system(size: 13))
+            .foregroundColor(colors.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.top, 8)
+    }
+    
+    // MARK: - Result Section
+    
     @ViewBuilder
     private var resultSection: some View {
         ScrollView {
@@ -278,7 +189,7 @@ struct MenuBarPopoverView: View {
         }
     }
     
-    // MARK: - Reused from HomeView
+    // MARK: - Provider Result Card
     
     private func providerResultCard(for run: HomeViewModel.ProviderRunViewState) -> some View {
         let runID = run.id
@@ -293,6 +204,8 @@ struct MenuBarPopoverView: View {
                 .fill(colors.cardBackground)
         )
     }
+    
+    // MARK: - Bottom Info Bar
     
     @ViewBuilder
     private func bottomInfoBar(
@@ -317,7 +230,7 @@ struct MenuBarPopoverView: View {
                     .foregroundColor(colors.textSecondary)
                 Spacer()
             }
-
+            
         case let .streaming(_, start):
             HStack(spacing: 8) {
                 ProgressView()
@@ -335,7 +248,7 @@ struct MenuBarPopoverView: View {
                 Spacer()
                 liveTimer(start: start)
             }
-
+            
         case let .streamingSentencePairs(_, start):
             HStack(spacing: 8) {
                 ProgressView()
@@ -353,53 +266,53 @@ struct MenuBarPopoverView: View {
                 Spacer()
                 liveTimer(start: start)
             }
-
+            
         case let .success(_, copyText, _, _, _, sentencePairs):
             HStack(spacing: 10) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(colors.success)
                     .font(.system(size: 13))
-
+                
                 if let duration = run.durationText {
                     Text(duration)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(colors.textSecondary)
                 }
-
+                
                 if showModelName {
                     Text(run.modelDisplayName)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(colors.textSecondary)
                 }
-
+                
                 Spacer()
-
+                
+                // Action buttons
                 if sentencePairs.isEmpty {
-                    compactSpeakButton(for: copyText, runID: runID)
-                    compactCopyButton(for: copyText)
+                    actionButtons(copyText: copyText, runID: runID)
                 }
             }
-
+            
         case .failure:
             HStack(spacing: 10) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundColor(colors.error)
                     .font(.system(size: 13))
-
+                
                 if let duration = run.durationText {
                     Text(duration)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(colors.textSecondary)
                 }
-
+                
                 if showModelName {
                     Text(run.modelDisplayName)
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(colors.textSecondary)
                 }
-
+                
                 Spacer()
-
+                
                 Button {
                     viewModel.performSelectedAction()
                 } label: {
@@ -409,9 +322,26 @@ struct MenuBarPopoverView: View {
                 }
                 .buttonStyle(.plain)
             }
-        
-        @unknown default:
-            EmptyView()
+        }
+    }
+    
+    @ViewBuilder
+    private func actionButtons(copyText: String, runID: String) -> some View {
+        if context.allowsReplacement {
+            Button {
+                context.finish(translation: AttributedString(copyText))
+            } label: {
+                Label("Replace", systemImage: "arrow.left.arrow.right")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(colors.accent)
+            
+            compactSpeakButton(for: copyText, runID: runID)
+            compactCopyButton(for: copyText)
+        } else {
+            compactSpeakButton(for: copyText, runID: runID)
+            compactCopyButton(for: copyText)
         }
     }
     
@@ -426,29 +356,32 @@ struct MenuBarPopoverView: View {
     
     @ViewBuilder
     private func compactSpeakButton(for text: String, runID: String) -> some View {
-        let isSpeaking = viewModel.isSpeaking(runID: runID)
-        Button {
-            viewModel.speakResult(text, runID: runID)
-        } label: {
-            if isSpeaking {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .controlSize(.small)
-                    .tint(colors.accent)
-            } else {
-                Image(systemName: "speaker.wave.2.fill")
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.accent)
+        // Only show speak button when TTS is configured
+        if AppPreferences.shared.ttsConfiguration.isValid {
+            let isSpeaking = viewModel.isSpeaking(runID: runID)
+            Button {
+                viewModel.speakResult(text, runID: runID)
+            } label: {
+                if isSpeaking {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .controlSize(.small)
+                        .tint(colors.accent)
+                } else {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.accent)
+                }
             }
+            .buttonStyle(.plain)
+            .disabled(isSpeaking)
         }
-        .buttonStyle(.plain)
-        .disabled(isSpeaking)
     }
-
+    
     @ViewBuilder
     private func compactCopyButton(for text: String) -> some View {
         Button {
-            copyToPasteboard(text)
+            UIPasteboard.general.string = text
         } label: {
             Image(systemName: "doc.on.doc")
                 .font(.system(size: 13))
@@ -457,18 +390,14 @@ struct MenuBarPopoverView: View {
         .buttonStyle(.plain)
     }
     
-    private func copyToPasteboard(_ text: String) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
-    }
+    // MARK: - Content
     
     @ViewBuilder
     private func content(for run: HomeViewModel.ProviderRunViewState) -> some View {
         switch run.status {
         case .idle, .running:
             skeletonPlaceholder()
-
+            
         case let .streaming(text, _):
             if text.isEmpty {
                 skeletonPlaceholder()
@@ -478,14 +407,14 @@ struct MenuBarPopoverView: View {
                     .foregroundColor(colors.textPrimary)
                     .textSelection(.enabled)
             }
-
+            
         case let .streamingSentencePairs(pairs, _):
             if pairs.isEmpty {
                 skeletonPlaceholder()
             } else {
                 sentencePairsView(pairs)
             }
-
+            
         case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs):
             VStack(alignment: .leading, spacing: 10) {
                 if !sentencePairs.isEmpty {
@@ -499,7 +428,7 @@ struct MenuBarPopoverView: View {
                         .foregroundColor(colors.textPrimary)
                         .textSelection(.enabled)
                 }
-
+                
                 if !supplementalTexts.isEmpty {
                     Divider()
                     VStack(alignment: .leading, spacing: 6) {
@@ -512,7 +441,7 @@ struct MenuBarPopoverView: View {
                     }
                 }
             }
-
+            
         case let .failure(message, _):
             VStack(alignment: .leading, spacing: 8) {
                 Text("Request Failed")
@@ -523,9 +452,6 @@ struct MenuBarPopoverView: View {
                     .foregroundColor(colors.textSecondary)
                     .textSelection(.enabled)
             }
-        
-        @unknown default:
-            EmptyView()
         }
     }
     
@@ -543,7 +469,7 @@ struct MenuBarPopoverView: View {
                         .textSelection(.enabled)
                 }
                 .padding(.vertical, 6)
-
+                
                 if index < pairs.count - 1 {
                     Divider()
                 }
@@ -564,7 +490,7 @@ struct MenuBarPopoverView: View {
                     .font(.system(size: 13))
                     .textSelection(.enabled)
             }
-
+            
             if diff.hasAdditions || (!diff.hasRemovals && !diff.hasAdditions) {
                 let revisedText = TextDiffBuilder.attributedString(
                     for: diff.revisedSegments,
@@ -589,5 +515,21 @@ struct MenuBarPopoverView: View {
         }
     }
     
+    // MARK: - Loading Overlay
+    
+    private var configurationLoadingOverlay: some View {
+        ZStack {
+            Color(UIColor.systemBackground).opacity(0.95)
+            VStack(spacing: 12) {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .tint(colors.accent)
+                    .controlSize(.regular)
+                Text("Loading...")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
+            }
+        }
+    }
 }
 #endif
