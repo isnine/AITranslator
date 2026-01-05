@@ -5,31 +5,61 @@
 
     },
     "·" : {
-
-    },
-    "%@:" : {
-
-    },
-    "%lld" : {
-
-    },
-    "%lld Actions" : {
-
-    },
-    "%lld characters" : {
-
-    },
-    "%lld Provider" : {
-
-    },
-    "Action" : {
-      "comment" : "Actions submenu",
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "动作"
+            "value" : "·"
+          }
+        }
+      }
+    },
+    "%@:" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@:"
+          }
+        }
+      }
+    },
+    "%lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        }
+      }
+    },
+    "%lld Actions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 动作"
+          }
+        }
+      }
+    },
+    "%lld characters" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 字符"
+          }
+        }
+      }
+    },
+    "%lld Provider" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 提供商"
           }
         }
       }
@@ -75,10 +105,24 @@
       }
     },
     "Add a provider to start using translation features." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加提供商以开始使用翻译功能。"
+          }
+        }
+      }
     },
     "Add Provider" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加提供商"
+          }
+        }
+      }
     },
     "All Actions" : {
       "localizations" : {
@@ -101,10 +145,24 @@
       }
     },
     "API Token" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 令牌"
+          }
+        }
+      }
     },
     "API Version" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API 版本"
+          }
+        }
+      }
     },
     "App" : {
       "localizations" : {
@@ -127,13 +185,34 @@
       }
     },
     "Are you sure you want to delete \"%@\"?" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要删除\"%@\"吗？"
+          }
+        }
+      }
     },
     "Are you sure you want to delete \"%@\"? This action cannot be undone." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要删除\"%@\"吗？此操作无法撤销。"
+          }
+        }
+      }
     },
     "Auth Header Name" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auth Header Name"
+          }
+        }
+      }
     },
     "Available inside the app" : {
       "localizations" : {
@@ -156,7 +235,14 @@
       }
     },
     "Base Endpoint" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Base Endpoint"
+          }
+        }
+      }
     },
     "Basic Info" : {
       "localizations" : {
@@ -179,13 +265,34 @@
       }
     },
     "Choose where to store your configuration files." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择配置文件的存储位置"
+          }
+        }
+      }
     },
     "Clear shortcut" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除快捷键"
+          }
+        }
+      }
     },
     "Cmd+Return" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cmd+Return"
+          }
+        }
+      }
     },
     "Collapse" : {
       "localizations" : {
@@ -198,13 +305,34 @@
       }
     },
     "Configuration" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置"
+          }
+        }
+      }
     },
     "Configuration exported successfully." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置导出成功"
+          }
+        }
+      }
     },
     "Configurations will sync across all your devices via iCloud." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置将通过 iCloud 在所有设备间同步。"
+          }
+        }
+      }
     },
     "Configure AI providers" : {
       "localizations" : {
@@ -217,7 +345,14 @@
       }
     },
     "Configure text-to-speech for reading results aloud." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置文字转语音以朗读结果。"
+          }
+        }
+      }
     },
     "Configured Providers" : {
       "localizations" : {
@@ -230,34 +365,104 @@
       }
     },
     "Connection" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接"
+          }
+        }
+      }
     },
     "Connection successful" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接成功"
+          }
+        }
+      }
     },
     "Connection successful (%@ms)" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接成功（%@ms）"
+          }
+        }
+      }
     },
     "Create your first action by tapping the + button, or import a configuration from Settings." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击 + 按钮创建你的第一个动作，或从设置中导入配置。"
+          }
+        }
+      }
     },
     "Current" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前"
+          }
+        }
+      }
     },
     "Current Path" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前路径"
+          }
+        }
+      }
     },
     "Custom" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义"
+          }
+        }
+      }
     },
     "Danger Zone" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "危险区域"
+          }
+        }
+      }
     },
     "Debug" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调试"
+          }
+        }
+      }
     },
     "Debug Info" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调试信息"
+          }
+        }
+      }
     },
     "Default" : {
       "localizations" : {
@@ -270,55 +475,174 @@
       }
     },
     "Delete" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
+      }
     },
     "Delete Configuration" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除配置"
+          }
+        }
+      }
     },
     "Delete Provider" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除提供商"
+          }
+        }
+      }
     },
     "Deployment Names" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部署名称"
+          }
+        }
+      }
     },
     "Deployments" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部署"
+          }
+        }
+      }
     },
     "Disabled" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已禁用"
+          }
+        }
+      }
     },
     "Discard" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "丢弃"
+          }
+        }
+      }
     },
     "Discard Changes?" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "丢弃更改？"
+          }
+        }
+      }
     },
     "Display Name" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示名称"
+          }
+        }
+      }
     },
     "Display original and translation side by side" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "并排显示原文和翻译"
+          }
+        }
+      }
     },
     "Done" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
     },
     "Duplicate" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制"
+          }
+        }
+      }
     },
     "Duration: %@" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时长：%@"
+          }
+        }
+      }
     },
     "e.g. alloy" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如 alloy"
+          }
+        }
+      }
     },
     "e.g. gpt-4o-mini-tts" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如 gpt-4o-mini-tts"
+          }
+        }
+      }
     },
     "e.g., model-router, gpt-5, gpt-4o" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如 model-router、gpt-5、gpt-4o"
+          }
+        }
+      }
     },
     "Edit JSON configuration" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑 JSON 配置"
+          }
+        }
+      }
     },
     "Editable Context" : {
       "localizations" : {
@@ -331,16 +655,44 @@
       }
     },
     "Enabled" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已启用"
+          }
+        }
+      }
     },
     "Enabled Deployments" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已启用的部署"
+          }
+        }
+      }
     },
     "Endpoint" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "端点"
+          }
+        }
+      }
     },
     "Enter API Key here" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在此输入 API 密钥"
+          }
+        }
+      }
     },
     "Enter text and choose an action to get started" : {
       "comment" : "Hint shown above the action list when no input or results exist",
@@ -365,13 +717,34 @@
       }
     },
     "Enter your API key" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入你的 API 密钥"
+          }
+        }
+      }
     },
     "Export Successful" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出成功"
+          }
+        }
+      }
     },
     "Free TTS service powered by the app" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由应用提供的免费 TTS 服务"
+          }
+        }
+      }
     },
     "Generating..." : {
       "localizations" : {
@@ -384,7 +757,14 @@
       }
     },
     "Global Shortcuts" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全局快捷键"
+          }
+        }
+      }
     },
     "Grammar Check" : {
       "comment" : "Name of the grammar check action",
@@ -421,16 +801,44 @@
 
     },
     "Import Failed" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入失败"
+          }
+        }
+      }
     },
     "Load" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载"
+          }
+        }
+      }
     },
     "Loading configuration..." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在加载配置..."
+          }
+        }
+      }
     },
     "Loading..." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载中..."
+          }
+        }
+      }
     },
     "Manage your custom actions" : {
       "localizations" : {
@@ -443,16 +851,44 @@
       }
     },
     "Model" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型"
+          }
+        }
+      }
     },
     "Model Selection" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型选择"
+          }
+        }
+      }
     },
     "New" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建"
+          }
+        }
+      }
     },
     "No Actions Yet" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无动作"
+          }
+        }
+      }
     },
     "No providers configured yet." : {
       "localizations" : {
@@ -465,16 +901,11 @@
       }
     },
     "No saved configurations" : {
-
-    },
-    "No Text" : {
-      "comment" : "Notification title",
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无文本"
+            "value" : "没有已保存的配置"
           }
         }
       }
@@ -491,19 +922,21 @@
       }
     },
     "Not available" : {
-
-    },
-    "OK" : {
-
-    },
-    "Open AITranslator" : {
-      "comment" : "Open main window",
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开 AITranslator"
+            "value" : "不可用"
+          }
+        }
+      }
+    },
+    "OK" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "好的"
           }
         }
       }
@@ -518,37 +951,35 @@
         }
       }
     },
-    "Options" : {
-      "extractionState" : "stale",
+    "Output Type" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选项"
+            "value" : "输出类型"
           }
         }
       }
     },
-    "Output Type" : {
-
-    },
     "Plain Text" : {
-
-    },
-    "Polish" : {
-      "comment" : "Name of the polish action",
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "润色"
+            "value" : "纯文本"
           }
         }
       }
     },
     "Press shortcuts to show/hide windows from anywhere." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按快捷键可在任意位置显示/隐藏窗口。"
+          }
+        }
+      }
     },
     "Processing..." : {
       "comment" : "Menu bar popover processing state",
@@ -572,7 +1003,14 @@
       }
     },
     "Provider Type" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提供商类型"
+          }
+        }
+      }
     },
     "Providers" : {
       "localizations" : {
@@ -606,22 +1044,24 @@
       }
     },
     "Ready to use - No API key required" : {
-
-    },
-    "Refresh" : {
-      "comment" : "Menu bar popover refresh button",
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "刷新"
+            "value" : "开箱即用 - 无需 API 密钥"
           }
         }
       }
     },
     "Reorder" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新排序"
+          }
+        }
+      }
     },
     "Replace" : {
       "localizations" : {
@@ -643,23 +1083,25 @@
         }
       }
     },
-    "Result" : {
-      "comment" : "Menu bar popover result header",
-      "extractionState" : "stale",
+    "Retry" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "结果"
+            "value" : "重试"
           }
         }
       }
     },
-    "Retry" : {
-
-    },
     "Reveal" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示"
+          }
+        }
+      }
     },
     "Save" : {
       "localizations" : {
@@ -667,17 +1109,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保存"
-          }
-        }
-      }
-    },
-    "Select Providers" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择提供商"
           }
         }
       }
@@ -693,7 +1124,14 @@
       }
     },
     "Select the models you want to use" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择你要使用的模型"
+          }
+        }
+      }
     },
     "Send" : {
       "localizations" : {
@@ -717,7 +1155,14 @@
       }
     },
     "Sentence Pairs" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "句对"
+          }
+        }
+      }
     },
     "Sentence Translate" : {
       "comment" : "Name of the sentence-by-sentence translation action",
@@ -731,10 +1176,24 @@
       }
     },
     "Separate multiple deployments with commas" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多个部署名称请用逗号分隔"
+          }
+        }
+      }
     },
     "Set a shortcut in Settings → Hotkeys" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在设置 → 快捷键中设置快捷键"
+          }
+        }
+      }
     },
     "Set Tree² Lang as the default translation app" : {
       "localizations" : {
@@ -757,42 +1216,21 @@
       }
     },
     "Show Diff" : {
-
-    },
-    "Show diff output" : {
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示差异结果"
+            "value" : "显示差异"
           }
         }
       }
     },
     "Show revised text with grammar explanations" : {
-
-    },
-    "Speak" : {
-      "comment" : "TTS action button label",
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "朗读"
-          }
-        }
-      }
-    },
-    "Speaking..." : {
-      "comment" : "TTS progress state label",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "朗读中…"
+            "value" : "显示带语法说明的修订文本"
           }
         }
       }
@@ -820,10 +1258,24 @@
       }
     },
     "Standard text output without special formatting" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无特殊格式的标准文本输出"
+          }
+        }
+      }
     },
     "Storage Location" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存储位置"
+          }
+        }
+      }
     },
     "Summarize" : {
       "comment" : "Name of the summarize action",
@@ -847,10 +1299,24 @@
       }
     },
     "Test Deployments" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试部署"
+          }
+        }
+      }
     },
     "Testing..." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试中..."
+          }
+        }
+      }
     },
     "Translate" : {
       "comment" : "Name of the translate action",
@@ -859,18 +1325,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翻译"
-          }
-        }
-      }
-    },
-    "Translate Clipboard" : {
-      "comment" : "Execute action with clipboard",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "翻译剪贴板"
           }
         }
       }
@@ -937,21 +1391,24 @@
       }
     },
     "Use Built-in Cloud" : {
-
-    },
-    "Use Default Configuration" : {
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用默认配置"
+            "value" : "使用内置云服务"
           }
         }
       }
     },
     "Validation Failed" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "验证失败"
+          }
+        }
+      }
     },
     "Visible when you can edit and replace text" : {
       "localizations" : {
@@ -974,13 +1431,34 @@
       }
     },
     "Voice" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声音"
+          }
+        }
+      }
     },
     "Waiting..." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等待中..."
+          }
+        }
+      }
     },
     "You have unsaved changes. Are you sure you want to discard them?" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你有未保存的更改。确定要丢弃吗？"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
