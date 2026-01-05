@@ -15,9 +15,9 @@ struct MenuBarPopoverView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: HomeViewModel
     @ObservedObject private var hotKeyManager = HotKeyManager.shared
-    @State private var clipboardText: String = ""
-    @State private var clipboardMonitorTimer: Timer?
+    @State private var inputText: String = ""
     @State private var showHotkeyHint: Bool = true
+    @FocusState private var isInputFocused: Bool
     let onClose: () -> Void
     
     private var colors: AppColorPalette {
@@ -43,8 +43,8 @@ struct MenuBarPopoverView: View {
                 Divider()
                     .background(colors.divider)
                 
-                // Clipboard content preview
-                clipboardPreview
+                // Editable input text
+                inputSection
                 
                 // Action chips
                 actionChips
@@ -72,10 +72,6 @@ struct MenuBarPopoverView: View {
             // Refresh configuration first, then load clipboard and execute
             viewModel.refreshConfiguration()
             loadClipboardAndExecute()
-            startClipboardMonitor()
-        }
-        .onDisappear {
-            stopClipboardMonitor()
         }
     }
 
@@ -95,37 +91,23 @@ struct MenuBarPopoverView: View {
     }
     
     private func loadClipboardAndExecute() {
-        clipboardText = NSPasteboard.general.string(forType: .string)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        // Only load from clipboard if input is empty
+        if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            inputText = NSPasteboard.general.string(forType: .string)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        }
         
-        if !clipboardText.isEmpty {
-            viewModel.inputText = clipboardText
+        if !inputText.isEmpty {
+            viewModel.inputText = inputText
             viewModel.performSelectedAction()
         }
     }
     
-    private func startClipboardMonitor() {
-        // Monitor clipboard every 0.5 seconds
-        clipboardMonitorTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            checkClipboardChange()
-        }
-    }
-    
-    private func stopClipboardMonitor() {
-        clipboardMonitorTimer?.invalidate()
-        clipboardMonitorTimer = nil
-    }
-    
-    private func checkClipboardChange() {
-        let newClipboardText = NSPasteboard.general.string(forType: .string)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        
-        // Only trigger if clipboard content changed and is not empty
-        if newClipboardText != clipboardText && !newClipboardText.isEmpty {
-            clipboardText = newClipboardText
-            viewModel.inputText = newClipboardText
-            viewModel.performSelectedAction()
-        }
+    private func executeTranslation() {
+        let trimmedText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else { return }
+        viewModel.inputText = trimmedText
+        viewModel.performSelectedAction()
     }
     
     private var headerSection: some View {
@@ -178,49 +160,63 @@ struct MenuBarPopoverView: View {
         .padding(.top, 2)
     }
     
-    private var clipboardPreview: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 12))
-                .foregroundColor(colors.textSecondary)
+    private var inputSection: some View {
+        VStack(spacing: 8) {
+            // Editable text input
+            TextEditor(text: $inputText)
+                .font(.system(size: 13))
+                .foregroundColor(colors.textPrimary)
+                .scrollContentBackground(.hidden)
+                .focused($isInputFocused)
+                .frame(height: 60)
+                .padding(8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(colors.inputBackground)
+                )
             
-            if clipboardText.isEmpty {
-                Text("Clipboard is empty")
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
-                    .italic()
-            } else {
-                Text(clipboardText)
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textPrimary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-            
-            Spacer(minLength: 0)
-            
-            if !clipboardText.isEmpty {
-                Text("\(clipboardText.count)")
+            // Bottom bar with character count and action buttons
+            HStack(spacing: 8) {
+                Text("\(inputText.count) characters")
                     .font(.system(size: 11))
                     .foregroundColor(colors.textSecondary.opacity(0.7))
-
+                
+                Spacer()
+                
                 // Input speak button (only show when TTS is configured)
-                if AppPreferences.shared.ttsConfiguration.isValid {
+                if AppPreferences.shared.ttsConfiguration.isValid && !inputText.isEmpty {
                     inputSpeakButton
                 }
+                
+                // Translate button
+                Button {
+                    executeTranslation()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .font(.system(size: 12))
+                        Text("Translate")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? colors.accent.opacity(0.5) : colors.accent)
+                    )
+                }
+                .buttonStyle(.plain)
+                .disabled(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .keyboardShortcut(.return, modifiers: .command)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(colors.inputBackground)
-        )
     }
 
     @ViewBuilder
     private var inputSpeakButton: some View {
         Button {
+            viewModel.inputText = inputText
             viewModel.speakInputText()
         } label: {
             if viewModel.isSpeakingInputText {
@@ -251,6 +247,7 @@ struct MenuBarPopoverView: View {
     private func actionChip(for action: ActionConfig, isSelected: Bool) -> some View {
         Button {
             if viewModel.selectAction(action) {
+                viewModel.inputText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                 viewModel.performSelectedAction()
             }
         } label: {

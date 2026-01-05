@@ -16,6 +16,9 @@
     "%lld Actions" : {
 
     },
+    "%lld characters" : {
+
+    },
     "%lld Provider" : {
 
     },
@@ -76,17 +79,6 @@
     },
     "Add Provider" : {
 
-    },
-    "Add providers from the desktop app to sync them here." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在桌面应用中添加提供商以在此同步。"
-          }
-        }
-      }
     },
     "All Actions" : {
       "localizations" : {
@@ -192,41 +184,6 @@
     "Clear shortcut" : {
 
     },
-    "Clipboard Content" : {
-      "comment" : "Menu bar popover section header",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "剪贴板内容"
-          }
-        }
-      }
-    },
-    "Clipboard is empty" : {
-      "comment" : "Menu bar popover empty state",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "剪贴板为空"
-          }
-        }
-      }
-    },
-    "Clipboard is empty or contains no text." : {
-      "comment" : "Notification body",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "剪贴板为空或不包含文本。"
-          }
-        }
-      }
-    },
     "Cmd+Return" : {
 
     },
@@ -259,17 +216,6 @@
         }
       }
     },
-    "Configure Azure speech endpoint and API Key for reading translations aloud." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "配置 Azure 语音端点和 API Key，用于朗读翻译结果。"
-          }
-        }
-      }
-    },
     "Configure text-to-speech for reading results aloud." : {
 
     },
@@ -292,29 +238,6 @@
     "Connection successful (%@ms)" : {
 
     },
-    "Copied!" : {
-      "comment" : "Menu bar popover copied indicator",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已复制！"
-          }
-        }
-      }
-    },
-    "Copy" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复制"
-          }
-        }
-      }
-    },
     "Create your first action by tapping the + button, or import a configuration from Settings." : {
 
     },
@@ -326,17 +249,6 @@
     },
     "Custom" : {
 
-    },
-    "Custom Endpoint" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自定义端点"
-          }
-        }
-      }
     },
     "Danger Zone" : {
 
@@ -430,17 +342,6 @@
     "Enter API Key here" : {
 
     },
-    "Enter Azure Key here" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在此输入 Azure Key"
-          }
-        }
-      }
-    },
     "Enter text and choose an action to get started" : {
       "comment" : "Hint shown above the action list when no input or results exist",
       "localizations" : {
@@ -466,32 +367,8 @@
     "Enter your API key" : {
 
     },
-    "Error" : {
-      "comment" : "Notification title",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "错误"
-          }
-        }
-      }
-    },
     "Export Successful" : {
 
-    },
-    "Failed to get a response." : {
-      "comment" : "Notification body",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "获取响应失败。"
-          }
-        }
-      }
     },
     "Free TTS service powered by the app" : {
 
@@ -574,56 +451,8 @@
     "New" : {
 
     },
-    "No Action" : {
-      "comment" : "Notification title",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无动作"
-          }
-        }
-      }
-    },
-    "No action is configured." : {
-      "comment" : "Notification body",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尚未配置动作。"
-          }
-        }
-      }
-    },
     "No Actions Yet" : {
 
-    },
-    "No Provider" : {
-      "comment" : "Notification title",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无提供商"
-          }
-        }
-      }
-    },
-    "No provider is configured for this action." : {
-      "comment" : "Notification body",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此动作尚未配置提供商。"
-          }
-        }
-      }
     },
     "No providers configured yet." : {
       "localizations" : {
