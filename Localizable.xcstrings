@@ -55,6 +55,7 @@
       }
     },
     "%lld Provider" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -63,6 +64,9 @@
           }
         }
       }
+    },
+    "%lld Providers" : {
+
     },
     "Action Library" : {
       "localizations" : {
@@ -125,6 +129,7 @@
       }
     },
     "Always up-to-date with the latest app features" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -185,6 +190,7 @@
       }
     },
     "Are you sure you want to delete \"%@\"?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -275,6 +281,7 @@
       }
     },
     "Clear shortcut" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -355,6 +362,7 @@
       }
     },
     "Configure text-to-speech for reading results aloud." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -417,6 +425,9 @@
         }
       }
     },
+    "Create New Configuration" : {
+
+    },
     "Create your first action by tapping the + button, or import a configuration from Settings." : {
       "localizations" : {
         "zh-Hans" : {
@@ -428,6 +439,7 @@
       }
     },
     "Current" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -519,6 +531,7 @@
       }
     },
     "Delete Configuration" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -619,6 +632,7 @@
       }
     },
     "Duplicate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -719,6 +733,7 @@
       }
     },
     "Enter API Key here" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -791,6 +806,7 @@
       }
     },
     "Global Shortcuts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -831,9 +847,6 @@
         }
       }
     },
-    "https://xxx.openai.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2025-03-01-preview" : {
-
-    },
     "Import Failed" : {
       "localizations" : {
         "zh-Hans" : {
@@ -845,6 +858,7 @@
       }
     },
     "Load" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -918,6 +932,7 @@
       }
     },
     "New" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -948,6 +963,7 @@
       }
     },
     "No saved configurations" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1019,6 +1035,7 @@
       }
     },
     "Press shortcuts to show/hide windows from anywhere." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1148,6 +1165,9 @@
     },
     "Requires iOS 17.4+ or macOS 14.4+" : {
       "comment" : "Apple Translation unavailable status"
+    },
+    "Reset to Default" : {
+
     },
     "Retry" : {
       "localizations" : {
@@ -1385,6 +1405,7 @@
       }
     },
     "The default configuration is bundled with the app and cannot be edited. To customize your settings, create a new configuration or load an existing one." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1429,6 +1450,7 @@
       }
     },
     "TTS Settings" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1462,6 +1484,9 @@
         }
       }
     },
+    "Use" : {
+
+    },
     "Use {text} as placeholder" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1483,6 +1508,7 @@
       }
     },
     "Use Default" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1493,6 +1519,7 @@
       }
     },
     "Using Default Configuration" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

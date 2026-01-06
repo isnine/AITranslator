@@ -181,661 +181,597 @@ struct SettingsView: View {
     }
 
   private var preferencesSection: some View {
-    VStack(spacing: 16) {
-      configurationCard
-      languagePreferenceCard
-      #if os(macOS)
-      hotKeyPreferenceCard
-      #endif
-      ttsPreferenceCard
+    VStack(spacing: 32) {
+      // MARK: - General Section
+      settingsSection(title: "General", icon: "gearshape") {
+        VStack(spacing: 0) {
+          languagePreferenceRow
+          #if os(macOS)
+          Divider()
+            .padding(.leading, 52)
+          hotKeyPreferenceRow
+          #endif
+        }
+      }
+      
+      // MARK: - Configuration Section
+      settingsSection(title: "Configuration", icon: "doc.text") {
+        VStack(spacing: 0) {
+          configurationStatusRow
+          if !savedConfigurations.isEmpty {
+            Divider()
+              .padding(.leading, 52)
+            savedConfigurationsRow
+          }
+          Divider()
+            .padding(.leading, 52)
+          storageLocationRow
+        }
+      }
+      
+      // MARK: - Text to Speech Section
+      settingsSection(title: "Text to Speech", icon: "speaker.wave.2") {
+        VStack(spacing: 0) {
+          ttsToggleRow
+          if !ttsUseBuiltInCloud {
+            Divider()
+              .padding(.leading, 52)
+            ttsCustomConfigSection
+          } else {
+            Divider()
+              .padding(.leading, 52)
+            ttsVoicePickerRow
+          }
+        }
+      }
+    }
+  }
+  
+  // MARK: - Section Builder
+  private func settingsSection<Content: View>(
+    title: String,
+    icon: String,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 8) {
+      // Section Header
+      HStack(spacing: 8) {
+        Image(systemName: icon)
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundColor(colors.accent)
+        Text(title)
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundColor(colors.textSecondary)
+          .textCase(.uppercase)
+          .tracking(0.5)
+      }
+      .padding(.horizontal, 4)
+      
+      // Section Content
+      content()
+        .background(
+          RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(colors.cardBackground)
+        )
     }
   }
 }
 
 private extension SettingsView {
-  #if os(macOS)
-  var hotKeyPreferenceCard: some View {
-    VStack(alignment: .leading, spacing: 16) {
-      VStack(alignment: .leading, spacing: 6) {
-        Text("Global Shortcuts")
-          .font(.system(size: 16, weight: .semibold))
-          .foregroundColor(colors.textPrimary)
-        Text("Press shortcuts to show/hide windows from anywhere.")
-          .font(.system(size: 13))
-          .foregroundColor(colors.textSecondary)
-      }
-
-      // Main App Shortcut
-      hotKeyRow(for: .mainApp)
-
-      // Quick Translate Shortcut
-      hotKeyRow(for: .quickTranslate)
-    }
-    .padding(18)
-    .background(
-      RoundedRectangle(cornerRadius: 20, style: .continuous)
-        .fill(colors.cardBackground)
-    )
-  }
-
-  @ViewBuilder
-  func hotKeyRow(for type: HotKeyType) -> some View {
-    let config = hotKeyManager.configuration(for: type)
-    let isRecording = recordingHotKeyType == type
-
-    VStack(alignment: .leading, spacing: 8) {
-      HStack {
+  
+  // MARK: - Row Style Components
+  
+  var languagePreferenceRow: some View {
+    Button {
+      isLanguagePickerPresented = true
+    } label: {
+      HStack(spacing: 16) {
+        ZStack {
+          RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(colors.accent.opacity(0.15))
+            .frame(width: 36, height: 36)
+          Image(systemName: "globe")
+            .font(.system(size: 16, weight: .medium))
+            .foregroundColor(colors.accent)
+        }
+        
         VStack(alignment: .leading, spacing: 2) {
-          Text(type.displayName)
-            .font(.system(size: 14, weight: .medium))
+          Text("Target Language")
+            .font(.system(size: 15, weight: .medium))
             .foregroundColor(colors.textPrimary)
-          Text(type.description)
-            .font(.system(size: 12))
+          Text(selectedOption.primaryLabel)
+            .font(.system(size: 13))
             .foregroundColor(colors.textSecondary)
         }
-
+        
         Spacer()
-
+        
+        Image(systemName: "chevron.right")
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundColor(colors.textSecondary.opacity(0.5))
+      }
+      .padding(.horizontal, 16)
+      .padding(.vertical, 14)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+  
+  #if os(macOS)
+  var hotKeyPreferenceRow: some View {
+    VStack(spacing: 0) {
+      ForEach([HotKeyType.mainApp, HotKeyType.quickTranslate], id: \.self) { type in
+        let config = hotKeyManager.configuration(for: type)
+        let isRecording = recordingHotKeyType == type
+        
+        HStack(spacing: 16) {
+          ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+              .fill(type == .mainApp ? Color.purple.opacity(0.15) : Color.orange.opacity(0.15))
+              .frame(width: 36, height: 36)
+            Image(systemName: type == .mainApp ? "macwindow" : "bolt.fill")
+              .font(.system(size: 16, weight: .medium))
+              .foregroundColor(type == .mainApp ? .purple : .orange)
+          }
+          
+          VStack(alignment: .leading, spacing: 2) {
+            Text(type.displayName)
+              .font(.system(size: 15, weight: .medium))
+              .foregroundColor(colors.textPrimary)
+            Text(type.description)
+              .font(.system(size: 12))
+              .foregroundColor(colors.textSecondary)
+          }
+          
+          Spacer()
+          
+          Button {
+            startRecordingHotKey(for: type)
+          } label: {
+            Text(isRecording ? "Press keys..." : (config.isEmpty ? "Click to set" : config.displayString))
+              .font(.system(size: 13, weight: .medium, design: config.isEmpty ? .default : .monospaced))
+              .foregroundColor(isRecording ? colors.accent : (config.isEmpty ? colors.textSecondary : colors.textPrimary))
+              .padding(.horizontal, 10)
+              .padding(.vertical, 6)
+              .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                  .fill(isRecording ? colors.accent.opacity(0.15) : colors.inputBackground)
+              )
+              .overlay(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                  .stroke(isRecording ? colors.accent : Color.clear, lineWidth: 1.5)
+              )
+          }
+          .buttonStyle(.plain)
+          
+          if !config.isEmpty {
+            Button {
+              hotKeyManager.clearConfiguration(for: type)
+            } label: {
+              Image(systemName: "xmark.circle.fill")
+                .font(.system(size: 16))
+                .foregroundColor(colors.textSecondary.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+          }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        
+        if type == .mainApp {
+          Divider()
+            .padding(.leading, 68)
+        }
+      }
+    }
+  }
+  #endif
+  
+  // MARK: - Configuration Rows
+  
+  var configurationStatusRow: some View {
+    HStack(spacing: 16) {
+      ZStack {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(configStore.configurationMode.isDefault ? colors.success.opacity(0.15) : colors.accent.opacity(0.15))
+          .frame(width: 36, height: 36)
+        Image(systemName: configStore.configurationMode.isDefault ? "checkmark.shield.fill" : "doc.text.fill")
+          .font(.system(size: 16, weight: .medium))
+          .foregroundColor(configStore.configurationMode.isDefault ? colors.success : colors.accent)
+      }
+      
+      VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 8) {
+          Text(configStore.configurationMode.displayName)
+            .font(.system(size: 15, weight: .medium))
+            .foregroundColor(colors.textPrimary)
+          
+          if configStore.configurationMode.isDefault {
+            Text("Read-Only")
+              .font(.system(size: 10, weight: .semibold))
+              .foregroundColor(.white)
+              .padding(.horizontal, 6)
+              .padding(.vertical, 2)
+              .background(
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                  .fill(colors.success)
+              )
+          }
+        }
+        
+        HStack(spacing: 6) {
+          Text("\(configStore.providers.count) Providers")
+          Text("·")
+          Text("\(configStore.actions.count) Actions")
+        }
+        .font(.system(size: 12))
+        .foregroundColor(colors.textSecondary)
+      }
+      
+      Spacer()
+      
+      // Quick actions
+      HStack(spacing: 8) {
+        if !configStore.configurationMode.isDefault {
+          Button {
+            configStore.switchToDefaultConfiguration()
+          } label: {
+            Image(systemName: "arrow.counterclockwise")
+              .font(.system(size: 14, weight: .medium))
+              .foregroundColor(colors.success)
+              .frame(width: 32, height: 32)
+              .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                  .fill(colors.success.opacity(0.12))
+              )
+          }
+          .buttonStyle(.plain)
+          .help("Reset to Default")
+        }
+        
         Button {
-          startRecordingHotKey(for: type)
+          createFromDefaultTemplate()
         } label: {
-          Text(isRecording ? "Press keys..." : config.displayString)
-            .font(.system(size: 14, weight: .medium, design: .monospaced))
-            .foregroundColor(isRecording ? colors.accent : colors.textPrimary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+          Image(systemName: "plus")
+            .font(.system(size: 14, weight: .medium))
+            .foregroundColor(colors.accent)
+            .frame(width: 32, height: 32)
             .background(
               RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isRecording ? colors.accent.opacity(0.15) : colors.inputBackground)
-            )
-            .overlay(
-              RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(isRecording ? colors.accent : Color.clear, lineWidth: 2)
+                .fill(colors.accent.opacity(0.12))
             )
         }
         .buttonStyle(.plain)
-
-        if !config.isEmpty {
+        .help("Create New Configuration")
+      }
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+  }
+  
+  var savedConfigurationsRow: some View {
+    VStack(spacing: 0) {
+      ForEach(Array(savedConfigurations.enumerated()), id: \.element.id) { index, config in
+        let isCurrentConfig = configStore.currentConfigurationName == config.name
+        
+        HStack(spacing: 16) {
+          // Icon placeholder for alignment
+          Color.clear
+            .frame(width: 36, height: 36)
+          
           Button {
-            hotKeyManager.clearConfiguration(for: type)
+            openConfigEditor(config)
           } label: {
-            Image(systemName: "xmark.circle.fill")
-              .font(.system(size: 14, weight: .medium))
-              .foregroundColor(colors.textSecondary)
+            HStack(spacing: 12) {
+              Image(systemName: isCurrentConfig ? "doc.text.fill" : "doc.text")
+                .font(.system(size: 14))
+                .foregroundColor(isCurrentConfig ? colors.accent : colors.textSecondary)
+              
+              VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                  Text(config.name)
+                    .font(.system(size: 14, weight: isCurrentConfig ? .semibold : .regular))
+                    .foregroundColor(colors.textPrimary)
+                  
+                  if isCurrentConfig {
+                    Circle()
+                      .fill(colors.accent)
+                      .frame(width: 6, height: 6)
+                  }
+                }
+                Text(config.formattedDate)
+                  .font(.system(size: 11))
+                  .foregroundColor(colors.textSecondary)
+              }
+              
+              Spacer()
+            }
+            .contentShape(Rectangle())
           }
           .buttonStyle(.plain)
-          .help("Clear shortcut")
+          
+          if !isCurrentConfig {
+            Button {
+              loadConfiguration(config)
+            } label: {
+              Text("Use")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(colors.accent)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(
+                  RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(colors.accent.opacity(0.12))
+                )
+            }
+            .buttonStyle(.plain)
+          }
+          
+          Button {
+            configToDelete = config
+            showDeleteConfirmation = true
+          } label: {
+            Image(systemName: "trash")
+              .font(.system(size: 12))
+              .foregroundColor(.red.opacity(0.7))
+          }
+          .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(isCurrentConfig ? colors.accent.opacity(0.05) : Color.clear)
+        
+        if index < savedConfigurations.count - 1 {
+          Divider()
+            .padding(.leading, 68)
         }
       }
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 10)
-    .background(
-      RoundedRectangle(cornerRadius: 12, style: .continuous)
-        .fill(colors.inputBackground.opacity(0.5))
-    )
   }
-
-  func startRecordingHotKey(for type: HotKeyType) {
-    recordingHotKeyType = type
-
-    // 临时注销快捷键以便捕获新按键
-    HotKeyManager.shared.unregister()
-
-    localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-      self.handleKeyEvent(event, for: type)
-      return nil
-    }
-  }
-
-  func stopRecordingHotKey() {
-    recordingHotKeyType = nil
-
-    if let monitor = localEventMonitor {
-      NSEvent.removeMonitor(monitor)
-      localEventMonitor = nil
-    }
-
-    // 重新注册快捷键
-    HotKeyManager.shared.register()
-  }
-
-  func handleKeyEvent(_ event: NSEvent, for type: HotKeyType) {
-    // 忽略纯修饰键按下
-    let keyCode = event.keyCode
-
-    // 检查是否按下了 Escape 取消录制
-    if keyCode == UInt16(kVK_Escape) {
-      stopRecordingHotKey()
-      return
-    }
-
-    // 需要至少一个修饰键
-    let modifierFlags = event.modifierFlags
-    var carbonModifiers: UInt32 = 0
-
-    if modifierFlags.contains(.command) {
-      carbonModifiers |= UInt32(cmdKey)
-    }
-    if modifierFlags.contains(.option) {
-      carbonModifiers |= UInt32(optionKey)
-    }
-    if modifierFlags.contains(.control) {
-      carbonModifiers |= UInt32(controlKey)
-    }
-    if modifierFlags.contains(.shift) {
-      carbonModifiers |= UInt32(shiftKey)
-    }
-
-    // 至少需要一个修饰键 (Command, Option, Control)
-    let hasRequiredModifier = modifierFlags.contains(.command)
-      || modifierFlags.contains(.option)
-      || modifierFlags.contains(.control)
-
-    guard hasRequiredModifier else { return }
-
-    let newConfiguration = HotKeyConfiguration(
-      keyCode: UInt32(keyCode),
-      modifiers: carbonModifiers
-    )
-
-    hotKeyManager.updateConfiguration(newConfiguration, for: type)
-    stopRecordingHotKey()
-  }
-  #endif
-
-  var languagePreferenceCard: some View {
-        VStack(spacing: 0) {
-            Button {
-                isLanguagePickerPresented = true
-            } label: {
-                HStack(alignment: .center, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Target Language")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(colors.textPrimary)
-                        LanguageValueView(option: selectedOption, colors: colors)
-                    }
-
-                    Spacer(minLength: 12)
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
-                }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 18)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+  
+  @ViewBuilder
+  var storageLocationRow: some View {
+    Button {
+      withAnimation(.easeInOut(duration: 0.25)) {
+        isStorageSettingsExpanded.toggle()
+      }
+    } label: {
+      HStack(spacing: 16) {
+        ZStack {
+          RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(Color.blue.opacity(0.15))
+            .frame(width: 36, height: 36)
+          Image(systemName: currentStorageLocation.icon)
+            .font(.system(size: 16, weight: .medium))
+            .foregroundColor(.blue)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(colors.cardBackground)
-        )
-    }
-
-    var ttsPreferenceCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
-            VStack(alignment: .leading, spacing: 4) {
-                Text("TTS Settings")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
-                Text("Configure text-to-speech for reading results aloud.")
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
-            }
-
-            // Built-in Cloud Toggle
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Use Built-in Cloud")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(colors.textPrimary)
-                    Text("Free TTS service powered by the app")
-                        .font(.system(size: 12))
-                        .foregroundColor(colors.textSecondary)
-                }
-                Spacer()
-                Toggle("", isOn: $ttsUseBuiltInCloud)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(colors.inputBackground)
-            )
-
-            // TTS configuration fields
-            VStack(alignment: .leading, spacing: 12) {
-                if ttsUseBuiltInCloud {
-                    // Built-in Cloud mode: only show voice picker
-                    Text("Voice")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
-
-                    Menu {
-                        ForEach(TTSConfiguration.builtInCloudVoices, id: \.self) { voice in
-                            Button(action: {
-                                customTTSVoice = voice
-                            }) {
-                                HStack {
-                                    Text(voice.capitalized)
-                                    if customTTSVoice == voice {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Text(customTTSVoice.isEmpty ? "Select a voice" : customTTSVoice.capitalized)
-                                .font(.system(size: 14))
-                                .foregroundColor(customTTSVoice.isEmpty ? colors.textSecondary : colors.textPrimary)
-                            Spacer()
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 12))
-                                .foregroundColor(colors.textSecondary)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(colors.inputBackground)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                } else {
-                    // Custom mode: show all fields
-                    Text("Endpoint")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
-
-                    ZStack(alignment: .leading) {
-                        if customTTSEndpoint.isEmpty || customTTSEndpoint == "https://" || customTTSEndpoint == TTSConfiguration.builtInCloudEndpoint.absoluteString {
-                            Text("https://xxx.openai.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2025-03-01-preview")
-                                .font(.system(size: 14))
-                                .foregroundColor(colors.textSecondary.opacity(0.6))
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                        TextField("", text: Binding(
-                            get: {
-                                // Don't show built-in cloud endpoint in custom mode
-                                if customTTSEndpoint == TTSConfiguration.builtInCloudEndpoint.absoluteString {
-                                    return ""
-                                }
-                                return customTTSEndpoint == "https://" ? "" : customTTSEndpoint
-                            },
-                            set: { customTTSEndpoint = $0 }
-                        ))
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 14))
-                            .foregroundColor(colors.textPrimary)
-                            .autocorrectionDisabled()
-#if os(iOS)
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
-#endif
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colors.inputBackground)
-                    )
-
-                    Text("API Key")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
-
-                    SecureField("Enter API Key here", text: $customTTSAPIKey)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .foregroundColor(colors.textPrimary)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(colors.inputBackground)
-                        )
-                        .autocorrectionDisabled()
-#if os(iOS)
-                        .textInputAutocapitalization(.never)
-                        .textContentType(.password)
-#endif
-
-                    Text("Model")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
-
-                    TextField("e.g. gpt-4o-mini-tts", text: $customTTSModel)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .foregroundColor(colors.textPrimary)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(colors.inputBackground)
-                        )
-                        .autocorrectionDisabled()
-#if os(iOS)
-                        .textInputAutocapitalization(.never)
-#endif
-
-                    Text("Voice")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
-
-                    TextField("e.g. alloy", text: $customTTSVoice)
-                        .textFieldStyle(.plain)
-                        .font(.system(size: 14))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 12)
-                        .foregroundColor(colors.textPrimary)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(colors.inputBackground)
-                        )
-                        .autocorrectionDisabled()
-#if os(iOS)
-                        .textInputAutocapitalization(.never)
-#endif
-                }
-            }
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(colors.cardBackground)
-        )
-    }
-
-    var configurationCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header row with current config info
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Configuration")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(colors.textPrimary)
-                    
-                    HStack(spacing: 8) {
-                        // Show configuration mode
-                        Text(configStore.configurationMode.displayName)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(configStore.configurationMode.isDefault ? colors.success : colors.accent)
-                        
-                        if configStore.configurationMode.isDefault {
-                            Text("Read-Only")
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                        .fill(colors.success)
-                                )
-                        }
-                        
-                        Text("·")
-                            .foregroundColor(colors.textSecondary)
-                        Text("\(configStore.providers.count) Provider")
-                            .font(.system(size: 13))
-                            .foregroundColor(colors.textSecondary)
-                        Text("·")
-                            .foregroundColor(colors.textSecondary)
-                        Text("\(configStore.actions.count) Actions")
-                            .font(.system(size: 13))
-                            .foregroundColor(colors.textSecondary)
-                    }
-                }
-                Spacer()
-            }
-
-            // Default configuration info banner (when using default)
-            if configStore.configurationMode.isDefault {
-                defaultConfigurationBanner
-            }
-
-            // Saved Configurations section (displayed directly without collapsing)
-            VStack(spacing: 8) {
-                // Quick action buttons
-                HStack(spacing: 8) {
-                    // Use Default button (only show when using custom config)
-                    if !configStore.configurationMode.isDefault {
-                        Button {
-                            configStore.switchToDefaultConfiguration()
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.counterclockwise")
-                                    .font(.system(size: 12, weight: .medium))
-                                Text("Use Default")
-                                    .font(.system(size: 12, weight: .medium))
-                            }
-                            .foregroundColor(colors.success)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(colors.success.opacity(0.12))
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    
-                    Button {
-                        duplicateCurrentConfiguration()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "doc.on.doc")
-                                .font(.system(size: 12, weight: .medium))
-                            Text("Duplicate")
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundColor(colors.accent)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(colors.accent.opacity(0.12))
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(configStore.configurationMode.isDefault)
-                    .opacity(configStore.configurationMode.isDefault ? 0.5 : 1)
-                    
-                    Button {
-                        createFromDefaultTemplate()
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "doc.badge.plus")
-                                .font(.system(size: 12, weight: .medium))
-                            Text("New")
-                                .font(.system(size: 12, weight: .medium))
-                        }
-                        .foregroundColor(colors.textSecondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(colors.inputBackground)
-                        )
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Spacer()
-                }
-                .padding(.bottom, 4)
-                
-                if savedConfigurations.isEmpty {
-                    Text("No saved configurations")
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 8)
-                } else {
-                    ForEach(savedConfigurations) { config in
-                        savedConfigurationRow(config)
-                    }
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(colors.inputBackground.opacity(0.5))
-            )
-
-            // Storage Location Settings
-            storageLocationSection
-        }
-        .padding(18)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(colors.cardBackground)
-        )
-        .onAppear {
-            refreshSavedConfigurations()
-        }
-        .alert("Delete Configuration", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                if let config = configToDelete {
-                    deleteConfiguration(config)
-                }
-            }
-        } message: {
-            Text("Are you sure you want to delete \"\(configToDelete?.name ?? "")\"?")
-        }
-    }
-
-    var defaultConfigurationBanner: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(colors.success)
-                
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Using Default Configuration")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(colors.textPrimary)
-                    Text("Always up-to-date with the latest app features")
-                        .font(.system(size: 12))
-                        .foregroundColor(colors.textSecondary)
-                }
-                
-                Spacer()
-            }
-            
-            Text("The default configuration is bundled with the app and cannot be edited. To customize your settings, create a new configuration or load an existing one.")
-                .font(.system(size: 12))
-                .foregroundColor(colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colors.success.opacity(0.08))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(colors.success.opacity(0.2), lineWidth: 1)
-        )
-    }
-
-    func savedConfigurationRow(_ config: ConfigurationFileInfo) -> some View {
-        let isCurrentConfig = configStore.currentConfigurationName == config.name
         
-        return HStack(spacing: 12) {
-            // Tappable area to open editor
-            Button {
-                openConfigEditor(config)
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: isCurrentConfig ? "doc.text.fill" : "doc.text")
-                        .font(.system(size: 14))
-                        .foregroundColor(colors.accent)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(spacing: 6) {
-                            Text(config.name)
-                                .font(.system(size: 14, weight: isCurrentConfig ? .semibold : .medium))
-                                .foregroundColor(colors.textPrimary)
-                            
-                            if isCurrentConfig {
-                                Text("Current")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                            .fill(colors.accent)
-                                    )
-                            }
-                        }
-                        Text(config.formattedDate)
-                            .font(.system(size: 11))
-                            .foregroundColor(colors.textSecondary)
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(colors.textSecondary)
-                }
-                .contentShape(Rectangle())
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Storage Location")
+            .font(.system(size: 15, weight: .medium))
+            .foregroundColor(colors.textPrimary)
+          Text(currentStorageLocation.rawValue)
+            .font(.system(size: 13))
+            .foregroundColor(colors.textSecondary)
+        }
+        
+        Spacer()
+        
+        Image(systemName: isStorageSettingsExpanded ? "chevron.down" : "chevron.right")
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundColor(colors.textSecondary.opacity(0.5))
+      }
+      .padding(.horizontal, 16)
+      .padding(.vertical, 14)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    
+    if isStorageSettingsExpanded {
+      storageOptionsExpanded
+    }
+  }
+  
+  var storageOptionsExpanded: some View {
+    VStack(spacing: 8) {
+      // Current path
+      HStack {
+        Text(shortenedPath(ConfigurationFileManager.shared.configurationsDirectory))
+          .font(.system(size: 12, design: .monospaced))
+          .foregroundColor(colors.textSecondary)
+          .lineLimit(1)
+          .truncationMode(.middle)
+        
+        Spacer()
+        
+        #if os(macOS)
+        Button("Reveal") {
+          ConfigurationFileManager.shared.revealInFinder()
+        }
+        .font(.system(size: 11, weight: .medium))
+        .foregroundColor(colors.accent)
+        .buttonStyle(.plain)
+        #endif
+      }
+      .padding(.horizontal, 12)
+      .padding(.vertical, 8)
+      .background(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(colors.inputBackground)
+      )
+      
+      // Storage options
+      HStack(spacing: 8) {
+        storageOptionPill(location: .local, isSelected: currentStorageLocation == .local) {
+          ConfigurationFileManager.shared.switchToLocal(migrate: true)
+          updateStorageLocation()
+        }
+        
+        storageOptionPill(location: .iCloud, isSelected: currentStorageLocation == .iCloud, isDisabled: !AppPreferences.isICloudAvailable) {
+          ConfigurationFileManager.shared.switchToICloud(migrate: true)
+          updateStorageLocation()
+        }
+        
+        #if os(macOS)
+        storageOptionPill(location: .custom, isSelected: currentStorageLocation == .custom) {
+          selectCustomFolder()
+        }
+        #endif
+      }
+    }
+    .padding(.horizontal, 16)
+    .padding(.bottom, 14)
+    .padding(.leading, 52)
+    .transition(.opacity.combined(with: .move(edge: .top)))
+  }
+  
+  func storageOptionPill(
+    location: ConfigurationFileManager.StorageLocation,
+    isSelected: Bool,
+    isDisabled: Bool = false,
+    action: @escaping () -> Void
+  ) -> some View {
+    Button(action: action) {
+      HStack(spacing: 6) {
+        Image(systemName: location.icon)
+          .font(.system(size: 12))
+        Text(location.rawValue)
+          .font(.system(size: 12, weight: .medium))
+      }
+      .foregroundColor(isSelected ? .white : colors.textSecondary)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 8)
+      .background(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(isSelected ? colors.accent : colors.inputBackground)
+      )
+    }
+    .buttonStyle(.plain)
+    .disabled(isDisabled)
+    .opacity(isDisabled ? 0.4 : 1)
+  }
+  
+  // MARK: - TTS Rows
+  
+  var ttsToggleRow: some View {
+    HStack(spacing: 16) {
+      ZStack {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(Color.green.opacity(0.15))
+          .frame(width: 36, height: 36)
+        Image(systemName: "icloud.fill")
+          .font(.system(size: 16, weight: .medium))
+          .foregroundColor(.green)
+      }
+      
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Use Built-in Cloud")
+          .font(.system(size: 15, weight: .medium))
+          .foregroundColor(colors.textPrimary)
+        Text("Free TTS service powered by the app")
+          .font(.system(size: 12))
+          .foregroundColor(colors.textSecondary)
+      }
+      
+      Spacer()
+      
+      Toggle("", isOn: $ttsUseBuiltInCloud)
+        .labelsHidden()
+        .toggleStyle(.switch)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 14)
+  }
+  
+  var ttsVoicePickerRow: some View {
+    HStack(spacing: 16) {
+      // Alignment spacer
+      Color.clear
+        .frame(width: 36, height: 36)
+      
+      Text("Voice")
+        .font(.system(size: 15, weight: .medium))
+        .foregroundColor(colors.textPrimary)
+      
+      Spacer()
+      
+      Menu {
+        ForEach(TTSConfiguration.builtInCloudVoices, id: \.self) { voice in
+          Button {
+            customTTSVoice = voice
+          } label: {
+            HStack {
+              Text(voice.capitalized)
+              if customTTSVoice == voice {
+                Image(systemName: "checkmark")
+              }
             }
-            .buttonStyle(.plain)
-
-            Button {
-                loadConfiguration(config)
-            } label: {
-                Text("Load")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(colors.accent)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(colors.accent.opacity(0.12))
-                    )
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                configToDelete = config
-                showDeleteConfirmation = true
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(.red.opacity(0.8))
-                    .padding(6)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.red.opacity(0.1))
-                    )
-            }
-            .buttonStyle(.plain)
+          }
+        }
+      } label: {
+        HStack(spacing: 6) {
+          Text(customTTSVoice.isEmpty ? "Select" : customTTSVoice.capitalized)
+            .font(.system(size: 14))
+            .foregroundColor(colors.textPrimary)
+          Image(systemName: "chevron.up.chevron.down")
+            .font(.system(size: 10))
+            .foregroundColor(colors.textSecondary)
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isCurrentConfig ? colors.accent.opacity(0.08) : colors.inputBackground)
+          RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(colors.inputBackground)
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isCurrentConfig ? colors.accent.opacity(0.3) : Color.clear, lineWidth: 1.5)
-        )
+      }
+      .buttonStyle(.plain)
     }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
+  }
+  
+  var ttsCustomConfigSection: some View {
+    VStack(spacing: 12) {
+      ttsInputField(label: "Endpoint", placeholder: "https://api.openai.com/v1/audio/speech", text: $customTTSEndpoint, isSecure: false)
+      ttsInputField(label: "API Key", placeholder: "Enter your API key", text: $customTTSAPIKey, isSecure: true)
+      ttsInputField(label: "Model", placeholder: "e.g. gpt-4o-mini-tts", text: $customTTSModel, isSecure: false)
+      ttsInputField(label: "Voice", placeholder: "e.g. alloy", text: $customTTSVoice, isSecure: false)
+    }
+    .padding(.horizontal, 16)
+    .padding(.vertical, 12)
+    .padding(.leading, 52)
+  }
+  
+  func ttsInputField(label: String, placeholder: String, text: Binding<String>, isSecure: Bool) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+      Text(label)
+        .font(.system(size: 12, weight: .medium))
+        .foregroundColor(colors.textSecondary)
+      
+      Group {
+        if isSecure {
+          SecureField(placeholder, text: text)
+        } else {
+          TextField(placeholder, text: text)
+        }
+      }
+      .textFieldStyle(.plain)
+      .font(.system(size: 14))
+      .padding(.horizontal, 12)
+      .padding(.vertical, 10)
+      .foregroundColor(colors.textPrimary)
+      .background(
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+          .fill(colors.inputBackground)
+      )
+      .autocorrectionDisabled()
+      #if os(iOS)
+      .textInputAutocapitalization(.never)
+      #endif
+    }
+  }
+  
+  // MARK: - Configuration Helper Functions
 
     func openConfigEditor(_ config: ConfigurationFileInfo) {
         do {
@@ -895,15 +831,21 @@ private extension SettingsView {
     }
 
     func loadConfiguration(_ config: ConfigurationFileInfo) {
+        print("[SettingsView] 📂 Loading configuration: '\(config.name)'...")
         do {
             let appConfig = try ConfigurationFileManager.shared.loadConfiguration(from: config.url)
+            print("[SettingsView]   - Parsed config with \(appConfig.providers.count) providers, \(appConfig.actions.count) actions")
             ConfigurationService.shared.applyConfiguration(
                 appConfig,
                 to: configStore,
                 preferences: preferences,
                 configurationName: config.name
             )
+            print("[SettingsView] ✅ Configuration loaded: '\(config.name)'")
+            print("[SettingsView]   - configStore.configurationMode: \(configStore.configurationMode)")
+            print("[SettingsView]   - configStore.currentConfigurationName: \(configStore.currentConfigurationName ?? "nil")")
         } catch {
+            print("[SettingsView] ❌ Failed to load configuration: \(error)")
             importError = error.localizedDescription
             showImportError = true
         }
@@ -920,10 +862,26 @@ private extension SettingsView {
     }
 
     func createFromDefaultTemplate() {
+        print("[SettingsView] 🆕 Creating new configuration from default template...")
         do {
-            _ = try ConfigurationFileManager.shared.createFromDefaultTemplate()
-            refreshSavedConfigurations()
+            let newConfigURL = try ConfigurationFileManager.shared.createFromDefaultTemplate()
+            let newConfigName = newConfigURL.deletingPathExtension().lastPathComponent
+            print("[SettingsView]   - Created file: \(newConfigName)")
+            
+            // Get fresh list directly (don't rely on @State which might be stale)
+            let freshList = ConfigurationFileManager.shared.listConfigurations()
+            savedConfigurations = freshList
+            
+            // Find the newly created config and load it
+            if let newConfig = freshList.first(where: { $0.name == newConfigName }) {
+                print("[SettingsView]   - Loading new configuration: \(newConfig.name)")
+                loadConfiguration(newConfig)
+                print("[SettingsView] ✅ New configuration created and activated: \(newConfigName)")
+            } else {
+                print("[SettingsView] ⚠️ Created config but couldn't find it in list. List has \(freshList.count) items: \(freshList.map(\.name))")
+            }
         } catch {
+            print("[SettingsView] ❌ Failed to create configuration: \(error)")
             importError = error.localizedDescription
             showImportError = true
         }

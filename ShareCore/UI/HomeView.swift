@@ -707,23 +707,26 @@ public struct HomeView: View {
 
     @ViewBuilder
     private func compactSpeakButton(for text: String, runID: String) -> some View {
-        let isSpeaking = viewModel.isSpeaking(runID: runID)
-        Button {
-            viewModel.speakResult(text, runID: runID)
-        } label: {
-            if isSpeaking {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .controlSize(.small)
-                    .tint(colors.accent)
-            } else {
-                Image(systemName: "speaker.wave.2.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(colors.accent)
+        // Only show speak button when TTS is configured
+        if AppPreferences.shared.ttsConfiguration.isValid {
+            let isSpeaking = viewModel.isSpeaking(runID: runID)
+            Button {
+                viewModel.speakResult(text, runID: runID)
+            } label: {
+                if isSpeaking {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .controlSize(.small)
+                        .tint(colors.accent)
+                } else {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.accent)
+                }
             }
+            .buttonStyle(.plain)
+            .disabled(isSpeaking)
         }
-        .buttonStyle(.plain)
-        .disabled(isSpeaking)
     }
 
     @ViewBuilder

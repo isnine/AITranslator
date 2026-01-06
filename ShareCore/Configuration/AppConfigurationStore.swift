@@ -328,6 +328,47 @@ public final class AppConfigurationStore: ObservableObject {
       configFileManager.startMonitoring(configurationNamed: newName)
     }
   }
+  
+  /// Set both configuration mode and name atomically
+  /// This is used by ConfigurationService.applyConfiguration to ensure correct state
+  public func setConfigurationModeAndName(_ mode: ConfigurationMode, name: String?) {
+    let previousName = currentConfigurationName
+    
+    // Stop monitoring old config if different
+    if let previousName, previousName != name {
+      configFileManager.stopMonitoring(configurationNamed: previousName)
+    }
+    
+    // Update mode and name
+    self.configurationMode = mode
+    self.currentConfigurationName = name
+    preferences.setCurrentConfigName(name ?? Self.defaultConfigurationMarker)
+    
+    // Start monitoring new config if it's a custom config
+    if let newName = name, !mode.isDefault {
+      configFileManager.startMonitoring(configurationNamed: newName)
+    }
+    
+    print("[ConfigStore] Mode set to: \(mode.displayName), name: \(name ?? "nil")")
+  }
+  
+  /// Apply providers directly without triggering the default-mode check
+  /// Used by ConfigurationService when loading a configuration
+  public func applyProvidersDirectly(_ providers: [ProviderConfig]) {
+    self.providers = providers
+    // Don't save - this is part of a load operation
+  }
+  
+  /// Apply actions directly without triggering the default-mode check
+  /// Used by ConfigurationService when loading a configuration
+  public func applyActionsDirectly(_ actions: [ActionConfig]) {
+    let adjusted = AppConfigurationStore.applyTargetLanguage(
+      actions,
+      targetLanguage: preferences.targetLanguage
+    )
+    self.actions = adjusted
+    // Don't save - this is part of a load operation
+  }
 
   /// Reload the current configuration from disk
   public func reloadCurrentConfiguration() {

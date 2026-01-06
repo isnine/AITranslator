@@ -79,11 +79,14 @@ public final class ConfigurationService: Sendable {
     preferences: AppPreferences,
     configurationName: String? = nil
   ) {
+    print("[ConfigService] 🔄 Applying configuration: '\(configurationName ?? "unnamed")'")
+    
     // Apply preferences
     if let prefsConfig = config.preferences {
       if let targetLang = prefsConfig.targetLanguage,
          let option = TargetLanguageOption(rawValue: targetLang) {
         preferences.setTargetLanguage(option)
+        print("[ConfigService]   - Set target language: \(option.rawValue)")
       }
       // Hotkey is platform-specific, handled separately
     }
@@ -93,9 +96,11 @@ public final class ConfigurationService: Sendable {
       // Always apply the TTS configuration from the file
       let ttsConfig = ttsEntry.toTTSConfiguration()
       preferences.setTTSConfiguration(ttsConfig)
+      print("[ConfigService]   - Applied TTS configuration")
     } else {
       // No TTS configuration in the imported config - reset to empty
       preferences.setTTSConfiguration(.empty)
+      print("[ConfigService]   - Reset TTS to empty (no config in file)")
     }
 
     // Build provider map (name -> UUID) and deployments map
@@ -110,6 +115,7 @@ public final class ConfigurationService: Sendable {
         providerDeploymentsMap[name] = (id: provider.id, deployments: provider.deployments)
       }
     }
+    print("[ConfigService]   - Loaded \(providers.count) providers")
 
     // Build actions (actions is now an array)
     var actions: [ActionConfig] = []
@@ -117,13 +123,23 @@ public final class ConfigurationService: Sendable {
       let action = entry.toActionConfig()
       actions.append(action)
     }
+    print("[ConfigService]   - Loaded \(actions.count) actions")
 
-    // Apply to store
-    store.updateProviders(providers)
-    store.updateActions(actions)
+    // IMPORTANT: First set configuration name and mode BEFORE updating providers/actions
+    // This ensures configurationMode is set correctly before any save operations
+    if let name = configurationName {
+      store.setConfigurationModeAndName(.customConfiguration(name: name), name: name)
+      print("[ConfigService]   - Set mode to custom: '\(name)'")
+    } else {
+      store.setConfigurationModeAndName(.defaultConfiguration, name: nil)
+      print("[ConfigService]   - Set mode to default")
+    }
+
+    // Apply providers and actions directly (bypassing the default-mode check)
+    store.applyProvidersDirectly(providers)
+    store.applyActionsDirectly(actions)
     
-    // Set current configuration name
-    store.setCurrentConfigurationName(configurationName)
+    print("[ConfigService] ✅ Configuration applied successfully")
   }
 
   // MARK: - Private Helpers
