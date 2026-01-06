@@ -40,6 +40,8 @@ public struct CreateCustomConfigurationRequest {
   public enum ChangeType {
     case actions([ActionConfig])
     case providers([ProviderConfig])
+    case tts(TTSConfiguration)
+    case targetLanguage(TargetLanguageOption)
   }
 
   public let changeType: ChangeType
@@ -65,6 +67,12 @@ public final class AppConfigurationStore: ObservableObject {
   /// Publisher for requesting creation of custom configuration
   /// UI should subscribe to this to show confirmation dialog
   public let createCustomConfigurationRequestPublisher = PassthroughSubject<CreateCustomConfigurationRequest, Never>()
+
+  /// Publisher to notify UI to reset pending changes (e.g., when user cancels creating custom config)
+  public let resetPendingChangesPublisher = PassthroughSubject<Void, Never>()
+
+  /// Publisher to notify UI that configuration was switched and UI should sync from preferences
+  public let configurationSwitchedPublisher = PassthroughSubject<Void, Never>()
 
   /// Last validation result from loading or saving
   @Published public private(set) var lastValidationResult: ConfigurationValidationResult?
@@ -267,6 +275,57 @@ public final class AppConfigurationStore: ObservableObject {
     return validationResult.issues.isEmpty ? nil : validationResult
   }
 
+  /// Update TTS configuration
+  /// In default configuration mode, this will trigger a request to create custom configuration
+  public func updateTTSConfiguration(_ ttsConfig: TTSConfiguration) {
+    // If using default configuration, request user to create custom configuration first
+    if configurationMode.isDefault {
+      let request = CreateCustomConfigurationRequest(changeType: .tts(ttsConfig)) { [weak self] created in
+        guard let self else { return }
+        if created {
+          // User confirmed, apply changes after switching to custom configuration
+          self.applyTTSConfigurationUpdate(ttsConfig)
+        } else {
+          // User cancelled, notify UI to reset pending changes
+          self.resetPendingChangesPublisher.send()
+        }
+      }
+      createCustomConfigurationRequestPublisher.send(request)
+      return
+    }
+
+    applyTTSConfigurationUpdate(ttsConfig)
+  }
+
+  /// Internal method to actually apply TTS configuration update
+  private func applyTTSConfigurationUpdate(_ ttsConfig: TTSConfiguration) {
+    preferences.setTTSConfiguration(ttsConfig)
+    saveConfiguration()
+  }
+
+  /// Update target language preference
+  /// In default configuration mode, this will trigger a request to create custom configuration
+  public func updateTargetLanguage(_ option: TargetLanguageOption) {
+    // If using default configuration, request user to create custom configuration first
+    if configurationMode.isDefault {
+      let request = CreateCustomConfigurationRequest(changeType: .targetLanguage(option)) { [weak self] created in
+        guard let self, created else { return }
+        // User confirmed, apply changes after switching to custom configuration
+        self.applyTargetLanguageUpdate(option)
+      }
+      createCustomConfigurationRequestPublisher.send(request)
+      return
+    }
+
+    applyTargetLanguageUpdate(option)
+  }
+
+  /// Internal method to actually apply target language update
+  private func applyTargetLanguageUpdate(_ option: TargetLanguageOption) {
+    preferences.setTargetLanguage(option)
+    // Note: saveConfiguration will be triggered by the preferences.$targetLanguage subscription
+  }
+
   /// Create a custom configuration from the current default configuration
   /// This copies the bundled default and switches to custom mode
   /// - Parameter name: The name for the new custom configuration
@@ -309,6 +368,9 @@ public final class AppConfigurationStore: ObservableObject {
     }
 
     loadBundledDefaultConfiguration()
+    
+    // Notify UI to sync from the new configuration
+    configurationSwitchedPublisher.send()
   }
 
   public func setCurrentConfigurationName(_ name: String?) {
@@ -778,6 +840,9 @@ public final class AppConfigurationStore: ObservableObject {
       print("[ConfigStore] ✅ Switched to configuration: '\(name)'")
       configurationMode = .customConfiguration(name: name)
       configFileManager.startMonitoring(configurationNamed: name)
+      
+      // Notify UI to sync from the new configuration
+      configurationSwitchedPublisher.send()
       return true
     }
     print("[ConfigStore] ❌ Failed to switch to configuration: '\(name)'")

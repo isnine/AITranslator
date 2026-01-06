@@ -224,6 +224,9 @@
         }
       }
     },
+    "Are you sure you want to delete this action? This cannot be undone." : {
+
+    },
     "Auth Header Name" : {
       "localizations" : {
         "zh-Hans" : {
@@ -551,6 +554,9 @@
           }
         }
       }
+    },
+    "Delete Action" : {
+
     },
     "Delete Configuration" : {
       "extractionState" : "stale",

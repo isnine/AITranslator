@@ -103,6 +103,8 @@ struct SettingsView: View {
         }
         .onChange(of: targetLanguageCode) {
             let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
+            // targetLanguage is a user preference that persists independently of configuration
+            // It's stored in UserDefaults and doesn't require creating a custom configuration
             preferences.setTargetLanguage(option)
         }
         .onChange(of: customTTSEndpoint) {
@@ -125,9 +127,19 @@ struct SettingsView: View {
             guard !isUpdatingFromPreferences else { return }
             persistCustomTTSConfiguration()
         }
-        .onReceive(preferences.$ttsConfiguration) { _ in
-            // Always sync TTS configuration to UI when it changes
+        .onReceive(configStore.resetPendingChangesPublisher) { _ in
+            // User cancelled creating custom configuration, reset UI to match stored values
             syncTTSPreferencesFromStore()
+        }
+        .onReceive(configStore.configurationSwitchedPublisher) { _ in
+            // Configuration was switched (reset to default or switched to another config)
+            // Sync UI to match the new configuration's values
+            syncTTSPreferencesFromStore()
+            refreshSavedConfigurations()
+        }
+        .onReceive(configStore.$configurationMode) { _ in
+            // Configuration mode changed, refresh the list to show current state
+            refreshSavedConfigurations()
         }
         .fileImporter(
             isPresented: $isImportPresented,
@@ -379,6 +391,43 @@ private extension SettingsView {
             .padding(.leading, 68)
         }
       }
+    }
+  }
+  
+  private func startRecordingHotKey(for type: HotKeyType) {
+    recordingHotKeyType = type
+    
+    localEventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .flagsChanged]) { [self] event in
+      if event.type == .keyDown {
+        let modifiers = event.modifierFlags.carbonModifiers
+        let keyCode = UInt32(event.keyCode)
+        
+        // Escape to cancel
+        if keyCode == 53 {
+          stopRecordingHotKey()
+          return nil
+        }
+        
+        // Need at least one modifier (except for function keys)
+        let isFunctionKey = (keyCode >= 122 && keyCode <= 135) || (keyCode >= 96 && keyCode <= 111)
+        if modifiers == 0 && !isFunctionKey {
+          return nil
+        }
+        
+        let config = HotKeyConfiguration(keyCode: keyCode, modifiers: modifiers)
+        hotKeyManager.updateConfiguration(config, for: type)
+        stopRecordingHotKey()
+        return nil
+      }
+      return event
+    }
+  }
+  
+  private func stopRecordingHotKey() {
+    recordingHotKeyType = nil
+    if let monitor = localEventMonitor {
+      NSEvent.removeMonitor(monitor)
+      localEventMonitor = nil
     }
   }
   #endif
@@ -868,7 +917,15 @@ private extension SettingsView {
     }
 
     func deleteConfiguration(_ config: ConfigurationFileInfo) {
+        // Check if we're deleting the currently active configuration
+        let isDeletingCurrentConfig = configStore.currentConfigurationName == config.name
+        
         do {
+            // If deleting the active configuration, switch to default first
+            if isDeletingCurrentConfig {
+                configStore.resetToDefault()
+            }
+            
             try ConfigurationFileManager.shared.deleteConfiguration(at: config.url)
             refreshSavedConfigurations()
         } catch {
@@ -1241,12 +1298,12 @@ private extension SettingsView {
     func persistCustomTTSConfiguration() {
         let trimmedVoice = customTTSVoice.trimmingCharacters(in: .whitespacesAndNewlines)
 
+        let configuration: TTSConfiguration
         if ttsUseBuiltInCloud {
             // Built-in cloud mode: only voice matters
-            let configuration = TTSConfiguration.builtInCloud(
+            configuration = TTSConfiguration.builtInCloud(
                 voice: trimmedVoice.isEmpty ? TTSConfiguration.builtInCloudDefaultVoice : trimmedVoice
             )
-            preferences.setTTSConfiguration(configuration)
         } else {
             // Custom mode: use all fields
             let trimmedEndpoint = customTTSEndpoint
@@ -1255,21 +1312,22 @@ private extension SettingsView {
             let trimmedKey = customTTSAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
             let trimmedModel = customTTSModel.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            let configuration = TTSConfiguration(
+            configuration = TTSConfiguration(
                 endpointURL: endpointURL,
                 apiKey: trimmedKey,
                 model: trimmedModel,
                 voice: trimmedVoice
             )
-            preferences.setTTSConfiguration(configuration)
         }
+        
+        // Use configStore to handle default configuration mode check
+        configStore.updateTTSConfiguration(configuration)
     }
 
     func syncTTSPreferencesFromStore() {
         // Always show the actual stored custom TTS configuration values
         // This allows user to see what custom values are saved (even when using defaults)
         isUpdatingFromPreferences = true
-        defer { isUpdatingFromPreferences = false }
         
         let configuration = preferences.ttsConfiguration
         ttsUseBuiltInCloud = configuration.useBuiltInCloud
@@ -1279,6 +1337,12 @@ private extension SettingsView {
             customTTSEndpoint = configuration.endpointURL.absoluteString
             customTTSAPIKey = configuration.apiKey
             customTTSModel = configuration.model
+        }
+        
+        // Reset the flag after a short delay to ensure all @State changes
+        // have been processed and their .onChange handlers have completed
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
+            isUpdatingFromPreferences = false
         }
     }
 
@@ -1666,3 +1730,20 @@ struct ConfigEditorItem: Identifiable {
     let configInfo: ConfigurationFileInfo
     let text: String
 }
+
+// MARK: - NSEvent Modifier Flags Extension
+
+#if os(macOS)
+import Carbon
+
+extension NSEvent.ModifierFlags {
+    var carbonModifiers: UInt32 {
+        var modifiers: UInt32 = 0
+        if contains(.control) { modifiers |= UInt32(controlKey) }
+        if contains(.option) { modifiers |= UInt32(optionKey) }
+        if contains(.shift) { modifiers |= UInt32(shiftKey) }
+        if contains(.command) { modifiers |= UInt32(cmdKey) }
+        return modifiers
+    }
+}
+#endif

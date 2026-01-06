@@ -23,6 +23,9 @@ struct ActionDetailView: View {
     // Validation error state
     @State private var showValidationError = false
     @State private var validationErrorMessage = ""
+    
+    // Delete confirmation state
+    @State private var showDeleteConfirmation = false
 
     init(
         action: ActionConfig?,
@@ -56,6 +59,10 @@ struct ActionDetailView: View {
                     promptSection
                     usageSection
                     optionsSection
+                    
+                    if !isNewAction {
+                        deleteSection
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 24)
@@ -67,6 +74,14 @@ struct ActionDetailView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(validationErrorMessage)
+        }
+        .alert("Delete Action", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteAction()
+            }
+        } message: {
+            Text("Are you sure you want to delete this action? This cannot be undone.")
         }
     }
 
@@ -202,6 +217,29 @@ struct ActionDetailView: View {
         }
         .buttonStyle(.plain)
     }
+    
+    private var deleteSection: some View {
+        section(title: "Danger Zone") {
+            Button {
+                showDeleteConfirmation = true
+            } label: {
+                HStack {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .semibold))
+                    Text("Delete Action")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(.red)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color.red.opacity(0.1))
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
 
     @ViewBuilder
     private func section(
@@ -309,6 +347,18 @@ struct ActionDetailView: View {
             actions.append(updated)
         }
 
+        if let result = configurationStore.updateActions(actions), result.hasErrors {
+            validationErrorMessage = result.errors.map(\.message).joined(separator: "\n")
+            showValidationError = true
+        } else {
+            dismiss()
+        }
+    }
+    
+    private func deleteAction() {
+        var actions = configurationStore.actions
+        actions.removeAll { $0.id == actionID }
+        
         if let result = configurationStore.updateActions(actions), result.hasErrors {
             validationErrorMessage = result.errors.map(\.message).joined(separator: "\n")
             showValidationError = true
