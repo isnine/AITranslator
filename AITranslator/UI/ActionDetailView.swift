@@ -110,7 +110,7 @@ struct ActionDetailView: View {
     }
 
     private var promptSection: some View {
-        section(title: "Prompt Template", subtitle: "Use {text} as placeholder") {
+        section(title: "Prompt Template", subtitle: "Use {text} and {targetLanguage} as placeholders") {
             VStack(alignment: .leading, spacing: 8) {
                 TextEditor(text: $prompt)
                     .font(.system(size: 15))
@@ -127,11 +127,11 @@ struct ActionDetailView: View {
     }
 
     private var usageSection: some View {
-        section(title: "Usage Scenes") {
+        section(title: "Usage Scenes", subtitle: "Context options apply to the iOS Translation Extension only") {
             VStack(alignment: .leading, spacing: 12) {
-                usageSceneRow(title: "App", description: "Available inside the app", scene: .app)
-                usageSceneRow(title: "Read-Only Context", description: "Visible when you can only read text", scene: .contextRead)
-                usageSceneRow(title: "Editable Context", description: "Visible when you can edit and replace text", scene: .contextEdit)
+                usageSceneRow(title: "In App", description: "Available inside the app", scene: .app)
+                usageSceneRow(title: "Read-Only Context", description: "Show in iOS Extension when viewing text", scene: .contextRead)
+                usageSceneRow(title: "Editable Context", description: "Show in iOS Extension when editing text", scene: .contextEdit)
             }
         }
     }

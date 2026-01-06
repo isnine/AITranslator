@@ -21,35 +21,9 @@ struct ProvidersView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 28) {
                     headerSection
-
-                    if configurationStore.providers.isEmpty {
-                        emptyState
-                    } else {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Configured Providers")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(colors.textPrimary)
-
-                            VStack(spacing: 16) {
-                                ForEach(configurationStore.providers) { provider in
-                                    ProviderCardView(
-                                        provider: provider,
-                                        isDefault: provider.id == configurationStore.defaultProvider?.id,
-                                        status: status(for: provider),
-                                        colors: colors,
-                                        onToggleDeployment: { deployment, enabled in
-                                            toggleDeployment(for: provider, deployment: deployment, enabled: enabled)
-                                        },
-                                        onNavigate: {
-                                            selectedProvider = provider
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    providersSection
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 28)
@@ -68,71 +42,109 @@ struct ProvidersView: View {
                 )
             }
         }
+        .tint(colors.accent)
+#if os(iOS)
+        .toolbar(.hidden, for: .navigationBar)
+#endif
+    }
+
+    // MARK: - Providers Section
+    private var providersSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section header
+            HStack(spacing: 8) {
+                Image(systemName: "link")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+                Text("PROVIDERS")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+                
+                Spacer()
+                
+                Button {
+                    isAddingNewProvider = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(colors.accent)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.leading, 4)
+            
+            if configurationStore.providers.isEmpty {
+                emptyState
+            } else {
+                // Providers list in card
+                VStack(spacing: 0) {
+                    ForEach(Array(configurationStore.providers.enumerated()), id: \.element.id) { index, provider in
+                        ProviderRowView(
+                            provider: provider,
+                            isDefault: provider.id == configurationStore.defaultProvider?.id,
+                            status: status(for: provider),
+                            colors: colors,
+                            onToggleDeployment: { deployment, enabled in
+                                toggleDeployment(for: provider, deployment: deployment, enabled: enabled)
+                            },
+                            onNavigate: {
+                                selectedProvider = provider
+                            }
+                        )
+                        
+                        if index < configurationStore.providers.count - 1 {
+                            Divider()
+                                .padding(.leading, 56)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(colors.cardBackground)
+                )
+            }
+        }
     }
 
     private var headerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Providers")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Providers")
+                .font(.system(size: 30, weight: .semibold))
+                .foregroundColor(colors.textPrimary)
 
-                Text("Configure AI providers")
-                    .font(.system(size: 15))
-                    .foregroundColor(colors.textSecondary)
-            }
-            
-            Spacer()
-            
-            Button {
-                isAddingNewProvider = true
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(colors.accent)
-            }
-            .buttonStyle(.plain)
+            Text("Configure AI providers")
+                .font(.system(size: 15))
+                .foregroundColor(colors.textSecondary)
         }
     }
 
     private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("No providers configured yet.")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(colors.textPrimary)
-            Text("Add a provider to start using translation features.")
-                .font(.system(size: 14))
-                .foregroundColor(colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            
-            Button {
-                isAddingNewProvider = true
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text("Add Provider")
-                        .font(.system(size: 15, weight: .semibold))
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                    Capsule()
-                        .fill(colors.accent)
-                )
+        VStack(spacing: 16) {
+            Image(systemName: "link.badge.plus")
+                .font(.system(size: 40, weight: .light))
+                .foregroundColor(colors.textSecondary.opacity(0.4))
+
+            VStack(spacing: 6) {
+                Text("No Providers Yet")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+
+                Text("Tap + to add your first provider")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textSecondary)
             }
-            .buttonStyle(.plain)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .padding(.horizontal, 20)
         .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(colors.cardBackground)
         )
     }
 
-    private func status(for provider: ProviderConfig) -> ProviderCardView.Status {
+    private func status(for provider: ProviderConfig) -> ProviderRowView.Status {
         // Built-in Cloud is always active (uses built-in authentication)
         if provider.category == .builtInCloud {
             return .active
@@ -160,7 +172,16 @@ struct ProvidersView: View {
 }
 
 private extension ProvidersView {
-    struct ProviderCardView: View {
+    struct ProviderRowView: View {
+        let provider: ProviderConfig
+        let isDefault: Bool
+        let status: Status
+        let colors: AppColorPalette
+        let onToggleDeployment: (String, Bool) -> Void
+        let onNavigate: () -> Void
+        
+        @State private var isExpanded = false
+
         enum Status {
             case active
             case inactive
@@ -175,101 +196,153 @@ private extension ProvidersView {
             }
         }
 
-        let provider: ProviderConfig
-        let isDefault: Bool
-        let status: Status
-        let colors: AppColorPalette
-        let onToggleDeployment: (String, Bool) -> Void
-        let onNavigate: () -> Void
-
         var body: some View {
-            VStack(alignment: .leading, spacing: 12) {
-                // Header row with navigation
-                Button(action: onNavigate) {
-                    HStack(alignment: .center, spacing: 8) {
-                        Text(provider.displayName)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(colors.textPrimary)
+            VStack(spacing: 0) {
+                // Main row
+                HStack(spacing: 12) {
+                    // Provider icon
+                    Image(systemName: providerIcon)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(iconColor)
+                        .frame(width: 28, height: 28)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(iconColor.opacity(0.12))
+                        )
 
-                        // Hide Default badge for Built-in Cloud
-                        if isDefault && provider.category != .builtInCloud {
-                            Text("Default")
-                                .font(.system(size: 12, weight: .semibold))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Capsule()
-                                        .fill(colors.chipSecondaryBackground)
-                                )
-                                .foregroundColor(colors.chipSecondaryText)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text(provider.displayName)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(colors.textPrimary)
+                            
+                            if isDefault && provider.category != .builtInCloud {
+                                Text("Default")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        Capsule()
+                                            .fill(colors.accent.opacity(0.15))
+                                    )
+                                    .foregroundColor(colors.accent)
+                            }
                         }
 
-                        Spacer()
-
-                        Image(systemName: status.iconName)
-                            .font(.system(size: 18))
-                            .foregroundColor(status == .active ? colors.success : colors.error)
-                        
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .medium))
+                        Text(subtitleText)
+                            .font(.system(size: 13))
                             .foregroundColor(colors.textSecondary)
                     }
-                }
-                .buttonStyle(.plain)
 
-                // Endpoint info (hide for Built-in Cloud)
-                if provider.category != .builtInCloud {
-                    Text(provider.baseEndpoint.host ?? provider.baseEndpoint.absoluteString)
-                        .font(.system(size: 15))
-                        .foregroundColor(colors.textSecondary)
-                }
+                    Spacer()
 
-                // Deployments list with toggles
-                if !provider.deployments.isEmpty {
-                    VStack(spacing: 8) {
+                    // Status indicator
+                    Image(systemName: status.iconName)
+                        .font(.system(size: 14))
+                        .foregroundColor(status == .active ? colors.success : colors.error)
+                    
+                    // Expand/Navigate button
+                    if !provider.deployments.isEmpty {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                isExpanded.toggle()
+                            }
+                        } label: {
+                            Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(colors.textSecondary.opacity(0.5))
+                                .frame(width: 20, height: 20)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    onNavigate()
+                }
+                
+                // Expanded deployments
+                if isExpanded && !provider.deployments.isEmpty {
+                    VStack(spacing: 0) {
                         ForEach(provider.deployments, id: \.self) { deployment in
                             deploymentToggleRow(deployment: deployment)
+                            
+                            if deployment != provider.deployments.last {
+                                Divider()
+                                    .padding(.leading, 44)
+                            }
                         }
                     }
-                    .padding(.top, 4)
+                    .padding(.leading, 40)
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 8)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(colors.cardBackground)
-            )
+        }
+
+        private var providerIcon: String {
+            switch provider.category {
+            case .builtInCloud:
+                return "cloud.fill"
+            case .azureOpenAI:
+                return "server.rack"
+            case .custom:
+                return "gearshape.fill"
+            case .local:
+                return "desktopcomputer"
+            }
+        }
+
+        private var iconColor: Color {
+            switch provider.category {
+            case .builtInCloud:
+                return colors.accent
+            case .azureOpenAI:
+                return .blue
+            case .custom:
+                return .purple
+            case .local:
+                return .gray
+            }
+        }
+
+        private var subtitleText: String {
+            let enabledCount = provider.enabledDeployments.count
+            let totalCount = provider.deployments.count
+            
+            if provider.category == .builtInCloud {
+                return "\(enabledCount) of \(totalCount) models enabled"
+            }
+            
+            if let host = provider.baseEndpoint.host {
+                return host
+            }
+            return "\(enabledCount) models enabled"
         }
         
         private func deploymentToggleRow(deployment: String) -> some View {
             let isEnabled = provider.enabledDeployments.contains(deployment)
-            return HStack(spacing: 12) {
-                Button {
-                    onToggleDeployment(deployment, !isEnabled)
-                } label: {
+            return Button {
+                onToggleDeployment(deployment, !isEnabled)
+            } label: {
+                HStack(spacing: 10) {
                     Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 20))
-                        .foregroundColor(isEnabled ? colors.accent : colors.textSecondary)
+                        .font(.system(size: 18))
+                        .foregroundColor(isEnabled ? colors.accent : colors.textSecondary.opacity(0.4))
+
+                    Text(deployment)
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.textPrimary)
+
+                    Spacer()
                 }
-                .buttonStyle(.plain)
-
-                Text(deployment)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(colors.textPrimary)
-
-                Spacer()
-
-                Text(isEnabled ? "Enabled" : "Disabled")
-                    .font(.system(size: 12))
-                    .foregroundColor(isEnabled ? colors.success : colors.textSecondary)
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(colors.inputBackground)
-            )
+            .buttonStyle(.plain)
         }
     }
 }

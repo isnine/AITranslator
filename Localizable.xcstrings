@@ -54,6 +54,9 @@
         }
       }
     },
+    "%lld models" : {
+
+    },
     "%lld Provider" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -69,6 +72,7 @@
 
     },
     "Action Library" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -98,7 +102,11 @@
         }
       }
     },
+    "ACTIONS" : {
+
+    },
     "Add a provider to start using translation features." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -109,6 +117,7 @@
       }
     },
     "Add Provider" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -119,6 +128,7 @@
       }
     },
     "All Actions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -170,6 +180,7 @@
       }
     },
     "App" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -372,7 +383,11 @@
         }
       }
     },
+    "Configure your translation actions" : {
+
+    },
     "Configured Providers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -412,6 +427,9 @@
         }
       }
     },
+    "Context options apply to the iOS Translation Extension only" : {
+
+    },
     "Create" : {
 
     },
@@ -429,6 +447,7 @@
 
     },
     "Create your first action by tapping the + button, or import a configuration from Settings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -857,6 +876,9 @@
         }
       }
     },
+    "In App" : {
+
+    },
     "Load" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -892,6 +914,7 @@
       "comment" : "Local provider name"
     },
     "Manage your custom actions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -953,6 +976,7 @@
       }
     },
     "No providers configured yet." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -961,6 +985,9 @@
           }
         }
       }
+    },
+    "No Providers Yet" : {
+
     },
     "No saved configurations" : {
       "extractionState" : "stale",
@@ -1085,6 +1112,9 @@
           }
         }
       }
+    },
+    "PROVIDERS" : {
+
     },
     "Quick Translate" : {
       "comment" : "Menu bar header",
@@ -1281,7 +1311,11 @@
         }
       }
     },
+    "Set Tree² as the default translation app" : {
+
+    },
     "Set Tree² Lang as the default translation app" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1310,6 +1344,12 @@
           }
         }
       }
+    },
+    "Show in iOS Extension when editing text" : {
+
+    },
+    "Show in iOS Extension when viewing text" : {
+
     },
     "Show revised text with grammar explanations" : {
       "localizations" : {
@@ -1373,6 +1413,12 @@
           }
         }
       }
+    },
+    "Tap + to add your first provider" : {
+
+    },
+    "Tap + to create your first action" : {
+
     },
     "Target Language" : {
       "localizations" : {
@@ -1487,7 +1533,11 @@
     "Use" : {
 
     },
+    "Use {text} and {targetLanguage} as placeholders" : {
+
+    },
     "Use {text} as placeholder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1540,6 +1590,7 @@
       }
     },
     "Visible when you can edit and replace text" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1550,6 +1601,7 @@
       }
     },
     "Visible when you can only read text" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

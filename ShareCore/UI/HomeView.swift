@@ -198,10 +198,10 @@ public struct HomeView: View {
         HStack(alignment: .center, spacing: 12) {
             Image(systemName: "info.circle.fill")
                 .foregroundColor(colors.accent)
-                .font(.system(size: 20))
+                .font(.system(size: 18))
 
-            Text("Set Tree² Lang as the default translation app")
-                .font(.system(size: 16, weight: .medium))
+            Text("Set Tree² as the default translation app")
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -209,12 +209,12 @@ public struct HomeView: View {
 
             Button(action: viewModel.openAppSettings) {
                 Text("Open Settings")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(colors.cardBackground)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.chipPrimaryText)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                     .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(colors.accent)
                     )
             }
@@ -224,9 +224,9 @@ public struct HomeView: View {
                 AppPreferences.shared.setDefaultAppHintDismissed(true)
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(colors.textSecondary)
-                    .padding(6)
+                    .padding(5)
                     .background(
                         Circle()
                             .fill(colors.inputBackground)
@@ -234,9 +234,9 @@ public struct HomeView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(16)
+        .padding(14)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(colors.cardBackground)
         )
     }
@@ -245,7 +245,7 @@ public struct HomeView: View {
         let isCollapsed = openFromExtension && !isInputExpanded
 
         return ZStack {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(colors.inputBackground)
 
             VStack(alignment: .leading, spacing: 0) {
@@ -482,9 +482,9 @@ public struct HomeView: View {
             // Bottom info bar
             bottomInfoBar(for: run)
         }
-        .padding(18)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(colors.cardBackground)
         )
         .overlay(alignment: .topTrailing) {
@@ -669,11 +669,11 @@ public struct HomeView: View {
                     .foregroundColor(colors.textSecondary)
             }
         }
-        .padding(12)
+        .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(colors.cardBackground)
-                .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 4)
+                .shadow(color: .black.opacity(0.12), radius: 6, x: 0, y: 3)
         )
         .padding(.top, 8)
         .padding(.trailing, 8)
