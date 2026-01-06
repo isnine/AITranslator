@@ -79,7 +79,6 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
 
     public let id: UUID
     public var name: String
-    public var summary: String
     public var prompt: String
     public var usageScenes: UsageScene
     public var outputType: OutputType
@@ -103,14 +102,12 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
     public init(
         id: UUID = UUID(),
         name: String,
-        summary: String,
         prompt: String,
         usageScenes: UsageScene = .all,
         outputType: OutputType = .plain
     ) {
         self.id = id
         self.name = name
-        self.summary = summary
         self.prompt = prompt
         self.usageScenes = usageScenes
         self.outputType = outputType

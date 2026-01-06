@@ -84,16 +84,6 @@
         }
       }
     },
-    "Action Summary" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "操作摘要"
-          }
-        }
-      }
-    },
     "Actions" : {
       "localizations" : {
         "zh-Hans" : {

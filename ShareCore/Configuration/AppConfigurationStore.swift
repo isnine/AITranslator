@@ -758,12 +758,6 @@ public final class AppConfigurationStore: ObservableObject {
         updated.prompt = template.prompt(for: targetLanguage)
       }
 
-      if let summaryText = template.summary(for: targetLanguage),
-        template.shouldUpdateSummary(currentSummary: action.summary)
-      {
-        updated.summary = summaryText
-      }
-
       return updated
     }
   }
@@ -795,7 +789,6 @@ private extension AppConfigurationStore {
             comment: "Name of the sentence-by-sentence translation action"
         )
         
-        private static let translateLegacySummary = "Use AI for context-aware translation."
         private static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
         private static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
 
@@ -827,19 +820,6 @@ private extension AppConfigurationStore {
             }
         }
 
-        func summary(for language: TargetLanguageOption) -> String? {
-            switch self {
-            case .translate:
-                return "Translate into \(language.promptDescriptor) while keeping the original tone."
-            case .summarize:
-                return nil
-            case .sentenceAnalysis:
-                return nil
-            case .sentenceBySentenceTranslate:
-                return nil
-            }
-        }
-
         func shouldUpdatePrompt(currentPrompt: String) -> Bool {
             let generated = Set(
                 TargetLanguageOption.selectionOptions.map { prompt(for: $0) }
@@ -859,24 +839,6 @@ private extension AppConfigurationStore {
                 return generated.contains(currentPrompt)
             case .sentenceBySentenceTranslate:
                 return generated.contains(currentPrompt)
-            }
-        }
-
-        func shouldUpdateSummary(currentSummary: String) -> Bool {
-            switch self {
-            case .translate:
-                let generated = Set(
-                    TargetLanguageOption.selectionOptions.compactMap {
-                        summary(for: $0)
-                    }
-                )
-                return currentSummary == Self.translateLegacySummary || generated.contains(currentSummary)
-            case .summarize:
-                return false
-            case .sentenceAnalysis:
-                return false
-            case .sentenceBySentenceTranslate:
-                return false
             }
         }
 

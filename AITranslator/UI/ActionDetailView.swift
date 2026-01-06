@@ -16,7 +16,6 @@ struct ActionDetailView: View {
     private let actionID: UUID
     private let isNewAction: Bool
     @State private var name: String
-    @State private var summary: String
     @State private var prompt: String
     @State private var usageScenes: ActionConfig.UsageScene
     @State private var outputType: OutputType
@@ -35,7 +34,6 @@ struct ActionDetailView: View {
             self.actionID = action.id
             self.isNewAction = false
             _name = State(initialValue: action.name)
-            _summary = State(initialValue: action.summary)
             _prompt = State(initialValue: action.prompt)
             _usageScenes = State(initialValue: action.usageScenes)
             _outputType = State(initialValue: action.outputType)
@@ -43,7 +41,6 @@ struct ActionDetailView: View {
             self.actionID = UUID()
             self.isNewAction = true
             _name = State(initialValue: "")
-            _summary = State(initialValue: "")
             _prompt = State(initialValue: "Translate the following text to {targetLanguage}:\n\n{text}")
             _usageScenes = State(initialValue: .app)
             _outputType = State(initialValue: .plain)
@@ -109,7 +106,6 @@ struct ActionDetailView: View {
     private var basicInfoSection: some View {
         section(title: "Basic Info") {
             labeledField(title: "Action Name", text: $name)
-            labeledField(title: "Action Summary", text: $summary)
         }
     }
 
@@ -298,7 +294,6 @@ struct ActionDetailView: View {
         let updated = ActionConfig(
             id: actionID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
-            summary: summary.trimmingCharacters(in: .whitespacesAndNewlines),
             prompt: prompt.trimmingCharacters(in: .whitespacesAndNewlines),
             usageScenes: usageScenes,
             outputType: outputType

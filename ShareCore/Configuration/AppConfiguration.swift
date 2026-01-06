@@ -248,20 +248,17 @@ public extension AppConfiguration {
 public extension AppConfiguration {
   struct ActionEntry: Codable, Sendable {
     public var name: String
-    public var summary: String?
     public var prompt: String
     public var scenes: [String]?
     public var outputType: String?
 
     public init(
       name: String,
-      summary: String? = nil,
       prompt: String,
       scenes: [String]? = nil,
       outputType: String? = nil
     ) {
       self.name = name
-      self.summary = summary
       self.prompt = prompt
       self.scenes = scenes
       self.outputType = outputType
@@ -293,7 +290,6 @@ public extension AppConfiguration {
 
       return ActionConfig(
         name: name,
-        summary: summary ?? "",
         prompt: prompt,
         usageScenes: usageScenes,
         outputType: resolvedOutputType
@@ -309,7 +305,6 @@ public extension AppConfiguration {
 
       return ActionEntry(
         name: config.name,
-        summary: config.summary.isEmpty ? nil : config.summary,
         prompt: config.prompt,
         scenes: scenes.count == 3 ? nil : scenes,
         outputType: config.outputType == .plain ? nil : config.outputType.rawValue
