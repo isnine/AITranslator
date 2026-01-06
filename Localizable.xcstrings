@@ -200,6 +200,9 @@
         }
       }
     },
+    "Are you sure you want to delete '%@'? This action cannot be undone." : {
+
+    },
     "Are you sure you want to delete \"%@\"?" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -559,6 +562,9 @@
           }
         }
       }
+    },
+    "Delete Configuration?" : {
+
     },
     "Delete Provider" : {
       "localizations" : {

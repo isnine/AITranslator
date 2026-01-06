@@ -99,6 +99,7 @@ struct SettingsView: View {
         .onAppear {
             preferences.refreshFromDefaults()
             syncTTSPreferencesFromStore()
+            refreshSavedConfigurations()
         }
         .onChange(of: targetLanguageCode) {
             let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
@@ -152,6 +153,21 @@ struct SettingsView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("Configuration exported successfully.")
+        }
+        .alert("Delete Configuration?", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) {
+                configToDelete = nil
+            }
+            Button("Delete", role: .destructive) {
+                if let config = configToDelete {
+                    deleteConfiguration(config)
+                    configToDelete = nil
+                }
+            }
+        } message: {
+            if let config = configToDelete {
+                Text("Are you sure you want to delete '\(config.name)'? This action cannot be undone.")
+            }
         }
         .sheet(item: $configEditorItem) { item in
             ConfigurationEditorView(

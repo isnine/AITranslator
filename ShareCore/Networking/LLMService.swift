@@ -26,13 +26,19 @@ public final class LLMService {
 
     /// Replaces placeholders in the prompt with actual values.
     /// Supported placeholders:
-    /// - `{{targetLanguage}}` - The user's configured target language (e.g., "Simplified Chinese", "English")
-    private func substitutePromptPlaceholders(_ prompt: String) -> String {
+    /// - `{text}` or `{{text}}` - The user's input text
+    /// - `{targetLanguage}` or `{{targetLanguage}}` - The user's configured target language
+    private func substitutePromptPlaceholders(_ prompt: String, text: String) -> String {
         var result = prompt
         
-        // Replace {{targetLanguage}} with the actual target language
+        // Replace {targetLanguage} and {{targetLanguage}} with the actual target language
         let targetLanguage = AppPreferences.shared.targetLanguage.promptDescriptor
         result = result.replacingOccurrences(of: "{{targetLanguage}}", with: targetLanguage)
+        result = result.replacingOccurrences(of: "{targetLanguage}", with: targetLanguage)
+        
+        // Replace {text} and {{text}} with the actual input text
+        result = result.replacingOccurrences(of: "{{text}}", with: text)
+        result = result.replacingOccurrences(of: "{text}", with: text)
         
         return result
     }
@@ -142,16 +148,29 @@ public final class LLMService {
 
         let messages: [LLMRequestPayload.Message]
         if action.prompt.isEmpty {
+            // No prompt configured, just send the text directly
             messages = [
                 .init(role: "user", content: text)
             ]
         } else {
-            // Substitute placeholders like {{targetLanguage}} with actual values
-            let processedPrompt = substitutePromptPlaceholders(action.prompt)
-            messages = [
-                .init(role: "system", content: processedPrompt),
-                .init(role: "user", content: text)
-            ]
+            // Substitute all placeholders including {text} and {targetLanguage}
+            let processedPrompt = substitutePromptPlaceholders(action.prompt, text: text)
+            
+            // Check if the prompt contained {text} placeholder (now replaced)
+            let promptContainsTextPlaceholder = action.prompt.contains("{text}") || action.prompt.contains("{{text}}")
+            
+            if promptContainsTextPlaceholder {
+                // Text was embedded in the prompt, send as single user message
+                messages = [
+                    .init(role: "user", content: processedPrompt)
+                ]
+            } else {
+                // No {text} placeholder, use system/user message pattern
+                messages = [
+                    .init(role: "system", content: processedPrompt),
+                    .init(role: "user", content: text)
+                ]
+            }
         }
 
         do {
