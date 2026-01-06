@@ -134,6 +134,16 @@
         }
       }
     },
+    "Always up-to-date with the latest app features" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始终与最新应用功能保持同步"
+          }
+        }
+      }
+    },
     "API Key" : {
       "localizations" : {
         "zh-Hans" : {
@@ -324,6 +334,16 @@
         }
       }
     },
+    "Configuration Name" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "配置名称"
+          }
+        }
+      }
+    },
     "Configurations will sync across all your devices via iCloud." : {
       "localizations" : {
         "zh-Hans" : {
@@ -390,6 +410,19 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "连接成功（%@ms）"
+          }
+        }
+      }
+    },
+    "Create" : {
+
+    },
+    "Create Custom Configuration" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建自定义配置"
           }
         }
       }
@@ -470,6 +503,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "默认"
+          }
+        }
+      }
+    },
+    "Default Configuration" : {
+      "comment" : "Name shown when using default configuration",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认配置"
           }
         }
       }
@@ -840,6 +884,9 @@
         }
       }
     },
+    "Local" : {
+      "comment" : "Local provider name"
+    },
     "Manage your custom actions" : {
       "localizations" : {
         "zh-Hans" : {
@@ -866,6 +913,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模型选择"
+          }
+        }
+      }
+    },
+    "My Configuration" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "我的配置"
           }
         }
       }
@@ -1033,6 +1090,16 @@
         }
       }
     },
+    "Read-Only" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只读"
+          }
+        }
+      }
+    },
     "Read-Only Context" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1042,6 +1109,9 @@
           }
         }
       }
+    },
+    "Ready to use" : {
+      "comment" : "Apple Foundation available status\nApple Translation available status"
     },
     "Ready to use - No API key required" : {
       "localizations" : {
@@ -1082,6 +1152,12 @@
           }
         }
       }
+    },
+    "Requires Apple Intelligence" : {
+      "comment" : "Apple Foundation unavailable status"
+    },
+    "Requires iOS 17.4+ or macOS 14.4+" : {
+      "comment" : "Apple Translation unavailable status"
     },
     "Retry" : {
       "localizations" : {
@@ -1318,6 +1394,19 @@
         }
       }
     },
+    "The default configuration is bundled with the app and cannot be edited. To customize your settings, create a new configuration or load an existing one." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认配置内置于应用中，无法编辑。如需自定义设置，请创建新配置或加载现有配置。"
+          }
+        }
+      }
+    },
+    "This action is not supported by the selected provider" : {
+      "comment" : "Unsupported action error"
+    },
     "Translate" : {
       "comment" : "Name of the translate action",
       "localizations" : {
@@ -1370,6 +1459,9 @@
         }
       }
     },
+    "Unknown deployment" : {
+      "comment" : "Unknown local deployment"
+    },
     "Usage Scenes" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1396,6 +1488,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用内置云服务"
+          }
+        }
+      }
+    },
+    "Use Default" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用默认"
+          }
+        }
+      }
+    },
+    "Using Default Configuration" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用默认配置"
           }
         }
       }
@@ -1456,6 +1568,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你有未保存的更改。确定要丢弃吗？"
+          }
+        }
+      }
+    },
+    "You're using the default configuration which is read-only. To make changes, create your own configuration." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你正在使用只读的默认配置。如需修改，请创建你自己的配置。"
           }
         }
       }

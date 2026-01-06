@@ -8,6 +8,49 @@
 import Foundation
 import Combine
 
+// MARK: - Configuration Mode
+
+/// Represents the current configuration mode
+public enum ConfigurationMode: Sendable, Equatable {
+  /// Using the bundled default configuration (read-only)
+  case defaultConfiguration
+  /// Using a user-created custom configuration (editable)
+  case customConfiguration(name: String)
+
+  public var isDefault: Bool {
+    if case .defaultConfiguration = self { return true }
+    return false
+  }
+
+  public var displayName: String {
+    switch self {
+    case .defaultConfiguration:
+      return NSLocalizedString(
+        "Default Configuration",
+        comment: "Name shown when using default configuration"
+      )
+    case .customConfiguration(let name):
+      return name
+    }
+  }
+}
+
+/// Request to create a custom configuration with pending changes
+public struct CreateCustomConfigurationRequest {
+  public enum ChangeType {
+    case actions([ActionConfig])
+    case providers([ProviderConfig])
+  }
+
+  public let changeType: ChangeType
+  public let completion: @MainActor (Bool) -> Void
+
+  public init(changeType: ChangeType, completion: @escaping @MainActor (Bool) -> Void) {
+    self.changeType = changeType
+    self.completion = completion
+  }
+}
+
 @MainActor
 public final class AppConfigurationStore: ObservableObject {
   public static let shared = AppConfigurationStore()
@@ -15,6 +58,13 @@ public final class AppConfigurationStore: ObservableObject {
   @Published public private(set) var actions: [ActionConfig]
   @Published public private(set) var providers: [ProviderConfig]
   @Published public private(set) var currentConfigurationName: String?
+
+  /// The current configuration mode (default or custom)
+  @Published public private(set) var configurationMode: ConfigurationMode = .defaultConfiguration
+
+  /// Publisher for requesting creation of custom configuration
+  /// UI should subscribe to this to show confirmation dialog
+  public let createCustomConfigurationRequestPublisher = PassthroughSubject<CreateCustomConfigurationRequest, Never>()
 
   /// Last validation result from loading or saving
   @Published public private(set) var lastValidationResult: ConfigurationValidationResult?
@@ -130,8 +180,25 @@ public final class AppConfigurationStore: ObservableObject {
 
   /// Update actions with validation
   /// Returns validation result (nil if validation passed or was skipped)
+  /// In default configuration mode, this will trigger a request to create custom configuration
   @discardableResult
   public func updateActions(_ actions: [ActionConfig]) -> ConfigurationValidationResult? {
+    // If using default configuration, request user to create custom configuration first
+    if configurationMode.isDefault {
+      let request = CreateCustomConfigurationRequest(changeType: .actions(actions)) { [weak self] created in
+        guard let self, created else { return }
+        // User confirmed, apply changes after switching to custom configuration
+        _ = self.applyActionsUpdate(actions)
+      }
+      createCustomConfigurationRequestPublisher.send(request)
+      return nil
+    }
+
+    return applyActionsUpdate(actions)
+  }
+
+  /// Internal method to actually apply actions update
+  private func applyActionsUpdate(_ actions: [ActionConfig]) -> ConfigurationValidationResult? {
     let adjusted = AppConfigurationStore.applyTargetLanguage(
       actions,
       targetLanguage: preferences.targetLanguage
@@ -160,8 +227,25 @@ public final class AppConfigurationStore: ObservableObject {
 
   /// Update providers with validation
   /// Returns validation result (nil if validation passed or was skipped)
+  /// In default configuration mode, this will trigger a request to create custom configuration
   @discardableResult
   public func updateProviders(_ providers: [ProviderConfig]) -> ConfigurationValidationResult? {
+    // If using default configuration, request user to create custom configuration first
+    if configurationMode.isDefault {
+      let request = CreateCustomConfigurationRequest(changeType: .providers(providers)) { [weak self] created in
+        guard let self, created else { return }
+        // User confirmed, apply changes after switching to custom configuration
+        _ = self.applyProvidersUpdate(providers)
+      }
+      createCustomConfigurationRequestPublisher.send(request)
+      return nil
+    }
+
+    return applyProvidersUpdate(providers)
+  }
+
+  /// Internal method to actually apply providers update
+  private func applyProvidersUpdate(_ providers: [ProviderConfig]) -> ConfigurationValidationResult? {
     // Validate before applying
     let validationResult = ConfigurationValidator.shared.validateInMemory(
       actions: actions,
@@ -181,6 +265,50 @@ public final class AppConfigurationStore: ObservableObject {
     saveConfiguration()
 
     return validationResult.issues.isEmpty ? nil : validationResult
+  }
+
+  /// Create a custom configuration from the current default configuration
+  /// This copies the bundled default and switches to custom mode
+  /// - Parameter name: The name for the new custom configuration
+  /// - Returns: true if successful
+  @discardableResult
+  public func createCustomConfigurationFromDefault(named name: String = "My Configuration") -> Bool {
+    guard configurationMode.isDefault else {
+      print("[ConfigStore] Already using custom configuration")
+      return true
+    }
+
+    // Build current configuration from in-memory state
+    let config = buildCurrentConfiguration()
+
+    do {
+      // Save to a new file
+      try configFileManager.saveConfiguration(config, name: name)
+
+      // Switch to custom mode
+      self.configurationMode = .customConfiguration(name: name)
+      self.currentConfigurationName = name
+      preferences.setCurrentConfigName(name)
+
+      // Start monitoring the new file
+      configFileManager.startMonitoring(configurationNamed: name)
+
+      print("[ConfigStore] ✅ Created custom configuration: '\(name)'")
+      return true
+    } catch {
+      print("[ConfigStore] ❌ Failed to create custom configuration: \(error)")
+      return false
+    }
+  }
+
+  /// Switch back to default configuration mode
+  public func switchToDefaultConfiguration() {
+    // Stop monitoring current config
+    if let currentName = currentConfigurationName {
+      configFileManager.stopMonitoring(configurationNamed: currentName)
+    }
+
+    loadBundledDefaultConfiguration()
   }
 
   public func setCurrentConfigurationName(_ name: String?) {
@@ -235,36 +363,84 @@ public final class AppConfigurationStore: ObservableObject {
 
   private func loadConfiguration() {
     // Step 1: Read current config name from UserDefaults
+    // A nil or empty name means we should use default configuration mode
     let storedName = preferences.currentConfigName
     print("[ConfigStore] Stored config name from UserDefaults: \(storedName ?? "nil")")
 
-    // Step 2: Try to load the named configuration
+    // Step 2: Check if we should use default configuration mode
+    // Use default mode if: no stored name, or stored name is the special marker
+    if storedName == nil || storedName == Self.defaultConfigurationMarker {
+      print("[ConfigStore] 📦 Using bundled default configuration (read-only mode)")
+      loadBundledDefaultConfiguration()
+      return
+    }
+
+    // Step 3: Try to load the named custom configuration
     if let name = storedName {
       if tryLoadConfiguration(named: name) {
-        print("[ConfigStore] ✅ Successfully loaded config: '\(name)'")
-        // Start monitoring this file
+        print("[ConfigStore] ✅ Successfully loaded custom config: '\(name)'")
+        configurationMode = .customConfiguration(name: name)
         configFileManager.startMonitoring(configurationNamed: name)
         return
       }
-      print("[ConfigStore] ⚠️ Failed to load stored config '\(name)', trying fallback...")
+      print("[ConfigStore] ⚠️ Failed to load stored config '\(name)', falling back to default...")
     }
 
-    // Step 3: Fallback - try to load any available configuration
-    let availableConfigs = configFileManager.listConfigurations()
-    print("[ConfigStore] Available configs: \(availableConfigs.map { $0.name })")
+    // Step 4: Fallback to bundled default configuration
+    print("[ConfigStore] 📦 Falling back to bundled default configuration")
+    loadBundledDefaultConfiguration()
+  }
 
-    for configInfo in availableConfigs {
-      if tryLoadConfiguration(named: configInfo.name) {
-        print("[ConfigStore] ✅ Loaded fallback config: '\(configInfo.name)'")
-        preferences.setCurrentConfigName(configInfo.name)
-        configFileManager.startMonitoring(configurationNamed: configInfo.name)
+  /// Special marker stored in preferences to indicate default configuration mode
+  private static let defaultConfigurationMarker = "__DEFAULT__"
+
+  /// Load the bundled default configuration directly from the app bundle (read-only)
+  private func loadBundledDefaultConfiguration() {
+    guard let bundleURL = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
+      print("[ConfigStore] ❌ Bundled default configuration not found in app bundle")
+      createEmptyConfiguration()
+      return
+    }
+
+    do {
+      let config = try configFileManager.loadConfiguration(from: bundleURL)
+
+      // Validate before applying
+      let validationResult = ConfigurationValidator.shared.validate(config)
+      self.lastValidationResult = validationResult
+
+      if validationResult.hasErrors {
+        print("[ConfigStore] ❌ Bundled default configuration has validation errors")
+        createEmptyConfiguration()
         return
       }
-    }
 
-    // Step 4: No configuration available - create empty configuration
-    print("[ConfigStore] ⚠️ No configurations available, creating empty configuration...")
-    createEmptyConfiguration()
+      applyLoadedConfiguration(config)
+
+      // Set to default configuration mode
+      self.configurationMode = .defaultConfiguration
+      self.currentConfigurationName = nil
+      preferences.setCurrentConfigName(Self.defaultConfigurationMarker)
+
+      // Apply preferences if present
+      if let prefsConfig = config.preferences {
+        if let targetLang = prefsConfig.targetLanguage,
+           let option = TargetLanguageOption(rawValue: targetLang) {
+          preferences.setTargetLanguage(option)
+        }
+      }
+
+      // Apply TTS if present
+      if let ttsEntry = config.tts {
+        let ttsConfig = ttsEntry.toTTSConfiguration()
+        preferences.setTTSConfiguration(ttsConfig)
+      }
+
+      print("[ConfigStore] ✅ Loaded bundled default configuration (read-only mode)")
+    } catch {
+      print("[ConfigStore] ❌ Failed to load bundled default configuration: \(error)")
+      createEmptyConfiguration()
+    }
   }
 
   /// Minimum supported configuration version
@@ -288,7 +464,8 @@ public final class AppConfigurationStore: ObservableObject {
     return false
   }
 
-  /// Load the bundled default configuration and switch to it
+  /// Load the bundled default configuration and create a custom "Default" configuration from it
+  /// This is used when an existing configuration has an incompatible version
   private func loadAndSwitchToDefault() -> Bool {
     // First, copy the bundled default to configurations directory (overwriting existing)
     let defaultConfigURL = configFileManager.configurationsDirectory.appendingPathComponent("Default.json")
@@ -325,6 +502,9 @@ public final class AppConfigurationStore: ObservableObject {
       }
 
       applyLoadedConfiguration(config)
+      
+      // This creates a custom configuration named "Default" (not the read-only default mode)
+      self.configurationMode = .customConfiguration(name: "Default")
       self.currentConfigurationName = "Default"
       preferences.setCurrentConfigName("Default")
       
@@ -343,7 +523,7 @@ public final class AppConfigurationStore: ObservableObject {
       }
 
       configFileManager.startMonitoring(configurationNamed: "Default")
-      print("[ConfigStore] ✅ Switched to Default configuration with version 1.1.0")
+      print("[ConfigStore] ✅ Created custom 'Default' configuration from bundled default")
       return true
     } catch {
       print("[ConfigStore] ❌ Failed to load default configuration: \(error)")
@@ -463,6 +643,12 @@ public final class AppConfigurationStore: ObservableObject {
       return
     }
 
+    // Skip saving in default configuration mode (read-only)
+    guard !configurationMode.isDefault else {
+      print("[ConfigStore] Using default configuration (read-only), skipping save")
+      return
+    }
+
     guard let configName = currentConfigurationName else {
       print("[ConfigStore] No current configuration name set, skipping save")
       return
@@ -528,23 +714,16 @@ public final class AppConfigurationStore: ObservableObject {
     )
   }
 
-  /// Reset to bundled default configuration
+  /// Reset to bundled default configuration (read-only mode)
   public func resetToDefault() {
     // Stop monitoring current config
     if let name = currentConfigurationName {
       configFileManager.stopMonitoring(configurationNamed: name)
     }
 
-    // Try to load the "Default" configuration from ConfigurationFileManager
-    if tryLoadConfiguration(named: "Default") {
-      print("[ConfigStore] ✅ Reset to Default configuration")
-      configFileManager.startMonitoring(configurationNamed: "Default")
-      return
-    }
-
-    // If Default doesn't exist, create empty configuration
-    print("[ConfigStore] Default configuration not found, creating empty configuration")
-    createEmptyConfiguration()
+    // Switch to bundled default configuration (read-only mode)
+    print("[ConfigStore] 📦 Resetting to bundled default configuration")
+    switchToDefaultConfiguration()
   }
 
   /// Switch to a different configuration by name
@@ -556,6 +735,7 @@ public final class AppConfigurationStore: ObservableObject {
 
     if tryLoadConfiguration(named: name) {
       print("[ConfigStore] ✅ Switched to configuration: '\(name)'")
+      configurationMode = .customConfiguration(name: name)
       configFileManager.startMonitoring(configurationNamed: name)
       return true
     }

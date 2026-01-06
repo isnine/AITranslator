@@ -11,6 +11,7 @@ public enum ProviderCategory: String, Codable, CaseIterable {
     case azureOpenAI = "Azure OpenAI"
     case builtInCloud = "Built-in Cloud"
     case custom = "Custom"
+    case local = "Local"
 
     public var displayName: String { rawValue }
 
@@ -22,6 +23,8 @@ public enum ProviderCategory: String, Codable, CaseIterable {
             return "model-router"
         case .custom:
             return "--"
+        case .local:
+            return "Apple Foundation"
         }
     }
 
@@ -44,11 +47,13 @@ public enum ProviderCategory: String, Codable, CaseIterable {
             return "Connect to your Azure OpenAI deployment"
         case .custom:
             return "Connect to a custom OpenAI-compatible API"
+        case .local:
+            return "Use on-device models for private processing"
         }
     }
 
     /// Whether this category requires endpoint configuration
     public var requiresEndpointConfig: Bool {
-        self != .builtInCloud
+        self != .builtInCloud && self != .local
     }
 }

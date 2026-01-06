@@ -7,10 +7,19 @@
 
 import SwiftUI
 import ShareCore
+import Combine
 
 struct RootTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selection: Tab = .home
+    @ObservedObject private var configStore = AppConfigurationStore.shared
+
+    // State for create custom configuration dialog
+    @State private var showCreateCustomConfigDialog = false
+    @State private var pendingConfigRequest: CreateCustomConfigurationRequest?
+    @State private var customConfigName = "My Configuration"
+
+    private var cancellables = Set<AnyCancellable>()
 
     private enum Tab: String, CaseIterable, Identifiable {
         case home
@@ -79,6 +88,21 @@ struct RootTabView: View {
                 .navigationTitle(selection.title)
         }
         .tint(colors.accent)
+        .onReceive(configStore.createCustomConfigurationRequestPublisher) { request in
+            handleCreateCustomConfigRequest(request)
+        }
+        .alert("Create Custom Configuration", isPresented: $showCreateCustomConfigDialog) {
+            TextField("Configuration Name", text: $customConfigName)
+            Button("Cancel", role: .cancel) {
+                pendingConfigRequest?.completion(false)
+                pendingConfigRequest = nil
+            }
+            Button("Create") {
+                createCustomConfiguration()
+            }
+        } message: {
+            Text("You're using the default configuration which is read-only. To make changes, create your own configuration.")
+        }
         #else
         TabView(selection: $selection) {
             tabContent(for: .home)
@@ -111,6 +135,21 @@ struct RootTabView: View {
         }
         .tint(colors.accent)
         .background(colors.background.ignoresSafeArea())
+        .onReceive(configStore.createCustomConfigurationRequestPublisher) { request in
+            handleCreateCustomConfigRequest(request)
+        }
+        .alert("Create Custom Configuration", isPresented: $showCreateCustomConfigDialog) {
+            TextField("Configuration Name", text: $customConfigName)
+            Button("Cancel", role: .cancel) {
+                pendingConfigRequest?.completion(false)
+                pendingConfigRequest = nil
+            }
+            Button("Create") {
+                createCustomConfiguration()
+            }
+        } message: {
+            Text("You're using the default configuration which is read-only. To make changes, create your own configuration.")
+        }
         #endif
     }
 
@@ -126,5 +165,23 @@ struct RootTabView: View {
         case .settings:
             SettingsView()
         }
+    }
+
+    private func handleCreateCustomConfigRequest(_ request: CreateCustomConfigurationRequest) {
+        pendingConfigRequest = request
+        customConfigName = "My Configuration"
+        showCreateCustomConfigDialog = true
+    }
+
+    private func createCustomConfiguration() {
+        let name = customConfigName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalName = name.isEmpty ? "My Configuration" : name
+
+        if configStore.createCustomConfigurationFromDefault(named: finalName) {
+            pendingConfigRequest?.completion(true)
+        } else {
+            pendingConfigRequest?.completion(false)
+        }
+        pendingConfigRequest = nil
     }
 }

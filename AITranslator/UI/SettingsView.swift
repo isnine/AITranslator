@@ -565,11 +565,23 @@ private extension SettingsView {
                         .foregroundColor(colors.textPrimary)
                     
                     HStack(spacing: 8) {
-                        if let currentName = configStore.currentConfigurationName {
-                            Text(currentName)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(colors.accent)
+                        // Show configuration mode
+                        Text(configStore.configurationMode.displayName)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(configStore.configurationMode.isDefault ? colors.success : colors.accent)
+                        
+                        if configStore.configurationMode.isDefault {
+                            Text("Read-Only")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                        .fill(colors.success)
+                                )
                         }
+                        
                         Text("·")
                             .foregroundColor(colors.textSecondary)
                         Text("\(configStore.providers.count) Provider")
@@ -585,10 +597,37 @@ private extension SettingsView {
                 Spacer()
             }
 
+            // Default configuration info banner (when using default)
+            if configStore.configurationMode.isDefault {
+                defaultConfigurationBanner
+            }
+
             // Saved Configurations section (displayed directly without collapsing)
             VStack(spacing: 8) {
                 // Quick action buttons
                 HStack(spacing: 8) {
+                    // Use Default button (only show when using custom config)
+                    if !configStore.configurationMode.isDefault {
+                        Button {
+                            configStore.switchToDefaultConfiguration()
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .font(.system(size: 12, weight: .medium))
+                                Text("Use Default")
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .foregroundColor(colors.success)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(colors.success.opacity(0.12))
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    
                     Button {
                         duplicateCurrentConfiguration()
                     } label: {
@@ -607,7 +646,8 @@ private extension SettingsView {
                         )
                     }
                     .buttonStyle(.plain)
-                    .disabled(configStore.currentConfigurationName == nil)
+                    .disabled(configStore.configurationMode.isDefault)
+                    .opacity(configStore.configurationMode.isDefault ? 0.5 : 1)
                     
                     Button {
                         createFromDefaultTemplate()
@@ -672,6 +712,41 @@ private extension SettingsView {
         } message: {
             Text("Are you sure you want to delete \"\(configToDelete?.name ?? "")\"?")
         }
+    }
+
+    var defaultConfigurationBanner: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "checkmark.shield.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(colors.success)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Using Default Configuration")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
+                    Text("Always up-to-date with the latest app features")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                }
+                
+                Spacer()
+            }
+            
+            Text("The default configuration is bundled with the app and cannot be edited. To customize your settings, create a new configuration or load an existing one.")
+                .font(.system(size: 12))
+                .foregroundColor(colors.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(colors.success.opacity(0.08))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(colors.success.opacity(0.2), lineWidth: 1)
+        )
     }
 
     func savedConfigurationRow(_ config: ConfigurationFileInfo) -> some View {
