@@ -40,6 +40,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
     AppDelegate.shared = self
 
+    // Start clipboard monitoring for auto-translate feature
+    ClipboardMonitor.shared.startMonitoring()
+
     // Register global hotkey (Option + T by default)
     HotKeyManager.shared.register()
 
@@ -60,6 +63,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationWillTerminate(_ notification: Notification) {
+    // Stop clipboard monitoring
+    ClipboardMonitor.shared.stopMonitoring()
+
     // Unregister global hotkey
     HotKeyManager.shared.unregister()
     

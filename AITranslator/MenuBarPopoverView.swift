@@ -17,6 +17,7 @@ struct MenuBarPopoverView: View {
     @ObservedObject private var hotKeyManager = HotKeyManager.shared
     @State private var inputText: String = ""
     @State private var showHotkeyHint: Bool = true
+    @State private var clipboardSubscription: AnyCancellable?
     @FocusState private var isInputFocused: Bool
     let onClose: () -> Void
     
@@ -68,11 +69,33 @@ struct MenuBarPopoverView: View {
             }
         }
         .frame(width: 360, height: 420)
-        .onAppear {
+        .onReceive(NotificationCenter.default.publisher(for: .menuBarPopoverDidShow)) { _ in
             // Refresh configuration first, then load clipboard and execute
             viewModel.refreshConfiguration()
             loadClipboardAndExecute()
+            
+            // Subscribe to clipboard changes while popover is visible
+            subscribeToClipboardChanges()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .menuBarPopoverDidClose)) { _ in
+            unsubscribeFromClipboardChanges()
+        }
+    }
+    
+    private func subscribeToClipboardChanges() {
+        guard clipboardSubscription == nil else { return }
+        clipboardSubscription = ClipboardMonitor.shared.clipboardChanged
+            .receive(on: DispatchQueue.main)
+            .sink { newContent in
+                inputText = newContent
+                viewModel.inputText = newContent
+                viewModel.performSelectedAction()
+            }
+    }
+    
+    private func unsubscribeFromClipboardChanges() {
+        clipboardSubscription?.cancel()
+        clipboardSubscription = nil
     }
 
     private var configurationLoadingOverlay: some View {
@@ -91,15 +114,18 @@ struct MenuBarPopoverView: View {
     }
     
     private func loadClipboardAndExecute() {
-        // Only load from clipboard if input is empty
-        if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            inputText = NSPasteboard.general.string(forType: .string)?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        }
+        let clipboardContent = NSPasteboard.general.string(forType: .string)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let hasRecentClipboard = ClipboardMonitor.shared.hasRecentContent(within: 5)
         
-        if !inputText.isEmpty {
+        // If clipboard has recent content (within 5 seconds), always use it
+        if hasRecentClipboard && !clipboardContent.isEmpty {
+            inputText = clipboardContent
             viewModel.inputText = inputText
             viewModel.performSelectedAction()
+        } else if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Otherwise, only load clipboard if input is empty (for display, no auto-translate)
+            inputText = clipboardContent
         }
     }
     

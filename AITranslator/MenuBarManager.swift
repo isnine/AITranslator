@@ -116,6 +116,9 @@ final class MenuBarManager: NSObject, ObservableObject {
         
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         
+        // Notify that popover is now visible
+        NotificationCenter.default.post(name: .menuBarPopoverDidShow, object: nil)
+        
         // Setup event monitor to close popover when clicking outside
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             self?.closePopover()
@@ -125,10 +128,18 @@ final class MenuBarManager: NSObject, ObservableObject {
     private func closePopover() {
         popover?.performClose(nil)
         
+        // Notify that popover is now hidden
+        NotificationCenter.default.post(name: .menuBarPopoverDidClose, object: nil)
+        
         if let eventMonitor = eventMonitor {
             NSEvent.removeMonitor(eventMonitor)
             self.eventMonitor = nil
         }
     }
+}
+
+extension Notification.Name {
+    static let menuBarPopoverDidShow = Notification.Name("menuBarPopoverDidShow")
+    static let menuBarPopoverDidClose = Notification.Name("menuBarPopoverDidClose")
 }
 #endif
