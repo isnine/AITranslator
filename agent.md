@@ -1,8 +1,32 @@
 # AITranslator (Tree² Lang)
 
+> **AI Agent 开发指南**：本文档专为 AI Agent 理解项目结构和代码逻辑而编写。修改代码前请先阅读相关章节。
+
+## 快速定位
+
+| 需求                        | 关键文件                                                                   |
+| --------------------------- | -------------------------------------------------------------------------- |
+| 添加/修改动作               | `ShareCore/Configuration/ActionConfig.swift`, `DefaultConfiguration.json`  |
+| 添加/修改提供商             | `ShareCore/Configuration/ProviderConfig.swift`, `ProviderCategory.swift`   |
+| 修改 LLM 请求逻辑           | `ShareCore/Networking/LLMService.swift`                                    |
+| 修改 UI 状态管理            | `ShareCore/UI/HomeViewModel.swift`                                         |
+| 修改配置持久化              | `ShareCore/Configuration/AppConfigurationStore.swift`                      |
+| 修改扩展行为                | `TranslationUI/TranslationProvider.swift`                                  |
+| 修改输出类型/结构化输出模板 | `ShareCore/Configuration/OutputType.swift`                                 |
+| 修改偏好设置                | `ShareCore/Preferences/AppPreferences.swift`, `TargetLanguageOption.swift` |
+| **修改结果卡片/Cell UI**    | ⚠️ 需同时修改 3 个文件，见下方「结果卡片共享组件」章节                     |
+
 ## Overview
 
-Tree² Lang 是一款面向 iOS 18+ / macOS 的 SwiftUI 应用，配套一个 `TranslationUIProviderExtension` 扩展，用于在系统翻译面板中直接调用自定义的 LLM 动作。应用支持多提供商并发请求、流式响应、TTS 语音朗读，以及基于 diff 的文本对比展示。
+Tree² Lang 是一款面向 iOS 18+ / macOS 的 SwiftUI 应用，配套一个 `TranslationUIProviderExtension` 扩展，用于在系统翻译面板中直接调用自定义的 LLM 动作。
+
+**核心能力**：
+
+- 多提供商并发请求（TaskGroup）
+- SSE 流式响应 + 结构化输出（JSON Schema）
+- 基于 LCS 的 diff 对比展示
+- TTS 语音朗读
+- App Group 跨进程配置共享
 
 ## 项目结构
 
@@ -18,18 +42,20 @@ AITranslator/
 │       ├── ProvidersView.swift      # 提供商配置界面
 │       ├── SettingsView.swift       # 设置界面（目标语言/TTS配置）
 │       └── PlaceholderTab.swift     # 占位视图
-├── ShareCore/                       # 跨模块共享逻辑
+├── ShareCore/                       # ⚠️ 跨模块共享逻辑（主应用+扩展共用）
 │   ├── Configuration/
-│   │   ├── ActionConfig.swift       # 动作配置模型（支持结构化输出/diff对比）
+│   │   ├── ActionConfig.swift       # 动作配置模型
 │   │   ├── ProviderConfig.swift     # 提供商配置模型
-│   │   ├── ProviderCategory.swift   # 提供商类别枚举
-│   │   ├── AppConfigurationStore.swift # 单例配置仓库（支持双向同步）
-│   │   ├── ConfigurationFileManager.swift # 配置文件管理（支持文件监控）
+│   │   ├── ProviderCategory.swift   # 提供商类别枚举（4种）
+│   │   ├── OutputType.swift         # 输出类型枚举（plain/diff/sentencePairs/grammarCheck）
+│   │   ├── AppConfiguration.swift   # JSON 配置文件的 Codable 模型
+│   │   ├── AppConfigurationStore.swift # 单例配置仓库（双向同步）
+│   │   ├── ConfigurationFileManager.swift # 配置文件管理（文件监控）
 │   │   ├── ConfigurationValidator.swift  # 配置验证器
 │   │   ├── ConfigurationService.swift    # 配置导入/导出服务
 │   │   └── TTSConfiguration.swift   # TTS 配置模型
 │   ├── Networking/
-│   │   ├── LLMService.swift         # LLM 请求服务（支持流式/结构化输出）
+│   │   ├── LLMService.swift         # LLM 请求服务（流式/结构化输出）
 │   │   ├── LLMRequestPayload.swift  # 请求负载模型
 │   │   ├── LLMServiceError.swift    # 错误类型定义
 │   │   ├── ProviderExecutionResult.swift # 执行结果模型
@@ -38,7 +64,7 @@ AITranslator/
 │   │   ├── AppPreferences.swift     # 应用偏好设置（App Group 共享）
 │   │   └── TargetLanguageOption.swift # 目标语言选项枚举
 │   ├── UI/
-│   │   ├── HomeView.swift           # 主界面（支持 macOS/iOS/扩展）
+│   │   ├── HomeView.swift           # 主界面（macOS/iOS/扩展共用）
 │   │   └── HomeViewModel.swift      # 主界面状态管理
 │   ├── Utilities/
 │   │   └── TextDiffBuilder.swift    # 文本差异对比（LCS算法）
@@ -50,463 +76,532 @@ AITranslator/
     └── azureProxyWorker.ts          # Cloudflare Worker 代理（可选）
 ```
 
+## 核心数据模型
+
+### ActionConfig（动作配置）
+
+```swift
+// ShareCore/Configuration/ActionConfig.swift
+public struct ActionConfig: Identifiable, Hashable, Codable {
+  public let id: UUID           // 内存唯一标识
+  public var name: String       // 动作名称（用于 UI 显示）
+  public var prompt: String     // 发送给 LLM 的提示词
+  public var usageScenes: UsageScene  // 可见场景（app/contextRead/contextEdit）
+  public var outputType: OutputType   // 输出类型（决定 UI 展示方式）
+
+  // 计算属性（由 outputType 派生）
+  public var showsDiff: Bool          // 是否显示 diff 对比
+  public var structuredOutput: StructuredOutputConfig?  // 结构化输出配置
+  public var displayMode: DisplayMode // 显示模式（standard/sentencePairs）
+}
+```
+
+**Prompt 占位符**（在 LLMService 中替换）：
+
+- `{text}` / `{{text}}` → 用户输入文本
+- `{targetLanguage}` / `{{targetLanguage}}` → 用户配置的目标语言
+
+### OutputType（输出类型）
+
+```swift
+// ShareCore/Configuration/OutputType.swift
+public enum OutputType: String, Codable {
+  case plain          // 纯文本输出
+  case diff           // Diff 对比显示（删除线 + 高亮）
+  case sentencePairs  // 逐句翻译（原文+译文交替）
+  case grammarCheck   // 语法检查（修订文本 + 错误分析）
+
+  // 内置 JSON Schema 模板
+  public var structuredOutput: ActionConfig.StructuredOutputConfig? {
+    switch self {
+    case .sentencePairs: return .sentencePairs  // primaryField: "sentence_pairs"
+    case .grammarCheck:  return .grammarCheck   // primaryField: "revised_text"
+    case .plain, .diff:  return nil
+    }
+  }
+}
+```
+
+### ProviderConfig（提供商配置）
+
+```swift
+// ShareCore/Configuration/ProviderConfig.swift
+public struct ProviderConfig: Identifiable, Hashable, Codable {
+  public let id: UUID
+  public var displayName: String      // 显示名称
+  public var baseEndpoint: URL        // 基础端点 URL
+  public var apiVersion: String       // API 版本（如 2025-01-01-preview）
+  public var token: String            // API Token
+  public var authHeaderName: String   // 认证头名称（如 api-key, Authorization）
+  public var category: ProviderCategory  // 提供商类别
+  public var deployments: [String]       // 所有可用模型部署
+  public var enabledDeployments: Set<String>  // 已启用的模型部署
+
+  // 计算 API URL
+  public func apiURL(for deployment: String) -> URL
+}
+```
+
+### ProviderCategory（提供商类别）
+
+```swift
+// ShareCore/Configuration/ProviderCategory.swift
+public enum ProviderCategory: String, Codable {
+  case builtInCloud = "Built-in Cloud"  // 内置云服务（无需配置）
+  case azureOpenAI = "Azure OpenAI"     // Azure OpenAI 部署
+  case custom = "Custom"                 // 自定义 OpenAI 兼容 API
+  case local = "Local"                   // 本地模型（Apple Foundation）
+
+  public var usesBuiltInProxy: Bool     // 是否使用内置 CloudFlare 代理
+  public var requiresEndpointConfig: Bool  // 是否需要端点配置
+}
+```
+
 ## 核心功能
 
-### 1. 多动作支持
+### 1. 默认动作
 
-- **翻译**：智能翻译，自动检测语言并在目标语言与英语之间切换
-- **总结**：精简总结，保留关键信息
-- **打磨**：原语言润色，提升表达质量
-- **语法检查**：结构化输出，分离润色结果与错误分析（使用 JSON Schema）
-- **句子分析**：语法解析与搭配积累
+| 动作               | outputType    | 特性                                               |
+| ------------------ | ------------- | -------------------------------------------------- |
+| Translate          | plain         | 动态 Prompt（`{{targetLanguage}}`）                |
+| Sentence Translate | sentencePairs | 逐句翻译，结构化输出                               |
+| Grammar Check      | grammarCheck  | 结构化输出（revised_text + additional_text）+ diff |
+| Polish             | diff          | 原语言润色，显示删除线对比                         |
+| Sentence Analysis  | plain         | 语法解析，动态 Prompt                              |
 
-### 2. 动作配置模型（ActionConfig）
+### 2. 动作可见性控制（UsageScene）
 
-- `usageScenes`：控制动作在 App/扩展只读/扩展可编辑 场景下的可见性
-- `showsDiff`：启用 diff 对比展示（原文删除线 + 新增高亮）
-- `structuredOutput`：JSON Schema 结构化输出配置（primaryField + additionalFields）
+```swift
+public struct UsageScene: OptionSet {
+  static let app = UsageScene(rawValue: 1 << 0)         // 主应用可见
+  static let contextRead = UsageScene(rawValue: 1 << 1) // 扩展只读模式可见
+  static let contextEdit = UsageScene(rawValue: 1 << 2) // 扩展可编辑模式可见
+  static let all: UsageScene = [.app, .contextRead, .contextEdit]
+}
+```
 
 ### 3. 流式与结构化响应
 
-- **流式响应**：通过 SSE 实时显示生成内容
-- **结构化输出**：Azure OpenAI 的 `response_format: json_schema` 支持
-- **多提供商并发**：同时向多个配置的提供商发送请求
+**流式响应（SSE）**：
 
-### 4. TTS 语音朗读
+- 通过 `URLSession.bytes(for:)` 实时解析 `data:` 事件
+- 支持增量解析结构化 JSON（`StreamingSentencePairParser`、`StreamingStructuredOutputParser`）
 
-- 集成 Azure OpenAI TTS API（gpt-4o-mini-tts）
-- 支持自定义端点/API Key 配置
-- 可选使用默认配置或自定义配置
+**结构化输出**：
 
-### 5. 目标语言设置
+- 仅 `azureOpenAI` 和 `builtInCloud` 类别支持
+- 通过 `response_format: json_schema` 请求参数启用
+- 内置模板：`sentencePairs`（逐句翻译）、`grammarCheck`（语法检查）
 
-- 支持 8 种语言：应用语言/英语/简体中文/日语/韩语/法语/德语/西班牙语
-- 动态更新动作 Prompt 模板
+### 4. 默认提供商
 
-### 6. 差异对比（TextDiffBuilder）
+```swift
+// Built-in Cloud 提供商（无需配置）
+ProviderConfig.builtInCloudProvider(enabledModels: ["model-router"])
 
-- 基于 LCS（最长公共子序列）算法
-- 分离原文段落（删除标记）与修订段落（新增高亮）
-- 自适应亮/暗模式配色
+// 内置常量
+static let builtInCloudEndpoint = URL(string: "https://translator-api.zanderwang.com")!
+static let builtInCloudAvailableModels = ["model-router", "gpt-4.1-nano"]
+static let builtInCloudSecret = "..." // HMAC 签名密钥
+```
 
-## 核心组件
+## 核心组件详解
 
-### AppConfigurationStore
+### AppConfigurationStore（配置仓库）
 
-单例配置仓库，管理动作与提供商配置：
+**位置**：`ShareCore/Configuration/AppConfigurationStore.swift`
 
-- 启动时注入默认提供商（Azure OpenAI model-router + gpt-5-nano）
-- 预置 5 个动作模板
-- 响应目标语言变更，自动更新受管理的动作 Prompt
-- **双向同步**：UI 修改自动保存到文件，文件变更自动重新加载到内存
-- **配置验证**：更新和加载时自动验证配置完整性
-- **文件监控**：通过 DispatchSource 监控配置文件的外部修改
+**职责**：单例，管理动作与提供商配置的内存状态和持久化。
 
-### HomeView / HomeViewModel
+**关键属性**：
 
-共享主界面，同时用于主应用与系统翻译扩展：
+```swift
+@MainActor
+public final class AppConfigurationStore: ObservableObject {
+  public static let shared = AppConfigurationStore()
 
-- 输入框可折叠/展开
-- 动作 Chip 选择器
-- 提供商结果卡片（skeleton/streaming/success/failure 状态）
-- 支持复制/替换/语音朗读
-- 自动粘贴并执行功能
+  @Published public private(set) var actions: [ActionConfig]
+  @Published public private(set) var providers: [ProviderConfig]
+  @Published public private(set) var configurationMode: ConfigurationMode
+  // .defaultConfiguration（只读）或 .customConfiguration(name:)（可编辑）
+}
+```
 
-### LLMService
+**配置模式**：
 
-基于 URLSession 的异步网络客户端：
+- **Default Mode**（只读）：从 Bundle 加载 `DefaultConfiguration.json`，不可修改
+- **Custom Mode**（可编辑）：从 App Group 容器加载用户配置文件
 
-- 并发 TaskGroup 执行多提供商请求
-- 支持 SSE 流式响应解析
-- 结构化输出 JSON 解析
-- 统一的 ProviderExecutionResult 结果封装
+**关键方法**：
 
-### TranslationProviderExtension
+```swift
+// 更新动作（默认模式下触发创建自定义配置的请求）
+func updateActions(_ actions: [ActionConfig]) -> ConfigurationValidationResult?
 
-系统翻译扩展入口，极简封装：
+// 更新提供商
+func updateProviders(_ providers: [ProviderConfig]) -> ConfigurationValidationResult?
 
-- 读取 App Group 偏好设置
-- 呈现 `HomeView(context:)`
-- 支持替换原文（allowsReplacement）
+// 从默认配置创建自定义配置
+func createCustomConfigurationFromDefault(named: String) -> Bool
 
-### AppPreferences
+// 切换回默认配置
+func switchToDefaultConfiguration()
 
-应用偏好设置管理：
+// 重新加载当前配置（从磁盘）
+func reloadCurrentConfiguration()
+```
 
-- 使用 App Group 共享存储
-- 管理目标语言、TTS 配置
-- 响应 UserDefaults 变更通知
+**目标语言自动更新**：
 
-## 配置读写流程
+- 订阅 `preferences.$targetLanguage`
+- 自动更新受管理动作（Translate/Summarize/SentenceAnalysis）的 Prompt
+- 通过 `ManagedActionTemplate` 枚举匹配和更新
 
-### 配置架构概述
+### HomeViewModel（主界面状态）
 
-配置系统采用多层架构，实现了 JSON 配置文件与内存模型之间的双向转换：
+**位置**：`ShareCore/UI/HomeViewModel.swift`
+
+**职责**：管理翻译界面的所有状态，包括输入、动作选择、提供商执行结果。
+
+**关键状态**：
+
+```swift
+@MainActor
+public final class HomeViewModel: ObservableObject {
+  @Published public var inputText: String = ""
+  @Published public private(set) var actions: [ActionConfig]      // 当前场景可用动作
+  @Published public var selectedActionID: UUID?
+  @Published public private(set) var providerRuns: [ProviderRunViewState] = []  // 执行结果
+  @Published public private(set) var speakingProviders: Set<String> = []
+}
+```
+
+**ProviderRunViewState.Status**（执行状态）：
+
+```swift
+enum Status {
+  case idle
+  case running(start: Date)
+  case streaming(text: String, start: Date)
+  case streamingSentencePairs(pairs: [SentencePair], start: Date)
+  case success(text:, copyText:, duration:, diff:, supplementalTexts:, sentencePairs:)
+  case failure(message:, duration:)
+}
+```
+
+**执行流程**：
+
+```swift
+performSelectedAction()
+  └─> cancelActiveRequest(clearResults: false)
+  └─> getAllEnabledDeployments()  // 获取所有启用的提供商+部署
+  └─> providerRuns = [...running states...]
+  └─> llmService.perform(text:, action:, providerDeployments:, partialHandler:, completionHandler:)
+```
+
+### LLMService（LLM 请求服务）
+
+**位置**：`ShareCore/Networking/LLMService.swift`
+
+**职责**：发送 LLM 请求，处理流式/非流式响应，解析结构化输出。
+
+**关键方法**：
+
+```swift
+public func perform(
+  text: String,
+  with action: ActionConfig,
+  providerDeployments: [(provider: ProviderConfig, deployment: String)],
+  partialHandler: (@MainActor @Sendable (UUID, String, StreamingUpdate) -> Void)?,
+  completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)?
+) async -> [ProviderExecutionResult]
+```
+
+**请求构建逻辑**：
+
+1. 替换 Prompt 占位符（`{text}`, `{targetLanguage}`）
+2. 判断 Prompt 是否包含 `{text}` 占位符：
+   - 包含：单条 user 消息
+   - 不包含：system 消息（prompt）+ user 消息（text）
+3. 结构化输出：添加 `response_format: json_schema`
+4. 流式请求：设置 `stream: true`，解析 SSE 事件
+
+**Built-in Cloud 认证**：
+
+```swift
+// HMAC-SHA256 签名
+let message = "\(timestamp):\(path)"
+let signature = HMAC<SHA256>.authenticationCode(for: message, using: key)
+request.setValue(timestamp, forHTTPHeaderField: "X-Timestamp")
+request.setValue(signature, forHTTPHeaderField: "X-Signature")
+```
+
+### TranslationProviderExtension（系统翻译扩展）
+
+**位置**：`TranslationUI/TranslationProvider.swift`
+
+**职责**：作为 iOS/macOS 系统翻译扩展入口点。
+
+```swift
+@main
+final class TranslationProviderExtension: TranslationUIProviderExtension {
+  required init() {
+    // 1. 加载 App Group 偏好设置
+    UserDefaults.standard.addSuite(named: AppPreferences.appGroupSuiteName)
+    AppPreferences.shared.refreshFromDefaults()
+    // 2. 强制重新加载配置（扩展可能在主应用修改配置后启动）
+    AppConfigurationStore.shared.reloadCurrentConfiguration()
+  }
+
+  var body: some TranslationUIProviderExtensionScene {
+    TranslationUIProviderSelectedTextScene { context in
+      ExtensionCompactView(context: context)
+    }
+  }
+}
+```
+
+## 配置系统架构
+
+### 分层架构
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        持久化层                                      │
-├─────────────────────────────────────────────────────────────────────┤
-│  App Group Container                                                │
-│  └── Configurations/                                                │
-│      ├── Default.json          <- 首次启动从 Bundle 复制            │
-│      ├── MyConfig.json         <- 用户自定义配置                    │
-│      └── ...                                                        │
-│                                                                     │
-│  UserDefaults (App Group)                                           │
-│  ├── current_config_name       <- 当前激活的配置名称                 │
-│  ├── target_language           <- 目标语言偏好                      │
-│  └── tts_*                     <- TTS 相关设置                      │
-└─────────────────────────────────────────────────────────────────────┘
-                               ▲
-                               │ 读/写
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        文件管理层                                    │
-├─────────────────────────────────────────────────────────────────────┤
-│  ConfigurationFileManager                                           │
-│  ├── listConfigurations()      -> [ConfigurationFileInfo]           │
-│  ├── loadConfiguration(named:) -> AppConfiguration                  │
-│  ├── saveConfiguration(_:name:)                                     │
-│  └── deleteConfiguration(named:)                                    │
-└─────────────────────────────────────────────────────────────────────┘
-                               ▲
-                               │ AppConfiguration (中间模型)
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        配置仓库层                                    │
-├─────────────────────────────────────────────────────────────────────┤
-│  AppConfigurationStore (单例)                                        │
-│  ├── @Published actions: [ActionConfig]                             │
-│  ├── @Published providers: [ProviderConfig]                         │
-│  ├── updateActions(_:)         -> 更新内存 + 自动保存               │
-│  ├── updateProviders(_:)       -> 更新内存 + 自动保存               │
-│  └── switchConfiguration(to:)  -> 切换配置文件                      │
-└─────────────────────────────────────────────────────────────────────┘
-                               ▲
-                               │ ObservableObject
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        UI 层                                         │
-├─────────────────────────────────────────────────────────────────────┤
+│  UI 层                                                              │
 │  ActionsView / ProvidersView / SettingsView                         │
-│  └── 绑定到 AppConfigurationStore.shared                            │
+│  └── @ObservedObject store = AppConfigurationStore.shared           │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │ @Published bindings
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  配置仓库层                                                          │
+│  AppConfigurationStore (单例, @MainActor)                            │
+│  ├── actions: [ActionConfig]      // 内存模型（UUID 标识）          │
+│  ├── providers: [ProviderConfig]  // 内存模型（UUID 标识）          │
+│  ├── configurationMode: ConfigurationMode                          │
+│  └── updateActions() / updateProviders() → 自动 saveConfiguration() │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │ AppConfiguration (Codable 中间模型)
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  文件管理层                                                          │
+│  ConfigurationFileManager                                           │
+│  ├── loadConfiguration(named:) / saveConfiguration(_:name:)        │
+│  ├── fileChangePublisher: AnyPublisher<ConfigurationFileChangeEvent>│
+│  └── startMonitoring() / stopMonitoring() // DispatchSource        │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │ JSON 文件
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  持久化层                                                            │
+│  App Group Container/Configurations/                                │
+│  ├── Default.json (首次启动从 Bundle 复制)                          │
+│  └── MyConfig.json (用户自定义)                                     │
+│  UserDefaults (App Group)                                           │
+│  ├── current_config_name, target_language, tts_*                    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 关键数据模型
+### 配置文件格式（v1.1.0）
 
-| 模型               | 职责                                    | 存储位置     |
-| ------------------ | --------------------------------------- | ------------ |
-| `AppConfiguration` | JSON 配置文件的 Codable 中间模型        | .json 文件   |
-| `ActionConfig`     | 动作的内存模型（含 UUID）               | 内存         |
-| `ProviderConfig`   | 提供商的内存模型（含 UUID）             | 内存         |
-| `AppPreferences`   | 偏好设置（目标语言、TTS、当前配置名称） | UserDefaults |
-
-### 启动时加载流程
-
-```swift
-// AppConfigurationStore.init()
-1. 调用 loadConfiguration()
-   │
-   ├─ 2. 从 UserDefaults 读取 currentConfigName
-   │
-   ├─ 3. 尝试加载指定名称的配置文件
-   │     └─ tryLoadConfiguration(named:)
-   │         ├─ configFileManager.loadConfiguration(named:)
-   │         │   └─ JSON 解码 -> AppConfiguration
-   │         └─ applyLoadedConfiguration(_:)
-   │             ├─ 解析 providers -> [ProviderConfig]
-   │             │   └─ ProviderEntry.toProviderConfig(name:)
-   │             ├─ 解析 actions -> [ActionConfig]
-   │             │   └─ ActionEntry.toActionConfig(providerMap:)
-   │             └─ 应用目标语言到 prompt
-   │                 └─ applyTargetLanguage(_:targetLanguage:)
-   │
-   ├─ 4. 若加载失败，尝试加载其他可用配置
-   │     └─ configFileManager.listConfigurations()
-   │
-   └─ 5. 若无可用配置，创建空配置
-         └─ createEmptyConfiguration()
+```json
+// DefaultConfiguration.json
+{
+  "version": "1.1.0",
+  "preferences": {
+    "targetLanguage": "app-language"
+  },
+  "providers": {
+    "Built-in Cloud": {
+      "category": "Built-in Cloud",
+      "enabledDeployments": ["model-router"]
+    }
+  },
+  "tts": {
+    "useBuiltInCloud": true,
+    "voice": "alloy"
+  },
+  "actions": [
+    {
+      "name": "Translate",
+      "prompt": "Translate the selected text into {{targetLanguage}}...",
+      "outputType": "plain"
+    }
+  ]
+}
 ```
 
-**首次启动特殊处理**：
+### 名称 ↔ UUID 映射
 
-- `ConfigurationFileManager` 初始化时检查 `Default.json` 是否存在
-- 若不存在，从 Bundle 中的 `DefaultConfiguration.json` 复制到 App Group 容器
-
-### UI 修改后的保存流程
-
-```swift
-// 用户在 UI 修改 Action 或 Provider 后
-1. UI 调用 store.updateActions(_:) 或 store.updateProviders(_:)
-   │
-   ├─ 2. 应用目标语言模板（仅 Actions）
-   │     └─ applyTargetLanguage(_:targetLanguage:)
-   │
-   ├─ 3. 更新内存中的 @Published 属性
-   │     └─ self.actions = adjusted / self.providers = providers
-   │
-   └─ 4. 自动调用 saveConfiguration()
-         │
-         ├─ 5. buildCurrentConfiguration()
-         │     ├─ 构建 providerEntries: [String: ProviderEntry]
-         │     │   └─ ProviderEntry.from(provider) -> (name, entry)
-         │     ├─ 构建 actionEntries: [ActionEntry]
-         │     │   └─ ActionEntry.from(action, providerNames:)
-         │     └─ 组装 AppConfiguration
-         │
-         └─ 6. configFileManager.saveConfiguration(_:name:)
-               └─ JSON 编码 -> 写入 .json 文件
-```
-
-### 数据转换细节
-
-#### Provider 名称与 UUID 映射
-
-配置文件中 Provider 使用 **名称** 标识，内存模型使用 **UUID**。转换过程：
+配置文件使用 **名称** 标识 Provider，内存模型使用 **UUID**：
 
 **加载时**（名称 → UUID）：
 
 ```swift
-// 在 applyLoadedConfiguration(_:) 中
 var providerNameToID: [String: UUID] = [:]
 for (name, entry) in config.providers {
-    if let provider = entry.toProviderConfig(name: name) {
-        providerNameToID[name] = provider.id  // 生成新 UUID
-    }
+  let provider = entry.toProviderConfig(name: name)  // 生成新 UUID
+  providerNameToID[name] = provider.id
 }
-// Action 使用此映射解析 providerIDs
-action.toActionConfig(providerMap: providerNameToID)
 ```
 
 **保存时**（UUID → 名称）：
 
 ```swift
-// 在 buildCurrentConfiguration() 中
 var providerIDToName: [UUID: String] = [:]
 for provider in providers {
-    let (name, entry) = ProviderEntry.from(provider)
-    providerIDToName[provider.id] = uniqueName
+  let (name, entry) = ProviderEntry.from(provider)
+  providerIDToName[provider.id] = name
 }
-// Action 使用此映射导出 provider 名称列表
-ActionEntry.from(action, providerNames: providerIDToName)
 ```
 
-#### 目标语言动态更新
+### 双向同步机制
 
-受管理的动作（Translate/Summarize/Sentence Analysis 等）在以下场景自动更新 Prompt：
-
-1. **加载配置时**：`applyTargetLanguage()` 检测 Prompt 是否匹配模板
-2. **用户切换语言时**：通过 Combine 订阅 `preferences.$targetLanguage` 自动触发更新
+**UI → 文件**：
 
 ```swift
-preferences.$targetLanguage
-    .sink { [weak self] option in
-        let updated = applyTargetLanguage(self.actions, targetLanguage: option)
-        self.actions = updated
-        self.saveConfiguration()
+store.updateActions(newActions)
+  └─> applyTargetLanguage()  // 更新受管理动作的 Prompt
+  └─> self.actions = adjusted
+  └─> saveConfiguration()    // 自动保存
+```
+
+**文件 → UI**：
+
+```swift
+ConfigurationFileManager.fileChangePublisher
+  .debounce(for: 0.5s)
+  .sink { event in
+    if event.timestamp - lastSaveTimestamp > 0.5 {
+      store.reloadCurrentConfiguration()  // 非自身触发的变更
     }
+  }
 ```
 
-### 配置服务 (ConfigurationService)
+## 常见开发任务
 
-提供配置的导入/导出功能，用于配置迁移或备份：
+### 添加新动作
 
-| 方法                             | 用途                                |
-| -------------------------------- | ----------------------------------- |
-| `exportConfiguration()`          | 导出当前配置为 JSON Data            |
-| `importConfiguration()`          | 从 JSON 解析 AppConfiguration       |
-| `applyConfiguration()`           | 将配置应用到 Store 和 Preferences   |
-| `validateCurrentConfiguration()` | 验证当前配置并返回 ValidationResult |
+1. **编辑 DefaultConfiguration.json**（仅新用户可见）：
 
-### 配置同步与验证机制
-
-#### 双向同步架构
-
-配置系统实现了 UI ↔ 内存 ↔ 文件 的完整双向同步：
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        双向同步流程                                  │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  ┌─────────┐    updateActions()    ┌─────────────────┐              │
-│  │   UI    │ ──────────────────────>│ ConfigStore     │              │
-│  │         │                       │ (内存)           │              │
-│  │         │ <───@Published────────│                 │              │
-│  └─────────┘                       └────────┬────────┘              │
-│                                             │                       │
-│                                    saveConfiguration()              │
-│                                             │                       │
-│                                             ▼                       │
-│                                    ┌─────────────────┐              │
-│                                    │  JSON 文件       │              │
-│                                    │  (.json)        │              │
-│                                    └────────┬────────┘              │
-│                                             │                       │
-│                               DispatchSource 监控                    │
-│                                             │                       │
-│                                             ▼                       │
-│  ┌─────────────────┐           ┌─────────────────┐                  │
-│  │ fileChange      │◀──────────│ ConfigFile      │                  │
-│  │ Publisher       │           │ Manager         │                  │
-│  └────────┬────────┘           └─────────────────┘                  │
-│           │                                                         │
-│           │ Combine 订阅                                             │
-│           ▼                                                         │
-│  ┌─────────────────┐                                                │
-│  │ handleFileChange│────> reloadCurrentConfiguration()              │
-│  └─────────────────┘                                                │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+```json
+{
+  "name": "My Action",
+  "prompt": "Your prompt with {{targetLanguage}} placeholder...",
+  "outputType": "plain" // plain/diff/sentencePairs/grammarCheck
+}
 ```
 
-#### 文件监控机制
-
-`ConfigurationFileManager` 使用 `DispatchSource` 监控配置文件变化：
+2. **如需新的输出类型**，编辑 `OutputType.swift`：
 
 ```swift
-// 启动监控
-configFileManager.startMonitoring(configurationNamed: "Default")
+public enum OutputType: String, Codable {
+  case myNewType = "myNewType"
 
-// 接收文件变化事件
-configFileManager.fileChangePublisher
-    .debounce(for: .seconds(0.5), scheduler: DispatchQueue.main)
-    .sink { event in
-        switch event.changeType {
-        case .modified:
-            store.reloadCurrentConfiguration()
-        case .deleted:
-            // 切换到其他配置或创建空配置
-        case .renamed:
-            // 尝试重新加载
-        }
+  public var structuredOutput: ActionConfig.StructuredOutputConfig? {
+    switch self {
+    case .myNewType: return .myNewSchema  // 定义 JSON Schema
     }
+  }
+}
 ```
 
-**防止保存循环**：
+3. **如需受管理的动态 Prompt**，编辑 `AppConfigurationStore.swift` 中的 `ManagedActionTemplate`。
 
-- 保存前记录 `lastSaveTimestamp`
-- 收到文件变更事件时检查时间戳，忽略自身触发的变更
-- 使用 0.5 秒 debounce 合并连续事件
+### 添加新提供商类别
 
-#### 配置验证器 (ConfigurationValidator)
-
-验证器检查配置的完整性和一致性：
-
-| 验证项             | 严重性  | 说明                                            |
-| ------------------ | ------- | ----------------------------------------------- |
-| 版本格式           | Error   | 检查版本号格式是否为 X.Y.Z                      |
-| 版本兼容性         | Error   | 仅支持 1.x.x 版本                               |
-| Provider 分类      | Error   | 检查 category 是否为已知类型                    |
-| Endpoint URL       | Error   | 检查 URL 格式是否有效                           |
-| Provider 引用      | Error   | Action 引用的 Provider 必须存在                 |
-| Deployment 引用    | Error   | Action 引用的 Deployment 必须在 Provider 中存在 |
-| 空 Token           | Warning | Provider 的 API Token 为空                      |
-| 无 Deployment      | Warning | Provider 没有配置任何 Deployment                |
-| 未使用的 Provider  | Warning | Provider 未被任何 Action 引用                   |
-| Action 无 Provider | Warning | Action 没有配置任何 Provider                    |
-| 重复 Action 名称   | Warning | 存在同名 Action                                 |
-
-#### 验证结果模型
+1. **编辑 ProviderCategory.swift**：
 
 ```swift
-public struct ConfigurationValidationResult {
-    public let issues: [ConfigurationValidationIssue]
+public enum ProviderCategory: String, Codable {
+  case myProvider = "My Provider"
 
-    public var isValid: Bool { !hasErrors }
-    public var hasErrors: Bool   // 包含 Error 级别问题
-    public var hasWarnings: Bool // 包含 Warning 级别问题
-
-    public var errors: [ConfigurationValidationIssue]
-    public var warnings: [ConfigurationValidationIssue]
-}
-
-public enum ConfigurationValidationIssue {
-    case providerNotFound(providerID: String, referencedBy: String)
-    case deploymentNotFound(deployment: String, provider: String, referencedBy: String)
-    case unsupportedVersion(version: String, supportedRange: String)
-    // ... 更多验证问题
-
-    public var severity: ValidationSeverity // .error 或 .warning
-    public var message: String              // 人类可读的描述
+  public var usesBuiltInProxy: Bool { ... }
+  public var requiresEndpointConfig: Bool { ... }
 }
 ```
 
-#### 验证时机
+2. **编辑 LLMService.swift**，在 `sendRequest()` 中处理新类别的认证逻辑。
 
-| 时机              | 验证级别 | 行为                                  |
-| ----------------- | -------- | ------------------------------------- |
-| 加载配置时        | 完整验证 | Error 阻止加载，Warning 仅记录日志    |
-| UI 更新 Actions   | 内存验证 | 返回 ValidationResult，Error 阻止保存 |
-| UI 更新 Providers | 内存验证 | 返回 ValidationResult，Error 阻止保存 |
-| 导入配置时        | 完整验证 | Error 返回失败结果                    |
-| 保存配置时        | 完整验证 | Error 阻止保存（可用 forceSave 跳过） |
+3. **编辑 ProviderConfig.swift**，添加该类别的特定常量（如果需要）。
 
-#### 使用示例
+### 修改请求/响应处理
 
-```swift
-// 更新 Actions 并获取验证结果
-let result = store.updateActions(newActions)
-if let result, result.hasWarnings {
-    // 显示警告给用户
-    for warning in result.warnings {
-        print("⚠️ \(warning.message)")
-    }
-}
+**请求构建**：`LLMService.sendRequest()`
 
-// 手动验证当前配置
-let validationResult = store.validateCurrentConfiguration()
-if validationResult.hasErrors {
-    // 处理错误
-}
+- Prompt 占位符替换
+- 消息构建（system + user 或单 user）
+- 认证头设置
 
-// 强制保存（跳过验证）
-store.forceSaveConfiguration()
+**流式响应解析**：`LLMService.handleStreamingRequest()`
 
-// 重新加载配置（从文件）
-store.reloadCurrentConfiguration()
-```
+- SSE 事件解析
+- 增量结构化输出解析（`StreamingSentencePairParser`、`StreamingStructuredOutputParser`）
 
-### 数据一致性保障
+**非流式响应解析**：`LLMService.parseResponsePayload()`
 
-1. **自动保存**：每次 `updateActions()` 或 `updateProviders()` 调用后立即持久化
-2. **App Group 共享**：主应用与扩展共享同一配置目录
-3. **UserDefaults 同步**：调用 `defaults.synchronize()` 确保跨进程可见
-4. **Combine 订阅**：偏好变更自动触发配置更新
-5. **文件监控**：通过 DispatchSource 监控外部文件修改，自动重新加载
-6. **防止保存循环**：记录保存时间戳，忽略自身触发的文件变更事件
-7. **验证保障**：加载和保存时验证配置完整性，Error 级别问题阻止操作
+### 修改 UI 状态
+
+**HomeViewModel** 是主要的状态管理类：
+
+- `inputText` - 输入文本
+- `selectedActionID` - 当前选中动作
+- `providerRuns` - 执行结果列表
+- `performSelectedAction()` - 触发执行
 
 ## 默认配置
 
-| 动作     | 功能描述                       | 特性                         |
-| -------- | ------------------------------ | ---------------------------- |
-| 翻译     | 翻译到目标语言，同语言时转英语 | 动态 Prompt                  |
-| 总结     | 用目标语言总结文本             | 动态 Prompt                  |
-| 打磨     | 原语言润色                     | showsDiff                    |
-| 语法检查 | 润色 + 错误分析                | showsDiff + structuredOutput |
-| 句子分析 | 语法解析与搭配积累             | 动态 Prompt                  |
+| 动作               | 功能描述                       | outputType    |
+| ------------------ | ------------------------------ | ------------- |
+| Translate          | 翻译到目标语言，同语言时转英语 | plain         |
+| Sentence Translate | 逐句翻译                       | sentencePairs |
+| Grammar Check      | 润色 + 错误分析                | grammarCheck  |
+| Polish             | 原语言润色                     | diff          |
+| Sentence Analysis  | 语法解析与搭配积累             | plain         |
 
 默认提供商：
 
-- Azure OpenAI `model-router`（自动路由）
-- Azure OpenAI `gpt-5-nano`（轻量模型）
+- Built-in Cloud（内置云服务，无需配置）
+- 启用模型：`model-router`
 
 ## 扩展执行流程
 
-1. 扩展启动时读取 App Group 偏好设置
-2. 接收 `TranslationUIProviderContext`，自动填充输入框
-3. 自动触发默认动作执行
-4. `HomeViewModel` 根据动作配置筛选提供商
-5. `LLMService` 并发发送请求，流式/非流式分别处理
-6. 实时更新 UI 状态（skeleton → streaming → success/failure）
-7. 支持复制/替换/语音朗读操作
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  1. 扩展启动                                                        │
+│     TranslationProviderExtension.init()                             │
+│     ├─ UserDefaults.addSuite(appGroupSuiteName)                     │
+│     ├─ AppPreferences.shared.refreshFromDefaults()                  │
+│     └─ AppConfigurationStore.shared.reloadCurrentConfiguration()    │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  2. 接收翻译上下文                                                   │
+│     TranslationUIProviderSelectedTextScene { context in ... }       │
+│     └─ context.selectedText → 填充 inputText                        │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  3. 执行翻译                                                        │
+│     HomeViewModel.performSelectedAction()                           │
+│     ├─ getAllEnabledDeployments() → [(provider, deployment)]        │
+│     ├─ providerRuns = [.running(...)]                              │
+│     └─ LLMService.perform(...)                                     │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  4. 流式更新 UI                                                      │
+│     partialHandler: → .streaming(text) / .streamingSentencePairs    │
+│     completionHandler: → .success(...) / .failure(...)              │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
 ## 代码风格
 
-遵循 Airbnb Swift Style Guide：
+遵循 [Swift Style Guide.md](Swift%20Style%20Guide.md)：
 
 - 一个文件一个顶层类型
 - 私有辅助类型使用嵌套声明（如 `SettingsView.LanguagePickerView`）
@@ -514,181 +609,181 @@ store.reloadCurrentConfiguration()
 - trailing comma 规则
 - 多行条件语句在关键字后换行
 
+## 关键常量
+
+```swift
+// App Group
+AppPreferences.appGroupSuiteName = "group.com.zanderwang.AITranslator"
+
+// Built-in Cloud
+ProviderConfig.builtInCloudEndpoint = "https://translator-api.zanderwang.com"
+ProviderConfig.builtInCloudAvailableModels = ["model-router", "gpt-4.1-nano"]
+ProviderConfig.builtInCloudSecret = "REDACTED_HMAC_SECRET"
+
+// 配置版本
+AppConfigurationStore.minimumVersion = "1.1.0"
+```
+
 ## 后续演进建议
 
-1. **持久化**：将配置持久化到 App Group，敏感信息放入 Keychain
-2. **提供商配置 UI**：实现提供商新增/编辑界面
+1. **Keychain 敏感信息存储**：将 API Token 从 UserDefaults 迁移到 Keychain
+2. **提供商配置 UI**：完善提供商新增/编辑界面
 3. **动作编辑 UI**：完善动作创建/编辑流程
 4. **测试覆盖**：补充 URLProtocol Mock 单元测试、UI 测试
 5. **本地化**：完善多语言支持
-6. **日志系统**：加入可观测性与调试日志
+6. **日志系统**：加入 os_log 可观测性与调试日志
 7. **iCloud 同步**：跨设备配置同步
 
 ## 参考资料
 
 - Apple: [Preparing your app to be the default translation app](https://developer.apple.com/documentation/TranslationUIProvider/Preparing-your-app-to-be-the-default-translation-app)
 - Apple TranslationUIProvider / ExtensionKit 文档与 WWDC24 相关 Session
-- [Airbnb Swift Style Guide](https://github.com/airbnb/swift)
 
-## AI Agent 开发工具
+## XcodeBuildMCP 自动化开发
 
-### XcodeBuildMCP
+本项目支持通过 [XcodeBuildMCP](https://github.com/nicepkg/xcodebuild-mcp) 实现 AI Agent 自动化开发。
 
-本项目支持通过 [XcodeBuildMCP](https://github.com/nicepkg/xcodebuild-mcp) 实现 AI Agent 自动化开发。XcodeBuildMCP 是一个 Model Context Protocol (MCP) 服务器，允许 AI Agent 直接与 Xcode 项目交互。
-
-#### 可用能力
-
-| 能力         | 工具示例                                  | 用途                                     |
-| ------------ | ----------------------------------------- | ---------------------------------------- |
-| **构建**     | `build_sim`, `build_macos`                | 编译项目到模拟器或 macOS                 |
-| **运行**     | `build_run_sim`, `launch_app_sim`         | 构建并运行，或直接启动应用               |
-| **截图**     | `screenshot`                              | 捕获模拟器当前屏幕                       |
-| **日志**     | `start_sim_log_cap`, `stop_sim_log_cap`   | 启动/停止日志捕获会话                    |
-| **UI 描述**  | `describe_ui`                             | 获取完整的视图层次结构（用于自动化测试） |
-| **UI 交互**  | `tap`, `type_text`, `swipe`, `long_press` | 模拟用户操作                             |
-| **项目管理** | `discover_projs`, `list_schemes`          | 发现项目和 scheme                        |
-
-#### 典型工作流程
+### 快速开始
 
 ```bash
 # 1. 设置会话默认值
-session-set-defaults {
+mcp_xcodebuildmcp_session-set-defaults {
   "projectPath": "/Users/zander/Work/AITranslator/AITranslator.xcodeproj",
   "scheme": "AITranslator",
-  "simulatorId": "<simulator-uuid>",
   "useLatestOS": true
 }
 
 # 2. 构建并运行
-build_run_sim
+mcp_xcodebuildmcp_build_run_sim  # iOS 模拟器
+mcp_xcodebuildmcp_build_run_macos  # macOS
 
-# 3. 开启日志捕获
-start_sim_log_cap { "bundleId": "com.zanderwang.AITranslator" }
-# 返回 sessionId
-
-# 4. 截图查看当前状态
-screenshot
-
-# 5. 获取 UI 层次结构（用于精确点击坐标）
-describe_ui
-
-# 6. 模拟用户操作
-tap { "label": "Send" }           # 通过 accessibility label 点击
-tap { "x": 200, "y": 300 }        # 通过坐标点击
-type_text { "text": "Hello" }     # 输入文字
-
-# 7. 停止日志捕获并查看
-stop_sim_log_cap { "logSessionId": "<session-id>" }
+# 3. UI 自动化
+mcp_xcodebuildmcp_describe_ui  # 获取 UI 层次结构（用于点击坐标）
+mcp_xcodebuildmcp_tap { "x": 200, "y": 100 }  # 坐标点击
+mcp_xcodebuildmcp_type_text { "text": "Hello" }  # 输入文本
 ```
 
-#### 使用场景
+### 常用工具
 
-1. **自动化 UI 测试**：AI Agent 可以自动构建、运行应用并通过截图验证 UI 效果
-2. **快速迭代**：修改代码后立即编译验证，无需手动操作 Xcode
-3. **问题诊断**：通过日志捕获和 UI 描述快速定位问题
-4. **自动化演示**：录制视频或截图用于文档
+| 工具              | 用途                                   |
+| ----------------- | -------------------------------------- |
+| `build_run_sim`   | 构建并运行到 iOS 模拟器                |
+| `build_run_macos` | 构建并运行 macOS 应用                  |
+| `describe_ui`     | 获取 UI 层次结构（accessibility info） |
+| `tap`             | 点击（坐标或 label）                   |
+| `type_text`       | 输入文本                               |
+| `gesture`         | 滚动/滑动手势                          |
+| `screenshot`      | 截图（注意：静态，无法捕获动画）       |
 
-#### 注意事项
+### 注意事项
 
-- 截图是静态的，无法捕获动画效果
-- 日志捕获需要应用使用 `os_log` 输出结构化日志才能看到内容
 - `describe_ui` 返回 accessibility 信息，用于精确定位 UI 元素坐标
-- 建议在点击前先调用 `describe_ui` 获取精确坐标，而不是从截图猜测
+- Tab Bar 按钮可能未设置 `accessibilityLabel`，需通过坐标点击
+- 建议在点击前先调用 `describe_ui` 获取精确坐标
 
-## 应用行为实测分析
+## 结果卡片共享组件
 
-> 本章节基于 XcodeBuildMCP 自动化测试的实际运行结果，记录应用的真实行为表现。
+> ⚠️ **重要**：结果卡片（Provider Result Card）在 **3 个不同界面** 中分别实现，修改时需要同步更新所有文件。
 
-### 测试环境
+### 界面清单
 
-| 项目     | 值                       |
-| -------- | ------------------------ |
-| 模拟器   | iPhone 17 Pro (iOS 26.1) |
-| Xcode    | 26.1 (Build 17B55)       |
-| MCP 工具 | XcodeBuildMCP v1.15.1    |
-| 测试时间 | 2026-01-01               |
+| 界面                 | 文件路径                                  | 平台        | 场景              |
+| -------------------- | ----------------------------------------- | ----------- | ----------------- |
+| 主应用 Home          | `ShareCore/UI/HomeView.swift`             | iOS + macOS | 主 Tab 的翻译界面 |
+| macOS 快捷翻译       | `AITranslator/MenuBarPopoverView.swift`   | macOS only  | 菜单栏弹出窗口    |
+| iOS Translation 扩展 | `ShareCore/UI/ExtensionCompactView.swift` | iOS only    | 系统翻译扩展      |
 
-### UI 结构实测
+### 共享组件结构
 
-#### Tab Bar 导航
+每个界面都需要实现以下组件：
 
-应用采用底部 Tab Bar 导航，包含 4 个页签：
+```
+providerResultCard(for:)              # 结果卡片容器
+├── content(for:)                     # 内容区域（根据状态渲染）
+│   ├── skeletonPlaceholder()         # 加载骨架屏
+│   ├── streaming text                # 流式文本
+│   ├── sentencePairsView()           # 逐句翻译
+│   ├── diffView()                    # Diff 对比（可切换）
+│   ├── plain text                    # 纯文本
+│   ├── [仅 grammarCheck 模式]
+│   │   └── contentActionButtons()    # 操作按钮（分割线上方）
+│   ├── Divider                       # 分割线（仅 grammarCheck）
+│   └── supplementalTexts             # 补充内容（语法分析等）
+└── bottomInfoBar(for:)               # 底部信息栏
+    ├── status icon                   # 状态图标
+    ├── duration                      # 耗时
+    ├── model name                    # 模型名称
+    └── [仅纯文本/diff 模式]
+        └── actionButtons()           # 操作按钮（底部）
+```
 
-| Tab       | 图标        | 功能         | accessibility label |
-| --------- | ----------- | ------------ | ------------------- |
-| Home      | house.fill  | 主翻译界面   | （未暴露）          |
-| Actions   | list.bullet | 动作列表管理 | （未暴露）          |
-| Providers | cpu         | 提供商配置   | （未暴露）          |
-| Settings  | gear        | 设置         | （未暴露）          |
+> 📍 **按钮位置规则**：
+>
+> - **有 supplementalTexts**（如 grammarCheck）：按钮在分割线上方，针对主内容操作
+> - **无 supplementalTexts**（如 plain/diff/sentencePairs）：按钮在底部状态栏
 
-**发现问题**：Tab Bar 按钮未设置 `accessibilityLabel`，自动化测试需通过坐标点击。
+### 修改 Cell/卡片时的检查清单
 
-#### Home 页面结构
+修改结果卡片相关 UI 时，务必检查：
+
+- [ ] `HomeView.swift` - 主应用界面
+- [ ] `MenuBarPopoverView.swift` - macOS 快捷翻译
+- [ ] `ExtensionCompactView.swift` - iOS 系统翻译扩展
+
+### 状态管理
+
+所有界面共享 `HomeViewModel`，关键状态：
+
+```swift
+// 每个 ProviderRunViewState 包含：
+- status: Status        // 执行状态（idle/running/streaming/success/failure）
+- showDiff: Bool        // 是否显示 diff（默认 true，可切换）
+
+// ViewModel 方法：
+- toggleDiffDisplay(for:)  // 切换 diff 显示
+- hasDiff(for:)            // 检查是否有 diff 数据
+- isDiffShown(for:)        // 获取当前 diff 显示状态
+```
+
+## UI 结构参考
+
+### Tab Bar 导航
+
+| Tab       | 图标        | 功能         |
+| --------- | ----------- | ------------ |
+| Home      | house.fill  | 主翻译界面   |
+| Actions   | list.bullet | 动作列表管理 |
+| Providers | cpu         | 提供商配置   |
+| Settings  | gear        | 设置         |
+
+### Home 页面布局
 
 ```
 ┌─────────────────────────────────────────┐
-│  [Set as default translation app]  ← 提示横幅
+│  [Set as default translation app]       │ ← 提示横幅（可关闭）
 ├─────────────────────────────────────────┤
 │  ┌─────────────────────────────────┐    │
 │  │ Type or paste text here...     │    │ ← 可展开输入框
 │  └─────────────────────────────────┘    │
 │                                         │
 │  [Translate] [Sentence..] [Grammar..]   │ ← 动作选择器（水平滚动）
-│  [Polish] [Sentence Analysis]           │
 │                                         │
-│  ┌─────────────────────────────────┐    │
-│  │  Azure OpenAI model-router      │    │ ← 提供商结果卡片
+│  ┌─────────────────────────────────┐    │  纯文本/diff 模式：
+│  │  响应内容                        │    │  ← 主内容区域
 │  │  ─────────────────────────────  │    │
-│  │  响应内容                        │    │
-│  │                                 │    │
-│  │  [Copy] [Replace] [🔊]          │    │ ← 操作按钮
+│  │  ✓ 2.3s  [👁] [🔊] [📋]        │    │  ← 底部状态栏 + 按钮
 │  └─────────────────────────────────┘    │
 │                                         │
+│  ┌─────────────────────────────────┐    │  grammarCheck 模式：
+│  │  修订内容（diff 高亮）           │    │  ← 主内容
+│  │      [👁] [🔊] [📋] [Replace]   │    │  ← 按钮（分割线上方）
+│  │  ─────────────────────────────  │    │  ← 分割线
+│  │  语法分析补充说明                │    │  ← 补充内容
+│  │  ─────────────────────────────  │    │
+│  │  ✓ 8.2s · model-router          │    │  ← 底部状态栏（无按钮）
+│  └─────────────────────────────────┘    │
 └─────────────────────────────────────────┘
 ```
-
-**关键观察**：
-
-- 输入框默认折叠为单行，点击后展开为多行
-- 动作选择器为水平滚动视图，"Polish" 和 "Sentence Analysis" 初始不可见
-- 提供商卡片显示流式响应状态
-
-### 核心流程验证
-
-#### 翻译流程
-
-1. **输入**：在文本框输入 "Hello, how are you today?"
-2. **选择动作**：点击 "Translate" Chip
-3. **发送**：点击 Send 按钮
-4. **响应**：显示流式响应，最终结果 "你好，今天过得怎么样？"
-5. **响应时间**：2.6 - 4.3 秒（取决于网络和模型）
-
-#### 语法检查流程（结构化输出）
-
-1. **输入**：含语法错误的文本 "She don't likes apples. Me and him goes to school everyday."
-2. **选择动作**：点击 "Grammar Check" Chip
-3. **响应结构**：
-   ```
-   ┌─────────────────────────────────────┐
-   │  polished_text:                     │
-   │  She doesn't like apples. He and I  │
-   │  go to school every day.            │
-   ├─────────────────────────────────────┤
-   │  grammar_analysis:                  │
-   │  • "She don't" → "She doesn't"      │
-   │  • "likes" → "like"                 │
-   │  • "Me and him" → "He and I"        │
-   │  • ...                              │
-   └─────────────────────────────────────┘
-   ```
-4. **响应时间**：约 8.7 秒（结构化输出比普通翻译更慢）
-
-#### 目标语言切换
-
-1. **进入 Settings**：点击 Settings Tab
-2. **选择语言**：点击 "Target Language" → 选择 "简体中文"
-3. **验证生效**：返回 Home 页，Prompt 模板自动更新
-4. **影响范围**：Translate、Summarize、Sentence Analysis 等动态 Prompt 动作
 
 ### 性能基准
 
@@ -698,72 +793,3 @@ stop_sim_log_cap { "logSessionId": "<session-id>" }
 | 简单翻译 | 2.6 - 4.3s | 10 词以内          |
 | 语法检查 | 8 - 10s    | 结构化输出，含分析 |
 | Tab 切换 | < 0.1s     | 即时响应           |
-| 配置加载 | < 0.5s     | 从 JSON 文件加载   |
-
-### 已知问题与改进建议
-
-#### 问题 1：Tab Bar Accessibility
-
-**现象**：Tab 按钮无法通过 `tap { "label": "xxx" }` 点击
-**影响**：自动化测试需要使用坐标点击，降低测试稳定性
-**建议**：为 Tab 按钮添加 `.accessibilityLabel("Home")` 等
-
-#### 问题 2：动作选择器可见性
-
-**现象**：5 个动作在单行显示，后两个需要滚动才能看到
-**影响**：用户可能不知道存在更多动作
-**建议**：
-
-- 添加滚动指示器
-- 或采用多行 Grid 布局
-- 或添加「更多」按钮
-
-#### 问题 3：持久提示横幅
-
-**现象**："Set as default translation app" 横幅始终显示
-**影响**：占用屏幕空间，用户无法关闭
-**建议**：
-
-- 添加关闭按钮
-- 用户设为默认后自动隐藏
-- 或记住用户的关闭偏好
-
-### 测试覆盖建议
-
-基于实测分析，建议补充以下测试场景：
-
-| 类型       | 测试场景                     | 优先级 |
-| ---------- | ---------------------------- | ------ |
-| 功能测试   | 空输入处理                   | P1     |
-| 功能测试   | 超长文本输入（>1000 字符）   | P1     |
-| 功能测试   | 网络断开时的错误处理         | P1     |
-| 功能测试   | 多提供商并发响应             | P2     |
-| 功能测试   | TTS 语音朗读                 | P2     |
-| 功能测试   | diff 对比显示（Polish 动作） | P2     |
-| UI 测试    | 深色模式适配                 | P2     |
-| UI 测试    | 横屏布局                     | P3     |
-| 性能测试   | 大量历史记录时的滚动性能     | P3     |
-| 稳定性测试 | 连续执行 50 次翻译           | P3     |
-
-### 测试命令速查
-
-```bash
-# 构建并运行到模拟器
-mcp_xcodebuildmcp_build_run_sim
-
-# 截图当前状态
-mcp_xcodebuildmcp_screenshot
-
-# 获取 UI 层次结构
-mcp_xcodebuildmcp_describe_ui
-
-# 点击操作
-mcp_xcodebuildmcp_tap { "x": 200, "y": 100 }  # 坐标点击
-mcp_xcodebuildmcp_tap { "label": "Send" }      # Label 点击
-
-# 输入文本
-mcp_xcodebuildmcp_type_text { "text": "Hello" }
-
-# 滚动操作
-mcp_xcodebuildmcp_gesture { "preset": "scroll-down" }
-```

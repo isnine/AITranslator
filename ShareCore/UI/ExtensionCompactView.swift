@@ -267,7 +267,7 @@ public struct ExtensionCompactView: View {
                 liveTimer(start: start)
             }
             
-        case let .success(_, copyText, _, _, _, sentencePairs):
+        case let .success(_, copyText, _, _, supplementalTexts, sentencePairs):
             HStack(spacing: 10) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(colors.success)
@@ -286,9 +286,9 @@ public struct ExtensionCompactView: View {
                 }
                 
                 Spacer()
-                
-                // Action buttons
-                if sentencePairs.isEmpty {
+
+                // Action buttons in bottom bar (only for plain text mode without supplementalTexts)
+                if sentencePairs.isEmpty && supplementalTexts.isEmpty {
                     actionButtons(copyText: copyText, runID: runID)
                 }
             }
@@ -327,6 +327,10 @@ public struct ExtensionCompactView: View {
     
     @ViewBuilder
     private func actionButtons(copyText: String, runID: String) -> some View {
+        // Full action buttons for bottom bar (plain text mode)
+        diffToggleButton(for: runID)
+        compactSpeakButton(for: copyText, runID: runID)
+        compactCopyButton(for: copyText)
         if context.allowsReplacement {
             Button {
                 context.finish(translation: AttributedString(copyText))
@@ -336,12 +340,39 @@ public struct ExtensionCompactView: View {
             }
             .buttonStyle(.plain)
             .foregroundColor(colors.accent)
-            
-            compactSpeakButton(for: copyText, runID: runID)
-            compactCopyButton(for: copyText)
-        } else {
-            compactSpeakButton(for: copyText, runID: runID)
-            compactCopyButton(for: copyText)
+        }
+    }
+
+    @ViewBuilder
+    private func contentActionButtons(copyText: String, runID: String) -> some View {
+        // Action buttons above divider (for grammarCheck/diff modes with supplementalTexts)
+        diffToggleButton(for: runID)
+        compactSpeakButton(for: copyText, runID: runID)
+        compactCopyButton(for: copyText)
+        if context.allowsReplacement {
+            Button {
+                context.finish(translation: AttributedString(copyText))
+            } label: {
+                Label("Replace", systemImage: "arrow.left.arrow.right")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .foregroundColor(colors.accent)
+        }
+    }
+
+    @ViewBuilder
+    private func diffToggleButton(for runID: String) -> some View {
+        if viewModel.hasDiff(for: runID) {
+            let isShowingDiff = viewModel.isDiffShown(for: runID)
+            Button {
+                viewModel.toggleDiffDisplay(for: runID)
+            } label: {
+                Image(systemName: isShowingDiff ? "eye.slash" : "eye")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.accent)
+            }
+            .buttonStyle(.plain)
         }
     }
     
@@ -416,10 +447,12 @@ public struct ExtensionCompactView: View {
             }
             
         case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs):
+            let showDiff = run.showDiff
+            let runID = run.id
             VStack(alignment: .leading, spacing: 10) {
                 if !sentencePairs.isEmpty {
                     sentencePairsView(sentencePairs)
-                } else if let diff {
+                } else if let diff, showDiff {
                     diffView(diff)
                 } else {
                     let mainText = !supplementalTexts.isEmpty ? copyText : text
@@ -427,6 +460,14 @@ public struct ExtensionCompactView: View {
                         .font(.system(size: 13))
                         .foregroundColor(colors.textPrimary)
                         .textSelection(.enabled)
+                }
+                
+                // Action buttons above divider (only when supplementalTexts exist)
+                if sentencePairs.isEmpty && !supplementalTexts.isEmpty {
+                    HStack(spacing: 10) {
+                        Spacer()
+                        contentActionButtons(copyText: copyText, runID: runID)
+                    }
                 }
                 
                 if !supplementalTexts.isEmpty {

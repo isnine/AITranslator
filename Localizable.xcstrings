@@ -858,6 +858,9 @@
         }
       }
     },
+    "Hide changes" : {
+
+    },
     "Highlights differences between original and AI output" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1346,6 +1349,9 @@
           }
         }
       }
+    },
+    "Show changes" : {
+
     },
     "Show Diff" : {
       "localizations" : {

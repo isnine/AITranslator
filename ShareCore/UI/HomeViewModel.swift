@@ -45,6 +45,8 @@ public final class HomeViewModel: ObservableObject {
         public let provider: ProviderConfig
         public let deployment: String
         public var status: Status
+        /// Whether to show diff view (only applicable when diff is available)
+        public var showDiff: Bool = true
 
         /// Use a composite id to uniquely identify provider + deployment
         public var id: String { "\(provider.id.uuidString)-\(deployment)" }
@@ -305,6 +307,35 @@ public final class HomeViewModel: ObservableObject {
 
     public func isSpeaking(runID: String) -> Bool {
         speakingProviders.contains(runID)
+    }
+
+    /// Toggle diff display for a specific provider run
+    public func toggleDiffDisplay(for runID: String) {
+        guard let index = providerRuns.firstIndex(where: { $0.id == runID }) else {
+            return
+        }
+        providerRuns[index].showDiff.toggle()
+    }
+
+    /// Check if diff is available for a specific provider run
+    public func hasDiff(for runID: String) -> Bool {
+        guard let run = providerRuns.first(where: { $0.id == runID }) else {
+            return false
+        }
+        switch run.status {
+        case let .success(_, _, _, diff, _, _):
+            return diff != nil
+        default:
+            return false
+        }
+    }
+
+    /// Check if diff is currently shown for a specific provider run
+    public func isDiffShown(for runID: String) -> Bool {
+        guard let run = providerRuns.first(where: { $0.id == runID }) else {
+            return false
+        }
+        return run.showDiff
     }
 
     public func openAppSettings() {
