@@ -67,6 +67,12 @@ export default {
 // MARK: - TTS Handler
 
 async function handleTTSRequest(request: Request, env: Env): Promise<Response> {
+  // Get client IP from CF headers
+  const clientIP = request.headers.get("CF-Connecting-IP") || "unknown";
+
+  // Log the TTS request with IP
+  console.log(`TTS Request - IP: ${clientIP}`);
+
   try {
     if (!env.TTS_ENDPOINT) {
       return buildResponse(
@@ -121,6 +127,12 @@ async function handleLLMRequest(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const pathParts = url.pathname.split("/").filter(Boolean);
   const requestedModel = pathParts[0];
+
+  // Get client IP from CF headers
+  const clientIP = request.headers.get("CF-Connecting-IP") || "unknown";
+
+  // Log the request with model and IP
+  console.log(`LLM Request - Model: ${requestedModel}, IP: ${clientIP}`);
 
   if (!requestedModel || !ALLOWED_MODELS.includes(requestedModel)) {
     return buildResponse(

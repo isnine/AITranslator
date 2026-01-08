@@ -216,6 +216,11 @@ public struct ConfigurationValidator: Sendable {
   ) -> [ConfigurationValidationIssue] {
     var issues: [ConfigurationValidationIssue] = []
 
+    // Built-in cloud TTS doesn't need endpoint or API key validation
+    if tts.useBuiltInCloud == true {
+      return issues
+    }
+
     // Validate endpoint URL format if provided
     if let endpoint = tts.endpoint, !endpoint.isEmpty, URL(string: endpoint) == nil {
       issues.append(.invalidTTSEndpoint(url: endpoint))
