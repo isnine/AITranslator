@@ -17,7 +17,6 @@ struct MenuBarPopoverView: View {
     @ObservedObject private var hotKeyManager = HotKeyManager.shared
     @State private var inputText: String = ""
     @State private var showHotkeyHint: Bool = true
-    @State private var clipboardSubscription: AnyCancellable?
     @FocusState private var isInputFocused: Bool
     let onClose: () -> Void
     
@@ -73,29 +72,7 @@ struct MenuBarPopoverView: View {
             // Refresh configuration first, then load clipboard and execute
             viewModel.refreshConfiguration()
             loadClipboardAndExecute()
-            
-            // Subscribe to clipboard changes while popover is visible
-            subscribeToClipboardChanges()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .menuBarPopoverDidClose)) { _ in
-            unsubscribeFromClipboardChanges()
-        }
-    }
-    
-    private func subscribeToClipboardChanges() {
-        guard clipboardSubscription == nil else { return }
-        clipboardSubscription = ClipboardMonitor.shared.clipboardChanged
-            .receive(on: DispatchQueue.main)
-            .sink { newContent in
-                inputText = newContent
-                viewModel.inputText = newContent
-                viewModel.performSelectedAction()
-            }
-    }
-    
-    private func unsubscribeFromClipboardChanges() {
-        clipboardSubscription?.cancel()
-        clipboardSubscription = nil
     }
 
     private var configurationLoadingOverlay: some View {
