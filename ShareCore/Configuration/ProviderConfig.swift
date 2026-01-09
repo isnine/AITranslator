@@ -28,10 +28,10 @@ public struct ProviderConfig: Identifiable, Hashable, Codable {
     public static let builtInCloudEndpoint = URL(string: "https://translator-api.zanderwang.com")!
 
     /// Available models for Built-in Cloud provider
-    public static let builtInCloudAvailableModels = ["model-router", "gpt-4.1-nano"]
+    public static let builtInCloudAvailableModels = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5-nano", "gpt-5-mini", "model-router"]
 
     /// Default model for Built-in Cloud provider
-    public static let builtInCloudDefaultModel = "model-router"
+    public static let builtInCloudDefaultModel = "gpt-4.1-mini"
 
     /// Shared secret for HMAC signing (used with Built-in Cloud provider)
     public static let builtInCloudSecret = "REDACTED_HMAC_SECRET"

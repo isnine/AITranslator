@@ -26,7 +26,13 @@ interface AuthResult {
 const TIMESTAMP_TOLERANCE_SECONDS = 120;
 
 // Allowed models for the built-in cloud service
-const ALLOWED_MODELS = ["model-router", "gpt-4.1-nano"];
+const ALLOWED_MODELS = [
+  "gpt-4o-mini",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "gpt-5-nano",
+  "gpt-5-mini",
+];
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
