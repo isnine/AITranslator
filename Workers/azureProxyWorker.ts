@@ -32,7 +32,7 @@ const ALLOWED_MODELS = [
   "gpt-4.1-nano",
   "gpt-5-nano",
   "gpt-5-mini",
-  "moudel-router",
+  "model-router",
 ];
 
 const CORS_HEADERS: Record<string, string> = {
