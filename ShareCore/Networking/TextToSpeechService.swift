@@ -122,6 +122,11 @@ public final class TextToSpeechService {
     @MainActor
     private func playAudio(with data: Data) throws {
         #if canImport(AVFoundation)
+        #if os(iOS)
+        // Configure audio session to play even when the device is in silent mode
+        try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+        try AVAudioSession.sharedInstance().setActive(true)
+        #endif
         audioPlayer?.stop()
         audioPlayer = try AVAudioPlayer(data: data)
         audioPlayer?.prepareToPlay()
