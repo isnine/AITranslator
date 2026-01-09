@@ -91,6 +91,9 @@ struct RootTabView: View {
         .onReceive(configStore.createCustomConfigurationRequestPublisher) { request in
             handleCreateCustomConfigRequest(request)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openTargetLanguageSettings)) { _ in
+            selection = .settings
+        }
         .alert("Create Custom Configuration", isPresented: $showCreateCustomConfigDialog) {
             TextField("Configuration Name", text: $customConfigName)
             Button("Cancel", role: .cancel) {
@@ -137,6 +140,9 @@ struct RootTabView: View {
         .background(colors.background.ignoresSafeArea())
         .onReceive(configStore.createCustomConfigurationRequestPublisher) { request in
             handleCreateCustomConfigRequest(request)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openTargetLanguageSettings)) { _ in
+            selection = .settings
         }
         .alert("Create Custom Configuration", isPresented: $showCreateCustomConfigDialog) {
             TextField("Configuration Name", text: $customConfigName)
@@ -185,3 +191,5 @@ struct RootTabView: View {
         pendingConfigRequest = nil
     }
 }
+
+

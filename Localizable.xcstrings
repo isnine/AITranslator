@@ -1444,6 +1444,9 @@
         }
       }
     },
+    "Target: %@" : {
+
+    },
     "Test Deployments" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1478,6 +1481,16 @@
     "This action is not supported by the selected provider" : {
       "comment" : "Unsupported action error"
     },
+    "TLingo" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TLingo"
+          }
+        }
+      }
+    },
     "Translate" : {
       "comment" : "Name of the translate action",
       "localizations" : {
@@ -1495,16 +1508,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "翻译中…"
-          }
-        }
-      }
-    },
-    "TLingo" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "TLingo"
           }
         }
       }

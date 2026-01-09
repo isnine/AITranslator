@@ -459,11 +459,55 @@ public struct HomeView: View {
     }
 
     private var hintLabel: some View {
-        Text(viewModel.placeholderHint)
-            .font(.system(size: 14))
-            .foregroundColor(colors.textSecondary)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.top, 8)
+        HStack(spacing: 12) {
+            Text(viewModel.placeholderHint)
+                .font(.system(size: 14))
+                .foregroundColor(colors.textSecondary)
+            targetLanguageIndicator
+        }
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.top, 8)
+    }
+
+    private var targetLanguageIndicator: some View {
+        let targetLanguage = preferences.targetLanguage
+        let displayName: String = {
+            if targetLanguage == .appLanguage {
+                // Show the actual resolved language name instead of "Match App Language"
+                return TargetLanguageOption.appLanguageEnglishName
+            } else {
+                return targetLanguage.primaryLabel
+            }
+        }()
+
+        return Button {
+            openTargetLanguageSettings()
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "globe")
+                    .font(.system(size: 12))
+                Text("Target: \(displayName)")
+                    .font(.system(size: 13, weight: .medium))
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundColor(colors.accent)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(colors.accent.opacity(0.12))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func openTargetLanguageSettings() {
+        // Post a notification to open settings tab
+        NotificationCenter.default.post(
+            name: .openTargetLanguageSettings,
+            object: nil
+        )
     }
 
     private var providerResultsSection: some View {
@@ -1233,3 +1277,8 @@ extension Notification.Name {
   static let serviceTextReceived = Notification.Name("serviceTextReceived")
 }
 #endif
+
+public extension Notification.Name {
+  /// Notification posted to open target language settings in the main app
+  static let openTargetLanguageSettings = Notification.Name("openTargetLanguageSettings")
+}
