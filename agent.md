@@ -1,4 +1,4 @@
-# AITranslator (Tree² Lang)
+# TLingo
 
 > **AI Agent 开发指南**：本文档专为 AI Agent 理解项目结构和代码逻辑而编写。修改代码前请先阅读相关章节。
 
@@ -18,7 +18,7 @@
 
 ## Overview
 
-Tree² Lang 是一款面向 iOS 18+ / macOS 的 SwiftUI 应用，配套一个 `TranslationUIProviderExtension` 扩展，用于在系统翻译面板中直接调用自定义的 LLM 动作。
+TLingo 是一款面向 iOS 18+ / macOS 的 SwiftUI 应用，配套一个 `TranslationUIProviderExtension` 扩展，用于在系统翻译面板中直接调用自定义的 LLM 动作。
 
 **核心能力**：
 

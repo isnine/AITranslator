@@ -1326,16 +1326,12 @@
         }
       }
     },
-    "Set Tree² as the default translation app" : {
-
-    },
-    "Set Tree² Lang as the default translation app" : {
-      "extractionState" : "stale",
+    "Set TLingo as the default translation app" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将 Tree² 设为默认翻译应用"
+            "value" : "将 TLingo 设为默认翻译应用"
           }
         }
       }
@@ -1503,12 +1499,12 @@
         }
       }
     },
-    "Tree²" : {
+    "TLingo" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tree²"
+            "value" : "TLingo"
           }
         }
       }

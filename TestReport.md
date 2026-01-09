@@ -1,4 +1,4 @@
-# AITranslator (Tree² Lang) 测试报告
+# TLingo 测试报告
 
 **测试日期**: 2025-07-15 (更新)  
 **测试环境**: iPhone 17 Pro Simulator (iOS 26.0)  
@@ -9,7 +9,7 @@
 
 ## 📋 测试概述
 
-本次测试覆盖了 AITranslator 的核心功能路径，包括主界面导航、全部 5 个默认 Actions、语言设置、Actions 和 Providers 管理功能。
+本次测试覆盖了 TLingo 的核心功能路径，包括主界面导航、全部 5 个默认 Actions、语言设置、Actions 和 Providers 管理功能。
 
 ## ✅ 测试结果汇总
 
@@ -45,7 +45,7 @@
 
 **截图验证**: 主界面正确显示，包含：
 
-- Tree² 标题
+- TLingo 标题
 - 设置默认翻译应用提示 (可关闭)
 - 文本输入框 (placeholder: "Enter text to translate or process...")
 - 动作选择器 (5 个 chips)
@@ -443,7 +443,7 @@ TabView {
 
 **严重程度**: 🟢 低
 
-**描述**: "Set Tree² as the default translation app" 提示在主界面一直显示。
+**描述**: "Set TLingo as the default translation app" 提示在主界面一直显示。
 
 **当前情况**: 提示已有关闭按钮 (X)，可以手动关闭 ✅
 
@@ -541,7 +541,7 @@ Button { ... }
 
 ## 📝 测试总结
 
-AITranslator (Tree² Lang) 的核心功能运行正常，全部 5 个默认 Actions 测试通过。主要问题集中在 Accessibility 支持上：
+TLingo 的核心功能运行正常，全部 5 个默认 Actions 测试通过。主要问题集中在 Accessibility 支持上：
 
 1. **Tab Bar** 不暴露子元素的 accessibility 信息
 2. **Actions 列表** 按钮的 label 包含完整描述而非简短名称

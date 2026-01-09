@@ -10,7 +10,7 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Translate with Tree²</string>
+				<string>Translate with TLingo</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>translateText</string>

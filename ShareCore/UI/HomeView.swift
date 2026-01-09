@@ -189,7 +189,7 @@ public struct HomeView: View {
     }
 
     private var header: some View {
-        Text("Tree²")
+        Text("TLingo")
             .font(.system(size: 28, weight: .semibold))
             .foregroundColor(colors.textPrimary)
     }
@@ -200,7 +200,7 @@ public struct HomeView: View {
                 .foregroundColor(colors.accent)
                 .font(.system(size: 18))
 
-            Text("Set Tree² as the default translation app")
+            Text("Set TLingo as the default translation app")
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)

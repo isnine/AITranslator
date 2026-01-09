@@ -1,8 +1,8 @@
-# Tree² Lang (AITranslator) MCP 自动化测试计划
+# TLingo MCP 自动化测试计划
 
 ## 概述
 
-本测试计划专为 MCP (XcodeBuildMCP) 自动化测试设计，涵盖 Tree² Lang 应用的核心功能验证。所有测试步骤均以 MCP 工具调用格式编写，便于自动化执行。
+本测试计划专为 MCP (XcodeBuildMCP) 自动化测试设计，涵盖 TLingo 应用的核心功能验证。所有测试步骤均以 MCP 工具调用格式编写，便于自动化执行。
 
 ---
 
@@ -52,7 +52,7 @@ mcp_xcodebuildmcp_describe_ui
 **预期结果**：
 
 - 应用显示 Home 页面
-- 可见"Tree²"标题
+- 可见"TLingo"标题
 - 显示输入框和动作选择器
 - 底部 Tab Bar 可见
 

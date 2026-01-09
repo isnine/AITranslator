@@ -516,7 +516,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AITranslator/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tree² Translator";
+				INFOPLIST_KEY_CFBundleDisplayName = TLingo;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -576,7 +576,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AITranslator/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tree² Translator";
+				INFOPLIST_KEY_CFBundleDisplayName = TLingo;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -623,7 +623,7 @@
 				DEVELOPMENT_TEAM = JW2LR94V6G;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TranslationUI/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tree² Translator";
+				INFOPLIST_KEY_CFBundleDisplayName = TLingo;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -656,7 +656,7 @@
 				DEVELOPMENT_TEAM = JW2LR94V6G;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TranslationUI/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Tree² Translator";
+				INFOPLIST_KEY_CFBundleDisplayName = TLingo;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.4;
 				LD_RUNPATH_SEARCH_PATHS = (
