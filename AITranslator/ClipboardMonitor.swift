@@ -1,6 +1,6 @@
 //
 //  ClipboardMonitor.swift
-//  AITranslator
+//  TLingo
 //
 //  Created by AI Assistant on 2026/01/08.
 //

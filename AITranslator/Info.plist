@@ -15,7 +15,7 @@
 			<key>NSMessage</key>
 			<string>translateText</string>
 			<key>NSPortName</key>
-			<string>AITranslator</string>
+			<string>TLingo</string>
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>

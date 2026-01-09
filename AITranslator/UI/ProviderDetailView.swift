@@ -1,6 +1,6 @@
 //
 //  ProviderDetailView.swift
-//  AITranslator
+//  TLingo
 //
 //  Created by AI Assistant on 2025/12/31.
 //

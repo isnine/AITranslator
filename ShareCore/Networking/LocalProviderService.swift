@@ -8,7 +8,7 @@
 import Foundation
 import os
 
-private let localProviderLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "AITranslator", category: "LocalProvider")
+private let localProviderLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "TLingo", category: "LocalProvider")
 
 /// Unified service for managing local on-device providers
 public final class LocalProviderService: Sendable {

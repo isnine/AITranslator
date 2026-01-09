@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import os
 
-private let appleTranslationLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "AITranslator", category: "AppleTranslation")
+private let appleTranslationLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "TLingo", category: "AppleTranslation")
 
 /// Service for using Apple's system Translation API
 /// Note: TranslationSession can only be obtained via SwiftUI's .translationTask() modifier

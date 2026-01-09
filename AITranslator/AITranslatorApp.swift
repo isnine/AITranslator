@@ -1,6 +1,6 @@
 //
-//  AITranslatorApp.swift
-//  AITranslator
+//  TLingoApp.swift
+//  TLingo
 //
 //  Created by Zander Wang on 2025/10/18.
 //

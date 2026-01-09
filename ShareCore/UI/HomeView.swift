@@ -1,6 +1,6 @@
 //
 //  HomeView.swift
-//  AITranslator
+//  TLingo
 //
 //  Created by Zander Wang on 2025/10/19.
 //

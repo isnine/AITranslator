@@ -1,6 +1,6 @@
 //
 //  PlaceholderTab.swift
-//  AITranslator
+//  TLingo
 //
 //  Created by Codex on 2025/10/19.
 //
