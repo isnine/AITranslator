@@ -6,7 +6,7 @@
   "providers": {
     "Built-in Cloud": {
       "category": "Built-in Cloud",
-      "enabledDeployments": ["gpt-4.1-mini"]
+      "enabledDeployments": ["gpt-4.1-nano"]
     }
   },
   "tts": {
