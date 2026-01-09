@@ -57,30 +57,11 @@
     "%lld models" : {
 
     },
-    "%lld Provider" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 提供商"
-          }
-        }
-      }
-    },
     "%lld Providers" : {
 
     },
-    "Action Library" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "动作库"
-          }
-        }
-      }
+    "%lld." : {
+
     },
     "Action Name" : {
       "localizations" : {
@@ -104,50 +85,6 @@
     },
     "ACTIONS" : {
 
-    },
-    "Add a provider to start using translation features." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加提供商以开始使用翻译功能。"
-          }
-        }
-      }
-    },
-    "Add Provider" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加提供商"
-          }
-        }
-      }
-    },
-    "All Actions" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部动作"
-          }
-        }
-      }
-    },
-    "Always up-to-date with the latest app features" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "始终与最新应用功能保持同步"
-          }
-        }
-      }
     },
     "API Key" : {
       "localizations" : {
@@ -179,17 +116,6 @@
         }
       }
     },
-    "App" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "应用内"
-          }
-        }
-      }
-    },
     "App Preferences" : {
       "localizations" : {
         "zh-Hans" : {
@@ -202,17 +128,6 @@
     },
     "Are you sure you want to delete '%@'? This action cannot be undone." : {
 
-    },
-    "Are you sure you want to delete \"%@\"?" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "确定要删除\"%@\"吗？"
-          }
-        }
-      }
     },
     "Are you sure you want to delete \"%@\"? This action cannot be undone." : {
       "localizations" : {
@@ -297,17 +212,6 @@
         }
       }
     },
-    "Clear shortcut" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除快捷键"
-          }
-        }
-      }
-    },
     "Cmd+Return" : {
       "localizations" : {
         "zh-Hans" : {
@@ -378,30 +282,8 @@
         }
       }
     },
-    "Configure text-to-speech for reading results aloud." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "配置文字转语音以朗读结果。"
-          }
-        }
-      }
-    },
     "Configure your translation actions" : {
 
-    },
-    "Configured Providers" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已配置的提供商"
-          }
-        }
-      }
     },
     "Connection" : {
       "localizations" : {
@@ -451,28 +333,6 @@
     },
     "Create New Configuration" : {
 
-    },
-    "Create your first action by tapping the + button, or import a configuration from Settings." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "点击 + 按钮创建你的第一个动作，或从设置中导入配置。"
-          }
-        }
-      }
-    },
-    "Current" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "当前"
-          }
-        }
-      }
     },
     "Current Path" : {
       "localizations" : {
@@ -557,17 +417,6 @@
     },
     "Delete Action" : {
 
-    },
-    "Delete Configuration" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除配置"
-          }
-        }
-      }
     },
     "Delete Configuration?" : {
 
@@ -662,17 +511,6 @@
         }
       }
     },
-    "Duplicate" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "复制"
-          }
-        }
-      }
-    },
     "Duration: %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -763,17 +601,6 @@
         }
       }
     },
-    "Enter API Key here" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在此输入 API 密钥"
-          }
-        }
-      }
-    },
     "Enter text and choose an action to get started" : {
       "comment" : "Hint shown above the action list when no input or results exist",
       "localizations" : {
@@ -836,16 +663,8 @@
         }
       }
     },
-    "Global Shortcuts" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全局快捷键"
-          }
-        }
-      }
+    "Got it" : {
+
     },
     "Grammar Check" : {
       "comment" : "Name of the grammar check action",
@@ -881,6 +700,9 @@
         }
       }
     },
+    "How to Use TLingo" : {
+
+    },
     "Import Failed" : {
       "localizations" : {
         "zh-Hans" : {
@@ -893,17 +715,6 @@
     },
     "In App" : {
 
-    },
-    "Load" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加载"
-          }
-        }
-      }
     },
     "Loading configuration..." : {
       "localizations" : {
@@ -927,17 +738,6 @@
     },
     "Local" : {
       "comment" : "Local provider name"
-    },
-    "Manage your custom actions" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "管理自定义动作"
-          }
-        }
-      }
     },
     "Model" : {
       "localizations" : {
@@ -969,17 +769,6 @@
         }
       }
     },
-    "New" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新建"
-          }
-        }
-      }
-    },
     "No Actions Yet" : {
       "localizations" : {
         "zh-Hans" : {
@@ -990,30 +779,8 @@
         }
       }
     },
-    "No providers configured yet." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有提供商"
-          }
-        }
-      }
-    },
     "No Providers Yet" : {
 
-    },
-    "No saved configurations" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有已保存的配置"
-          }
-        }
-      }
     },
     "No text available for speech." : {
       "comment" : "TTS empty input error",
@@ -1072,17 +839,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "纯文本"
-          }
-        }
-      }
-    },
-    "Press shortcuts to show/hide windows from anywhere." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "按快捷键可在任意位置显示/隐藏窗口。"
           }
         }
       }
@@ -1467,17 +1223,6 @@
         }
       }
     },
-    "The default configuration is bundled with the app and cannot be edited. To customize your settings, create a new configuration or load an existing one." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "默认配置内置于应用中，无法编辑。如需自定义设置，请创建新配置或加载现有配置。"
-          }
-        }
-      }
-    },
     "This action is not supported by the selected provider" : {
       "comment" : "Unsupported action error"
     },
@@ -1512,17 +1257,6 @@
         }
       }
     },
-    "TTS Settings" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "TTS 设置"
-          }
-        }
-      }
-    },
     "Unable to connect to the speech service." : {
       "comment" : "TTS invalid response error",
       "localizations" : {
@@ -1553,17 +1287,6 @@
     "Use {text} and {targetLanguage} as placeholders" : {
 
     },
-    "Use {text} as placeholder" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用 {text} 作为占位符"
-          }
-        }
-      }
-    },
     "Use Built-in Cloud" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1574,56 +1297,12 @@
         }
       }
     },
-    "Use Default" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用默认"
-          }
-        }
-      }
-    },
-    "Using Default Configuration" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用默认配置"
-          }
-        }
-      }
-    },
     "Validation Failed" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "验证失败"
-          }
-        }
-      }
-    },
-    "Visible when you can edit and replace text" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可编辑与替换文本时显示"
-          }
-        }
-      }
-    },
-    "Visible when you can only read text" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅能查看文本时显示"
           }
         }
       }

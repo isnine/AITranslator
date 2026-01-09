@@ -31,6 +31,7 @@ public struct HomeView: View {
   @State private var hasTriggeredAutoRequest = false
   @State private var isInputExpanded: Bool
   @State private var showingProviderInfo: String?
+  @State private var showDefaultAppGuide = false
   var openFromExtension: Bool {
     #if canImport(TranslationUIProvider)
     return context != nil
@@ -170,6 +171,13 @@ public struct HomeView: View {
           viewModel.updateUsageScene(usageScene)
         }
         #endif
+        .sheet(isPresented: $showDefaultAppGuide) {
+            DefaultAppGuideSheet(colors: colors) {
+                showDefaultAppGuide = false
+            }
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private var configurationLoadingOverlay: some View {
@@ -207,7 +215,11 @@ public struct HomeView: View {
 
             Spacer()
 
-            Button(action: viewModel.openAppSettings) {
+            Button(action: {
+                AppPreferences.shared.setDefaultAppHintDismissed(true)
+                viewModel.openAppSettings()
+                showDefaultAppGuide = true
+            }) {
                 Text("Open Settings")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(colors.chipPrimaryText)
@@ -1228,6 +1240,100 @@ private final class PastingTextView: UITextView {
     }
 }
 #endif
+
+// MARK: - Default App Guide Sheet
+
+private struct DefaultAppGuideSheet: View {
+    let colors: AppColorPalette
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 12) {
+                Image(systemName: "translate")
+                    .font(.system(size: 44))
+                    .foregroundColor(colors.accent)
+                Text("How to Use TLingo")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(colors.textPrimary)
+            }
+            .padding(.top, 24)
+
+            // Steps
+            VStack(alignment: .leading, spacing: 20) {
+                guideStep(
+                    number: 1,
+                    icon: "checkmark.circle.fill",
+                    title: "Set as Default",
+                    description: "Ensure TLingo is set as your default translation app in Settings → Apps → TLingo"
+                )
+
+                guideStep(
+                    number: 2,
+                    icon: "text.cursor",
+                    title: "Select Text",
+                    description: "In any app, select the text you want to translate"
+                )
+
+                guideStep(
+                    number: 3,
+                    icon: "hand.tap.fill",
+                    title: "Tap Translate",
+                    description: "Swipe the context menu and tap \"Translate\" to use TLingo"
+                )
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+
+            // Button
+            Button(action: onDismiss) {
+                Text("Got it")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colors.accent)
+                    )
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
+        }
+        .background(colors.background.ignoresSafeArea())
+    }
+
+    private func guideStep(number: Int, icon: String, title: String, description: String) -> some View {
+        HStack(alignment: .top, spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(colors.accent.opacity(0.15))
+                    .frame(width: 44, height: 44)
+                Image(systemName: icon)
+                    .font(.system(size: 18))
+                    .foregroundColor(colors.accent)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text("\(number).")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(colors.accent)
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
+                }
+                Text(description)
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
 
 // MARK: - Shimmer Animation
 
