@@ -75,6 +75,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
+  func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+    // If user enabled "keep running when closed", don't quit when window closes
+    return !AppPreferences.shared.keepRunningWhenClosed
+  }
+
+  func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+    // When user clicks Dock icon and no windows are visible, open main window
+    if !flag {
+      openMainWindow()
+    }
+    return true
+  }
+
+  /// Opens or brings the main window to front
+  func openMainWindow() {
+    // Try to find existing window and bring it to front
+    if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+      window.makeKeyAndOrderFront(nil)
+    } else {
+      // No window exists, create a new one using the File > New Window action
+      NSApp.sendAction(#selector(NSDocumentController.newDocument(_:)), to: nil, from: nil)
+    }
+    NSApp.activate(ignoringOtherApps: true)
+  }
+
   /// Service handler for translating text from right-click menu
   /// This method name must match the NSMessage value in Info.plist
   @objc func translateText(

@@ -24,6 +24,9 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var customConfigDirectory: URL?
     @Published public private(set) var useICloudForConfig: Bool
     @Published public private(set) var defaultAppHintDismissed: Bool
+    #if os(macOS)
+    @Published public private(set) var keepRunningWhenClosed: Bool
+    #endif
 
     private let defaults: UserDefaults
     private var notificationObserver: NSObjectProtocol?
@@ -36,6 +39,12 @@ public final class AppPreferences: ObservableObject {
         self.customConfigDirectory = AppPreferences.readCustomConfigDirectory(from: defaults)
         self.useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
         self.defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
+        #if os(macOS)
+        // Default to true - keep app running in menu bar when window is closed
+        self.keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
+            ? true
+            : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
+        #endif
 
         notificationObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification,
@@ -124,6 +133,16 @@ public final class AppPreferences: ObservableObject {
         defaults.synchronize()
     }
 
+    #if os(macOS)
+    public func setKeepRunningWhenClosed(_ keepRunning: Bool) {
+        guard keepRunningWhenClosed != keepRunning else { return }
+
+        keepRunningWhenClosed = keepRunning
+        defaults.set(keepRunning, forKey: StorageKeys.keepRunningWhenClosed)
+        defaults.synchronize()
+    }
+    #endif
+
     /// Returns the iCloud Documents directory URL if available
     public static var iCloudDocumentsURL: URL? {
         FileManager.default.url(forUbiquityContainerIdentifier: nil)?
@@ -161,6 +180,15 @@ public final class AppPreferences: ObservableObject {
         if useICloudForConfig != storedUseICloud {
             useICloudForConfig = storedUseICloud
         }
+
+        #if os(macOS)
+        let storedKeepRunning = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
+            ? true
+            : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
+        if keepRunningWhenClosed != storedKeepRunning {
+            keepRunningWhenClosed = storedKeepRunning
+        }
+        #endif
     }
 
     private static func readCustomConfigDirectory(from defaults: UserDefaults) -> URL? {
@@ -238,4 +266,7 @@ private enum StorageKeys {
     static let customConfigDirectory = "custom_config_directory"
     static let useICloudForConfig = "use_icloud_for_config"
     static let defaultAppHintDismissed = "default_app_hint_dismissed"
+    #if os(macOS)
+    static let keepRunningWhenClosed = "keep_running_when_closed"
+    #endif
 }

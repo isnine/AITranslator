@@ -28,7 +28,7 @@ public struct ProviderConfig: Identifiable, Hashable, Codable {
     public static let builtInCloudEndpoint = URL(string: "https://translator-api.zanderwang.com")!
 
     /// Available models for Built-in Cloud provider
-    public static let builtInCloudAvailableModels = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5-nano", "gpt-5-mini", "model-router"]
+    public static let builtInCloudAvailableModels = ["gpt-4o-mini", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5-nano", "gpt-5-mini"]
 
     /// Default model for Built-in Cloud provider
     public static let builtInCloudDefaultModel = "gpt-4.1-mini"
