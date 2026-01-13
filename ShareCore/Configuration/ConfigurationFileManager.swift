@@ -323,7 +323,21 @@ public final class ConfigurationFileManager: @unchecked Sendable {
   /// Create a new configuration from the bundled default template
   public func createFromDefaultTemplate() throws -> URL {
     // Find bundled default configuration
-    guard let bundleURL = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
+    // Use ShareCore's bundle first, then fallback to main bundle
+    let shareCoreBundles = [
+      Bundle(for: ConfigurationFileManager.self),  // ShareCore framework bundle
+      Bundle.main,  // Fallback to main bundle for main app
+    ]
+    
+    var bundleURL: URL?
+    for bundle in shareCoreBundles {
+      if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json") {
+        bundleURL = url
+        break
+      }
+    }
+    
+    guard let bundleURL else {
       throw ConfigurationError.bundledConfigNotFound
     }
     

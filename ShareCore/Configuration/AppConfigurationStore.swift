@@ -499,8 +499,23 @@ public final class AppConfigurationStore: ObservableObject {
 
   /// Load the bundled default configuration directly from the app bundle (read-only)
   private func loadBundledDefaultConfiguration() {
-    guard let bundleURL = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
-      print("[ConfigStore] ❌ Bundled default configuration not found in app bundle")
+    // Use ShareCore's bundle to find the configuration, not Bundle.main
+    // This ensures it works in both the main app and extensions
+    let shareCoreBundles = [
+      Bundle(for: AppConfigurationStore.self),  // ShareCore framework bundle
+      Bundle.main,  // Fallback to main bundle for main app
+    ]
+    
+    var bundleURL: URL?
+    for bundle in shareCoreBundles {
+      if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json") {
+        bundleURL = url
+        break
+      }
+    }
+    
+    guard let bundleURL else {
+      print("[ConfigStore] ❌ Bundled default configuration not found in any bundle")
       createEmptyConfiguration()
       return
     }
@@ -573,7 +588,21 @@ public final class AppConfigurationStore: ObservableObject {
     // First, copy the bundled default to configurations directory (overwriting existing)
     let defaultConfigURL = configFileManager.configurationsDirectory.appendingPathComponent("Default.json")
 
-    guard let bundleURL = Bundle.main.url(forResource: "DefaultConfiguration", withExtension: "json") else {
+    // Use ShareCore's bundle first, then fallback to main bundle
+    let shareCoreBundles = [
+      Bundle(for: AppConfigurationStore.self),  // ShareCore framework bundle
+      Bundle.main,  // Fallback to main bundle for main app
+    ]
+    
+    var bundleURL: URL?
+    for bundle in shareCoreBundles {
+      if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json") {
+        bundleURL = url
+        break
+      }
+    }
+    
+    guard let bundleURL else {
       print("[ConfigStore] ❌ Bundled default configuration not found")
       return false
     }
