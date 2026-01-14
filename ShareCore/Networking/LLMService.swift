@@ -28,18 +28,26 @@ public final class LLMService {
     /// Supported placeholders:
     /// - `{text}` or `{{text}}` - The user's input text
     /// - `{targetLanguage}` or `{{targetLanguage}}` - The user's configured target language
+    /// - `{fallbackLanguage}` or `{{fallbackLanguage}}` - The fallback language from user's system preferences
     private func substitutePromptPlaceholders(_ prompt: String, text: String) -> String {
         var result = prompt
-        
+
+        let targetLanguageOption = AppPreferences.shared.targetLanguage
+
         // Replace {targetLanguage} and {{targetLanguage}} with the actual target language
-        let targetLanguage = AppPreferences.shared.targetLanguage.promptDescriptor
+        let targetLanguage = targetLanguageOption.promptDescriptor
         result = result.replacingOccurrences(of: "{{targetLanguage}}", with: targetLanguage)
         result = result.replacingOccurrences(of: "{targetLanguage}", with: targetLanguage)
-        
+
+        // Replace {fallbackLanguage} and {{fallbackLanguage}} with the fallback language
+        let fallbackLanguage = targetLanguageOption.fallbackLanguageDescriptor
+        result = result.replacingOccurrences(of: "{{fallbackLanguage}}", with: fallbackLanguage)
+        result = result.replacingOccurrences(of: "{fallbackLanguage}", with: fallbackLanguage)
+
         // Replace {text} and {{text}} with the actual input text
         result = result.replacingOccurrences(of: "{{text}}", with: text)
         result = result.replacingOccurrences(of: "{text}", with: text)
-        
+
         return result
     }
 
@@ -198,8 +206,17 @@ public final class LLMService {
             request.httpBody = payloadData
 
             if let jsonString = String(data: payloadData, encoding: .utf8) {
-                print("Sending request to \(provider.apiURL.absoluteString)")
+                print("=== LLM Request Debug ===")
+                print("Provider: \(provider.displayName)")
+                print("Deployment: \(deployment)")
+                print("URL: \(requestURL.absoluteString)")
+                print("Action: \(action.name)")
+                print("Original Prompt: \(action.prompt)")
+                print("Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))")
+                print("Fallback Language: \(AppPreferences.shared.targetLanguage.fallbackLanguageDescriptor)")
+                print("System Preferred Languages: \(Locale.preferredLanguages)")
                 print("Request payload: \(jsonString)")
+                print("=========================")
             }
 
             try Task.checkCancellation()
