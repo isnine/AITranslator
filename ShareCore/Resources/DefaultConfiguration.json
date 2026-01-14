@@ -16,12 +16,12 @@
   "actions": [
     {
       "name": "Translate",
-      "prompt": "If input is in {{targetLanguage}}, translate to the detected source language; otherwise translate to {{targetLanguage}}. Keep tone and style. Output translation only.",
+      "prompt": "If input is in {{targetLanguage}}, translate to {{fallbackLanguage}}; otherwise translate to {{targetLanguage}}. Keep tone and style. Output translation only.",
       "outputType": "plain"
     },
     {
       "name": "Sentence Translate",
-      "prompt": "If input is in {{targetLanguage}}, translate sentence by sentence to the detected source language; otherwise translate to {{targetLanguage}}. Return original-translation pairs. Keep meaning and style.",
+      "prompt": "If input is in {{targetLanguage}}, translate sentence by sentence to {{fallbackLanguage}}; otherwise translate to {{targetLanguage}}. Return original-translation pairs. Keep meaning and style.",
       "outputType": "sentencePairs"
     },
     {
