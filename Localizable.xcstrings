@@ -126,6 +126,9 @@
         }
       }
     },
+    "App stays active when window is closed" : {
+
+    },
     "Are you sure you want to delete '%@'? This action cannot be undone." : {
 
     },
@@ -714,6 +717,9 @@
       }
     },
     "In App" : {
+
+    },
+    "Keep Running in Menu Bar" : {
 
     },
     "Loading configuration..." : {
