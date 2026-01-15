@@ -90,14 +90,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   /// Opens or brings the main window to front
   func openMainWindow() {
+    NSApp.activate(ignoringOtherApps: true)
     // Try to find existing window and bring it to front
     if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
       window.makeKeyAndOrderFront(nil)
-    } else {
-      // No window exists, create a new one using the File > New Window action
-      NSApp.sendAction(#selector(NSDocumentController.newDocument(_:)), to: nil, from: nil)
     }
-    NSApp.activate(ignoringOtherApps: true)
   }
 
   /// Service handler for translating text from right-click menu

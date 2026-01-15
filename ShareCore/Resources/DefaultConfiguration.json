@@ -26,17 +26,17 @@
     },
     {
       "name": "Grammar Check",
-      "prompt": "Check grammar: 1) Return polished text 2) Explain errors in {{targetLanguage}} (❌ severe, ⚠️ minor) 3) Translate polished meaning into {{targetLanguage}}.",
+      "prompt": "Check grammar: 1) Return polished text 2) Explain errors in {{targetLanguage}} (❌ severe, ⚠️ minor) 3) Translate polished meaning into {{targetLanguage}}. User's primary language is {{targetLanguage}} and secondary language is {{fallbackLanguage}}.",
       "outputType": "grammarCheck"
     },
     {
       "name": "Polish",
-      "prompt": "Polish and return improved version in same language.",
+      "prompt": "Polish and return improved version in same language. User's primary language is {{targetLanguage}} and secondary language is {{fallbackLanguage}}.",
       "outputType": "diff"
     },
     {
       "name": "Sentence Analysis",
-      "prompt": "Analyze in {{targetLanguage}} using exactly these sections:\n\n## 📚语法分析\n- Sentence structure (clauses, parts of speech, tense/voice)\n- Key grammar patterns\n\n## ✍️ 搭配积累\n- Useful phrases/collocations with brief meanings and examples\n\nBe concise. No extra sections.",
+      "prompt": "Analyze in {{targetLanguage}} using exactly these sections:\n\n## 📚语法分析\n- Sentence structure (clauses, parts of speech, tense/voice)\n- Key grammar patterns\n\n## ✍️ 搭配积累\n- Useful phrases/collocations with brief meanings and examples\n\nBe concise. No extra sections. User's primary language is {{targetLanguage}} and secondary language is {{fallbackLanguage}}.",
       "outputType": "plain"
     }
   ]
