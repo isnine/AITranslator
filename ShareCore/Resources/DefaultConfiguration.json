@@ -31,7 +31,7 @@
     },
     {
       "name": "Polish",
-      "prompt": "Polish and return improved version in same language. User's primary language is {{targetLanguage}} and secondary language is {{fallbackLanguage}}.",
+      "prompt": "Please polish the following text to sound natural and fluent. Keep the original meaning. Do NOT add new information. Return the result in the SAME language as the input.",
       "outputType": "diff"
     },
     {
