@@ -167,10 +167,7 @@ struct MenuBarPopoverView: View {
                 .focused($isInputFocused)
                 .frame(height: 60)
                 .padding(8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(colors.inputBackground)
-                )
+                .background(inputSectionBackground)
             
             HStack(spacing: 8) {
                 Text("\(inputText.count) characters")
@@ -252,10 +249,7 @@ struct MenuBarPopoverView: View {
                 .foregroundColor(isSelected ? colors.chipPrimaryText : colors.chipSecondaryText)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
-                )
+                .background(chipBackground(isSelected: isSelected))
         }
         .buttonStyle(.plain)
     }
@@ -280,6 +274,32 @@ struct MenuBarPopoverView: View {
                     )
                 }
             }
+        }
+    }
+
+    // MARK: - Liquid Glass Backgrounds
+
+    @ViewBuilder
+    private var inputSectionBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 8))
+        } else {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(colors.inputBackground)
+        }
+    }
+
+    @ViewBuilder
+    private func chipBackground(isSelected: Bool) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.clear)
+                .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 8))
+        } else {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
         }
     }
 }

@@ -99,11 +99,20 @@ struct ProvidersView: View {
                     }
                 }
                 .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(colors.cardBackground)
-                )
+                .background(providersCardBackground)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var providersCardBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        } else {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(colors.cardBackground)
         }
     }
 
@@ -138,10 +147,19 @@ struct ProvidersView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
         .padding(.horizontal, 20)
-        .background(
+        .background(emptyStateCardBackground)
+    }
+
+    @ViewBuilder
+    private var emptyStateCardBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        } else {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(colors.cardBackground)
-        )
+        }
     }
 
     private func status(for provider: ProviderConfig) -> ProviderRowView.Status {

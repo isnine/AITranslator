@@ -247,18 +247,38 @@ public struct HomeView: View {
             .buttonStyle(.plain)
         }
         .padding(14)
-        .background(
+        .background(defaultAppCardBackground)
+    }
+
+    @ViewBuilder
+    private var defaultAppCardBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        } else {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(colors.cardBackground)
-        )
+        }
+    }
+
+    @ViewBuilder
+    private var inputComposerBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 16))
+        } else {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(colors.inputBackground)
+        }
     }
 
     private var inputComposer: some View {
         let isCollapsed = openFromExtension && !isInputExpanded
 
         return ZStack {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(colors.inputBackground)
+            inputComposerBackground
 
             VStack(alignment: .leading, spacing: 0) {
                 if isCollapsed {
@@ -462,12 +482,24 @@ public struct HomeView: View {
                 .foregroundColor(isSelected ? colors.chipPrimaryText : colors.chipSecondaryText)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
-                )
+                .background(chipBackground(isSelected: isSelected))
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func chipBackground(isSelected: Bool) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? colors.chipPrimaryBackground : .clear)
+                .glassEffect(
+                    isSelected ? .regular : .regular.interactive(),
+                    in: .rect(cornerRadius: 8)
+                )
+        } else {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
+        }
     }
 
     private var hintLabel: some View {
@@ -506,12 +538,33 @@ public struct HomeView: View {
             .foregroundColor(colors.accent)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(colors.accent.opacity(0.12))
-            )
+            .background(targetLanguageIndicatorBackground)
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var targetLanguageIndicatorBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: .capsule)
+        } else {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(colors.accent.opacity(0.12))
+        }
+    }
+
+    @ViewBuilder
+    private var providerResultCardBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+        } else {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(colors.cardBackground)
+        }
     }
 
     private func openTargetLanguageSettings() {
@@ -539,10 +592,7 @@ public struct HomeView: View {
             bottomInfoBar(for: run)
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colors.cardBackground)
-        )
+        .background(providerResultCardBackground)
         .overlay(alignment: .topTrailing) {
             if showingProviderInfo == runID {
                 providerInfoPopover(for: run)

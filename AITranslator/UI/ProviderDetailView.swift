@@ -366,10 +366,19 @@ struct ProviderDetailView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(
+        .background(deploymentRowBackground)
+    }
+
+    @ViewBuilder
+    private var deploymentRowBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 16))
+        } else {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(colors.cardBackground)
-        )
+        }
     }
 
     private var canTest: Bool {
@@ -463,10 +472,19 @@ struct ProviderDetailView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(
+        .background(deploymentResultRowBackground)
+    }
+
+    @ViewBuilder
+    private var deploymentResultRowBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 16))
+        } else {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(colors.cardBackground)
-        )
+        }
     }
 
     private var debugSheet: some View {
@@ -583,14 +601,7 @@ struct ProviderDetailView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colors.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(isSelected ? colors.accent : colors.cardBackground, lineWidth: 2)
-                    )
-            )
+            .background(selectionRowBackground(isSelected: isSelected))
         }
         .buttonStyle(.plain)
     }
@@ -657,16 +668,49 @@ struct ProviderDetailView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(colors.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(isEnabled ? colors.accent : colors.cardBackground, lineWidth: 2)
-                    )
-            )
+            .background(builtInCloudModelRowBackground(isEnabled: isEnabled))
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func builtInCloudModelRowBackground(isEnabled: Bool) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.clear)
+                .glassEffect(isEnabled ? .regular : .regular.interactive(), in: .rect(cornerRadius: 16))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(isEnabled ? colors.accent : .clear, lineWidth: 2)
+                )
+        } else {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(colors.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(isEnabled ? colors.accent : colors.cardBackground, lineWidth: 2)
+                )
+        }
+    }
+
+    @ViewBuilder
+    private func selectionRowBackground(isSelected: Bool) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.clear)
+                .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 18))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(isSelected ? colors.accent : .clear, lineWidth: 2)
+                )
+        } else {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(colors.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(isSelected ? colors.accent : colors.cardBackground, lineWidth: 2)
+                )
+        }
     }
 
     private var deleteSection: some View {

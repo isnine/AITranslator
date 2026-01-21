@@ -102,10 +102,7 @@ public struct ExtensionCompactView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(colors.inputBackground)
-        )
+        .background(selectedTextPreviewBackground)
     }
     
     @ViewBuilder
@@ -151,10 +148,7 @@ public struct ExtensionCompactView: View {
                 .foregroundColor(isSelected ? colors.chipPrimaryText : colors.chipSecondaryText)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
-                )
+                .background(chipBackground(isSelected: isSelected))
         }
         .buttonStyle(.plain)
     }
@@ -207,6 +201,32 @@ public struct ExtensionCompactView: View {
                     .font(.system(size: 13))
                     .foregroundColor(colors.textSecondary)
             }
+        }
+    }
+
+    // MARK: - Liquid Glass Backgrounds
+
+    @ViewBuilder
+    private var selectedTextPreviewBackground: some View {
+        if #available(iOS 26, *) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 8))
+        } else {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(colors.inputBackground)
+        }
+    }
+
+    @ViewBuilder
+    private func chipBackground(isSelected: Bool) -> some View {
+        if #available(iOS 26, *) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.clear)
+                .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 8))
+        } else {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
         }
     }
 }

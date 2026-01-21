@@ -206,16 +206,32 @@ struct ActionDetailView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colors.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(isSelected ? colors.accent : colors.cardBackground, lineWidth: 2)
-                    )
-            )
+            .background(selectionRowBackground(isSelected: isSelected))
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func selectionRowBackground(isSelected: Bool) -> some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.clear)
+                .glassEffect(
+                    isSelected ? .regular : .regular.interactive(),
+                    in: .rect(cornerRadius: 18)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(isSelected ? colors.accent : .clear, lineWidth: 2)
+                )
+        } else {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(colors.cardBackground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(isSelected ? colors.accent : colors.cardBackground, lineWidth: 2)
+                )
+        }
     }
     
     private var deleteSection: some View {
@@ -309,12 +325,21 @@ struct ActionDetailView: View {
             .padding(.horizontal, 18)
             .padding(.vertical, 16)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(colors.cardBackground)
-            )
+            .background(usageSceneRowBackground)
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var usageSceneRowBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18))
+        } else {
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(colors.cardBackground)
+        }
     }
 
     private func toggleScene(_ scene: ActionConfig.UsageScene) {

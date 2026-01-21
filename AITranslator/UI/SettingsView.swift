@@ -280,10 +280,19 @@ struct SettingsView: View {
       
       // Section Content
       content()
-        .background(
-          RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(colors.cardBackground)
-        )
+        .background(sectionCardBackground)
+    }
+  }
+
+  @ViewBuilder
+  private var sectionCardBackground: some View {
+    if #available(iOS 26, macOS 26, *) {
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(.clear)
+        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+    } else {
+      RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .fill(colors.cardBackground)
     }
   }
 }
@@ -742,14 +751,26 @@ private extension SettingsView {
       .foregroundColor(isSelected ? .white : colors.textSecondary)
       .padding(.horizontal, 12)
       .padding(.vertical, 8)
-      .background(
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-          .fill(isSelected ? colors.accent : colors.inputBackground)
-      )
+      .background(storageOptionPillBackground(isSelected: isSelected))
     }
     .buttonStyle(.plain)
     .disabled(isDisabled)
     .opacity(isDisabled ? 0.4 : 1)
+  }
+
+  @ViewBuilder
+  private func storageOptionPillBackground(isSelected: Bool) -> some View {
+    if #available(iOS 26, macOS 26, *) {
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
+        .fill(isSelected ? colors.accent : .clear)
+        .glassEffect(
+          isSelected ? .regular : .regular.interactive(),
+          in: .rect(cornerRadius: 8)
+        )
+    } else {
+      RoundedRectangle(cornerRadius: 8, style: .continuous)
+        .fill(isSelected ? colors.accent : colors.inputBackground)
+    }
   }
   
   // MARK: - TTS Rows

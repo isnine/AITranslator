@@ -11,7 +11,7 @@ import Combine
 
 struct RootTabView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @State private var selection: Tab = .home
+    @State private var selection: TabItem = .home
     @ObservedObject private var configStore = AppConfigurationStore.shared
 
     // State for create custom configuration dialog
@@ -21,7 +21,9 @@ struct RootTabView: View {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private enum Tab: String, CaseIterable, Identifiable {
+    /// TabItem enum defining all navigation tabs.
+    /// Used by both TabView (iPhone) and NavigationSplitView sidebar (iPad/macOS).
+    enum TabItem: String, CaseIterable, Identifiable {
         case home
         case actions
         case providers
@@ -61,8 +63,8 @@ struct RootTabView: View {
     }
 
 #if os(macOS)
-    private var sidebarSelectionBinding: Binding<Tab?> {
-        Binding<Tab?>(
+    private var sidebarSelectionBinding: Binding<TabItem?> {
+        Binding<TabItem?>(
             get: { selection },
             set: { newValue in
                 if let newValue {
@@ -76,7 +78,7 @@ struct RootTabView: View {
     var body: some View {
         #if os(macOS)
         NavigationSplitView {
-            List(Tab.allCases, selection: sidebarSelectionBinding) { tab in
+            List(TabItem.allCases, selection: sidebarSelectionBinding) { tab in
                 Label(tab.title, systemImage: tab.systemImage)
                     .tag(tab)
             }
@@ -107,42 +109,30 @@ struct RootTabView: View {
             Text("You're using the default configuration which is read-only. To make changes, create your own configuration.")
         }
         #else
+        // iOS 18+: Use sidebarAdaptable style for automatic iPhone/iPad layout switching
+        // - iPhone (compact): Standard TabView at bottom
+        // - iPad (regular): Sidebar navigation
         TabView(selection: $selection) {
-            tabContent(for: .home)
-                .tabItem {
-                    Image(systemName: Tab.home.systemImage)
-                    Text(Tab.home.title)
-                }
-                .tag(Tab.home)
-
-            tabContent(for: .actions)
-                .tabItem {
-                    Image(systemName: Tab.actions.systemImage)
-                    Text(Tab.actions.title)
-                }
-                .tag(Tab.actions)
-
-            tabContent(for: .providers)
-                .tabItem {
-                    Image(systemName: Tab.providers.systemImage)
-                    Text(Tab.providers.title)
-                }
-                .tag(Tab.providers)
-
-            tabContent(for: .settings)
-                .tabItem {
-                    Image(systemName: Tab.settings.systemImage)
-                    Text(Tab.settings.title)
-                }
-                .tag(Tab.settings)
+            Tab(TabItem.home.title, systemImage: TabItem.home.systemImage, value: TabItem.home) {
+                tabContent(for: TabItem.home)
+            }
+            Tab(TabItem.actions.title, systemImage: TabItem.actions.systemImage, value: TabItem.actions) {
+                tabContent(for: TabItem.actions)
+            }
+            Tab(TabItem.providers.title, systemImage: TabItem.providers.systemImage, value: TabItem.providers) {
+                tabContent(for: TabItem.providers)
+            }
+            Tab(TabItem.settings.title, systemImage: TabItem.settings.systemImage, value: TabItem.settings) {
+                tabContent(for: TabItem.settings)
+            }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .tint(colors.accent)
-        .background(colors.background.ignoresSafeArea())
         .onReceive(configStore.createCustomConfigurationRequestPublisher) { request in
             handleCreateCustomConfigRequest(request)
         }
         .onReceive(NotificationCenter.default.publisher(for: .openTargetLanguageSettings)) { _ in
-            selection = .settings
+            selection = TabItem.settings
         }
         .alert("Create Custom Configuration", isPresented: $showCreateCustomConfigDialog) {
             TextField("Configuration Name", text: $customConfigName)
@@ -160,7 +150,7 @@ struct RootTabView: View {
     }
 
     @ViewBuilder
-    private func tabContent(for tab: Tab) -> some View {
+    private func tabContent(for tab: TabItem) -> some View {
         switch tab {
         case .home:
             HomeView(context: nil)

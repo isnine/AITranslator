@@ -54,10 +54,19 @@ public struct ProviderResultCardView: View {
             )
         }
         .padding(14)
-        .background(
+        .background(cardBackground)
+    }
+
+    @ViewBuilder
+    private var cardBackground: some View {
+        if #available(iOS 26, macOS 26, *) {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 14))
+        } else {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(colors.cardBackground)
-        )
+        }
     }
 }
 
