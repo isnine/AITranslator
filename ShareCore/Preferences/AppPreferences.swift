@@ -62,11 +62,27 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setTargetLanguage(_ option: TargetLanguageOption) {
-        guard targetLanguage != option else { return }
+        print("=== AppPreferences.setTargetLanguage ===")
+        print("Requested option: \(option.rawValue)")
+        print("Current targetLanguage: \(targetLanguage.rawValue)")
+        print("Are they equal? \(targetLanguage == option)")
+        guard targetLanguage != option else {
+            print("SKIPPING - values are equal, returning early")
+            print("========================================")
+            return
+        }
 
+        print("Proceeding with update...")
         targetLanguage = option
         defaults.set(option.rawValue, forKey: TargetLanguageOption.storageKey)
         defaults.synchronize()
+        print("Updated targetLanguage to: \(targetLanguage.rawValue)")
+        print("Wrote to UserDefaults key '\(TargetLanguageOption.storageKey)': \(option.rawValue)")
+        
+        // Verify the write
+        let readBack = defaults.string(forKey: TargetLanguageOption.storageKey)
+        print("Read back from UserDefaults: \(readBack ?? "nil")")
+        print("========================================")
     }
 
     public func setTTSConfiguration(_ configuration: TTSConfiguration) {

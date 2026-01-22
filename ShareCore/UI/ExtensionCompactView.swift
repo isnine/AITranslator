@@ -85,6 +85,7 @@ public struct ExtensionCompactView: View {
         .onChange(of: targetLanguageCode) {
             let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
             AppPreferences.shared.setTargetLanguage(option)
+            viewModel.refreshConfiguration()
         }
     }
     
@@ -136,12 +137,12 @@ public struct ExtensionCompactView: View {
     }
 
     private var targetLanguageIndicator: some View {
-        let targetLanguage = AppPreferences.shared.targetLanguage
+        let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
         let displayName: String = {
-            if targetLanguage == .appLanguage {
+            if option == .appLanguage {
                 return TargetLanguageOption.appLanguageEnglishName
             } else {
-                return targetLanguage.primaryLabel
+                return option.primaryLabel
             }
         }()
 

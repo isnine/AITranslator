@@ -79,7 +79,16 @@ struct MenuBarPopoverView: View {
         }
         .onChange(of: targetLanguageCode) {
             let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
+            print("=== MenuBarPopoverView Language Change ===")
+            print("targetLanguageCode changed to: \(targetLanguageCode)")
+            print("Parsed option: \(option.rawValue) (\(option.promptDescriptor))")
+            print("BEFORE setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)")
+            print("BEFORE setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)")
             preferences.setTargetLanguage(option)
+            print("AFTER setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)")
+            print("AFTER setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)")
+            print("==========================================")
+            viewModel.refreshConfiguration()
         }
     }
 
@@ -236,12 +245,12 @@ struct MenuBarPopoverView: View {
     }
 
     private var targetLanguageIndicator: some View {
-        let targetLanguage = preferences.targetLanguage
+        let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
         let displayName: String = {
-            if targetLanguage == .appLanguage {
+            if option == .appLanguage {
                 return TargetLanguageOption.appLanguageEnglishName
             } else {
-                return targetLanguage.primaryLabel
+                return option.primaryLabel
             }
         }()
 

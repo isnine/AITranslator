@@ -33,6 +33,14 @@ public final class LLMService {
         var result = prompt
 
         let targetLanguageOption = AppPreferences.shared.targetLanguage
+        
+        print("=== LLMService.substitutePromptPlaceholders ===")
+        print("AppPreferences.shared.targetLanguage.rawValue: \(targetLanguageOption.rawValue)")
+        print("AppPreferences.shared.targetLanguage.promptDescriptor: \(targetLanguageOption.promptDescriptor)")
+        
+        let storedValue = AppPreferences.sharedDefaults.string(forKey: TargetLanguageOption.storageKey)
+        print("Direct read from UserDefaults[\(TargetLanguageOption.storageKey)]: \(storedValue ?? "nil")")
+        print("==============================================")
 
         // Replace {targetLanguage} and {{targetLanguage}} with the actual target language
         let targetLanguage = targetLanguageOption.promptDescriptor
