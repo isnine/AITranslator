@@ -147,15 +147,16 @@ public extension AppConfiguration {
     }
 
     /// Create from internal ProviderConfig (always uses new format)
+    /// Note: enabledDeployments is stored in UserDefaults, not in the JSON config
     public static func from(_ config: ProviderConfig) -> (name: String, entry: ProviderEntry) {
-      // Built-in Cloud only needs category and enabled deployments
+      // Built-in Cloud only needs category (enabledDeployments stored in UserDefaults)
       if config.category == .builtInCloud {
         let entry = ProviderEntry(
           category: config.category.rawValue,
           baseEndpoint: nil,
           apiVersion: nil,
           deployments: nil,
-          enabledDeployments: Array(config.enabledDeployments),
+          enabledDeployments: nil,  // Stored in UserDefaults
           model: nil,
           endpoint: nil,
           authHeader: nil,
@@ -169,7 +170,7 @@ public extension AppConfiguration {
         baseEndpoint: config.baseEndpoint.absoluteString,
         apiVersion: config.apiVersion,
         deployments: config.deployments,
-        enabledDeployments: Array(config.enabledDeployments),
+        enabledDeployments: nil,  // Stored in UserDefaults
         model: nil,
         endpoint: nil,
         authHeader: config.authHeaderName,

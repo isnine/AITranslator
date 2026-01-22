@@ -269,6 +269,12 @@ public final class AppConfigurationStore: ObservableObject {
       }
     }
 
+    // Save enabledDeployments to UserDefaults for each provider
+    for provider in providers {
+      preferences.setEnabledDeployments(provider.enabledDeployments, for: provider.displayName)
+      print("[ConfigStore] 💾 Saved enabledDeployments to UserDefaults for '\(provider.displayName)': \(provider.enabledDeployments)")
+    }
+
     self.providers = providers
     saveConfiguration()
 
@@ -417,7 +423,19 @@ public final class AppConfigurationStore: ObservableObject {
   /// Apply providers directly without triggering the default-mode check
   /// Used by ConfigurationService when loading a configuration
   public func applyProvidersDirectly(_ providers: [ProviderConfig]) {
-    self.providers = providers
+    // Override enabledDeployments from UserDefaults for each provider
+    var adjustedProviders: [ProviderConfig] = []
+    for var provider in providers {
+      if let storedEnabled = preferences.enabledDeployments(for: provider.displayName) {
+        // Filter to only include deployments that still exist
+        let validEnabled = storedEnabled.intersection(Set(provider.deployments))
+        if !validEnabled.isEmpty {
+          provider.enabledDeployments = validEnabled
+        }
+      }
+      adjustedProviders.append(provider)
+    }
+    self.providers = adjustedProviders
     // Don't save - this is part of a load operation
   }
   
@@ -740,7 +758,16 @@ public final class AppConfigurationStore: ObservableObject {
 
     for (name, entry) in config.providers {
       print("[ConfigStore] Trying to parse provider: '\(name)' with category: '\(entry.category)'")
-      if let provider = entry.toProviderConfig(name: name) {
+      if var provider = entry.toProviderConfig(name: name) {
+        // Override enabledDeployments from UserDefaults if available
+        if let storedEnabled = preferences.enabledDeployments(for: name) {
+          // Filter to only include deployments that still exist
+          let validEnabled = storedEnabled.intersection(Set(provider.deployments))
+          if !validEnabled.isEmpty {
+            provider.enabledDeployments = validEnabled
+            print("[ConfigStore] ✅ Loaded enabledDeployments from UserDefaults for '\(name)': \(validEnabled)")
+          }
+        }
         loadedProviders.append(provider)
         providerNameToID[name] = provider.id
         providerDeploymentsMap[name] = (id: provider.id, deployments: provider.deployments)

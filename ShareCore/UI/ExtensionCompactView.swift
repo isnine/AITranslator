@@ -14,6 +14,8 @@ public struct ExtensionCompactView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: HomeViewModel
     @State private var hasTriggeredAutoRequest = false
+    @State private var isLanguagePickerPresented: Bool = false
+    @State private var targetLanguageCode: String = AppPreferences.shared.targetLanguage.rawValue
     
     private let context: TranslationUIProviderContext
     
@@ -74,6 +76,16 @@ public struct ExtensionCompactView: View {
         .onChange(of: context.allowsReplacement) {
             viewModel.updateUsageScene(usageScene)
         }
+        .sheet(isPresented: $isLanguagePickerPresented) {
+            LanguagePickerView(
+                selectedCode: $targetLanguageCode,
+                isPresented: $isLanguagePickerPresented
+            )
+        }
+        .onChange(of: targetLanguageCode) {
+            let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
+            AppPreferences.shared.setTargetLanguage(option)
+        }
     }
     
     // MARK: - Selected Text Preview
@@ -92,9 +104,7 @@ public struct ExtensionCompactView: View {
             
             Spacer(minLength: 0)
             
-            Text("\(inputText.count)")
-                .font(.system(size: 11))
-                .foregroundColor(colors.textSecondary.opacity(0.7))
+            targetLanguageIndicator
             
             if AppPreferences.shared.ttsConfiguration.isValid && !inputText.isEmpty {
                 inputSpeakButton
@@ -123,6 +133,32 @@ public struct ExtensionCompactView: View {
         }
         .buttonStyle(.plain)
         .disabled(viewModel.isSpeakingInputText)
+    }
+
+    private var targetLanguageIndicator: some View {
+        let targetLanguage = AppPreferences.shared.targetLanguage
+        let displayName: String = {
+            if targetLanguage == .appLanguage {
+                return TargetLanguageOption.appLanguageEnglishName
+            } else {
+                return targetLanguage.primaryLabel
+            }
+        }()
+
+        return Button {
+            isLanguagePickerPresented = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "globe")
+                    .font(.system(size: 10))
+                Text(displayName)
+                    .font(.system(size: 11))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8))
+            }
+            .foregroundColor(colors.textSecondary.opacity(0.7))
+        }
+        .buttonStyle(.plain)
     }
     
     // MARK: - Action Chips

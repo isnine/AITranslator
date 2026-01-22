@@ -143,6 +143,37 @@ public final class AppPreferences: ObservableObject {
     }
     #endif
 
+    // MARK: - Enabled Deployments (stored per provider name)
+
+    /// Get enabled deployments for a specific provider
+    /// - Parameter providerName: The provider's display name
+    /// - Returns: The set of enabled deployment names, or nil if not stored (use config default)
+    public func enabledDeployments(for providerName: String) -> Set<String>? {
+        let key = StorageKeys.enabledDeploymentsPrefix + providerName
+        guard let array = defaults.stringArray(forKey: key) else {
+            return nil
+        }
+        return Set(array)
+    }
+
+    /// Set enabled deployments for a specific provider
+    /// - Parameters:
+    ///   - deployments: The set of enabled deployment names
+    ///   - providerName: The provider's display name
+    public func setEnabledDeployments(_ deployments: Set<String>, for providerName: String) {
+        let key = StorageKeys.enabledDeploymentsPrefix + providerName
+        defaults.set(Array(deployments), forKey: key)
+        defaults.synchronize()
+    }
+
+    /// Remove enabled deployments setting for a provider (reverts to config default)
+    /// - Parameter providerName: The provider's display name
+    public func removeEnabledDeployments(for providerName: String) {
+        let key = StorageKeys.enabledDeploymentsPrefix + providerName
+        defaults.removeObject(forKey: key)
+        defaults.synchronize()
+    }
+
     /// Returns the iCloud Documents directory URL if available
     public static var iCloudDocumentsURL: URL? {
         FileManager.default.url(forUbiquityContainerIdentifier: nil)?
@@ -266,6 +297,8 @@ private enum StorageKeys {
     static let customConfigDirectory = "custom_config_directory"
     static let useICloudForConfig = "use_icloud_for_config"
     static let defaultAppHintDismissed = "default_app_hint_dismissed"
+    /// Prefix for enabled deployments storage. Full key: "enabled_deployments.<providerName>"
+    static let enabledDeploymentsPrefix = "enabled_deployments."
     #if os(macOS)
     static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif

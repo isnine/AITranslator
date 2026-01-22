@@ -16,8 +16,11 @@ struct MenuBarPopoverView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: HomeViewModel
     @ObservedObject private var hotKeyManager = HotKeyManager.shared
+    @ObservedObject private var preferences = AppPreferences.shared
     @State private var inputText: String = ""
     @State private var showHotkeyHint: Bool = true
+    @State private var isLanguagePickerPresented: Bool = false
+    @State private var targetLanguageCode: String = AppPreferences.shared.targetLanguage.rawValue
     @FocusState private var isInputFocused: Bool
     let onClose: () -> Void
     
@@ -65,7 +68,18 @@ struct MenuBarPopoverView: View {
         .frame(width: 360, height: 420)
         .onReceive(NotificationCenter.default.publisher(for: .menuBarPopoverDidShow)) { _ in
             viewModel.refreshConfiguration()
+            targetLanguageCode = preferences.targetLanguage.rawValue
             loadClipboardAndExecute()
+        }
+        .sheet(isPresented: $isLanguagePickerPresented) {
+            LanguagePickerView(
+                selectedCode: $targetLanguageCode,
+                isPresented: $isLanguagePickerPresented
+            )
+        }
+        .onChange(of: targetLanguageCode) {
+            let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
+            preferences.setTargetLanguage(option)
         }
     }
 
@@ -160,19 +174,15 @@ struct MenuBarPopoverView: View {
     
     private var inputSection: some View {
         VStack(spacing: 8) {
-            TextEditor(text: $inputText)
+            SelectableTextEditor(text: $inputText, textColor: colors.textPrimary)
                 .font(.system(size: 13))
-                .foregroundColor(colors.textPrimary)
-                .scrollContentBackground(.hidden)
                 .focused($isInputFocused)
                 .frame(height: 60)
                 .padding(8)
                 .background(inputSectionBackground)
             
             HStack(spacing: 8) {
-                Text("\(inputText.count) characters")
-                    .font(.system(size: 11))
-                    .foregroundColor(colors.textSecondary.opacity(0.7))
+                targetLanguageIndicator
                 
                 Spacer()
                 
@@ -224,6 +234,32 @@ struct MenuBarPopoverView: View {
         .buttonStyle(.plain)
         .disabled(viewModel.isSpeakingInputText)
     }
+
+    private var targetLanguageIndicator: some View {
+        let targetLanguage = preferences.targetLanguage
+        let displayName: String = {
+            if targetLanguage == .appLanguage {
+                return TargetLanguageOption.appLanguageEnglishName
+            } else {
+                return targetLanguage.primaryLabel
+            }
+        }()
+
+        return Button {
+            isLanguagePickerPresented = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "globe")
+                    .font(.system(size: 10))
+                Text(displayName)
+                    .font(.system(size: 11))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 8))
+            }
+            .foregroundColor(colors.textSecondary.opacity(0.7))
+        }
+        .buttonStyle(.plain)
+    }
     
     // MARK: - Action Chips
     
@@ -246,7 +282,7 @@ struct MenuBarPopoverView: View {
         } label: {
             Text(action.name)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(isSelected ? colors.chipPrimaryText : colors.chipSecondaryText)
+                .foregroundColor(chipTextColor(isSelected: isSelected))
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(chipBackground(isSelected: isSelected))
@@ -279,6 +315,14 @@ struct MenuBarPopoverView: View {
 
     // MARK: - Liquid Glass Backgrounds
 
+    private func chipTextColor(isSelected: Bool) -> Color {
+        if #available(iOS 26, macOS 26, *) {
+            return isSelected ? .white : colors.textPrimary
+        } else {
+            return isSelected ? colors.chipPrimaryText : colors.chipSecondaryText
+        }
+    }
+
     @ViewBuilder
     private var inputSectionBackground: some View {
         if #available(iOS 26, macOS 26, *) {
@@ -294,12 +338,84 @@ struct MenuBarPopoverView: View {
     @ViewBuilder
     private func chipBackground(isSelected: Bool) -> some View {
         if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.clear)
-                .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 8))
+            if isSelected {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(colors.accent)
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.clear)
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 8))
+            }
         } else {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
+        }
+    }
+}
+
+// MARK: - SelectableTextEditor
+
+/// A custom TextEditor wrapper that ensures selected text is always readable
+/// by setting high-contrast selection colors.
+private struct SelectableTextEditor: NSViewRepresentable {
+    @Binding var text: String
+    let textColor: Color
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(parent: self)
+    }
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let textView = NSTextView()
+        textView.delegate = context.coordinator
+        textView.isRichText = false
+        textView.drawsBackground = false
+        textView.textContainerInset = NSSize(width: 4, height: 4)
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.font = NSFont.systemFont(ofSize: 13)
+        textView.textColor = NSColor(textColor)
+        textView.insertionPointColor = NSColor(textColor)
+        textView.isHorizontallyResizable = false
+        textView.textContainer?.widthTracksTextView = true
+        textView.string = text
+
+        textView.selectedTextAttributes = [
+            .backgroundColor: NSColor.controlAccentColor,
+            .foregroundColor: NSColor.white
+        ]
+
+        let scrollView = NSScrollView()
+        scrollView.drawsBackground = false
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = true
+        scrollView.contentView.drawsBackground = false
+        scrollView.documentView = textView
+        return scrollView
+    }
+
+    func updateNSView(_ nsView: NSScrollView, context: Context) {
+        guard let textView = nsView.documentView as? NSTextView else { return }
+        if textView.string != text {
+            textView.string = text
+        }
+        textView.textColor = NSColor(textColor)
+        textView.insertionPointColor = NSColor(textColor)
+    }
+
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        private let parent: SelectableTextEditor
+
+        init(parent: SelectableTextEditor) {
+            self.parent = parent
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            let updated = textView.string
+            if parent.text != updated {
+                parent.text = updated
+            }
         }
     }
 }

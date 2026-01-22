@@ -793,3 +793,10 @@ providerResultCard(for:)              # 结果卡片容器
 | 简单翻译 | 2.6 - 4.3s | 10 词以内          |
 | 语法检查 | 8 - 10s    | 结构化输出，含分析 |
 | Tab 切换 | < 0.1s     | 即时响应           |
+
+## 手动测试检查清单
+
+### macOS 快捷翻译界面
+
+- [ ] **文本选中可读性**：在 Quick Translate 弹窗中选中文本，确认选中高亮清晰可见（深色/浅色模式均需测试）
+  - 修复记录：使用自定义 `SelectableTextEditor`（基于 NSTextView）替代 SwiftUI TextEditor，设置 `selectedTextAttributes` 使用系统标准选中颜色
