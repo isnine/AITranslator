@@ -79,15 +79,13 @@ struct MenuBarPopoverView: View {
         }
         .onChange(of: targetLanguageCode) {
             let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-            print("=== MenuBarPopoverView Language Change ===")
-            print("targetLanguageCode changed to: \(targetLanguageCode)")
-            print("Parsed option: \(option.rawValue) (\(option.promptDescriptor))")
-            print("BEFORE setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)")
-            print("BEFORE setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)")
+            print("[MenuBar] Language Change - targetLanguageCode: \(targetLanguageCode)")
+            print("[MenuBar] Parsed option: \(option.rawValue) (\(option.promptDescriptor))")
+            print("[MenuBar] BEFORE setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)")
+            print("[MenuBar] BEFORE setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)")
             preferences.setTargetLanguage(option)
-            print("AFTER setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)")
-            print("AFTER setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)")
-            print("==========================================")
+            print("[MenuBar] AFTER setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)")
+            print("[MenuBar] AFTER setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)")
             viewModel.refreshConfiguration()
         }
     }

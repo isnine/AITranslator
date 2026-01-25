@@ -229,14 +229,6 @@ struct SettingsView: View {
       settingsSection(title: "Configuration", icon: "doc.text") {
         VStack(spacing: 0) {
           configurationStatusRow
-          if !savedConfigurations.isEmpty {
-            Divider()
-              .padding(.leading, 52)
-            savedConfigurationsRow
-          }
-          Divider()
-            .padding(.leading, 52)
-          storageLocationRow
         }
       }
       
@@ -514,41 +506,6 @@ private extension SettingsView {
       }
       
       Spacer()
-      
-      // Quick actions
-      HStack(spacing: 8) {
-        if !configStore.configurationMode.isDefault {
-          Button {
-            configStore.switchToDefaultConfiguration()
-          } label: {
-            Image(systemName: "arrow.counterclockwise")
-              .font(.system(size: 14, weight: .medium))
-              .foregroundColor(colors.success)
-              .frame(width: 32, height: 32)
-              .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                  .fill(colors.success.opacity(0.12))
-              )
-          }
-          .buttonStyle(.plain)
-          .help("Reset to Default")
-        }
-        
-        Button {
-          createFromDefaultTemplate()
-        } label: {
-          Image(systemName: "plus")
-            .font(.system(size: 14, weight: .medium))
-            .foregroundColor(colors.accent)
-            .frame(width: 32, height: 32)
-            .background(
-              RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(colors.accent.opacity(0.12))
-            )
-        }
-        .buttonStyle(.plain)
-        .help("Create New Configuration")
-      }
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 14)
@@ -920,7 +877,8 @@ private extension SettingsView {
     }
 
     func refreshSavedConfigurations() {
-        savedConfigurations = ConfigurationFileManager.shared.listConfigurations()
+        // Custom configurations are disabled - return empty list
+        savedConfigurations = []
     }
 
     func duplicateCurrentConfiguration() {

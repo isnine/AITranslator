@@ -6,9 +6,6 @@
 //
 
 import Foundation
-import os
-
-private let localProviderLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "TLingo", category: "LocalProvider")
 
 /// Unified service for managing local on-device providers
 public final class LocalProviderService: Sendable {
@@ -30,7 +27,7 @@ public final class LocalProviderService: Sendable {
             case .appleFoundation:
                 available = AppleFoundationService.shared.isAvailable
             }
-            localProviderLogger.info("Checking availability for \(self.rawValue): \(available)")
+            print("[LocalProvider] Checking availability for \(self.rawValue): \(available)")
             return available
         }
         
@@ -55,7 +52,7 @@ public final class LocalProviderService: Sendable {
                 // Apple Foundation supports all actions
                 supported = true
             }
-            localProviderLogger.info("\(self.rawValue) supports action '\(action.name)': \(supported)")
+            print("[LocalProvider] \(self.rawValue) supports action '\(action.name)': \(supported)")
             return supported
         }
         
@@ -106,11 +103,11 @@ public final class LocalProviderService: Sendable {
     /// Check if a deployment is available
     public func isDeploymentAvailable(_ deploymentName: String) -> Bool {
         guard let deployment = LocalDeployment(rawValue: deploymentName) else {
-            localProviderLogger.warning("Unknown deployment: \(deploymentName)")
+            print("[LocalProvider] Warning: Unknown deployment: \(deploymentName)")
             return false
         }
         let available = deployment.isAvailable
-        localProviderLogger.info("isDeploymentAvailable('\(deploymentName)'): \(available)")
+            print("[LocalProvider] isDeploymentAvailable('\(deploymentName)'): \(available)")
         return available
     }
     

@@ -62,33 +62,29 @@ struct RootTabView: View {
         AppColors.palette(for: colorScheme)
     }
 
-#if os(macOS)
-    private var sidebarSelectionBinding: Binding<TabItem?> {
-        Binding<TabItem?>(
-            get: { selection },
-            set: { newValue in
-                if let newValue {
-                    selection = newValue
-                }
+var body: some View {
+        // Unified layout for all platforms (iOS 18+, macOS 15+)
+        // - iPhone: Bottom tab bar
+        // - iPad: Adaptable top tab bar ↔ sidebar
+        // - macOS: Always sidebar
+        TabView(selection: $selection) {
+            Tab(TabItem.home.title, systemImage: TabItem.home.systemImage, value: TabItem.home) {
+                tabContent(for: TabItem.home)
             }
-        )
-    }
-#endif
-
-    var body: some View {
-        #if os(macOS)
-        NavigationSplitView {
-            List(TabItem.allCases, selection: sidebarSelectionBinding) { tab in
-                Label(tab.title, systemImage: tab.systemImage)
-                    .tag(tab)
+            Tab(TabItem.actions.title, systemImage: TabItem.actions.systemImage, value: TabItem.actions) {
+                tabContent(for: TabItem.actions)
             }
-            .listStyle(.sidebar)
-        } detail: {
-            tabContent(for: selection)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(colors.background.ignoresSafeArea())
-                .navigationTitle(selection.title)
+            Tab(TabItem.providers.title, systemImage: TabItem.providers.systemImage, value: TabItem.providers) {
+                tabContent(for: TabItem.providers)
+            }
+            Tab(TabItem.settings.title, systemImage: TabItem.settings.systemImage, value: TabItem.settings) {
+                tabContent(for: TabItem.settings)
+            }
         }
+        .tabViewStyle(.sidebarAdaptable)
+        #if !os(macOS)
+        .tabBarMinimizeBehavior(.onScrollDown)
+        #endif
         .tint(colors.accent)
         .onReceive(configStore.createCustomConfigurationRequestPublisher) { request in
             handleCreateCustomConfigRequest(request)
@@ -108,46 +104,6 @@ struct RootTabView: View {
         } message: {
             Text("You're using the default configuration which is read-only. To make changes, create your own configuration.")
         }
-        #else
-        // iOS 18+: Use sidebarAdaptable style for automatic iPhone/iPad layout switching
-        // - iPhone (compact): Standard TabView at bottom
-        // - iPad (regular): Sidebar navigation
-        TabView(selection: $selection) {
-            Tab(TabItem.home.title, systemImage: TabItem.home.systemImage, value: TabItem.home) {
-                tabContent(for: TabItem.home)
-            }
-            Tab(TabItem.actions.title, systemImage: TabItem.actions.systemImage, value: TabItem.actions) {
-                tabContent(for: TabItem.actions)
-            }
-            Tab(TabItem.providers.title, systemImage: TabItem.providers.systemImage, value: TabItem.providers) {
-                tabContent(for: TabItem.providers)
-            }
-            Tab(TabItem.settings.title, systemImage: TabItem.settings.systemImage, value: TabItem.settings) {
-                tabContent(for: TabItem.settings)
-            }
-        }
-        .tabViewStyle(.sidebarAdaptable)
-        .tabBarMinimizeBehavior(.onScrollDown)
-        .tint(colors.accent)
-        .onReceive(configStore.createCustomConfigurationRequestPublisher) { request in
-            handleCreateCustomConfigRequest(request)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openTargetLanguageSettings)) { _ in
-            selection = TabItem.settings
-        }
-        .alert("Create Custom Configuration", isPresented: $showCreateCustomConfigDialog) {
-            TextField("Configuration Name", text: $customConfigName)
-            Button("Cancel", role: .cancel) {
-                pendingConfigRequest?.completion(false)
-                pendingConfigRequest = nil
-            }
-            Button("Create") {
-                createCustomConfiguration()
-            }
-        } message: {
-            Text("You're using the default configuration which is read-only. To make changes, create your own configuration.")
-        }
-        #endif
     }
 
     @ViewBuilder

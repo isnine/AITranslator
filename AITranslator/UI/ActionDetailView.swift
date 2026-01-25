@@ -26,6 +26,9 @@ struct ActionDetailView: View {
     
     // Delete confirmation state
     @State private var showDeleteConfirmation = false
+    
+    // Read-only configuration alert
+    @State private var showReadOnlyAlert = false
 
     init(
         action: ActionConfig?,
@@ -83,6 +86,11 @@ struct ActionDetailView: View {
         } message: {
             Text("Are you sure you want to delete this action? This cannot be undone.")
         }
+        .alert("Read-Only Configuration", isPresented: $showReadOnlyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Configuration changes are disabled. The app uses the default configuration.")
+        }
     }
 
     private var colors: AppColorPalette {
@@ -106,7 +114,9 @@ struct ActionDetailView: View {
 
             Spacer()
 
-            Button(action: saveAction) {
+            Button {
+                showReadOnlyAlert = true
+            } label: {
                 Text("Save")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(colors.accent)

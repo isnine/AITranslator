@@ -45,6 +45,7 @@
       }
     },
     "%lld characters" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -245,6 +246,9 @@
         }
       }
     },
+    "Configuration changes are disabled. The app uses the default configuration." : {
+
+    },
     "Configuration exported successfully." : {
       "localizations" : {
         "zh-Hans" : {
@@ -333,9 +337,6 @@
           }
         }
       }
-    },
-    "Create New Configuration" : {
-
     },
     "Current Path" : {
       "localizations" : {
@@ -914,6 +915,9 @@
         }
       }
     },
+    "Read-Only Configuration" : {
+
+    },
     "Read-Only Context" : {
       "localizations" : {
         "zh-Hans" : {
@@ -972,9 +976,6 @@
     },
     "Requires iOS 17.4+ or macOS 14.4+" : {
       "comment" : "Apple Translation unavailable status"
-    },
-    "Reset to Default" : {
-
     },
     "Retry" : {
       "localizations" : {

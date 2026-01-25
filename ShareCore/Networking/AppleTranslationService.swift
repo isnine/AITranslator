@@ -7,9 +7,6 @@
 
 import Foundation
 import SwiftUI
-import os
-
-private let appleTranslationLogger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "TLingo", category: "AppleTranslation")
 
 /// Service for using Apple's system Translation API
 /// Note: TranslationSession can only be obtained via SwiftUI's .translationTask() modifier
@@ -31,7 +28,7 @@ public final class AppleTranslationService: @unchecked Sendable {
         } else {
             available = false
         }
-        appleTranslationLogger.info("isAvailable: \(available)")
+        print("[AppleTranslation] isAvailable: \(available)")
         return available
     }
     
@@ -48,7 +45,7 @@ public final class AppleTranslationService: @unchecked Sendable {
     
     /// Split text into sentences for translation
     public func splitIntoSentences(_ text: String) -> [String] {
-        appleTranslationLogger.info("splitIntoSentences called, text length: \(text.count)")
+        print("[AppleTranslation] splitIntoSentences called, text length: \(text.count)")
         var sentences: [String] = []
         
         let tagger = NSLinguisticTagger(tagSchemes: [.tokenType], options: 0)
@@ -87,7 +84,7 @@ public final class AppleTranslationService: @unchecked Sendable {
             }
         }
         
-        appleTranslationLogger.info("splitIntoSentences result: \(sentences.count) sentences")
+        print("[AppleTranslation] splitIntoSentences result: \(sentences.count) sentences")
         return sentences
     }
 }

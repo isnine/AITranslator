@@ -62,27 +62,25 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setTargetLanguage(_ option: TargetLanguageOption) {
-        print("=== AppPreferences.setTargetLanguage ===")
-        print("Requested option: \(option.rawValue)")
-        print("Current targetLanguage: \(targetLanguage.rawValue)")
-        print("Are they equal? \(targetLanguage == option)")
+        print("[Preferences] setTargetLanguage called")
+        print("[Preferences] Requested option: \(option.rawValue)")
+        print("[Preferences] Current targetLanguage: \(targetLanguage.rawValue)")
+        print("[Preferences] Are they equal? \(targetLanguage == option)")
         guard targetLanguage != option else {
-            print("SKIPPING - values are equal, returning early")
-            print("========================================")
+            print("[Preferences] SKIPPING - values are equal, returning early")
             return
         }
 
-        print("Proceeding with update...")
+        print("[Preferences] Proceeding with update...")
         targetLanguage = option
         defaults.set(option.rawValue, forKey: TargetLanguageOption.storageKey)
         defaults.synchronize()
-        print("Updated targetLanguage to: \(targetLanguage.rawValue)")
-        print("Wrote to UserDefaults key '\(TargetLanguageOption.storageKey)': \(option.rawValue)")
+        print("[Preferences] Updated targetLanguage to: \(targetLanguage.rawValue)")
+        print("[Preferences] Wrote to UserDefaults key '\(TargetLanguageOption.storageKey)': \(option.rawValue)")
         
         // Verify the write
         let readBack = defaults.string(forKey: TargetLanguageOption.storageKey)
-        print("Read back from UserDefaults: \(readBack ?? "nil")")
-        print("========================================")
+        print("[Preferences] Read back from UserDefaults: \(readBack ?? "nil")")
     }
 
     public func setTTSConfiguration(_ configuration: TTSConfiguration) {

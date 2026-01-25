@@ -223,14 +223,14 @@ public final class HomeViewModel: ObservableObject {
         cancelActiveRequest(clearResults: false)
 
         guard let action = selectedAction else {
-            print("No action selected.")
+            print("[HomeViewModel] No action selected.")
             providerRuns = []
             return
         }
 
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
-            print("Input text is empty; skipping request.")
+            print("[HomeViewModel] Input text is empty; skipping request.")
             providerRuns = []
             return
         }
@@ -242,7 +242,7 @@ public final class HomeViewModel: ObservableObject {
         let deploymentsToUse = getAllEnabledDeployments()
 
         guard !deploymentsToUse.isEmpty else {
-            print("No enabled deployments configured.")
+            print("[HomeViewModel] No enabled deployments configured.")
             providerRuns = []
             return
         }
@@ -276,7 +276,7 @@ public final class HomeViewModel: ObservableObject {
             do {
                 try await self.textToSpeechService.speak(text: trimmed)
             } catch {
-                print("TTS playback failed for run \(runID): \(error)")
+                print("[HomeViewModel] TTS playback failed for run \(runID): \(error)")
             }
             _ = await MainActor.run { [weak self] in
                 self?.speakingProviders.remove(runID)
@@ -297,7 +297,7 @@ public final class HomeViewModel: ObservableObject {
             do {
                 try await self.textToSpeechService.speak(text: trimmed)
             } catch {
-                print("TTS playback failed for input text: \(error)")
+                print("[HomeViewModel] TTS playback failed for input text: \(error)")
             }
             _ = await MainActor.run { [weak self] in
                 self?.isSpeakingInputText = false

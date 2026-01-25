@@ -34,6 +34,9 @@ struct ProviderDetailView: View {
     // Validation error state
     @State private var showValidationError = false
     @State private var validationErrorMessage = ""
+    
+    // Read-only configuration alert
+    @State private var showReadOnlyAlert = false
 
     struct DeploymentTestResult: Identifiable {
         let id = UUID()
@@ -132,6 +135,11 @@ struct ProviderDetailView: View {
         } message: {
             Text(validationErrorMessage)
         }
+        .alert("Read-Only Configuration", isPresented: $showReadOnlyAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Configuration changes are disabled. The app uses the default configuration.")
+        }
     }
 
     private var colors: AppColorPalette {
@@ -155,13 +163,14 @@ struct ProviderDetailView: View {
 
             Spacer()
 
-            Button(action: saveProvider) {
+            Button {
+                showReadOnlyAlert = true
+            } label: {
                 Text("Save")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(canSave ? colors.accent : colors.textSecondary)
+                    .foregroundColor(colors.accent)
             }
             .buttonStyle(.plain)
-            .disabled(!canSave)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)

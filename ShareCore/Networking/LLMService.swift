@@ -34,13 +34,12 @@ public final class LLMService {
 
         let targetLanguageOption = AppPreferences.shared.targetLanguage
         
-        print("=== LLMService.substitutePromptPlaceholders ===")
-        print("AppPreferences.shared.targetLanguage.rawValue: \(targetLanguageOption.rawValue)")
-        print("AppPreferences.shared.targetLanguage.promptDescriptor: \(targetLanguageOption.promptDescriptor)")
+        print("[LLMService] substitutePromptPlaceholders called")
+        print("[LLMService] targetLanguage.rawValue: \(targetLanguageOption.rawValue)")
+        print("[LLMService] targetLanguage.promptDescriptor: \(targetLanguageOption.promptDescriptor)")
         
         let storedValue = AppPreferences.sharedDefaults.string(forKey: TargetLanguageOption.storageKey)
-        print("Direct read from UserDefaults[\(TargetLanguageOption.storageKey)]: \(storedValue ?? "nil")")
-        print("==============================================")
+        print("[LLMService] Direct read from UserDefaults[\(TargetLanguageOption.storageKey)]: \(storedValue ?? "nil")")
 
         // Replace {targetLanguage} and {{targetLanguage}} with the actual target language
         let targetLanguage = targetLanguageOption.promptDescriptor
@@ -214,17 +213,15 @@ public final class LLMService {
             request.httpBody = payloadData
 
             if let jsonString = String(data: payloadData, encoding: .utf8) {
-                print("=== LLM Request Debug ===")
-                print("Provider: \(provider.displayName)")
-                print("Deployment: \(deployment)")
-                print("URL: \(requestURL.absoluteString)")
-                print("Action: \(action.name)")
-                print("Original Prompt: \(action.prompt)")
-                print("Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))")
-                print("Fallback Language: \(AppPreferences.shared.targetLanguage.fallbackLanguageDescriptor)")
-                print("System Preferred Languages: \(Locale.preferredLanguages)")
-                print("Request payload: \(jsonString)")
-                print("=========================")
+                print("[LLMService] Request Debug - Provider: \(provider.displayName)")
+                print("[LLMService] Deployment: \(deployment)")
+                print("[LLMService] URL: \(requestURL.absoluteString)")
+                print("[LLMService] Action: \(action.name)")
+                print("[LLMService] Original Prompt: \(action.prompt)")
+                print("[LLMService] Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))")
+                print("[LLMService] Fallback Language: \(AppPreferences.shared.targetLanguage.fallbackLanguageDescriptor)")
+                print("[LLMService] System Preferred Languages: \(Locale.preferredLanguages)")
+                print("[LLMService] Request payload: \(jsonString)")
             }
 
             try Task.checkCancellation()
@@ -247,7 +244,7 @@ public final class LLMService {
                 }
 
                 let responseString = String(data: data, encoding: .utf8) ?? ""
-                print("Response JSON from \(provider.displayName): \(responseString)")
+                print("[LLMService] Response JSON from \(provider.displayName): \(responseString)")
 
                 guard (200...299).contains(httpResponse.statusCode) else {
                     throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
@@ -304,7 +301,7 @@ public final class LLMService {
                 errorData.append(chunk)
             }
             let responseString = String(data: errorData, encoding: .utf8) ?? ""
-            print("Response JSON from \(provider.displayName): \(responseString)")
+            print("[LLMService] Response JSON from \(provider.displayName): \(responseString)")
             throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
         }
 
@@ -313,7 +310,7 @@ public final class LLMService {
         let isStructuredOutputMode = structuredOutputConfig != nil && !isSentencePairsMode
 
         if contentType.contains("text/event-stream") {
-            print("Streaming response from \(provider.displayName)")
+            print("[LLMService] Streaming response from \(provider.displayName)")
             var aggregatedText = ""
             let sentencePairParser = isSentencePairsMode ? StreamingSentencePairParser() : nil
             let structuredParser = isStructuredOutputMode ? StreamingStructuredOutputParser(config: structuredOutputConfig!) : nil
@@ -351,7 +348,7 @@ public final class LLMService {
             try Task.checkCancellation()
             guard !finalText.isEmpty else { throw LLMServiceError.emptyContent }
 
-            print("Final stream output from \(provider.displayName): \(finalText)")
+            print("[LLMService] Final stream output from \(provider.displayName): \(finalText)")
 
             // Parse final result for sentence pairs mode
             if isSentencePairsMode {
@@ -396,7 +393,7 @@ public final class LLMService {
             }
 
             let responseString = String(data: data, encoding: .utf8) ?? ""
-            print("Non-stream response from \(provider.displayName): \(responseString)")
+            print("[LLMService] Non-stream response from \(provider.displayName): \(responseString)")
 
             let parsed = try parseResponsePayload(data: data, structuredOutput: structuredOutputConfig)
             let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)

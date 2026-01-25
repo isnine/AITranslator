@@ -188,21 +188,12 @@ public final class AppConfigurationStore: ObservableObject {
 
   /// Update actions with validation
   /// Returns validation result (nil if validation passed or was skipped)
-  /// In default configuration mode, this will trigger a request to create custom configuration
+  /// Custom configurations are disabled - changes are ignored
   @discardableResult
   public func updateActions(_ actions: [ActionConfig]) -> ConfigurationValidationResult? {
-    // If using default configuration, request user to create custom configuration first
-    if configurationMode.isDefault {
-      let request = CreateCustomConfigurationRequest(changeType: .actions(actions)) { [weak self] created in
-        guard let self, created else { return }
-        // User confirmed, apply changes after switching to custom configuration
-        _ = self.applyActionsUpdate(actions)
-      }
-      createCustomConfigurationRequestPublisher.send(request)
-      return nil
-    }
-
-    return applyActionsUpdate(actions)
+    // Custom configurations disabled - silently ignore changes
+    print("[ConfigStore] ⚠️ Configuration changes are disabled")
+    return nil
   }
 
   /// Internal method to actually apply actions update
@@ -235,21 +226,11 @@ public final class AppConfigurationStore: ObservableObject {
 
   /// Update providers with validation
   /// Returns validation result (nil if validation passed or was skipped)
-  /// In default configuration mode, this will trigger a request to create custom configuration
+  /// Custom configurations are disabled - changes are ignored
   @discardableResult
   public func updateProviders(_ providers: [ProviderConfig]) -> ConfigurationValidationResult? {
-    // If using default configuration, request user to create custom configuration first
-    if configurationMode.isDefault {
-      let request = CreateCustomConfigurationRequest(changeType: .providers(providers)) { [weak self] created in
-        guard let self, created else { return }
-        // User confirmed, apply changes after switching to custom configuration
-        _ = self.applyProvidersUpdate(providers)
-      }
-      createCustomConfigurationRequestPublisher.send(request)
-      return nil
-    }
-
-    return applyProvidersUpdate(providers)
+    print("[ConfigStore] ⚠️ Configuration changes are disabled")
+    return nil
   }
 
   /// Internal method to actually apply providers update
@@ -282,25 +263,9 @@ public final class AppConfigurationStore: ObservableObject {
   }
 
   /// Update TTS configuration
-  /// In default configuration mode, this will trigger a request to create custom configuration
+  /// Custom configurations are disabled - changes are ignored
   public func updateTTSConfiguration(_ ttsConfig: TTSConfiguration) {
-    // If using default configuration, request user to create custom configuration first
-    if configurationMode.isDefault {
-      let request = CreateCustomConfigurationRequest(changeType: .tts(ttsConfig)) { [weak self] created in
-        guard let self else { return }
-        if created {
-          // User confirmed, apply changes after switching to custom configuration
-          self.applyTTSConfigurationUpdate(ttsConfig)
-        } else {
-          // User cancelled, notify UI to reset pending changes
-          self.resetPendingChangesPublisher.send()
-        }
-      }
-      createCustomConfigurationRequestPublisher.send(request)
-      return
-    }
-
-    applyTTSConfigurationUpdate(ttsConfig)
+    print("[ConfigStore] ⚠️ Configuration changes are disabled")
   }
 
   /// Internal method to actually apply TTS configuration update
@@ -310,20 +275,9 @@ public final class AppConfigurationStore: ObservableObject {
   }
 
   /// Update target language preference
-  /// In default configuration mode, this will trigger a request to create custom configuration
+  /// Custom configurations are disabled - changes are ignored
   public func updateTargetLanguage(_ option: TargetLanguageOption) {
-    // If using default configuration, request user to create custom configuration first
-    if configurationMode.isDefault {
-      let request = CreateCustomConfigurationRequest(changeType: .targetLanguage(option)) { [weak self] created in
-        guard let self, created else { return }
-        // User confirmed, apply changes after switching to custom configuration
-        self.applyTargetLanguageUpdate(option)
-      }
-      createCustomConfigurationRequestPublisher.send(request)
-      return
-    }
-
-    applyTargetLanguageUpdate(option)
+    print("[ConfigStore] ⚠️ Configuration changes are disabled")
   }
 
   /// Internal method to actually apply target language update
@@ -338,32 +292,9 @@ public final class AppConfigurationStore: ObservableObject {
   /// - Returns: true if successful
   @discardableResult
   public func createCustomConfigurationFromDefault(named name: String = "My Configuration") -> Bool {
-    guard configurationMode.isDefault else {
-      print("[ConfigStore] Already using custom configuration")
-      return true
-    }
-
-    // Build current configuration from in-memory state
-    let config = buildCurrentConfiguration()
-
-    do {
-      // Save to a new file
-      try configFileManager.saveConfiguration(config, name: name)
-
-      // Switch to custom mode
-      self.configurationMode = .customConfiguration(name: name)
-      self.currentConfigurationName = name
-      preferences.setCurrentConfigName(name)
-
-      // Start monitoring the new file
-      configFileManager.startMonitoring(configurationNamed: name)
-
-      print("[ConfigStore] ✅ Created custom configuration: '\(name)'")
-      return true
-    } catch {
-      print("[ConfigStore] ❌ Failed to create custom configuration: \(error)")
-      return false
-    }
+    // Custom configurations are disabled - always use bundled default
+    print("[ConfigStore] ⚠️ Custom configurations are disabled")
+    return false
   }
 
   /// Switch back to default configuration mode
@@ -483,32 +414,9 @@ public final class AppConfigurationStore: ObservableObject {
   // MARK: - Persistence using ConfigurationFileManager
 
   private func loadConfiguration() {
-    // Step 1: Read current config name from UserDefaults
-    // A nil or empty name means we should use default configuration mode
-    let storedName = preferences.currentConfigName
-    print("[ConfigStore] Stored config name from UserDefaults: \(storedName ?? "nil")")
-
-    // Step 2: Check if we should use default configuration mode
-    // Use default mode if: no stored name, or stored name is the special marker
-    if storedName == nil || storedName == Self.defaultConfigurationMarker {
-      print("[ConfigStore] 📦 Using bundled default configuration (read-only mode)")
-      loadBundledDefaultConfiguration()
-      return
-    }
-
-    // Step 3: Try to load the named custom configuration
-    if let name = storedName {
-      if tryLoadConfiguration(named: name) {
-        print("[ConfigStore] ✅ Successfully loaded custom config: '\(name)'")
-        configurationMode = .customConfiguration(name: name)
-        configFileManager.startMonitoring(configurationNamed: name)
-        return
-      }
-      print("[ConfigStore] ⚠️ Failed to load stored config '\(name)', falling back to default...")
-    }
-
-    // Step 4: Fallback to bundled default configuration
-    print("[ConfigStore] 📦 Falling back to bundled default configuration")
+    // Force all apps to use bundled default configuration (read-only mode)
+    // Custom configurations are disabled to prevent user modifications
+    print("[ConfigStore] 📦 Using bundled default configuration (read-only mode)")
     loadBundledDefaultConfiguration()
   }
 
@@ -887,21 +795,8 @@ public final class AppConfigurationStore: ObservableObject {
 
   /// Switch to a different configuration by name
   public func switchConfiguration(to name: String) -> Bool {
-    // Stop monitoring current config
-    if let currentName = currentConfigurationName {
-      configFileManager.stopMonitoring(configurationNamed: currentName)
-    }
-
-    if tryLoadConfiguration(named: name) {
-      print("[ConfigStore] ✅ Switched to configuration: '\(name)'")
-      configurationMode = .customConfiguration(name: name)
-      configFileManager.startMonitoring(configurationNamed: name)
-      
-      // Notify UI to sync from the new configuration
-      configurationSwitchedPublisher.send()
-      return true
-    }
-    print("[ConfigStore] ❌ Failed to switch to configuration: '\(name)'")
+    // Custom configurations are disabled - always use bundled default
+    print("[ConfigStore] ⚠️ Custom configurations are disabled")
     return false
   }
 

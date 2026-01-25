@@ -188,7 +188,7 @@ final class HotKeyManager: ObservableObject {
     )
 
     guard handlerResult == noErr else {
-      print("Failed to install event handler: \(handlerResult)")
+      print("[HotKey] Failed to install event handler: \(handlerResult)")
       return
     }
 
@@ -225,7 +225,7 @@ final class HotKeyManager: ObservableObject {
     if registerResult == noErr, let ref = hotKeyRef {
       registeredHotKeys[type] = ref
     } else {
-      print("Failed to register hotkey for \(type): \(registerResult)")
+      print("[HotKey] Failed to register hotkey for \(type): \(registerResult)")
     }
   }
 
