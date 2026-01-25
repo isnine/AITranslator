@@ -245,26 +245,16 @@ public struct ExtensionCompactView: View {
 
     @ViewBuilder
     private var selectedTextPreviewBackground: some View {
-        if #available(iOS 26, *) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 8))
-        } else {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(colors.inputBackground)
-        }
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(.clear)
+            .glassEffect(.regular, in: .rect(cornerRadius: 8))
     }
 
     @ViewBuilder
     private func chipBackground(isSelected: Bool) -> some View {
-        if #available(iOS 26, *) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.clear)
-                .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 8))
-        } else {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
-        }
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(.clear)
+            .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 8))
     }
 }
 #endif

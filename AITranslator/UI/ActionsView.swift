@@ -146,14 +146,9 @@ struct ActionsView: View {
 
     @ViewBuilder
     private var actionsCardBackground: some View {
-        if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
-        } else {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colors.cardBackground)
-        }
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(.clear)
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     private var headerSection: some View {
@@ -191,14 +186,9 @@ struct ActionsView: View {
 
     @ViewBuilder
     private var emptyStateCardBackground: some View {
-        if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
-        } else {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colors.cardBackground)
-        }
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(.clear)
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     struct DeploymentInfo {

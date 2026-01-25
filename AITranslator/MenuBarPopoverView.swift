@@ -325,39 +325,25 @@ struct MenuBarPopoverView: View {
     // MARK: - Liquid Glass Backgrounds
 
     private func chipTextColor(isSelected: Bool) -> Color {
-        if #available(iOS 26, macOS 26, *) {
-            return isSelected ? .white : colors.textPrimary
-        } else {
-            return isSelected ? colors.chipPrimaryText : colors.chipSecondaryText
-        }
+        return isSelected ? .white : colors.textPrimary
     }
 
     @ViewBuilder
     private var inputSectionBackground: some View {
-        if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 8))
-        } else {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(colors.inputBackground)
-        }
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(.clear)
+            .glassEffect(.regular, in: .rect(cornerRadius: 8))
     }
 
     @ViewBuilder
     private func chipBackground(isSelected: Bool) -> some View {
-        if #available(iOS 26, macOS 26, *) {
-            if isSelected {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(colors.accent)
-            } else {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 8))
-            }
+        if isSelected {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(colors.accent)
         } else {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
+                .fill(.clear)
+                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 8))
         }
     }
 }

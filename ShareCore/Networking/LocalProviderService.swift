@@ -141,11 +141,9 @@ public final class AppleFoundationService: Sendable {
         // TODO: Implement actual availability check when Foundation Models is available
         // For now, always return false as it's not yet released
         #if canImport(FoundationModels)
-        if #available(iOS 26.0, macOS 26.0, *) {
-            // Check if Apple Intelligence is enabled
-            // return SystemLanguageModel.default.isAvailable
-            return false
-        }
+        // Check if Apple Intelligence is enabled
+        // return SystemLanguageModel.default.isAvailable
+        return false
         #endif
         return false
     }

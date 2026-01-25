@@ -32,6 +32,7 @@ public struct HomeView: View {
   @State private var isInputExpanded: Bool
   @State private var showingProviderInfo: String?
   @State private var showDefaultAppGuide = false
+  @Namespace private var chipNamespace
   var openFromExtension: Bool {
     #if canImport(TranslationUIProvider)
     return context != nil
@@ -252,26 +253,16 @@ public struct HomeView: View {
 
     @ViewBuilder
     private var defaultAppCardBackground: some View {
-        if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
-        } else {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colors.cardBackground)
-        }
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(.clear)
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     @ViewBuilder
     private var inputComposerBackground: some View {
-        if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 16))
-        } else {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(colors.inputBackground)
-        }
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(.clear)
+            .glassEffect(.regular, in: .rect(cornerRadius: 16))
     }
 
     private var inputComposer: some View {
@@ -332,21 +323,16 @@ public struct HomeView: View {
                                 #if os(macOS)
                                 Text("Cmd+Return")
                                     .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(colors.chipPrimaryText.opacity(0.9))
+                                    .opacity(0.9)
                                 #endif
                                 Image(systemName: "paperplane.fill")
                                     .font(.system(size: 15, weight: .semibold))
                             }
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 10)
-                            .foregroundColor(colors.chipPrimaryText)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(viewModel.canSend ? colors.accent : colors.accent.opacity(0.4))
-                            )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.glassProminent)
+                        .tint(colors.accent)
                         .disabled(!viewModel.canSend)
+                        .opacity(viewModel.canSend ? 1.0 : 0.5)
                         #if os(macOS)
                         .keyboardShortcut(.return, modifiers: [.command])
                         #endif
@@ -409,10 +395,11 @@ public struct HomeView: View {
             } else {
                 Image(systemName: "speaker.wave.2.fill")
                     .font(.system(size: 14))
-                    .foregroundColor(colors.accent)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
+        .tint(colors.accent)
+        .buttonBorderShape(.circle)
         .disabled(viewModel.isSpeakingInputText)
     }
 
@@ -472,34 +459,25 @@ public struct HomeView: View {
     }
 
     private func chip(for action: ActionConfig, isSelected: Bool) -> some View {
-        Button {
-            if viewModel.selectAction(action) {
-                viewModel.performSelectedAction()
+        Text(action.name)
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(isSelected ? Color.white : Color.primary)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 10)
+            .background {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(colors.chipPrimaryBackground)
+                } else {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.regularMaterial)
+                }
             }
-        } label: {
-            Text(action.name)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(isSelected ? colors.chipPrimaryText : colors.chipSecondaryText)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .background(chipBackground(isSelected: isSelected))
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private func chipBackground(isSelected: Bool) -> some View {
-        if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? colors.chipPrimaryBackground : .clear)
-                .glassEffect(
-                    isSelected ? .regular : .regular.interactive(),
-                    in: .rect(cornerRadius: 8)
-                )
-        } else {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(isSelected ? colors.chipPrimaryBackground : colors.chipSecondaryBackground)
-        }
+            .onTapGesture {
+                if viewModel.selectAction(action) {
+                    viewModel.performSelectedAction()
+                }
+            }
     }
 
     private var hintLabel: some View {
@@ -545,26 +523,16 @@ public struct HomeView: View {
 
     @ViewBuilder
     private var targetLanguageIndicatorBackground: some View {
-        if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular.interactive(), in: .capsule)
-        } else {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(colors.accent.opacity(0.12))
-        }
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(.clear)
+            .glassEffect(.regular.interactive(), in: .capsule)
     }
 
     @ViewBuilder
     private var providerResultCardBackground: some View {
-        if #available(iOS 26, macOS 26, *) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
-        } else {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colors.cardBackground)
-        }
+        RoundedRectangle(cornerRadius: 12, style: .continuous)
+            .fill(.clear)
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
     private func openTargetLanguageSettings() {

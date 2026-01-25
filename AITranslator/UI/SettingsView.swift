@@ -286,14 +286,9 @@ struct SettingsView: View {
 
   @ViewBuilder
   private var sectionCardBackground: some View {
-    if #available(iOS 26, macOS 26, *) {
-      RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .fill(.clear)
-        .glassEffect(.regular, in: .rect(cornerRadius: 16))
-    } else {
-      RoundedRectangle(cornerRadius: 16, style: .continuous)
-        .fill(colors.cardBackground)
-    }
+    RoundedRectangle(cornerRadius: 16, style: .continuous)
+      .fill(.clear)
+      .glassEffect(.regular, in: .rect(cornerRadius: 16))
   }
 }
 
@@ -760,17 +755,12 @@ private extension SettingsView {
 
   @ViewBuilder
   private func storageOptionPillBackground(isSelected: Bool) -> some View {
-    if #available(iOS 26, macOS 26, *) {
-      RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .fill(isSelected ? colors.accent : .clear)
-        .glassEffect(
-          isSelected ? .regular : .regular.interactive(),
-          in: .rect(cornerRadius: 8)
-        )
-    } else {
-      RoundedRectangle(cornerRadius: 8, style: .continuous)
-        .fill(isSelected ? colors.accent : colors.inputBackground)
-    }
+    RoundedRectangle(cornerRadius: 8, style: .continuous)
+      .fill(isSelected ? colors.accent : .clear)
+      .glassEffect(
+        isSelected ? .regular : .regular.interactive(),
+        in: .rect(cornerRadius: 8)
+      )
   }
   
   // MARK: - TTS Rows

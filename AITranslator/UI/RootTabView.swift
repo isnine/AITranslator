@@ -127,6 +127,7 @@ struct RootTabView: View {
             }
         }
         .tabViewStyle(.sidebarAdaptable)
+        .tabBarMinimizeBehavior(.onScrollDown)
         .tint(colors.accent)
         .onReceive(configStore.createCustomConfigurationRequestPublisher) { request in
             handleCreateCustomConfigRequest(request)

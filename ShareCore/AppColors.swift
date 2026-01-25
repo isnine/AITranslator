@@ -38,7 +38,7 @@ public enum AppColors {
     )
     private static let chipSecondaryBackground = AdaptiveColor(
         light: Color.black.opacity(0.05),
-        dark: Color.white.opacity(0.1)
+        dark: Color.white.opacity(0.25)
     )
     private static let chipPrimaryText = AdaptiveColor(
         light: Color.white,
@@ -46,7 +46,7 @@ public enum AppColors {
     )
     private static let chipSecondaryText = AdaptiveColor(
         light: Color.black.opacity(0.7),
-        dark: Color.white.opacity(0.75)
+        dark: Color.white
     )
     private static let divider = AdaptiveColor(
         light: Color.black.opacity(0.06),
