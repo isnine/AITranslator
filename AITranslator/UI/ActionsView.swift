@@ -104,7 +104,7 @@ struct ActionsView: View {
                         NavigationLink(value: action) {
                             ActionRowView(
                                 action: action,
-                                deploymentInfo: deploymentInfo(for: action),
+                                modelInfo: modelInfo(for: action),
                                 showDragHandle: isEditing,
                                 colors: colors
                             )
@@ -113,7 +113,7 @@ struct ActionsView: View {
                         .draggable(action.id.uuidString) {
                             ActionRowView(
                                 action: action,
-                                deploymentInfo: deploymentInfo(for: action),
+                                modelInfo: modelInfo(for: action),
                                 showDragHandle: false,
                                 colors: colors
                             )
@@ -191,30 +191,16 @@ struct ActionsView: View {
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
     }
 
-    struct DeploymentInfo {
-        let providerCount: Int
-        let deploymentCount: Int
-        let deploymentNames: [String]
+    struct ModelInfo {
+        let modelCount: Int
+        let modelNames: [String]
     }
 
-    /// Get global deployment info (all enabled deployments across all providers)
-    private func deploymentInfo(for action: ActionConfig) -> DeploymentInfo {
-        let availableProviders = configurationStore.providers
-        var providerCount = 0
-        var deploymentNames: [String] = []
-        
-        for provider in availableProviders {
-            let enabledInProvider = provider.deployments.filter { provider.enabledDeployments.contains($0) }
-            if !enabledInProvider.isEmpty {
-                providerCount += 1
-                deploymentNames.append(contentsOf: enabledInProvider)
-            }
-        }
-        
-        return DeploymentInfo(
-            providerCount: providerCount,
-            deploymentCount: deploymentNames.count,
-            deploymentNames: deploymentNames
+    private func modelInfo(for action: ActionConfig) -> ModelInfo {
+        let enabledModelIDs = AppPreferences.shared.enabledModelIDs
+        return ModelInfo(
+            modelCount: enabledModelIDs.count,
+            modelNames: Array(enabledModelIDs)
         )
     }
 
@@ -237,7 +223,7 @@ struct ActionsView: View {
 private extension ActionsView {
     struct ActionRowView: View {
         let action: ActionConfig
-        let deploymentInfo: ActionsView.DeploymentInfo
+        let modelInfo: ActionsView.ModelInfo
         let showDragHandle: Bool
         let colors: AppColorPalette
 
@@ -250,7 +236,6 @@ private extension ActionsView {
                         .frame(width: 24)
                 }
 
-                // Action icon
                 Image(systemName: actionIcon)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(colors.accent)
@@ -268,9 +253,9 @@ private extension ActionsView {
                     HStack(spacing: 6) {
                         Text(action.prompt)
                             .lineLimit(1)
-                        if deploymentInfo.deploymentCount > 0 {
+                        if modelInfo.modelCount > 0 {
                             Text("·")
-                            Text("\(deploymentInfo.deploymentCount) models")
+                            Text("\(modelInfo.modelCount) models")
                         }
                     }
                     .font(.system(size: 13))

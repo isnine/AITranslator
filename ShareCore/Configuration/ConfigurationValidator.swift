@@ -28,25 +28,16 @@ public struct ConfigurationValidator: Sendable {
     // 1. Version validation
     issues.append(contentsOf: validateVersion(config.version))
 
-    // 2. Provider validation
-    issues.append(contentsOf: validateProviders(config.providers))
-
-    // 3. Action validation (including provider references)
-    issues.append(contentsOf: validateActions(config.actions, providers: config.providers))
-
-    // 4. TTS validation
-    if let tts = config.tts {
-      issues.append(contentsOf: validateTTS(tts))
-    }
+    // 2. Action validation
+    issues.append(contentsOf: validateActions(config.actions))
 
     return ConfigurationValidationResult(issues: issues)
   }
 
-  /// Validate in-memory configuration (actions and providers)
+  /// Validate in-memory configuration (actions only)
   @MainActor
   public func validateInMemory(
-    actions: [ActionConfig],
-    providers: [ProviderConfig]
+    actions: [ActionConfig]
   ) -> ConfigurationValidationResult {
     var issues: [ConfigurationValidationIssue] = []
 
@@ -70,18 +61,6 @@ public struct ConfigurationValidator: Sendable {
         issues.append(.duplicateActionName(actionName: action.name))
       }
       seenNames.insert(action.name)
-    }
-
-    // Validate providers have enabled deployments
-    for provider in providers {
-      if provider.enabledDeployments.isEmpty {
-        issues.append(.noEnabledDeployments(providerName: provider.displayName))
-      }
-    }
-
-    // Warn if no providers configured at all
-    if providers.isEmpty {
-      issues.append(.noProvidersConfigured)
     }
 
     return ConfigurationValidationResult(issues: issues)
@@ -113,59 +92,10 @@ public struct ConfigurationValidator: Sendable {
     return issues
   }
 
-  // MARK: - Provider Validation
-
-  private func validateProviders(
-    _ providers: [String: AppConfiguration.ProviderEntry]
-  ) -> [ConfigurationValidationIssue] {
-    var issues: [ConfigurationValidationIssue] = []
-
-    for (name, entry) in providers {
-      // Validate category
-      let category = ProviderCategory(rawValue: entry.category)
-        ?? ProviderCategory.allCases.first(where: { $0.displayName == entry.category })
-
-      if category == nil {
-        issues.append(.invalidProviderCategory(provider: name, category: entry.category))
-      }
-
-      // Built-in Cloud doesn't need endpoint or token validation
-      if category == .builtInCloud {
-        continue
-      }
-
-      // Validate endpoint URL
-      if let baseEndpoint = entry.baseEndpoint {
-        if URL(string: baseEndpoint) == nil {
-          issues.append(.invalidEndpointURL(provider: name, url: baseEndpoint))
-        }
-      } else if let endpoint = entry.endpoint {
-        if URL(string: endpoint) == nil {
-          issues.append(.invalidEndpointURL(provider: name, url: endpoint))
-        }
-      } else {
-        issues.append(.missingEndpoint(provider: name))
-      }
-
-      // Validate token is not empty
-      if entry.token?.isEmpty ?? true {
-        issues.append(.emptyToken(provider: name))
-      }
-
-      // Warn if no deployments
-      if entry.deployments?.isEmpty ?? true, entry.model?.isEmpty ?? true {
-        issues.append(.noDeployments(provider: name))
-      }
-    }
-
-    return issues
-  }
-
   // MARK: - Action Validation
 
   private func validateActions(
-    _ actions: [AppConfiguration.ActionEntry],
-    providers: [String: AppConfiguration.ProviderEntry]
+    _ actions: [AppConfiguration.ActionEntry]
   ) -> [ConfigurationValidationIssue] {
     var issues: [ConfigurationValidationIssue] = []
 
@@ -197,53 +127,7 @@ public struct ConfigurationValidator: Sendable {
       seenNames.insert(action.name)
     }
 
-    // Check if any providers have enabled deployments
-    let hasEnabledDeployments = providers.values.contains { entry in
-      let enabled = entry.enabledDeployments ?? entry.deployments ?? []
-      return !enabled.isEmpty
-    }
-    if !hasEnabledDeployments && !providers.isEmpty {
-      issues.append(.noEnabledDeployments(providerName: ""))
-    }
-
     return issues
-  }
-
-  // MARK: - TTS Validation
-
-  private func validateTTS(
-    _ tts: AppConfiguration.TTSEntry
-  ) -> [ConfigurationValidationIssue] {
-    var issues: [ConfigurationValidationIssue] = []
-
-    // Built-in cloud TTS doesn't need endpoint or API key validation
-    if tts.useBuiltInCloud == true {
-      return issues
-    }
-
-    // Validate endpoint URL format if provided
-    if let endpoint = tts.endpoint, !endpoint.isEmpty, URL(string: endpoint) == nil {
-      issues.append(.invalidTTSEndpoint(url: endpoint))
-    }
-
-    // Warn if API key is empty (TTS won't work without it)
-    if tts.apiKey?.isEmpty ?? true {
-      issues.append(.emptyTTSApiKey)
-    }
-
-    return issues
-  }
-
-  // MARK: - Helpers
-
-  /// Parse "ProviderName:deployment" format
-  private func parseProviderReference(_ ref: String) -> (provider: String, deployment: String?) {
-    if let colonIndex = ref.firstIndex(of: ":") {
-      let provider = String(ref[..<colonIndex])
-      let deployment = String(ref[ref.index(after: colonIndex)...])
-      return (provider, deployment)
-    }
-    return (ref, nil)
   }
 }
 
@@ -287,24 +171,11 @@ public enum ConfigurationValidationIssue: Sendable, Equatable {
   case invalidVersionFormat(version: String)
   case unsupportedVersion(version: String, supportedRange: String)
 
-  // Provider issues
-  case invalidProviderCategory(provider: String, category: String)
-  case invalidEndpointURL(provider: String, url: String)
-  case missingEndpoint(provider: String)
-  case emptyToken(provider: String)
-  case noDeployments(provider: String)
-  case noEnabledDeployments(providerName: String)
-  case noProvidersConfigured
-
   // Action issues
   case emptyActionName
   case emptyActionPrompt(actionName: String)
   case invalidOutputType(actionName: String, outputType: String)
   case duplicateActionName(actionName: String)
-
-  // TTS issues
-  case invalidTTSEndpoint(url: String)
-  case emptyTTSApiKey
 
   /// Severity level of the issue
   public var severity: ValidationSeverity {
@@ -312,22 +183,13 @@ public enum ConfigurationValidationIssue: Sendable, Equatable {
     // Errors - prevent saving or loading
     case .invalidVersionFormat,
       .unsupportedVersion,
-      .invalidProviderCategory,
-      .invalidEndpointURL,
-      .missingEndpoint,
       .invalidOutputType:
       return .error
 
     // Warnings - allow saving but notify user
-    case .emptyToken,
-      .noDeployments,
-      .noEnabledDeployments,
-      .noProvidersConfigured,
-      .emptyActionName,
+    case .emptyActionName,
       .emptyActionPrompt,
-      .duplicateActionName,
-      .invalidTTSEndpoint,
-      .emptyTTSApiKey:
+      .duplicateActionName:
       return .warning
     }
   }
@@ -339,23 +201,6 @@ public enum ConfigurationValidationIssue: Sendable, Equatable {
       return "Invalid version format: '\(version)'. Expected format: X.Y.Z"
     case .unsupportedVersion(let version, let supportedRange):
       return "Version '\(version)' is not supported. Supported range: \(supportedRange)"
-    case .invalidProviderCategory(let provider, let category):
-      return "Provider '\(provider)' has invalid category: '\(category)'"
-    case .invalidEndpointURL(let provider, let url):
-      return "Provider '\(provider)' has invalid endpoint URL: '\(url)'"
-    case .missingEndpoint(let provider):
-      return "Provider '\(provider)' is missing endpoint URL"
-    case .emptyToken(let provider):
-      return "Provider '\(provider)' has empty API token"
-    case .noDeployments(let provider):
-      return "Provider '\(provider)' has no deployments configured"
-    case .noEnabledDeployments(let providerName):
-      if providerName.isEmpty {
-        return "No enabled deployments found across all providers"
-      }
-      return "Provider '\(providerName)' has no enabled deployments"
-    case .noProvidersConfigured:
-      return "No providers configured"
     case .emptyActionName:
       return "Action has empty name"
     case .emptyActionPrompt(let actionName):
@@ -364,10 +209,6 @@ public enum ConfigurationValidationIssue: Sendable, Equatable {
       return "Action '\(actionName)' has invalid output type: '\(outputType)'"
     case .duplicateActionName(let actionName):
       return "Duplicate action name: '\(actionName)'"
-    case .invalidTTSEndpoint(let url):
-      return "TTS has invalid endpoint URL: '\(url)'"
-    case .emptyTTSApiKey:
-      return "TTS API key is empty"
     }
   }
 }

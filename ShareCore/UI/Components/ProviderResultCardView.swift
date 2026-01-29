@@ -13,7 +13,7 @@ import SwiftUI
 public struct ProviderResultCardView: View {
     @Environment(\.colorScheme) private var colorScheme
     
-    let run: HomeViewModel.ProviderRunViewState
+    let run: HomeViewModel.ModelRunViewState
     let showModelName: Bool
     let viewModel: HomeViewModel
     let onCopy: (String) -> Void
@@ -24,7 +24,7 @@ public struct ProviderResultCardView: View {
     }
     
     public init(
-        run: HomeViewModel.ProviderRunViewState,
+        run: HomeViewModel.ModelRunViewState,
         showModelName: Bool,
         viewModel: HomeViewModel,
         onCopy: @escaping (String) -> Void,
@@ -70,8 +70,9 @@ public struct ProviderResultCardView: View {
 /// Displays the main content of a provider result based on its status
 struct ResultContentView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @State private var showingErrorDetails = false
     
-    let run: HomeViewModel.ProviderRunViewState
+    let run: HomeViewModel.ModelRunViewState
     let viewModel: HomeViewModel
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
@@ -111,17 +112,57 @@ struct ResultContentView: View {
                 sentencePairs: sentencePairs
             )
             
-        case let .failure(message, _):
-            VStack(alignment: .leading, spacing: 8) {
+        case let .failure(message, _, responseBody):
+            failureContent(message: message, responseBody: responseBody)
+        }
+    }
+    
+    @ViewBuilder
+    private func failureContent(message: String, responseBody: String?) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
                 Text("Request Failed")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(colors.error)
-                Text(message)
-                    .font(.system(size: 12))
-                    .foregroundColor(colors.textSecondary)
-                    .textSelection(.enabled)
+                
+                if responseBody != nil {
+                    errorDetailsButton(responseBody: responseBody!)
+                }
             }
+            Text(message)
+                .font(.system(size: 12))
+                .foregroundColor(colors.textSecondary)
+                .textSelection(.enabled)
         }
+    }
+    
+    @ViewBuilder
+    private func errorDetailsButton(responseBody: String) -> some View {
+        #if os(macOS)
+        Button {
+            showingErrorDetails.toggle()
+        } label: {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 12))
+                .foregroundColor(colors.error)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showingErrorDetails) {
+            ErrorDetailsPopover(responseBody: responseBody)
+        }
+        #else
+        Button {
+            showingErrorDetails = true
+        } label: {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 12))
+                .foregroundColor(colors.error)
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showingErrorDetails) {
+            ErrorDetailsSheet(responseBody: responseBody)
+        }
+        #endif
     }
     
     @ViewBuilder
@@ -184,7 +225,7 @@ struct ResultContentView: View {
 struct ResultBottomInfoBar: View {
     @Environment(\.colorScheme) private var colorScheme
     
-    let run: HomeViewModel.ProviderRunViewState
+    let run: HomeViewModel.ModelRunViewState
     let showModelName: Bool
     let viewModel: HomeViewModel
     let onCopy: (String) -> Void
@@ -569,3 +610,66 @@ struct DiffView: View {
         }
     }
 }
+
+// MARK: - Error Details Views
+
+#if os(macOS)
+struct ErrorDetailsPopover: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let responseBody: String
+    
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Error Details")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(colors.textPrimary)
+            
+            ScrollView {
+                Text(responseBody)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(colors.textSecondary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(16)
+        .frame(width: 400, height: 300)
+    }
+}
+#else
+struct ErrorDetailsSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+    let responseBody: String
+    
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(responseBody)
+                    .font(.system(size: 14, design: .monospaced))
+                    .foregroundColor(colors.textSecondary)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+            }
+            .navigationTitle("Error Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+#endif

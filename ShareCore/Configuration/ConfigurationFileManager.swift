@@ -119,6 +119,47 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     }
   }
 
+  /// Copy the bundled default configuration to the configurations directory if it doesn't exist
+  /// - Parameter name: The name for the configuration file (without .json extension)
+  /// - Returns: true if configuration already exists or was successfully copied
+  @discardableResult
+  public func copyBundledDefaultIfNeeded(to name: String) -> Bool {
+    guard !configurationExists(named: name) else {
+      return true
+    }
+
+    let bundles = [
+      Bundle(for: ConfigurationFileManager.self),
+      Bundle.main,
+    ]
+
+    var bundledURL: URL?
+    for bundle in bundles {
+      if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json") {
+        bundledURL = url
+        break
+      }
+    }
+
+    guard let bundledURL else {
+      print("[ConfigFileManager] ❌ Bundled default config not found in any bundle")
+      return false
+    }
+
+    let sanitizedName = sanitizeFilename(name)
+    let targetURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
+
+    do {
+      ensureDirectoryExists(configurationsDirectory)
+      try fileManager.copyItem(at: bundledURL, to: targetURL)
+      print("[ConfigFileManager] ✅ Copied bundled default to '\(name).json'")
+      return true
+    } catch {
+      print("[ConfigFileManager] ❌ Failed to copy bundled config: \(error)")
+      return false
+    }
+  }
+
   private init() {
     // No longer copy bundled default on first run
     // Default configuration mode reads directly from the app bundle

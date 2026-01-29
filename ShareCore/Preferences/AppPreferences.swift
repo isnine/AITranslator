@@ -24,6 +24,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var customConfigDirectory: URL?
     @Published public private(set) var useICloudForConfig: Bool
     @Published public private(set) var defaultAppHintDismissed: Bool
+    @Published public private(set) var enabledModelIDs: Set<String>
     #if os(macOS)
     @Published public private(set) var keepRunningWhenClosed: Bool
     #endif
@@ -39,6 +40,7 @@ public final class AppPreferences: ObservableObject {
         self.customConfigDirectory = AppPreferences.readCustomConfigDirectory(from: defaults)
         self.useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
         self.defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
+        self.enabledModelIDs = AppPreferences.readEnabledModelIDs(from: defaults)
         #if os(macOS)
         // Default to true - keep app running in menu bar when window is closed
         self.keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
@@ -157,34 +159,13 @@ public final class AppPreferences: ObservableObject {
     }
     #endif
 
-    // MARK: - Enabled Deployments (stored per provider name)
+    // MARK: - Enabled Models (flat model architecture)
 
-    /// Get enabled deployments for a specific provider
-    /// - Parameter providerName: The provider's display name
-    /// - Returns: The set of enabled deployment names, or nil if not stored (use config default)
-    public func enabledDeployments(for providerName: String) -> Set<String>? {
-        let key = StorageKeys.enabledDeploymentsPrefix + providerName
-        guard let array = defaults.stringArray(forKey: key) else {
-            return nil
-        }
-        return Set(array)
-    }
+    public func setEnabledModelIDs(_ ids: Set<String>) {
+        guard enabledModelIDs != ids else { return }
 
-    /// Set enabled deployments for a specific provider
-    /// - Parameters:
-    ///   - deployments: The set of enabled deployment names
-    ///   - providerName: The provider's display name
-    public func setEnabledDeployments(_ deployments: Set<String>, for providerName: String) {
-        let key = StorageKeys.enabledDeploymentsPrefix + providerName
-        defaults.set(Array(deployments), forKey: key)
-        defaults.synchronize()
-    }
-
-    /// Remove enabled deployments setting for a provider (reverts to config default)
-    /// - Parameter providerName: The provider's display name
-    public func removeEnabledDeployments(for providerName: String) {
-        let key = StorageKeys.enabledDeploymentsPrefix + providerName
-        defaults.removeObject(forKey: key)
+        enabledModelIDs = ids
+        defaults.set(Array(ids), forKey: StorageKeys.enabledModels)
         defaults.synchronize()
     }
 
@@ -234,6 +215,11 @@ public final class AppPreferences: ObservableObject {
             keepRunningWhenClosed = storedKeepRunning
         }
         #endif
+
+        let storedEnabledModels = AppPreferences.readEnabledModelIDs(from: defaults)
+        if enabledModelIDs != storedEnabledModels {
+            enabledModelIDs = storedEnabledModels
+        }
     }
 
     private static func readCustomConfigDirectory(from defaults: UserDefaults) -> URL? {
@@ -299,6 +285,13 @@ public final class AppPreferences: ObservableObject {
             voice: voice
         )
     }
+
+    private static func readEnabledModelIDs(from defaults: UserDefaults) -> Set<String> {
+        guard let array = defaults.stringArray(forKey: StorageKeys.enabledModels) else {
+            return []
+        }
+        return Set(array)
+    }
 }
 
 private enum StorageKeys {
@@ -311,8 +304,8 @@ private enum StorageKeys {
     static let customConfigDirectory = "custom_config_directory"
     static let useICloudForConfig = "use_icloud_for_config"
     static let defaultAppHintDismissed = "default_app_hint_dismissed"
-    /// Prefix for enabled deployments storage. Full key: "enabled_deployments.<providerName>"
-    static let enabledDeploymentsPrefix = "enabled_deployments."
+    /// Key for enabled model IDs (flat model architecture)
+    static let enabledModels = "enabled_models"
     #if os(macOS)
     static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif

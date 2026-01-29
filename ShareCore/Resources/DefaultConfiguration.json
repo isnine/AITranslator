@@ -1,18 +1,5 @@
 {
   "version": "1.1.0",
-  "preferences": {
-    "targetLanguage": "app-language"
-  },
-  "providers": {
-    "Built-in Cloud": {
-      "category": "Built-in Cloud",
-      "enabledDeployments": ["gpt-4.1-nano"]
-    }
-  },
-  "tts": {
-    "useBuiltInCloud": true,
-    "voice": "alloy"
-  },
   "actions": [
     {
       "name": "Translate",

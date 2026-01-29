@@ -35,6 +35,20 @@ const ALLOWED_MODELS = [
   "model-router",
 ];
 
+interface ModelInfo {
+  id: string;
+  displayName: string;
+  isDefault: boolean;
+}
+
+const MODELS_LIST: ModelInfo[] = [
+  { id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true },
+  { id: "gpt-4.1-mini", displayName: "GPT-4.1 Mini", isDefault: false },
+  { id: "gpt-4o-mini", displayName: "GPT-4o Mini", isDefault: false },
+  { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false },
+  { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false },
+];
+
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -48,7 +62,15 @@ export default {
       return buildResponse(null, 204, undefined);
     }
 
-    // Validate HMAC signature
+    const url = new URL(request.url);
+    const path = url.pathname;
+
+    // Route: /models - Return available models list (no auth required)
+    if (path === "/models") {
+      return handleModelsRequest();
+    }
+
+    // Validate HMAC signature for all other routes
     const authResult = await isAuthorized(request, env.APP_SECRET);
     if (!authResult.valid) {
       return buildResponse(
@@ -57,9 +79,6 @@ export default {
         "application/json"
       );
     }
-
-    const url = new URL(request.url);
-    const path = url.pathname;
 
     // Route: /tts - Text-to-Speech
     if (path === "/tts") {
@@ -70,6 +89,14 @@ export default {
     return handleLLMRequest(request, env);
   },
 };
+
+function handleModelsRequest(): Response {
+  return buildResponse(
+    JSON.stringify({ models: MODELS_LIST }),
+    200,
+    "application/json"
+  );
+}
 
 // MARK: - TTS Handler
 

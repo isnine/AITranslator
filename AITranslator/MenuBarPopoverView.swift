@@ -49,7 +49,7 @@ struct MenuBarPopoverView: View {
                 inputSection
                 actionChips
                 
-                if !viewModel.providerRuns.isEmpty {
+                if !viewModel.modelRuns.isEmpty {
                     Divider()
                         .background(colors.divider)
                     resultSection
@@ -301,10 +301,10 @@ struct MenuBarPopoverView: View {
     
     @ViewBuilder
     private var resultSection: some View {
-        let showModelName = viewModel.providerRuns.count > 1
+        let showModelName = viewModel.modelRuns.count > 1
         ScrollView {
             VStack(spacing: 12) {
-                ForEach(viewModel.providerRuns) { run in
+                ForEach(viewModel.modelRuns) { run in
                     ProviderResultCardView(
                         run: run,
                         showModelName: showModelName,

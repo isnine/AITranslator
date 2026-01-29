@@ -15,7 +15,7 @@ import AppKit
 
 @MainActor
 public final class HomeViewModel: ObservableObject {
-    public struct ProviderRunViewState: Identifiable {
+    public struct ModelRunViewState: Identifiable {
         public enum Status {
             case idle
             case running(start: Date)
@@ -29,30 +29,26 @@ public final class HomeViewModel: ObservableObject {
                 supplementalTexts: [String] = [],
                 sentencePairs: [SentencePair] = []
             )
-            case failure(message: String, duration: TimeInterval)
+            case failure(message: String, duration: TimeInterval, responseBody: String? = nil)
 
             public var duration: TimeInterval? {
                 switch self {
                 case .idle, .running, .streaming, .streamingSentencePairs:
                     return nil
                 case let .success(_, _, duration, _, _, _),
-                     let .failure(_, duration):
+                     let .failure(_, duration, _):
                     return duration
                 }
             }
         }
 
-        public let provider: ProviderConfig
-        public let deployment: String
+        public let model: ModelConfig
         public var status: Status
-        /// Whether to show diff view (only applicable when diff is available)
         public var showDiff: Bool = true
 
-        /// Use a composite id to uniquely identify provider + deployment
-        public var id: String { "\(provider.id.uuidString)-\(deployment)" }
+        public var id: String { model.id }
 
-        /// Model name for display (shows deployment name)
-        public var modelDisplayName: String { deployment }
+        public var modelDisplayName: String { model.displayName }
 
         public var durationText: String? {
             guard let duration = status.duration else { return nil }
@@ -85,10 +81,10 @@ public final class HomeViewModel: ObservableObject {
         }
     }
     @Published public private(set) var actions: [ActionConfig]
-    @Published public private(set) var providers: [ProviderConfig]
+    @Published public private(set) var models: [ModelConfig] = []
     @Published public var selectedActionID: UUID?
-    @Published public private(set) var providerRuns: [ProviderRunViewState] = []
-    @Published public private(set) var speakingProviders: Set<String> = []
+    @Published public private(set) var modelRuns: [ModelRunViewState] = []
+    @Published public private(set) var speakingModels: Set<String> = []
     @Published public private(set) var isSpeakingInputText: Bool = false
     @Published public private(set) var isLoadingConfiguration: Bool = true
 
@@ -104,6 +100,7 @@ public final class HomeViewModel: ObservableObject {
     private let configurationStore: AppConfigurationStore
     private let llmService: LLMService
     private let textToSpeechService: TextToSpeechService
+    private let preferences: AppPreferences
     private var cancellables = Set<AnyCancellable>()
     private var currentRequestTask: Task<Void, Never>?
     private var activeRequestID: UUID?
@@ -116,20 +113,22 @@ public final class HomeViewModel: ObservableObject {
         configurationStore: AppConfigurationStore? = nil,
         llmService: LLMService = .shared,
         textToSpeechService: TextToSpeechService = .shared,
+        preferences: AppPreferences = .shared,
         usageScene: ActionConfig.UsageScene = .app
     ) {
         let store = configurationStore ?? .shared
         self.configurationStore = store
         self.llmService = llmService
         self.textToSpeechService = textToSpeechService
+        self.preferences = preferences
         self.usageScene = usageScene
         self.allActions = store.actions
-        self.providers = store.providers
         self.selectedActionID = store.defaultAction?.id
         self.actions = []
         self.isLoadingConfiguration = true
 
         refreshActions()
+        loadModels()
 
         store.$actions
             .receive(on: RunLoop.main)
@@ -140,14 +139,13 @@ public final class HomeViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        store.$providers
+        preferences.$enabledModelIDs
             .receive(on: RunLoop.main)
-            .sink { [weak self] in
-                self?.providers = $0
+            .sink { [weak self] _ in
+                self?.updateEnabledModels()
             }
             .store(in: &cancellables)
 
-        // Configuration is already loaded from the store's init
         isLoadingConfiguration = false
     }
 
@@ -162,20 +160,15 @@ public final class HomeViewModel: ObservableObject {
         return actions.first(where: { $0.id == id }) ?? actions.first
     }
 
-    /// Refresh configuration from store before performing actions.
-    /// This ensures the extension/popover has the latest configuration.
     public func refreshConfiguration() {
         isLoadingConfiguration = true
 
-        // Reload configuration from the store
         configurationStore.reloadCurrentConfiguration()
 
-        // Update local state from refreshed store
         allActions = configurationStore.actions
-        providers = configurationStore.providers
         refreshActions()
+        loadModels()
 
-        // Update selected action to match the new configuration
         if let firstAction = actions.first {
             selectedActionID = firstAction.id
         }
@@ -183,27 +176,38 @@ public final class HomeViewModel: ObservableObject {
         isLoadingConfiguration = false
     }
 
-    /// Returns true if the Send button should be enabled.
-    /// Disabled when: no actions available, or no enabled deployments across all providers.
     public var canSend: Bool {
         guard selectedAction != nil else {
             return false
         }
-        // Check if any provider has enabled deployments
-        return providers.contains { !$0.enabledDeployments.isEmpty }
+        return !getEnabledModels().isEmpty
     }
 
-    /// Get all enabled provider deployments across all providers
-    private func getAllEnabledDeployments() -> [(provider: ProviderConfig, deployment: String)] {
-        var result: [(provider: ProviderConfig, deployment: String)] = []
-        
-        for provider in providers {
-            for deployment in provider.deployments where provider.enabledDeployments.contains(deployment) {
-                result.append((provider: provider, deployment: deployment))
+    private func getEnabledModels() -> [ModelConfig] {
+        let enabledIDs = preferences.enabledModelIDs
+        if enabledIDs.isEmpty {
+            return models.filter { $0.isDefault }
+        }
+        return models.filter { enabledIDs.contains($0.id) }
+    }
+
+    private func loadModels() {
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let fetchedModels = try await ModelsService.shared.fetchModels()
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.models = fetchedModels
+                    self.updateEnabledModels()
+                }
+            } catch {
+                print("[HomeViewModel] Failed to fetch models: \(error)")
             }
         }
-        
-        return result
+    }
+
+    private func updateEnabledModels() {
     }
 
     @discardableResult
@@ -224,34 +228,33 @@ public final class HomeViewModel: ObservableObject {
 
         guard let action = selectedAction else {
             print("[HomeViewModel] No action selected.")
-            providerRuns = []
+            modelRuns = []
             return
         }
 
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
             print("[HomeViewModel] Input text is empty; skipping request.")
-            providerRuns = []
+            modelRuns = []
             return
         }
 
         currentRequestInputText = text
         currentActionShowsDiff = action.showsDiff
 
-        // Use all enabled deployments across all providers
-        let deploymentsToUse = getAllEnabledDeployments()
+        let modelsToUse = getEnabledModels()
 
-        guard !deploymentsToUse.isEmpty else {
-            print("[HomeViewModel] No enabled deployments configured.")
-            providerRuns = []
+        guard !modelsToUse.isEmpty else {
+            print("[HomeViewModel] No enabled models configured.")
+            modelRuns = []
             return
         }
 
         let requestID = UUID()
         activeRequestID = requestID
 
-        providerRuns = deploymentsToUse.map {
-            ProviderRunViewState(provider: $0.provider, deployment: $0.deployment, status: .running(start: Date()))
+        modelRuns = modelsToUse.map {
+            ModelRunViewState(model: $0, status: .running(start: Date()))
         }
 
         currentRequestTask = Task { [weak self] in
@@ -259,7 +262,7 @@ public final class HomeViewModel: ObservableObject {
                 requestID: requestID,
                 text: text,
                 action: action,
-                providerDeployments: deploymentsToUse
+                models: modelsToUse
             )
         }
     }
@@ -267,9 +270,9 @@ public final class HomeViewModel: ObservableObject {
     public func speakResult(_ text: String, runID: String) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        guard !speakingProviders.contains(runID) else { return }
+        guard !speakingModels.contains(runID) else { return }
 
-        speakingProviders.insert(runID)
+        speakingModels.insert(runID)
 
         _ = Task { [weak self] in
             guard let self else { return }
@@ -279,7 +282,7 @@ public final class HomeViewModel: ObservableObject {
                 print("[HomeViewModel] TTS playback failed for run \(runID): \(error)")
             }
             _ = await MainActor.run { [weak self] in
-                self?.speakingProviders.remove(runID)
+                self?.speakingModels.remove(runID)
             }
         }
     }
@@ -306,20 +309,18 @@ public final class HomeViewModel: ObservableObject {
     }
 
     public func isSpeaking(runID: String) -> Bool {
-        speakingProviders.contains(runID)
+        speakingModels.contains(runID)
     }
 
-    /// Toggle diff display for a specific provider run
     public func toggleDiffDisplay(for runID: String) {
-        guard let index = providerRuns.firstIndex(where: { $0.id == runID }) else {
+        guard let index = modelRuns.firstIndex(where: { $0.id == runID }) else {
             return
         }
-        providerRuns[index].showDiff.toggle()
+        modelRuns[index].showDiff.toggle()
     }
 
-    /// Check if diff is available for a specific provider run
     public func hasDiff(for runID: String) -> Bool {
-        guard let run = providerRuns.first(where: { $0.id == runID }) else {
+        guard let run = modelRuns.first(where: { $0.id == runID }) else {
             return false
         }
         switch run.status {
@@ -330,9 +331,8 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
-    /// Check if diff is currently shown for a specific provider run
     public func isDiffShown(for runID: String) -> Bool {
-        guard let run = providerRuns.first(where: { $0.id == runID }) else {
+        guard let run = modelRuns.first(where: { $0.id == runID }) else {
             return false
         }
         return run.showDiff
@@ -360,30 +360,29 @@ public final class HomeViewModel: ObservableObject {
         requestID: UUID,
         text: String,
         action: ActionConfig,
-        providerDeployments: [(provider: ProviderConfig, deployment: String)]
+        models: [ModelConfig]
     ) async {
         guard !Task.isCancelled else { return }
 
         let results = await llmService.perform(
             text: text,
             with: action,
-            providerDeployments: providerDeployments,
-            partialHandler: { [weak self] providerID, deployment, update in
+            models: models,
+            partialHandler: { [weak self] modelID, update in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
-                let compositeID = "\(providerID.uuidString)-\(deployment)"
-                guard let index = self.providerRuns.firstIndex(where: { $0.id == compositeID }) else {
+                guard let index = self.modelRuns.firstIndex(where: { $0.id == modelID }) else {
                     return
                 }
-                let startDate = self.providerRuns[index].startDate ?? Date()
+                let startDate = self.modelRuns[index].startDate ?? Date()
                 switch update {
                 case let .text(partialText):
-                    self.providerRuns[index].status = .streaming(
+                    self.modelRuns[index].status = .streaming(
                         text: partialText,
                         start: startDate
                     )
                 case let .sentencePairs(pairs):
-                    self.providerRuns[index].status = .streamingSentencePairs(
+                    self.modelRuns[index].status = .streamingSentencePairs(
                         pairs: pairs,
                         start: startDate
                     )
@@ -392,7 +391,7 @@ public final class HomeViewModel: ObservableObject {
             completionHandler: { [weak self] result in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
-                self.apply(result: result, deployment: result.deployment, allowDiff: self.currentActionShowsDiff)
+                self.apply(result: result, allowDiff: self.currentActionShowsDiff)
             }
         )
 
@@ -400,11 +399,10 @@ public final class HomeViewModel: ObservableObject {
         guard activeRequestID == requestID else { return }
 
         for result in results {
-            let compositeID = "\(result.providerID.uuidString)-\(result.deployment)"
-            if providerRuns.contains(where: { $0.id == compositeID }) {
-                apply(result: result, deployment: result.deployment, allowDiff: currentActionShowsDiff)
-            } else if let providerDeployment = providerDeployments.first(where: { $0.provider.id == result.providerID && $0.deployment == result.deployment }) {
-                let runState: ProviderRunViewState.Status
+            if modelRuns.contains(where: { $0.id == result.modelID }) {
+                apply(result: result, allowDiff: currentActionShowsDiff)
+            } else if let model = models.first(where: { $0.id == result.modelID }) {
+                let runState: ModelRunViewState.Status
                 switch result.response {
                 case let .success(message):
                     let diffTarget = result.diffSource ?? message
@@ -418,9 +416,20 @@ public final class HomeViewModel: ObservableObject {
                         sentencePairs: result.sentencePairs
                     )
                 case let .failure(error):
-                    runState = .failure(message: error.localizedDescription, duration: result.duration)
+                    let responseBody: String?
+                    if let llmError = error as? LLMServiceError,
+                       case let .httpError(_, body) = llmError {
+                        responseBody = body
+                    } else {
+                        responseBody = nil
+                    }
+                    runState = .failure(
+                        message: error.localizedDescription,
+                        duration: result.duration,
+                        responseBody: responseBody
+                    )
                 }
-                providerRuns.append(.init(provider: providerDeployment.provider, deployment: result.deployment, status: runState))
+                modelRuns.append(ModelRunViewState(model: model, status: runState))
             }
         }
 
@@ -435,13 +444,12 @@ public final class HomeViewModel: ObservableObject {
         currentRequestTask = nil
         activeRequestID = nil
         if clearResults {
-            providerRuns = []
+            modelRuns = []
         }
     }
 
-    private func apply(result: ProviderExecutionResult, deployment: String, allowDiff: Bool) {
-        let compositeID = "\(result.providerID.uuidString)-\(deployment)"
-        guard let index = providerRuns.firstIndex(where: { $0.id == compositeID }) else {
+    private func apply(result: ModelExecutionResult, allowDiff: Bool) {
+        guard let index = modelRuns.firstIndex(where: { $0.id == result.modelID }) else {
             return
         }
 
@@ -449,7 +457,7 @@ public final class HomeViewModel: ObservableObject {
         case let .success(message):
             let diffTarget = result.diffSource ?? message
             let diff = allowDiff ? TextDiffBuilder.build(original: currentRequestInputText, revised: diffTarget) : nil
-            providerRuns[index].status = .success(
+            modelRuns[index].status = .success(
                 text: message,
                 copyText: diffTarget,
                 duration: result.duration,
@@ -458,7 +466,18 @@ public final class HomeViewModel: ObservableObject {
                 sentencePairs: result.sentencePairs
             )
         case let .failure(error):
-            providerRuns[index].status = .failure(message: error.localizedDescription, duration: result.duration)
+            let responseBody: String?
+            if let llmError = error as? LLMServiceError,
+               case let .httpError(_, body) = llmError {
+                responseBody = body
+            } else {
+                responseBody = nil
+            }
+            modelRuns[index].status = .failure(
+                message: error.localizedDescription,
+                duration: result.duration,
+                responseBody: responseBody
+            )
         }
     }
 

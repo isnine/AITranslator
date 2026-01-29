@@ -80,42 +80,6 @@ public final class ConfigurationService: Sendable {
     configurationName: String? = nil
   ) {
     print("[ConfigService] 🔄 Applying configuration: '\(configurationName ?? "unnamed")'")
-    
-    // Apply preferences
-    if let prefsConfig = config.preferences {
-      if let targetLang = prefsConfig.targetLanguage,
-         let option = TargetLanguageOption(rawValue: targetLang) {
-        preferences.setTargetLanguage(option)
-        print("[ConfigService]   - Set target language: \(option.rawValue)")
-      }
-      // Hotkey is platform-specific, handled separately
-    }
-
-    // Apply TTS - always apply from config file
-    if let ttsEntry = config.tts {
-      // Always apply the TTS configuration from the file
-      let ttsConfig = ttsEntry.toTTSConfiguration()
-      preferences.setTTSConfiguration(ttsConfig)
-      print("[ConfigService]   - Applied TTS configuration")
-    } else {
-      // No TTS configuration in the imported config - reset to empty
-      preferences.setTTSConfiguration(.empty)
-      print("[ConfigService]   - Reset TTS to empty (no config in file)")
-    }
-
-    // Build provider map (name -> UUID) and deployments map
-    var providers: [ProviderConfig] = []
-    var providerNameToID: [String: UUID] = [:]
-    var providerDeploymentsMap: [String: (id: UUID, deployments: [String])] = [:]
-
-    for (name, entry) in config.providers {
-      if let provider = entry.toProviderConfig(name: name) {
-        providers.append(provider)
-        providerNameToID[name] = provider.id
-        providerDeploymentsMap[name] = (id: provider.id, deployments: provider.deployments)
-      }
-    }
-    print("[ConfigService]   - Loaded \(providers.count) providers")
 
     // Build actions (actions is now an array)
     var actions: [ActionConfig] = []
@@ -125,18 +89,17 @@ public final class ConfigurationService: Sendable {
     }
     print("[ConfigService]   - Loaded \(actions.count) actions")
 
-    // IMPORTANT: First set configuration name and mode BEFORE updating providers/actions
-    // This ensures configurationMode is set correctly before any save operations
+    // IMPORTANT: Set configuration name BEFORE updating actions
+    // This ensures the configuration is properly tracked
     if let name = configurationName {
-      store.setConfigurationModeAndName(.customConfiguration(name: name), name: name)
-      print("[ConfigService]   - Set mode to custom: '\(name)'")
+      store.setCurrentConfigurationName(name)
+      print("[ConfigService]   - Set configuration name: '\(name)'")
     } else {
-      store.setConfigurationModeAndName(.defaultConfiguration, name: nil)
-      print("[ConfigService]   - Set mode to default")
+      store.setCurrentConfigurationName(nil)
+      print("[ConfigService]   - Set configuration name to nil")
     }
 
-    // Apply providers and actions directly (bypassing the default-mode check)
-    store.applyProvidersDirectly(providers)
+    // Apply actions directly (bypassing the default-mode check)
     store.applyActionsDirectly(actions)
     
     print("[ConfigService] ✅ Configuration applied successfully")
@@ -149,43 +112,13 @@ public final class ConfigurationService: Sendable {
     from store: AppConfigurationStore,
     preferences: AppPreferences
   ) -> AppConfiguration {
-    // Build provider entries and name map
-    var providerEntries: [String: AppConfiguration.ProviderEntry] = [:]
-    var providerIDToName: [UUID: String] = [:]
-
-    for provider in store.providers {
-      let (name, entry) = AppConfiguration.ProviderEntry.from(provider)
-      // Handle duplicate names by appending suffix
-      var uniqueName = name
-      var counter = 1
-      while providerEntries[uniqueName] != nil {
-        counter += 1
-        uniqueName = "\(name) \(counter)"
-      }
-      providerEntries[uniqueName] = entry
-      providerIDToName[provider.id] = uniqueName
-    }
-
     // Build action entries (as array to preserve order)
     let actionEntries = store.actions.map { action in
       AppConfiguration.ActionEntry.from(action)
     }
 
-    // Build preferences
-    let prefsConfig = AppConfiguration.PreferencesConfig(
-      targetLanguage: preferences.targetLanguage.rawValue
-    )
-
-    // Build TTS
-    let ttsEntry = AppConfiguration.TTSEntry.from(
-      preferences.ttsConfiguration
-    )
-
     return AppConfiguration(
       version: "1.0.0",
-      preferences: prefsConfig,
-      providers: providerEntries,
-      tts: ttsEntry,
       actions: actionEntries
     )
   }
@@ -205,8 +138,7 @@ public final class ConfigurationService: Sendable {
   ) -> ConfigurationValidationResult {
     // First validate in-memory configuration
     let inMemoryResult = ConfigurationValidator.shared.validateInMemory(
-      actions: store.actions,
-      providers: store.providers
+      actions: store.actions
     )
 
     // Then build and validate the full configuration
@@ -229,8 +161,6 @@ public enum ConfigurationError: LocalizedError, Sendable {
   case decodingFailed(Error)
   case encodingFailed(Error)
   case unsupportedVersion(String)
-  case missingProvider(String, inAction: String)
-  case missingDeployment(deployment: String, provider: String, inAction: String)
   case validationFailed(ConfigurationValidationResult)
   case fileNotFound(name: String)
   case fileWriteFailed(Error)
@@ -247,10 +177,6 @@ public enum ConfigurationError: LocalizedError, Sendable {
       return "Failed to encode configuration: \(error.localizedDescription)"
     case .unsupportedVersion(let version):
       return "Unsupported configuration version: \(version)"
-    case .missingProvider(let provider, let action):
-      return "Action '\(action)' references unknown provider '\(provider)'"
-    case .missingDeployment(let deployment, let provider, let action):
-      return "Action '\(action)' references unknown deployment '\(deployment)' in provider '\(provider)'"
     case .validationFailed(let result):
       let errorMessages = result.errors.map(\.message).joined(separator: "; ")
       return "Configuration validation failed: \(errorMessages)"

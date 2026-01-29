@@ -113,7 +113,7 @@ public struct HomeView: View {
                     inputComposer
                   }
                     actionChips
-                    if viewModel.providerRuns.isEmpty {
+                    if viewModel.modelRuns.isEmpty {
                         hintLabel
                     } else {
                         providerResultsSection
@@ -545,13 +545,13 @@ public struct HomeView: View {
 
     private var providerResultsSection: some View {
         VStack(spacing: 16) {
-            ForEach(viewModel.providerRuns) { run in
+            ForEach(viewModel.modelRuns) { run in
                 providerResultCard(for: run)
             }
         }
     }
 
-    private func providerResultCard(for run: HomeViewModel.ProviderRunViewState) -> some View {
+    private func providerResultCard(for run: HomeViewModel.ModelRunViewState) -> some View {
         let runID = run.id
         return VStack(alignment: .leading, spacing: 12) {
             content(for: run)
@@ -572,10 +572,10 @@ public struct HomeView: View {
 
     @ViewBuilder
     private func bottomInfoBar(
-        for run: HomeViewModel.ProviderRunViewState
+        for run: HomeViewModel.ModelRunViewState
     ) -> some View {
         let runID = run.id
-        let showModelName = viewModel.providerRuns.count > 1
+        let showModelName = viewModel.modelRuns.count > 1
         
         switch run.status {
         case .idle, .running:
@@ -760,14 +760,11 @@ public struct HomeView: View {
     }
 
     @ViewBuilder
-    private func providerInfoPopover(for run: HomeViewModel.ProviderRunViewState) -> some View {
+    private func providerInfoPopover(for run: HomeViewModel.ModelRunViewState) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(run.provider.displayName)
+            Text(run.modelDisplayName)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(colors.textPrimary)
-            Text(run.modelDisplayName)
-                .font(.system(size: 12))
-                .foregroundColor(colors.textSecondary)
             if let duration = run.durationText {
                 Text("Duration: \(duration)")
                     .font(.system(size: 12))
@@ -847,7 +844,7 @@ public struct HomeView: View {
     }
 
     @ViewBuilder
-    private func content(for run: HomeViewModel.ProviderRunViewState) -> some View {
+    private func content(for run: HomeViewModel.ModelRunViewState) -> some View {
         switch run.status {
         case .idle, .running:
             skeletonPlaceholder()
@@ -964,7 +961,7 @@ public struct HomeView: View {
                 }
             }
 
-        case let .failure(message, _):
+        case let .failure(message, _, _):
             VStack(alignment: .leading, spacing: 10) {
                 Text("Request Failed")
                     .font(.system(size: 15, weight: .medium))

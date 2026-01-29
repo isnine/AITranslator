@@ -60,40 +60,37 @@ public final class LLMService {
 
     // MARK: - HMAC Signing for Built-in Cloud Provider
 
-    /// Generates HMAC-SHA256 signature for Built-in Cloud provider requests
     private func generateSignature(timestamp: String, path: String) -> String {
         let message = "\(timestamp):\(path)"
-        let key = SymmetricKey(data: Data(hexString: ProviderConfig.builtInCloudSecret) ?? Data())
+        let key = SymmetricKey(data: Data(hexString: CloudServiceConstants.secret) ?? Data())
         let signature = HMAC<SHA256>.authenticationCode(for: Data(message.utf8), using: key)
         return Data(signature).hexEncodedString()
     }
 
-    /// Applies Built-in Cloud authentication headers to a request
-    private func applyBuiltInCloudAuth(to request: inout URLRequest, path: String) {
+    /// Applies cloud service authentication headers to a request
+    private func applyCloudAuth(to request: inout URLRequest, path: String) {
         let timestamp = String(Int(Date().timeIntervalSince1970))
         let signature = generateSignature(timestamp: timestamp, path: path)
         request.setValue(timestamp, forHTTPHeaderField: "X-Timestamp")
         request.setValue(signature, forHTTPHeaderField: "X-Signature")
     }
 
-    /// Performs requests using provider deployments (new API)
     public func perform(
         text: String,
         with action: ActionConfig,
-        providerDeployments: [(provider: ProviderConfig, deployment: String)],
-        partialHandler: (@MainActor @Sendable (UUID, String, StreamingUpdate) -> Void)? = nil,
-        completionHandler: (@MainActor @Sendable (ProviderExecutionResult) -> Void)? = nil
-    ) async -> [ProviderExecutionResult] {
-        await withTaskGroup(of: ProviderExecutionResult?.self) { group in
-            for (provider, deployment) in providerDeployments {
+        models: [ModelConfig],
+        partialHandler: (@MainActor @Sendable (String, StreamingUpdate) -> Void)? = nil,
+        completionHandler: (@MainActor @Sendable (ModelExecutionResult) -> Void)? = nil
+    ) async -> [ModelExecutionResult] {
+        await withTaskGroup(of: ModelExecutionResult?.self) { group in
+            for model in models {
                 group.addTask { [weak self] in
                     guard let self else { return nil }
                     do {
-                        return try await self.sendRequest(
+                        return try await self.sendModelRequest(
                             text: text,
                             action: action,
-                            provider: provider,
-                            deployment: deployment,
+                            model: model,
                             partialHandler: partialHandler
                         )
                     } catch is CancellationError {
@@ -104,7 +101,7 @@ public final class LLMService {
                 }
             }
 
-            var results: [ProviderExecutionResult] = []
+            var results: [ModelExecutionResult] = []
             for await item in group {
                 guard let item else { continue }
                 if let completionHandler {
@@ -118,44 +115,26 @@ public final class LLMService {
         }
     }
 
-    private func sendRequest(
+    private func sendModelRequest(
         text: String,
         action: ActionConfig,
-        provider: ProviderConfig,
-        deployment: String = "",
-        partialHandler: (@MainActor @Sendable (UUID, String, StreamingUpdate) -> Void)?
-    ) async throws -> ProviderExecutionResult {
+        model: ModelConfig,
+        partialHandler: (@MainActor @Sendable (String, StreamingUpdate) -> Void)?
+    ) async throws -> ModelExecutionResult {
         let start = Date()
 
-        // Use specific deployment URL if provided, otherwise use default
-        let requestURL: URL
-        if provider.category.usesBuiltInProxy {
-            // Built-in Cloud: route through CloudFlare worker
-            let effectiveDeployment = deployment.isEmpty ? ProviderConfig.builtInCloudDefaultModel : deployment
-            requestURL = ProviderConfig.builtInCloudEndpoint
-                .appendingPathComponent(effectiveDeployment)
-                .appendingPathComponent("chat/completions")
-        } else if deployment.isEmpty {
-            requestURL = provider.apiURL
-        } else {
-            requestURL = provider.apiURL(for: deployment)
-        }
+        let requestURL = CloudServiceConstants.endpoint
+            .appendingPathComponent(model.id)
+            .appendingPathComponent("chat/completions")
 
         var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        // Apply authentication based on provider type
-        if provider.category.usesBuiltInProxy {
-            let effectiveDeployment = deployment.isEmpty ? ProviderConfig.builtInCloudDefaultModel : deployment
-            let path = "/\(effectiveDeployment)/chat/completions"
-            applyBuiltInCloudAuth(to: &request, path: path)
-        } else {
-            request.setValue(provider.token, forHTTPHeaderField: provider.authHeaderName)
-        }
+        let path = "/\(model.id)/chat/completions"
+        applyCloudAuth(to: &request, path: path)
 
-        let structuredOutputConfig = provider.category == .azureOpenAI || provider.category == .builtInCloud ? action.structuredOutput : nil
-        // Enable streaming for both regular and structured output (sentence pairs)
+        let structuredOutputConfig = action.structuredOutput
         let enableStreaming = partialHandler != nil
         if enableStreaming {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
@@ -163,24 +142,18 @@ public final class LLMService {
 
         let messages: [LLMRequestPayload.Message]
         if action.prompt.isEmpty {
-            // No prompt configured, just send the text directly
             messages = [
                 .init(role: "user", content: text)
             ]
         } else {
-            // Substitute all placeholders including {text} and {targetLanguage}
             let processedPrompt = substitutePromptPlaceholders(action.prompt, text: text)
-            
-            // Check if the prompt contained {text} placeholder (now replaced)
             let promptContainsTextPlaceholder = action.prompt.contains("{text}") || action.prompt.contains("{{text}}")
             
             if promptContainsTextPlaceholder {
-                // Text was embedded in the prompt, send as single user message
                 messages = [
                     .init(role: "user", content: processedPrompt)
                 ]
             } else {
-                // No {text} placeholder, use system/user message pattern
                 messages = [
                     .init(role: "system", content: processedPrompt),
                     .init(role: "user", content: text)
@@ -213,25 +186,21 @@ public final class LLMService {
             request.httpBody = payloadData
 
             if let jsonString = String(data: payloadData, encoding: .utf8) {
-                print("[LLMService] Request Debug - Provider: \(provider.displayName)")
-                print("[LLMService] Deployment: \(deployment)")
+                print("[LLMService] Request Debug - Model: \(model.displayName)")
                 print("[LLMService] URL: \(requestURL.absoluteString)")
                 print("[LLMService] Action: \(action.name)")
                 print("[LLMService] Original Prompt: \(action.prompt)")
                 print("[LLMService] Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))")
-                print("[LLMService] Fallback Language: \(AppPreferences.shared.targetLanguage.fallbackLanguageDescriptor)")
-                print("[LLMService] System Preferred Languages: \(Locale.preferredLanguages)")
                 print("[LLMService] Request payload: \(jsonString)")
             }
 
             try Task.checkCancellation()
 
             if enableStreaming, let partialHandler {
-                return try await handleStreamingRequest(
+                return try await handleModelStreamingRequest(
                     start: start,
                     request: request,
-                    provider: provider,
-                    deployment: deployment,
+                    model: model,
                     decoder: decoder,
                     structuredOutputConfig: structuredOutputConfig,
                     partialHandler: partialHandler
@@ -244,7 +213,7 @@ public final class LLMService {
                 }
 
                 let responseString = String(data: data, encoding: .utf8) ?? ""
-                print("[LLMService] Response JSON from \(provider.displayName): \(responseString)")
+                print("[LLMService] Response JSON from \(model.displayName): \(responseString)")
 
                 guard (200...299).contains(httpResponse.statusCode) else {
                     throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
@@ -256,9 +225,8 @@ public final class LLMService {
                 )
                 let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
-                return ProviderExecutionResult(
-                    providerID: provider.id,
-                    deployment: deployment,
+                return ModelExecutionResult(
+                    modelID: model.id,
                     duration: Date().timeIntervalSince(start),
                     response: .success(trimmed),
                     diffSource: parsed.diffSource?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -269,24 +237,22 @@ public final class LLMService {
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            return ProviderExecutionResult(
-                providerID: provider.id,
-                deployment: deployment,
+            return ModelExecutionResult(
+                modelID: model.id,
                 duration: Date().timeIntervalSince(start),
                 response: .failure(error)
             )
         }
     }
 
-    private func handleStreamingRequest(
+    private func handleModelStreamingRequest(
         start: Date,
         request: URLRequest,
-        provider: ProviderConfig,
-        deployment: String,
+        model: ModelConfig,
         decoder: JSONDecoder,
         structuredOutputConfig: ActionConfig.StructuredOutputConfig?,
-        partialHandler: @MainActor @Sendable (UUID, String, StreamingUpdate) -> Void
-    ) async throws -> ProviderExecutionResult {
+        partialHandler: @MainActor @Sendable (String, StreamingUpdate) -> Void
+    ) async throws -> ModelExecutionResult {
         let (bytes, response) = try await urlSession.bytes(for: request)
 
         try Task.checkCancellation()
@@ -301,7 +267,7 @@ public final class LLMService {
                 errorData.append(chunk)
             }
             let responseString = String(data: errorData, encoding: .utf8) ?? ""
-            print("[LLMService] Response JSON from \(provider.displayName): \(responseString)")
+            print("[LLMService] Response JSON from \(model.displayName): \(responseString)")
             throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
         }
 
@@ -310,7 +276,7 @@ public final class LLMService {
         let isStructuredOutputMode = structuredOutputConfig != nil && !isSentencePairsMode
 
         if contentType.contains("text/event-stream") {
-            print("[LLMService] Streaming response from \(provider.displayName)")
+            print("[LLMService] Streaming response from \(model.displayName)")
             var aggregatedText = ""
             let sentencePairParser = isSentencePairsMode ? StreamingSentencePairParser() : nil
             let structuredParser = isStructuredOutputMode ? StreamingStructuredOutputParser(config: structuredOutputConfig!) : nil
@@ -332,15 +298,13 @@ public final class LLMService {
                 try Task.checkCancellation()
 
                 if let parser = sentencePairParser {
-                    // Incremental parsing for sentence pairs
                     let pairs = parser.append(deltaText)
-                    await partialHandler(provider.id, deployment, .sentencePairs(pairs))
+                    await partialHandler(model.id, .sentencePairs(pairs))
                 } else if let parser = structuredParser {
-                    // Incremental parsing for structured output (e.g., grammar check)
                     let displayText = parser.append(deltaText)
-                    await partialHandler(provider.id, deployment, .text(displayText))
+                    await partialHandler(model.id, .text(displayText))
                 } else {
-                    await partialHandler(provider.id, deployment, .text(aggregatedText))
+                    await partialHandler(model.id, .text(aggregatedText))
                 }
             }
 
@@ -348,28 +312,24 @@ public final class LLMService {
             try Task.checkCancellation()
             guard !finalText.isEmpty else { throw LLMServiceError.emptyContent }
 
-            print("[LLMService] Final stream output from \(provider.displayName): \(finalText)")
+            print("[LLMService] Final stream output from \(model.displayName): \(finalText)")
 
-            // Parse final result for sentence pairs mode
             if isSentencePairsMode {
                 let pairs = parseSentencePairsFromJSON(finalText)
                 let combinedText = pairs.map { "\($0.original)\n\($0.translation)" }.joined(separator: "\n\n")
-                return ProviderExecutionResult(
-                    providerID: provider.id,
-                    deployment: deployment,
+                return ModelExecutionResult(
+                    modelID: model.id,
                     duration: Date().timeIntervalSince(start),
                     response: .success(combinedText.isEmpty ? finalText : combinedText),
                     sentencePairs: pairs
                 )
             }
 
-            // Parse structured output from streamed JSON
             if let config = structuredOutputConfig {
                 let parsed = parseStructuredOutputFromJSON(finalText, config: config)
                 if let parsed {
-                    return ProviderExecutionResult(
-                        providerID: provider.id,
-                        deployment: deployment,
+                    return ModelExecutionResult(
+                        modelID: model.id,
                         duration: Date().timeIntervalSince(start),
                         response: .success(parsed.message),
                         diffSource: parsed.diffSource,
@@ -379,9 +339,8 @@ public final class LLMService {
                 }
             }
 
-            return ProviderExecutionResult(
-                providerID: provider.id,
-                deployment: deployment,
+            return ModelExecutionResult(
+                modelID: model.id,
                 duration: Date().timeIntervalSince(start),
                 response: .success(finalText)
             )
@@ -393,7 +352,7 @@ public final class LLMService {
             }
 
             let responseString = String(data: data, encoding: .utf8) ?? ""
-            print("[LLMService] Non-stream response from \(provider.displayName): \(responseString)")
+            print("[LLMService] Non-stream response from \(model.displayName): \(responseString)")
 
             let parsed = try parseResponsePayload(data: data, structuredOutput: structuredOutputConfig)
             let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -401,14 +360,13 @@ public final class LLMService {
             guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
 
             if !parsed.sentencePairs.isEmpty {
-                await partialHandler(provider.id, deployment, .sentencePairs(parsed.sentencePairs))
+                await partialHandler(model.id, .sentencePairs(parsed.sentencePairs))
             } else {
-                await partialHandler(provider.id, deployment, .text(trimmed))
+                await partialHandler(model.id, .text(trimmed))
             }
 
-            return ProviderExecutionResult(
-                providerID: provider.id,
-                deployment: deployment,
+            return ModelExecutionResult(
+                modelID: model.id,
                 duration: Date().timeIntervalSince(start),
                 response: .success(trimmed),
                 sentencePairs: parsed.sentencePairs

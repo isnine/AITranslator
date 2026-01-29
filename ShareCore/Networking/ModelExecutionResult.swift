@@ -1,15 +1,14 @@
 //
-//  ProviderExecutionResult.swift
+//  ModelExecutionResult.swift
 //  ShareCore
 //
-//  Created by Codex on 2025/10/19.
+//  Created by Codex on 2025/01/27.
 //
 
 import Foundation
 
-public struct ProviderExecutionResult {
-    public let providerID: UUID
-    public let deployment: String
+public struct ModelExecutionResult {
+    public let modelID: String
     public let duration: TimeInterval
     public let response: Result<String, Error>
     public let diffSource: String?
@@ -17,16 +16,14 @@ public struct ProviderExecutionResult {
     public let sentencePairs: [SentencePair]
 
     public init(
-        providerID: UUID,
-        deployment: String = "",
+        modelID: String,
         duration: TimeInterval,
         response: Result<String, Error>,
         diffSource: String? = nil,
         supplementalTexts: [String] = [],
         sentencePairs: [SentencePair] = []
     ) {
-        self.providerID = providerID
-        self.deployment = deployment
+        self.modelID = modelID
         self.duration = duration
         self.response = response
         self.diffSource = diffSource

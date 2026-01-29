@@ -10,6 +10,7 @@ import ShareCore
 import UniformTypeIdentifiers
 #if os(macOS)
 import Carbon
+import AppKit
 #endif
 
 struct SettingsView: View {
@@ -47,6 +48,8 @@ struct SettingsView: View {
   
   // Sync control flag to prevent update loops
   @State private var isUpdatingFromPreferences = false
+  @State private var isShareSheetPresented = false
+  @State private var configFileToShare: URL?
 
   #if os(macOS)
   @ObservedObject private var hotKeyManager = HotKeyManager.shared
@@ -127,18 +130,9 @@ struct SettingsView: View {
             guard !isUpdatingFromPreferences else { return }
             persistCustomTTSConfiguration()
         }
-        .onReceive(configStore.resetPendingChangesPublisher) { _ in
-            // User cancelled creating custom configuration, reset UI to match stored values
-            syncTTSPreferencesFromStore()
-        }
         .onReceive(configStore.configurationSwitchedPublisher) { _ in
-            // Configuration was switched (reset to default or switched to another config)
-            // Sync UI to match the new configuration's values
+            // Configuration was switched, sync UI to match the new configuration's values
             syncTTSPreferencesFromStore()
-            refreshSavedConfigurations()
-        }
-        .onReceive(configStore.$configurationMode) { _ in
-            // Configuration mode changed, refresh the list to show current state
             refreshSavedConfigurations()
         }
         .fileImporter(
@@ -194,6 +188,13 @@ struct SettingsView: View {
                 }
             )
         }
+        #if os(iOS)
+        .sheet(isPresented: $isShareSheetPresented) {
+            if let url = configFileToShare {
+                ShareSheet(activityItems: [url])
+            }
+        }
+        #endif
     }
 
     private var header: some View {
@@ -467,48 +468,54 @@ private extension SettingsView {
   // MARK: - Configuration Rows
   
   var configurationStatusRow: some View {
-    HStack(spacing: 16) {
-      ZStack {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-          .fill(configStore.configurationMode.isDefault ? colors.success.opacity(0.15) : colors.accent.opacity(0.15))
-          .frame(width: 36, height: 36)
-        Image(systemName: configStore.configurationMode.isDefault ? "checkmark.shield.fill" : "doc.text.fill")
-          .font(.system(size: 16, weight: .medium))
-          .foregroundColor(configStore.configurationMode.isDefault ? colors.success : colors.accent)
-      }
-      
-      VStack(alignment: .leading, spacing: 4) {
-        HStack(spacing: 8) {
-          Text(configStore.configurationMode.displayName)
+    Button {
+      openCurrentConfigurationInEditor()
+    } label: {
+      HStack(spacing: 16) {
+        ZStack {
+          RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(colors.accent.opacity(0.15))
+            .frame(width: 36, height: 36)
+          Image(systemName: "doc.text.fill")
+            .font(.system(size: 16, weight: .medium))
+            .foregroundColor(colors.accent)
+        }
+        
+        VStack(alignment: .leading, spacing: 4) {
+          Text(configStore.currentConfigurationName ?? "Configuration")
             .font(.system(size: 15, weight: .medium))
             .foregroundColor(colors.textPrimary)
           
-          if configStore.configurationMode.isDefault {
-            Text("Read-Only")
-              .font(.system(size: 10, weight: .semibold))
-              .foregroundColor(.white)
-              .padding(.horizontal, 6)
-              .padding(.vertical, 2)
-              .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                  .fill(colors.success)
-              )
+          HStack(spacing: 6) {
+            Text("\(configStore.actions.count) Actions")
           }
+          .font(.system(size: 12))
+          .foregroundColor(colors.textSecondary)
         }
         
-        HStack(spacing: 6) {
-          Text("\(configStore.providers.count) Providers")
-          Text("·")
-          Text("\(configStore.actions.count) Actions")
-        }
-        .font(.system(size: 12))
-        .foregroundColor(colors.textSecondary)
+        Spacer()
+        
+        Image(systemName: "chevron.right")
+          .font(.system(size: 13, weight: .semibold))
+          .foregroundColor(colors.textSecondary.opacity(0.5))
       }
-      
-      Spacer()
+      .padding(.horizontal, 16)
+      .padding(.vertical, 14)
+      .contentShape(Rectangle())
     }
-    .padding(.horizontal, 16)
-    .padding(.vertical, 14)
+    .buttonStyle(.plain)
+  }
+  
+  private func openCurrentConfigurationInEditor() {
+    guard let configName = configStore.currentConfigurationName else { return }
+    let configURL = ConfigurationFileManager.shared.configurationURL(forName: configName)
+    
+    #if os(macOS)
+    NSWorkspace.shared.open(configURL)
+    #else
+    configFileToShare = configURL
+    isShareSheetPresented = true
+    #endif
   }
   
   var savedConfigurationsRow: some View {
@@ -904,7 +911,7 @@ private extension SettingsView {
         print("[SettingsView] 📂 Loading configuration: '\(config.name)'...")
         do {
             let appConfig = try ConfigurationFileManager.shared.loadConfiguration(from: config.url)
-            print("[SettingsView]   - Parsed config with \(appConfig.providers.count) providers, \(appConfig.actions.count) actions")
+            print("[SettingsView]   - Parsed config with \(appConfig.actions.count) actions")
             ConfigurationService.shared.applyConfiguration(
                 appConfig,
                 to: configStore,
@@ -912,8 +919,6 @@ private extension SettingsView {
                 configurationName: config.name
             )
             print("[SettingsView] ✅ Configuration loaded: '\(config.name)'")
-            print("[SettingsView]   - configStore.configurationMode: \(configStore.configurationMode)")
-            print("[SettingsView]   - configStore.currentConfigurationName: \(configStore.currentConfigurationName ?? "nil")")
         } catch {
             print("[SettingsView] ❌ Failed to load configuration: \(error)")
             importError = error.localizedDescription
@@ -1325,8 +1330,7 @@ private extension SettingsView {
             )
         }
         
-        // Use configStore to handle default configuration mode check
-        configStore.updateTTSConfiguration(configuration)
+        preferences.setTTSConfiguration(configuration)
     }
 
     func syncTTSPreferencesFromStore() {
@@ -1750,5 +1754,21 @@ extension NSEvent.ModifierFlags {
         if contains(.command) { modifiers |= UInt32(cmdKey) }
         return modifiers
     }
+}
+#endif
+
+// MARK: - Share Sheet (iOS)
+
+#if os(iOS)
+import UIKit
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 #endif
