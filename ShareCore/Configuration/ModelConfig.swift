@@ -11,13 +11,13 @@ import Foundation
 public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
     /// Unique model identifier (e.g., "gpt-4.1-nano")
     public let id: String
-    
+
     /// Human-readable display name (e.g., "GPT-4.1 Nano")
     public let displayName: String
-    
+
     /// Whether this model is the default selection
     public let isDefault: Bool
-    
+
     public init(id: String, displayName: String, isDefault: Bool = false) {
         self.id = id
         self.displayName = displayName
@@ -28,7 +28,7 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
 /// Response from /models API endpoint
 public struct ModelsResponse: Codable, Sendable {
     public let models: [ModelConfig]
-    
+
     public init(models: [ModelConfig]) {
         self.models = models
     }
@@ -39,10 +39,10 @@ public struct ModelsResponse: Codable, Sendable {
 public enum CloudServiceConstants {
     /// CloudFlare worker endpoint for the built-in cloud service
     public static let endpoint = URL(string: "https://translator-api.zanderwang.com")!
-    
+
     /// Shared secret for HMAC signing
     public static let secret = "REDACTED_HMAC_SECRET"
-    
+
     /// API version parameter
     public static let apiVersion = "2025-01-01-preview"
 }

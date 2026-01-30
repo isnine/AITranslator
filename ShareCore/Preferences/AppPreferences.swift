@@ -5,8 +5,8 @@
 //  Created by Codex on 2025/10/27.
 //
 
-import Foundation
 import Combine
+import Foundation
 
 public final class AppPreferences: ObservableObject {
     public static let appGroupSuiteName = "group.com.zanderwang.AITranslator"
@@ -26,7 +26,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var defaultAppHintDismissed: Bool
     @Published public private(set) var enabledModelIDs: Set<String>
     #if os(macOS)
-    @Published public private(set) var keepRunningWhenClosed: Bool
+        @Published public private(set) var keepRunningWhenClosed: Bool
     #endif
 
     private let defaults: UserDefaults
@@ -34,18 +34,18 @@ public final class AppPreferences: ObservableObject {
 
     private init(defaults: UserDefaults = AppPreferences.resolveSharedDefaults()) {
         self.defaults = defaults
-        self.targetLanguage = AppPreferences.readTargetLanguage(from: defaults)
-        self.ttsConfiguration = AppPreferences.readTTSConfiguration(from: defaults)
-        self.currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
-        self.customConfigDirectory = AppPreferences.readCustomConfigDirectory(from: defaults)
-        self.useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
-        self.defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
-        self.enabledModelIDs = AppPreferences.readEnabledModelIDs(from: defaults)
+        targetLanguage = AppPreferences.readTargetLanguage(from: defaults)
+        ttsConfiguration = AppPreferences.readTTSConfiguration(from: defaults)
+        currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
+        customConfigDirectory = AppPreferences.readCustomConfigDirectory(from: defaults)
+        useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
+        defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
+        enabledModelIDs = AppPreferences.readEnabledModelIDs(from: defaults)
         #if os(macOS)
-        // Default to true - keep app running in menu bar when window is closed
-        self.keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
-            ? true
-            : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
+            // Default to true - keep app running in menu bar when window is closed
+            keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
+                ? true
+                : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
         #endif
 
         notificationObserver = NotificationCenter.default.addObserver(
@@ -64,25 +64,25 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setTargetLanguage(_ option: TargetLanguageOption) {
-        print("[Preferences] setTargetLanguage called")
-        print("[Preferences] Requested option: \(option.rawValue)")
-        print("[Preferences] Current targetLanguage: \(targetLanguage.rawValue)")
-        print("[Preferences] Are they equal? \(targetLanguage == option)")
+        Logger.debug("[Preferences] setTargetLanguage called")
+        Logger.debug("[Preferences] Requested option: \(option.rawValue)")
+        Logger.debug("[Preferences] Current targetLanguage: \(targetLanguage.rawValue)")
+        Logger.debug("[Preferences] Are they equal? \(targetLanguage == option)")
         guard targetLanguage != option else {
-            print("[Preferences] SKIPPING - values are equal, returning early")
+            Logger.debug("[Preferences] SKIPPING - values are equal, returning early")
             return
         }
 
-        print("[Preferences] Proceeding with update...")
+        Logger.debug("[Preferences] Proceeding with update...")
         targetLanguage = option
         defaults.set(option.rawValue, forKey: TargetLanguageOption.storageKey)
         defaults.synchronize()
-        print("[Preferences] Updated targetLanguage to: \(targetLanguage.rawValue)")
-        print("[Preferences] Wrote to UserDefaults key '\(TargetLanguageOption.storageKey)': \(option.rawValue)")
-        
+        Logger.debug("[Preferences] Updated targetLanguage to: \(targetLanguage.rawValue)")
+        Logger.debug("[Preferences] Wrote to UserDefaults key '\(TargetLanguageOption.storageKey)': \(option.rawValue)")
+
         // Verify the write
         let readBack = defaults.string(forKey: TargetLanguageOption.storageKey)
-        print("[Preferences] Read back from UserDefaults: \(readBack ?? "nil")")
+        Logger.debug("[Preferences] Read back from UserDefaults: \(readBack ?? "nil")")
     }
 
     public func setTTSConfiguration(_ configuration: TTSConfiguration) {
@@ -115,17 +115,17 @@ public final class AppPreferences: ObservableObject {
         customConfigDirectory = url
         if let url = url {
             #if os(macOS)
-            // Store bookmark data for security-scoped access (macOS only)
-            if let bookmarkData = try? url.bookmarkData(
-                options: .withSecurityScope,
-                includingResourceValuesForKeys: nil,
-                relativeTo: nil
-            ) {
-                defaults.set(bookmarkData, forKey: StorageKeys.customConfigDirectory)
-            }
+                // Store bookmark data for security-scoped access (macOS only)
+                if let bookmarkData = try? url.bookmarkData(
+                    options: .withSecurityScope,
+                    includingResourceValuesForKeys: nil,
+                    relativeTo: nil
+                ) {
+                    defaults.set(bookmarkData, forKey: StorageKeys.customConfigDirectory)
+                }
             #else
-            // On iOS, just store the path directly (custom folders not supported)
-            defaults.set(url.path, forKey: StorageKeys.customConfigDirectory)
+                // On iOS, just store the path directly (custom folders not supported)
+                defaults.set(url.path, forKey: StorageKeys.customConfigDirectory)
             #endif
         } else {
             defaults.removeObject(forKey: StorageKeys.customConfigDirectory)
@@ -150,13 +150,13 @@ public final class AppPreferences: ObservableObject {
     }
 
     #if os(macOS)
-    public func setKeepRunningWhenClosed(_ keepRunning: Bool) {
-        guard keepRunningWhenClosed != keepRunning else { return }
+        public func setKeepRunningWhenClosed(_ keepRunning: Bool) {
+            guard keepRunningWhenClosed != keepRunning else { return }
 
-        keepRunningWhenClosed = keepRunning
-        defaults.set(keepRunning, forKey: StorageKeys.keepRunningWhenClosed)
-        defaults.synchronize()
-    }
+            keepRunningWhenClosed = keepRunning
+            defaults.set(keepRunning, forKey: StorageKeys.keepRunningWhenClosed)
+            defaults.synchronize()
+        }
     #endif
 
     // MARK: - Enabled Models (flat model architecture)
@@ -208,12 +208,12 @@ public final class AppPreferences: ObservableObject {
         }
 
         #if os(macOS)
-        let storedKeepRunning = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
-            ? true
-            : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
-        if keepRunningWhenClosed != storedKeepRunning {
-            keepRunningWhenClosed = storedKeepRunning
-        }
+            let storedKeepRunning = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
+                ? true
+                : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
+            if keepRunningWhenClosed != storedKeepRunning {
+                keepRunningWhenClosed = storedKeepRunning
+            }
         #endif
 
         let storedEnabledModels = AppPreferences.readEnabledModelIDs(from: defaults)
@@ -224,27 +224,27 @@ public final class AppPreferences: ObservableObject {
 
     private static func readCustomConfigDirectory(from defaults: UserDefaults) -> URL? {
         #if os(macOS)
-        guard let bookmarkData = defaults.data(forKey: StorageKeys.customConfigDirectory) else {
-            return nil
-        }
+            guard let bookmarkData = defaults.data(forKey: StorageKeys.customConfigDirectory) else {
+                return nil
+            }
 
-        var isStale = false
-        guard let url = try? URL(
-            resolvingBookmarkData: bookmarkData,
-            options: .withSecurityScope,
-            relativeTo: nil,
-            bookmarkDataIsStale: &isStale
-        ) else {
-            return nil
-        }
+            var isStale = false
+            guard let url = try? URL(
+                resolvingBookmarkData: bookmarkData,
+                options: .withSecurityScope,
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) else {
+                return nil
+            }
 
-        // Start accessing security-scoped resource
-        _ = url.startAccessingSecurityScopedResource()
-        return url
+            // Start accessing security-scoped resource
+            _ = url.startAccessingSecurityScopedResource()
+            return url
         #else
-        // On iOS, custom directories are not fully supported
-        // Just return nil as we use iCloud or local storage
-        return nil
+            // On iOS, custom directories are not fully supported
+            // Just return nil as we use iCloud or local storage
+            return nil
         #endif
     }
 
@@ -265,13 +265,13 @@ public final class AppPreferences: ObservableObject {
 
     private static func readTTSConfiguration(from defaults: UserDefaults) -> TTSConfiguration {
         let useBuiltInCloud = defaults.bool(forKey: StorageKeys.ttsUseBuiltInCloud)
-        
+
         // If using built-in cloud, only voice matters
         if useBuiltInCloud {
             let voice = defaults.string(forKey: StorageKeys.ttsVoice) ?? TTSConfiguration.builtInCloudDefaultVoice
             return TTSConfiguration.builtInCloud(voice: voice)
         }
-        
+
         let endpointString = defaults.string(forKey: StorageKeys.ttsEndpoint) ?? ""
         let apiKey = defaults.string(forKey: StorageKeys.ttsAPIKey) ?? ""
         let model = defaults.string(forKey: StorageKeys.ttsModel) ?? ""
@@ -307,6 +307,6 @@ private enum StorageKeys {
     /// Key for enabled model IDs (flat model architecture)
     static let enabledModels = "enabled_models"
     #if os(macOS)
-    static let keepRunningWhenClosed = "keep_running_when_closed"
+        static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif
 }

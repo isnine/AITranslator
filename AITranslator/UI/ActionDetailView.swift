@@ -5,8 +5,8 @@
 //  Created by Codex on 2025/10/23.
 //
 
-import SwiftUI
 import ShareCore
+import SwiftUI
 
 struct ActionDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -23,7 +23,7 @@ struct ActionDetailView: View {
     // Validation error state
     @State private var showValidationError = false
     @State private var validationErrorMessage = ""
-    
+
     // Delete confirmation state
     @State private var showDeleteConfirmation = false
 
@@ -31,18 +31,18 @@ struct ActionDetailView: View {
         action: ActionConfig?,
         configurationStore: AppConfigurationStore
     ) {
-        self._configurationStore = ObservedObject(wrappedValue: configurationStore)
-        
+        _configurationStore = ObservedObject(wrappedValue: configurationStore)
+
         if let action = action {
-            self.actionID = action.id
-            self.isNewAction = false
+            actionID = action.id
+            isNewAction = false
             _name = State(initialValue: action.name)
             _prompt = State(initialValue: action.prompt)
             _usageScenes = State(initialValue: action.usageScenes)
             _outputType = State(initialValue: action.outputType)
         } else {
-            self.actionID = UUID()
-            self.isNewAction = true
+            actionID = UUID()
+            isNewAction = true
             _name = State(initialValue: "")
             _prompt = State(initialValue: "Translate the following text to {targetLanguage}:\n\n{text}")
             _usageScenes = State(initialValue: .app)
@@ -59,7 +59,7 @@ struct ActionDetailView: View {
                     promptSection
                     usageSection
                     optionsSection
-                    
+
                     if !isNewAction {
                         deleteSection
                     }
@@ -179,7 +179,7 @@ struct ActionDetailView: View {
             }
         }
     }
-    
+
     private func outputTypeRow(
         type: OutputType,
         title: LocalizedStringKey,
@@ -226,7 +226,7 @@ struct ActionDetailView: View {
                     .stroke(isSelected ? colors.accent : .clear, lineWidth: 2)
             )
     }
-    
+
     private var deleteSection: some View {
         section(title: "Danger Zone") {
             Button {
@@ -277,7 +277,7 @@ struct ActionDetailView: View {
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(colors.textSecondary)
 
-          TextField(String(), text: text, axis: .vertical)
+            TextField(String(), text: text, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(colors.textPrimary)
@@ -367,11 +367,11 @@ struct ActionDetailView: View {
             dismiss()
         }
     }
-    
+
     private func deleteAction() {
         var actions = configurationStore.actions
         actions.removeAll { $0.id == actionID }
-        
+
         if let result = configurationStore.updateActions(actions), result.hasErrors {
             validationErrorMessage = result.errors.map(\.message).joined(separator: "\n")
             showValidationError = true

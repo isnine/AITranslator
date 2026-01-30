@@ -5,10 +5,10 @@
 //  Created by Codex on 2025/11/04.
 //
 
-import Foundation
 import CryptoKit
+import Foundation
 #if canImport(AVFoundation)
-import AVFoundation
+    import AVFoundation
 #endif
 
 public final class TextToSpeechService {
@@ -17,7 +17,7 @@ public final class TextToSpeechService {
     private let urlSession: URLSession
     private let preferences: AppPreferences
     #if canImport(AVFoundation)
-    private var audioPlayer: AVAudioPlayer?
+        private var audioPlayer: AVAudioPlayer?
     #endif
 
     public init(
@@ -49,7 +49,7 @@ public final class TextToSpeechService {
             throw TextToSpeechServiceError.invalidResponse
         }
 
-        guard (200...299).contains(httpResponse.statusCode) else {
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
             let errorBody = String(data: data, encoding: .utf8) ?? ""
             throw TextToSpeechServiceError.httpError(
                 statusCode: httpResponse.statusCode,
@@ -80,7 +80,7 @@ public final class TextToSpeechService {
         let body: [String: Any] = [
             "model": TTSConfiguration.builtInCloudModel,
             "input": text,
-            "voice": configuration.voice
+            "voice": configuration.voice,
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
@@ -98,7 +98,7 @@ public final class TextToSpeechService {
         let body: [String: Any] = [
             "model": configuration.model,
             "input": text,
-            "voice": configuration.voice
+            "voice": configuration.voice,
         ]
 
         request.httpBody = try? JSONSerialization.data(withJSONObject: body, options: [])
@@ -110,7 +110,8 @@ public final class TextToSpeechService {
     private func generateSignature(timestamp: String, path: String) -> String {
         let message = "\(timestamp):\(path)"
         guard let secretData = Data(hexString: TTSConfiguration.builtInCloudSecret),
-              let messageData = message.data(using: .utf8) else {
+              let messageData = message.data(using: .utf8)
+        else {
             return ""
         }
 
@@ -122,17 +123,17 @@ public final class TextToSpeechService {
     @MainActor
     private func playAudio(with data: Data) throws {
         #if canImport(AVFoundation)
-        #if os(iOS)
-        // Configure audio session to play even when the device is in silent mode
-        try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-        try AVAudioSession.sharedInstance().setActive(true)
-        #endif
-        audioPlayer?.stop()
-        audioPlayer = try AVAudioPlayer(data: data)
-        audioPlayer?.prepareToPlay()
-        audioPlayer?.play()
+            #if os(iOS)
+                // Configure audio session to play even when the device is in silent mode
+                try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+                try AVAudioSession.sharedInstance().setActive(true)
+            #endif
+            audioPlayer?.stop()
+            audioPlayer = try AVAudioPlayer(data: data)
+            audioPlayer?.prepareToPlay()
+            audioPlayer?.play()
         #else
-        throw TextToSpeechServiceError.platformUnsupported
+            throw TextToSpeechServiceError.platformUnsupported
         #endif
     }
 }
@@ -161,29 +162,5 @@ public enum TextToSpeechServiceError: LocalizedError {
         case .platformUnsupported:
             return NSLocalizedString("Speech playback is not supported on this platform.", comment: "TTS platform unsupported error")
         }
-    }
-}
-
-// MARK: - Data Hex Extensions
-
-private extension Data {
-    /// Initialize Data from a hex string
-    init?(hexString: String) {
-        let hex = hexString.lowercased()
-        guard hex.count % 2 == 0 else { return nil }
-
-        var data = Data(capacity: hex.count / 2)
-        var index = hex.startIndex
-
-        while index < hex.endIndex {
-            let nextIndex = hex.index(index, offsetBy: 2)
-            guard let byte = UInt8(hex[index..<nextIndex], radix: 16) else {
-                return nil
-            }
-            data.append(byte)
-            index = nextIndex
-        }
-
-        self = data
     }
 }

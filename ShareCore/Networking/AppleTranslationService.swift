@@ -12,14 +12,14 @@ import SwiftUI
 /// Note: TranslationSession can only be obtained via SwiftUI's .translationTask() modifier
 public final class AppleTranslationService: @unchecked Sendable {
     public static let shared = AppleTranslationService()
-    
+
     /// Deployment name for Apple Translation
     public static let deploymentName = "Apple Translation"
-    
+
     private init() {}
-    
+
     // MARK: - Availability
-    
+
     /// Check if Apple Translation is available on this device
     public var isAvailable: Bool {
         let available: Bool
@@ -28,10 +28,10 @@ public final class AppleTranslationService: @unchecked Sendable {
         } else {
             available = false
         }
-        print("[AppleTranslation] isAvailable: \(available)")
+        Logger.debug("[AppleTranslation] isAvailable: \(available)")
         return available
     }
-    
+
     /// Returns the availability status message
     public var availabilityStatus: String {
         if isAvailable {
@@ -40,19 +40,19 @@ public final class AppleTranslationService: @unchecked Sendable {
             return NSLocalizedString("Requires iOS 17.4+ or macOS 14.4+", comment: "Apple Translation unavailable status")
         }
     }
-    
+
     // MARK: - Sentence Splitting (Public utility)
-    
+
     /// Split text into sentences for translation
     public func splitIntoSentences(_ text: String) -> [String] {
-        print("[AppleTranslation] splitIntoSentences called, text length: \(text.count)")
+        Logger.debug("[AppleTranslation] splitIntoSentences called, text length: \(text.count)")
         var sentences: [String] = []
-        
+
         let tagger = NSLinguisticTagger(tagSchemes: [.tokenType], options: 0)
         tagger.string = text
-        
+
         let range = NSRange(location: 0, length: text.utf16.count)
-        
+
         tagger.enumerateTags(in: range, unit: .sentence, scheme: .tokenType, options: []) { _, tokenRange, _ in
             if let swiftRange = Range(tokenRange, in: text) {
                 let sentence = String(text[swiftRange]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -61,9 +61,9 @@ public final class AppleTranslationService: @unchecked Sendable {
                 }
             }
         }
-        
+
         // Fallback if no sentences found
-        if sentences.isEmpty && !text.isEmpty {
+        if sentences.isEmpty, !text.isEmpty {
             // Simple fallback: split by common sentence terminators
             let pattern = "(?<=[.!?。！？])\\s+"
             if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
@@ -73,18 +73,18 @@ public final class AppleTranslationService: @unchecked Sendable {
                     range: range,
                     withTemplate: "\n<<<SPLIT>>>\n"
                 ).components(separatedBy: "<<<SPLIT>>>")
-                
+
                 sentences = splits.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                     .filter { !$0.isEmpty }
             }
-            
+
             // If still empty, treat whole text as one sentence
             if sentences.isEmpty {
                 sentences = [text.trimmingCharacters(in: .whitespacesAndNewlines)]
             }
         }
-        
-        print("[AppleTranslation] splitIntoSentences result: \(sentences.count) sentences")
+
+        Logger.debug("[AppleTranslation] splitIntoSentences result: \(sentences.count) sentences")
         return sentences
     }
 }
@@ -95,12 +95,12 @@ public enum LocalProviderError: LocalizedError {
     case notAvailable(String)
     case translationFailed(String)
     case unsupportedAction
-    
+
     public var errorDescription: String? {
         switch self {
-        case .notAvailable(let reason):
+        case let .notAvailable(reason):
             return reason
-        case .translationFailed(let reason):
+        case let .translationFailed(reason):
             return reason
         case .unsupportedAction:
             return NSLocalizedString("This action is not supported by the selected provider", comment: "Unsupported action error")
@@ -133,4 +133,3 @@ public extension TargetLanguageOption {
         }
     }
 }
-

@@ -4,13 +4,13 @@
 //
 //  Created by Zander Wang on 2025/10/19.
 //
-import SwiftUI
 import Combine
+import SwiftUI
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #endif
 #if canImport(AppKit)
-import AppKit
+    import AppKit
 #endif
 
 @MainActor
@@ -80,6 +80,7 @@ public final class HomeViewModel: ObservableObject {
             cancelActiveRequest(clearResults: true)
         }
     }
+
     @Published public private(set) var actions: [ActionConfig]
     @Published public private(set) var models: [ModelConfig] = []
     @Published public var selectedActionID: UUID?
@@ -122,10 +123,10 @@ public final class HomeViewModel: ObservableObject {
         self.textToSpeechService = textToSpeechService
         self.preferences = preferences
         self.usageScene = usageScene
-        self.allActions = store.actions
-        self.selectedActionID = store.defaultAction?.id
-        self.actions = []
-        self.isLoadingConfiguration = true
+        allActions = store.actions
+        selectedActionID = store.defaultAction?.id
+        actions = []
+        isLoadingConfiguration = true
 
         refreshActions()
         loadModels()
@@ -202,12 +203,27 @@ public final class HomeViewModel: ObservableObject {
                     self.updateEnabledModels()
                 }
             } catch {
-                print("[HomeViewModel] Failed to fetch models: \(error)")
+                Logger.debug("[HomeViewModel] Failed to fetch models: \(error)")
             }
         }
     }
 
     private func updateEnabledModels() {
+        let availableIDs = Set(models.map { $0.id })
+        guard !availableIDs.isEmpty else { return }
+
+        let currentEnabled = preferences.enabledModelIDs
+        var resolved = currentEnabled.intersection(availableIDs)
+        if resolved.isEmpty {
+            let defaults = Set(models.filter { $0.isDefault }.map { $0.id })
+            if !defaults.isEmpty {
+                resolved = defaults
+            }
+        }
+
+        if resolved != currentEnabled {
+            preferences.setEnabledModelIDs(resolved)
+        }
     }
 
     @discardableResult
@@ -227,14 +243,14 @@ public final class HomeViewModel: ObservableObject {
         cancelActiveRequest(clearResults: false)
 
         guard let action = selectedAction else {
-            print("[HomeViewModel] No action selected.")
+            Logger.debug("[HomeViewModel] No action selected.")
             modelRuns = []
             return
         }
 
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else {
-            print("[HomeViewModel] Input text is empty; skipping request.")
+            Logger.debug("[HomeViewModel] Input text is empty; skipping request.")
             modelRuns = []
             return
         }
@@ -245,7 +261,7 @@ public final class HomeViewModel: ObservableObject {
         let modelsToUse = getEnabledModels()
 
         guard !modelsToUse.isEmpty else {
-            print("[HomeViewModel] No enabled models configured.")
+            Logger.debug("[HomeViewModel] No enabled models configured.")
             modelRuns = []
             return
         }
@@ -279,7 +295,7 @@ public final class HomeViewModel: ObservableObject {
             do {
                 try await self.textToSpeechService.speak(text: trimmed)
             } catch {
-                print("[HomeViewModel] TTS playback failed for run \(runID): \(error)")
+                Logger.debug("[HomeViewModel] TTS playback failed for run \(runID): \(error)")
             }
             _ = await MainActor.run { [weak self] in
                 self?.speakingModels.remove(runID)
@@ -300,7 +316,7 @@ public final class HomeViewModel: ObservableObject {
             do {
                 try await self.textToSpeechService.speak(text: trimmed)
             } catch {
-                print("[HomeViewModel] TTS playback failed for input text: \(error)")
+                Logger.debug("[HomeViewModel] TTS playback failed for input text: \(error)")
             }
             _ = await MainActor.run { [weak self] in
                 self?.isSpeakingInputText = false
@@ -340,15 +356,15 @@ public final class HomeViewModel: ObservableObject {
 
     public func openAppSettings() {
         #if canImport(UIKit)
-        guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else {
-            return
-        }
-        UIApplication.shared.open(settingsURL)
+            guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else {
+                return
+            }
+            UIApplication.shared.open(settingsURL)
         #elseif canImport(AppKit)
-        guard let settingsURL = URL(string: "x-apple.systempreferences:") else {
-            return
-        }
-        NSWorkspace.shared.open(settingsURL)
+            guard let settingsURL = URL(string: "x-apple.systempreferences:") else {
+                return
+            }
+            NSWorkspace.shared.open(settingsURL)
         #endif
     }
 
@@ -418,7 +434,8 @@ public final class HomeViewModel: ObservableObject {
                 case let .failure(error):
                     let responseBody: String?
                     if let llmError = error as? LLMServiceError,
-                       case let .httpError(_, body) = llmError {
+                       case let .httpError(_, body) = llmError
+                    {
                         responseBody = body
                     } else {
                         responseBody = nil
@@ -468,7 +485,8 @@ public final class HomeViewModel: ObservableObject {
         case let .failure(error):
             let responseBody: String?
             if let llmError = error as? LLMServiceError,
-               case let .httpError(_, body) = llmError {
+               case let .httpError(_, body) = llmError
+            {
                 responseBody = body
             } else {
                 responseBody = nil
@@ -491,7 +509,8 @@ public final class HomeViewModel: ObservableObject {
         }
 
         if let selectedID = selectedActionID,
-           filtered.contains(where: { $0.id == selectedID }) {
+           filtered.contains(where: { $0.id == selectedID })
+        {
             return
         }
 

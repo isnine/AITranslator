@@ -5,8 +5,8 @@
 //  Created by Codex on 2025/10/23.
 //
 
-import SwiftUI
 import ShareCore
+import SwiftUI
 
 struct ActionsView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -47,17 +47,18 @@ struct ActionsView: View {
             }
         }
         .tint(colors.accent)
-#if os(iOS)
-        .toolbar(.hidden, for: .navigationBar)
-#endif
-        .alert("Validation Failed", isPresented: $showValidationError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(validationErrorMessage)
-        }
+        #if os(iOS)
+            .toolbar(.hidden, for: .navigationBar)
+        #endif
+            .alert("Validation Failed", isPresented: $showValidationError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(validationErrorMessage)
+            }
     }
 
     // MARK: - Actions Section
+
     private var actionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Section header
@@ -68,9 +69,9 @@ struct ActionsView: View {
                 Text("ACTIONS")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(colors.textSecondary)
-                
+
                 Spacer()
-                
+
                 if !configurationStore.actions.isEmpty {
                     Button {
                         withAnimation {
@@ -83,7 +84,7 @@ struct ActionsView: View {
                     }
                     .buttonStyle(.plain)
                 }
-                
+
                 Button {
                     isAddingNewAction = true
                 } label: {
@@ -94,7 +95,7 @@ struct ActionsView: View {
                 .buttonStyle(.plain)
             }
             .padding(.leading, 4)
-            
+
             if configurationStore.actions.isEmpty {
                 emptyStateView
             } else {
@@ -125,13 +126,14 @@ struct ActionsView: View {
                         }
                         .dropDestination(for: String.self) { items, _ in
                             guard let draggedIDString = items.first,
-                                  let draggedID = UUID(uuidString: draggedIDString) else {
+                                  let draggedID = UUID(uuidString: draggedIDString)
+                            else {
                                 return false
                             }
                             reorderAction(from: draggedID, to: action.id)
                             return true
                         }
-                        
+
                         if index < configurationStore.actions.count - 1 {
                             Divider()
                                 .padding(.leading, isEditing ? 56 : 20)
@@ -196,7 +198,7 @@ struct ActionsView: View {
         let modelNames: [String]
     }
 
-    private func modelInfo(for action: ActionConfig) -> ModelInfo {
+    private func modelInfo(for _: ActionConfig) -> ModelInfo {
         let enabledModelIDs = AppPreferences.shared.enabledModelIDs
         return ModelInfo(
             modelCount: enabledModelIDs.count,
@@ -208,7 +210,8 @@ struct ActionsView: View {
         guard sourceID != destinationID else { return }
         var actions = configurationStore.actions
         guard let sourceIndex = actions.firstIndex(where: { $0.id == sourceID }),
-              let destinationIndex = actions.firstIndex(where: { $0.id == destinationID }) else {
+              let destinationIndex = actions.firstIndex(where: { $0.id == destinationID })
+        else {
             return
         }
         let movedAction = actions.remove(at: sourceIndex)
@@ -255,7 +258,12 @@ private extension ActionsView {
                             .lineLimit(1)
                         if modelInfo.modelCount > 0 {
                             Text("·")
-                            Text("\(modelInfo.modelCount) models")
+                            Text(
+                                String(
+                                    format: NSLocalizedString("%lld models", comment: "Number of models"),
+                                    Int64(modelInfo.modelCount)
+                                )
+                            )
                         }
                     }
                     .font(.system(size: 13))

@@ -5,15 +5,14 @@
 //  Created by Zander Wang on 2025/10/18.
 //
 
-import SwiftUI
-import Foundation
-import TranslationUIProvider
 import ExtensionKit
+import Foundation
 import ShareCore
+import SwiftUI
+import TranslationUIProvider
 
 @main
 final class TranslationProviderExtension: TranslationUIProviderExtension {
-
     required init() {
         UserDefaults.standard.addSuite(named: AppPreferences.appGroupSuiteName)
         AppPreferences.shared.refreshFromDefaults()

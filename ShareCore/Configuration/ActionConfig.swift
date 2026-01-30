@@ -50,7 +50,7 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
 
             return [
                 "type": "json_schema",
-                "json_schema": schemaObject
+                "json_schema": schemaObject,
             ]
         }
 

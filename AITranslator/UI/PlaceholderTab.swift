@@ -5,8 +5,8 @@
 //  Created by Codex on 2025/10/19.
 //
 
-import SwiftUI
 import ShareCore
+import SwiftUI
 
 struct PlaceholderTab: View {
     @Environment(\.colorScheme) private var colorScheme

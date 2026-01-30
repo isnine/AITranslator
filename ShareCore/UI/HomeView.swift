@@ -7,111 +7,112 @@
 
 import SwiftUI
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 #endif
 #if canImport(AppKit)
-import AppKit
+    import AppKit
 #endif
 #if canImport(TranslationUIProvider)
-import TranslationUIProvider
+    import TranslationUIProvider
 #endif
-import WebKit
 import UniformTypeIdentifiers
+import WebKit
 
 #if canImport(TranslationUIProvider)
-public typealias AppTranslationContext = TranslationUIProviderContext
+    public typealias AppTranslationContext = TranslationUIProviderContext
 #else
-public typealias AppTranslationContext = Never
+    public typealias AppTranslationContext = Never
 #endif
 
 public struct HomeView: View {
-  @Environment(\.colorScheme) private var colorScheme
-  @StateObject private var viewModel: HomeViewModel
-  @ObservedObject private var preferences = AppPreferences.shared
-  @State private var hasTriggeredAutoRequest = false
-  @State private var isInputExpanded: Bool
-  @State private var showingProviderInfo: String?
-  @State private var showDefaultAppGuide = false
-  @Namespace private var chipNamespace
-  var openFromExtension: Bool {
-    #if canImport(TranslationUIProvider)
-    return context != nil
-    #else
-    return false
-    #endif
-  }
-  private let context: AppTranslationContext?
-
-  private var colors: AppColorPalette {
-    AppColors.palette(for: colorScheme)
-  }
-
-  /// Hides the keyboard on iOS
-  private func hideKeyboard() {
-    #if os(iOS)
-    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    #endif
-  }
-
-  private var usageScene: ActionConfig.UsageScene {
-    #if canImport(TranslationUIProvider)
-    guard let context else { return .app }
-    return context.allowsReplacement ? .contextEdit : .contextRead
-    #else
-    return .app
-    #endif
-  }
-
-  private var shouldShowDefaultAppCard: Bool {
-    #if os(macOS)
-    return false
-    #else
-    return !preferences.defaultAppHintDismissed
-    #endif
-  }
-
-  private var initialContextInput: String? {
-    #if canImport(TranslationUIProvider)
-    guard let inputText = context?.inputText else { return nil }
-    return String(inputText.characters)
-    #else
-    return nil
-    #endif
-  }
-
-  public init(context: AppTranslationContext? = nil) {
-    self.context = context
-    let initialScene: ActionConfig.UsageScene
-    #if canImport(TranslationUIProvider)
-    if let context {
-      initialScene = context.allowsReplacement ? .contextEdit : .contextRead
-    } else {
-      initialScene = .app
+    @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var viewModel: HomeViewModel
+    @ObservedObject private var preferences = AppPreferences.shared
+    @State private var hasTriggeredAutoRequest = false
+    @State private var isInputExpanded: Bool
+    @State private var showingProviderInfo: String?
+    @State private var showDefaultAppGuide = false
+    @Namespace private var chipNamespace
+    var openFromExtension: Bool {
+        #if canImport(TranslationUIProvider)
+            return context != nil
+        #else
+            return false
+        #endif
     }
-    #else
-    initialScene = .app
-    #endif
-    _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
-    #if canImport(TranslationUIProvider)
-    _isInputExpanded = State(initialValue: context == nil)
-    #else
-    _isInputExpanded = State(initialValue: true)
-    #endif
-  }
 
-  public var body: some View {
+    private let context: AppTranslationContext?
+
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+
+    /// Hides the keyboard on iOS
+    private func hideKeyboard() {
+        #if os(iOS)
+            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        #endif
+    }
+
+    private var usageScene: ActionConfig.UsageScene {
+        #if canImport(TranslationUIProvider)
+            guard let context else { return .app }
+            return context.allowsReplacement ? .contextEdit : .contextRead
+        #else
+            return .app
+        #endif
+    }
+
+    private var shouldShowDefaultAppCard: Bool {
+        #if os(macOS)
+            return false
+        #else
+            return !preferences.defaultAppHintDismissed
+        #endif
+    }
+
+    private var initialContextInput: String? {
+        #if canImport(TranslationUIProvider)
+            guard let inputText = context?.inputText else { return nil }
+            return String(inputText.characters)
+        #else
+            return nil
+        #endif
+    }
+
+    public init(context: AppTranslationContext? = nil) {
+        self.context = context
+        let initialScene: ActionConfig.UsageScene
+        #if canImport(TranslationUIProvider)
+            if let context {
+                initialScene = context.allowsReplacement ? .contextEdit : .contextRead
+            } else {
+                initialScene = .app
+            }
+        #else
+            initialScene = .app
+        #endif
+        _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
+        #if canImport(TranslationUIProvider)
+            _isInputExpanded = State(initialValue: context == nil)
+        #else
+            _isInputExpanded = State(initialValue: true)
+        #endif
+    }
+
+    public var body: some View {
         ZStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                  if !openFromExtension {
-                    #if !os(macOS)
-                    header
-                    #endif
-                    if shouldShowDefaultAppCard {
-                      defaultAppCard
+                    if !openFromExtension {
+                        #if !os(macOS)
+                            header
+                        #endif
+                        if shouldShowDefaultAppCard {
+                            defaultAppCard
+                        }
+                        inputComposer
                     }
-                    inputComposer
-                  }
                     actionChips
                     if viewModel.modelRuns.isEmpty {
                         hintLabel
@@ -125,9 +126,9 @@ public struct HomeView: View {
             .background(colors.background.ignoresSafeArea())
             .scrollIndicators(.hidden)
             #if os(iOS)
-            .onTapGesture {
-                hideKeyboard()
-            }
+                .onTapGesture {
+                    hideKeyboard()
+                }
             #endif
 
             // Loading overlay when configuration is loading
@@ -136,40 +137,40 @@ public struct HomeView: View {
             }
         }
         .onAppear {
-          AppPreferences.shared.refreshFromDefaults()
+            AppPreferences.shared.refreshFromDefaults()
 
-          #if canImport(TranslationUIProvider)
-          // For extension context: refresh configuration first, then execute
-          if openFromExtension && !hasTriggeredAutoRequest {
-            viewModel.refreshConfiguration()
-            viewModel.updateUsageScene(usageScene)
-            if let inputText = initialContextInput {
-              viewModel.inputText = inputText
-            }
-            hasTriggeredAutoRequest = true
-            viewModel.performSelectedAction()
-          } else {
-            viewModel.updateUsageScene(usageScene)
-          }
-          #else
-          viewModel.updateUsageScene(usageScene)
-          #endif
+            #if canImport(TranslationUIProvider)
+                // For extension context: refresh configuration first, then execute
+                if openFromExtension, !hasTriggeredAutoRequest {
+                    viewModel.refreshConfiguration()
+                    viewModel.updateUsageScene(usageScene)
+                    if let inputText = initialContextInput {
+                        viewModel.inputText = inputText
+                    }
+                    hasTriggeredAutoRequest = true
+                    viewModel.performSelectedAction()
+                } else {
+                    viewModel.updateUsageScene(usageScene)
+                }
+            #else
+                viewModel.updateUsageScene(usageScene)
+            #endif
         }
         #if os(macOS)
         .onReceive(NotificationCenter.default.publisher(for: .serviceTextReceived)) { notification in
-          if let text = notification.userInfo?["text"] as? String {
-            viewModel.inputText = text
-            isInputExpanded = true
-            viewModel.performSelectedAction()
-          }
+            if let text = notification.userInfo?["text"] as? String {
+                viewModel.inputText = text
+                isInputExpanded = true
+                viewModel.performSelectedAction()
+            }
         }
         #endif
         .onChange(of: openFromExtension) {
-          viewModel.updateUsageScene(usageScene)
+            viewModel.updateUsageScene(usageScene)
         }
         #if canImport(TranslationUIProvider)
         .onChange(of: context?.allowsReplacement ?? false) {
-          viewModel.updateUsageScene(usageScene)
+            viewModel.updateUsageScene(usageScene)
         }
         #endif
         .sheet(isPresented: $showDefaultAppGuide) {
@@ -182,19 +183,14 @@ public struct HomeView: View {
     }
 
     private var configurationLoadingOverlay: some View {
-        ZStack {
-            colors.background.opacity(0.9)
-            VStack(spacing: 12) {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(colors.accent)
-                    .controlSize(.regular)
-                Text("Loading configuration...")
-                    .font(.system(size: 14))
-                    .foregroundColor(colors.textSecondary)
-            }
-        }
-        .ignoresSafeArea()
+        LoadingOverlay(
+            message: "Loading configuration...",
+            backgroundColor: colors.background.opacity(0.9),
+            messageFont: .system(size: 14),
+            textColor: colors.textSecondary,
+            accentColor: colors.accent,
+            ignoresSafeArea: true
+        )
     }
 
     private var header: some View {
@@ -309,7 +305,8 @@ public struct HomeView: View {
                     if !isCollapsed {
                         // Input speak button (only show when TTS is configured)
                         if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            && AppPreferences.shared.ttsConfiguration.isValid {
+                            && AppPreferences.shared.ttsConfiguration.isValid
+                        {
                             inputSpeakButton
                         }
 
@@ -321,9 +318,9 @@ public struct HomeView: View {
                                 Text("Send")
                                     .font(.system(size: 15, weight: .semibold))
                                 #if os(macOS)
-                                Text("Cmd+Return")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .opacity(0.9)
+                                    Text("Cmd+Return")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .opacity(0.9)
                                 #endif
                                 Image(systemName: "paperplane.fill")
                                     .font(.system(size: 15, weight: .semibold))
@@ -334,7 +331,7 @@ public struct HomeView: View {
                         .disabled(!viewModel.canSend)
                         .opacity(viewModel.canSend ? 1.0 : 0.5)
                         #if os(macOS)
-                        .keyboardShortcut(.return, modifiers: [.command])
+                            .keyboardShortcut(.return, modifiers: [.command])
                         #endif
                     }
                 }
@@ -406,78 +403,74 @@ public struct HomeView: View {
     private var expandedInputEditor: some View {
         VStack(alignment: .leading, spacing: 0) {
             ZStack(alignment: .topLeading) {
-#if !os(macOS)
-                if viewModel.inputText.isEmpty {
-                    Text(viewModel.inputPlaceholder)
-                        .foregroundColor(colors.textSecondary)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                }
-#endif
-
-#if os(macOS)
-                AutoPasteTextEditor(
-                    text: $viewModel.inputText,
-                    placeholder: viewModel.inputPlaceholder
-                ) { pastedText in
-                    applyPastedTextIfNeeded(pastedText)
-                }
-                .frame(minHeight: 140, maxHeight: 160)
-                .padding(12)
-#elseif os(iOS)
-                AutoPasteTextEditor(
-                    text: $viewModel.inputText,
-                    placeholder: viewModel.inputPlaceholder
-                ) { pastedText in
-                    applyPastedTextIfNeeded(pastedText)
-                }
-                .frame(minHeight: 140, maxHeight: 160)
-                .padding(12)
-#else
-                TextEditor(text: $viewModel.inputText)
-                    .scrollContentBackground(.hidden)
-                    .foregroundColor(colors.textPrimary)
-                    .padding(12)
-                    .frame(minHeight: 140, maxHeight: 160)
-                    .onPasteCommand(of: [.plainText]) { providers in
-                        handlePasteCommand(providers: providers)
+                #if !os(macOS)
+                    if viewModel.inputText.isEmpty {
+                        Text(viewModel.inputPlaceholder)
+                            .foregroundColor(colors.textSecondary)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 16)
                     }
-#endif
+                #endif
+
+                #if os(macOS)
+                    AutoPasteTextEditor(
+                        text: $viewModel.inputText,
+                        placeholder: viewModel.inputPlaceholder
+                    ) { pastedText in
+                        applyPastedTextIfNeeded(pastedText)
+                    }
+                    .frame(minHeight: 140, maxHeight: 160)
+                    .padding(12)
+                #elseif os(iOS)
+                    AutoPasteTextEditor(
+                        text: $viewModel.inputText,
+                        placeholder: viewModel.inputPlaceholder
+                    ) { pastedText in
+                        applyPastedTextIfNeeded(pastedText)
+                    }
+                    .frame(minHeight: 140, maxHeight: 160)
+                    .padding(12)
+                #else
+                    TextEditor(text: $viewModel.inputText)
+                        .scrollContentBackground(.hidden)
+                        .foregroundColor(colors.textPrimary)
+                        .padding(12)
+                        .frame(minHeight: 140, maxHeight: 160)
+                        .onPasteCommand(of: [.plainText]) { providers in
+                            handlePasteCommand(providers: providers)
+                        }
+                #endif
             }
         }
     }
 
     private var actionChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(viewModel.actions) { action in
-                    chip(for: action, isSelected: action.id == viewModel.selectedAction?.id)
-                }
+        ActionChipsView(
+            actions: viewModel.actions,
+            selectedActionID: viewModel.selectedAction?.id,
+            spacing: 12,
+            contentVerticalPadding: 4,
+            font: .system(size: 14, weight: .medium),
+            textColor: { isSelected in
+                isSelected ? Color.white : Color.primary
+            },
+            background: { isSelected in
+                AnyView(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(
+                            isSelected
+                                ? AnyShapeStyle(colors.chipPrimaryBackground)
+                                : AnyShapeStyle(.regularMaterial)
+                        )
+                )
+            },
+            horizontalPadding: 18,
+            verticalPadding: 10
+        ) { action in
+            if viewModel.selectAction(action) {
+                viewModel.performSelectedAction()
             }
-            .padding(.vertical, 4)
         }
-    }
-
-    private func chip(for action: ActionConfig, isSelected: Bool) -> some View {
-        Text(action.name)
-            .font(.system(size: 14, weight: .medium))
-            .foregroundStyle(isSelected ? Color.white : Color.primary)
-            .padding(.horizontal, 18)
-            .padding(.vertical, 10)
-            .background {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(colors.chipPrimaryBackground)
-                } else {
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(.regularMaterial)
-                }
-            }
-            .onTapGesture {
-                if viewModel.selectAction(action) {
-                    viewModel.performSelectedAction()
-                }
-            }
     }
 
     private var hintLabel: some View {
@@ -502,23 +495,20 @@ public struct HomeView: View {
             }
         }()
 
-        return Button {
-            openTargetLanguageSettings()
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "globe")
-                    .font(.system(size: 12))
-                Text("Target: \(displayName)")
-                    .font(.system(size: 13, weight: .medium))
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .semibold))
-            }
-            .foregroundColor(colors.accent)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(targetLanguageIndicatorBackground)
+        return TargetLanguageButton(
+            title: "Target: \(displayName)",
+            action: { openTargetLanguageSettings() },
+            foregroundColor: colors.accent,
+            spacing: 6,
+            globeFont: .system(size: 12),
+            textFont: .system(size: 13, weight: .medium),
+            chevronSystemName: "chevron.right",
+            chevronFont: .system(size: 10, weight: .semibold),
+            horizontalPadding: 12,
+            verticalPadding: 6
+        ) {
+            targetLanguageIndicatorBackground
         }
-        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -576,7 +566,7 @@ public struct HomeView: View {
     ) -> some View {
         let runID = run.id
         let showModelName = viewModel.modelRuns.count > 1
-        
+
         switch run.status {
         case .idle, .running:
             EmptyView()
@@ -675,7 +665,7 @@ public struct HomeView: View {
                 // Retry button
                 Button {
                     viewModel.performSelectedAction()
-                } label:{
+                } label: {
                     Label("Retry", systemImage: "arrow.clockwise")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(colors.accent)
@@ -692,16 +682,16 @@ public struct HomeView: View {
         compactSpeakButton(for: copyText, runID: runID)
         compactCopyButton(for: copyText)
         #if canImport(TranslationUIProvider)
-        if let context, context.allowsReplacement {
-            Button {
-                context.finish(translation: AttributedString(copyText))
-            } label: {
-                Label("Replace", systemImage: "arrow.left.arrow.right")
-                    .font(.system(size: 13, weight: .medium))
+            if let context, context.allowsReplacement {
+                Button {
+                    context.finish(translation: AttributedString(copyText))
+                } label: {
+                    Label("Replace", systemImage: "arrow.left.arrow.right")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(colors.accent)
             }
-            .buttonStyle(.plain)
-            .foregroundColor(colors.accent)
-        }
         #endif
     }
 
@@ -712,16 +702,16 @@ public struct HomeView: View {
         compactSpeakButton(for: copyText, runID: runID)
         compactCopyButton(for: copyText)
         #if canImport(TranslationUIProvider)
-        if let context, context.allowsReplacement {
-            Button {
-                context.finish(translation: AttributedString(copyText))
-            } label: {
-                Label("Replace", systemImage: "arrow.left.arrow.right")
-                    .font(.system(size: 13, weight: .medium))
+            if let context, context.allowsReplacement {
+                Button {
+                    context.finish(translation: AttributedString(copyText))
+                } label: {
+                    Label("Replace", systemImage: "arrow.left.arrow.right")
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(colors.accent)
             }
-            .buttonStyle(.plain)
-            .foregroundColor(colors.accent)
-        }
         #endif
     }
 
@@ -766,9 +756,14 @@ public struct HomeView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(colors.textPrimary)
             if let duration = run.durationText {
-                Text("Duration: \(duration)")
-                    .font(.system(size: 12))
-                    .foregroundColor(colors.textSecondary)
+                Text(
+                    String(
+                        format: NSLocalizedString("Duration: %@", comment: "Provider run duration"),
+                        duration
+                    )
+                )
+                .font(.system(size: 12))
+                .foregroundColor(colors.textSecondary)
             }
         }
         .padding(10)
@@ -797,7 +792,7 @@ public struct HomeView: View {
 
     private func skeletonPlaceholder() -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(0..<3, id: \.self) { index in
+            ForEach(0 ..< 3, id: \.self) { index in
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
                     .fill(colors.skeleton)
                     .frame(height: 10)
@@ -976,11 +971,11 @@ public struct HomeView: View {
 
     private func copyToPasteboard(_ text: String) {
         #if canImport(UIKit)
-        UIPasteboard.general.string = text
+            UIPasteboard.general.string = text
         #elseif canImport(AppKit)
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(text, forType: .string)
         #endif
     }
 
@@ -1021,14 +1016,14 @@ public struct HomeView: View {
 
     private func readImmediatePasteboardText() -> String? {
         #if canImport(AppKit)
-        if let text = NSPasteboard.general.string(forType: .string) {
-            return text
-        }
+            if let text = NSPasteboard.general.string(forType: .string) {
+                return text
+            }
         #endif
         #if canImport(UIKit)
-        if let text = UIPasteboard.general.string {
-            return text
-        }
+            if let text = UIPasteboard.general.string {
+                return text
+            }
         #endif
         return nil
     }
@@ -1058,202 +1053,204 @@ public struct HomeView: View {
 }
 
 #if os(macOS)
-private struct AutoPasteTextEditor: NSViewRepresentable {
-    @Binding var text: String
-    let placeholder: String
-    let onPaste: (String) -> Void
+    private struct AutoPasteTextEditor: NSViewRepresentable {
+        @Binding var text: String
+        let placeholder: String
+        let onPaste: (String) -> Void
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    func makeNSView(context: Context) -> NSScrollView {
-        let textView = PastingTextView()
-        textView.delegate = context.coordinator
-        textView.isRichText = false
-        textView.drawsBackground = false
-        textView.textContainerInset = NSSize(width: 16, height: 12)
-        textView.textContainer?.lineFragmentPadding = 0
-        textView.minSize = NSSize(width: 0, height: 0)
-        textView.maxSize = NSSize(
-            width: CGFloat.greatestFiniteMagnitude,
-            height: CGFloat.greatestFiniteMagnitude
-        )
-        textView.isHorizontallyResizable = false
-        textView.textContainer?.widthTracksTextView = true
-        textView.string = text
-        textView.onPaste = onPaste
-        textView.placeholderAttributedString = makePlaceholderAttributedString()
-
-        let scrollView = NSScrollView()
-        scrollView.drawsBackground = false
-        scrollView.hasVerticalScroller = true
-        scrollView.contentView.drawsBackground = false
-        scrollView.documentView = textView
-        return scrollView
-    }
-
-    func updateNSView(_ nsView: NSScrollView, context: Context) {
-        guard let textView = nsView.documentView as? PastingTextView else {
-            return
+        func makeCoordinator() -> Coordinator {
+            Coordinator(parent: self)
         }
 
-        if textView.string != text {
+        func makeNSView(context: Context) -> NSScrollView {
+            let textView = PastingTextView()
+            textView.delegate = context.coordinator
+            textView.isRichText = false
+            textView.drawsBackground = false
+            textView.textContainerInset = NSSize(width: 16, height: 12)
+            textView.textContainer?.lineFragmentPadding = 0
+            textView.minSize = NSSize(width: 0, height: 0)
+            textView.maxSize = NSSize(
+                width: CGFloat.greatestFiniteMagnitude,
+                height: CGFloat.greatestFiniteMagnitude
+            )
+            textView.isHorizontallyResizable = false
+            textView.textContainer?.widthTracksTextView = true
             textView.string = text
-        }
-
-        textView.onPaste = onPaste
-        if textView.placeholderAttributedString?.string != placeholder {
+            textView.onPaste = onPaste
             textView.placeholderAttributedString = makePlaceholderAttributedString()
+
+            let scrollView = NSScrollView()
+            scrollView.drawsBackground = false
+            scrollView.hasVerticalScroller = true
+            scrollView.contentView.drawsBackground = false
+            scrollView.documentView = textView
+            return scrollView
         }
-    }
 
-    final class Coordinator: NSObject, NSTextViewDelegate {
-        private let parent: AutoPasteTextEditor
+        func updateNSView(_ nsView: NSScrollView, context _: Context) {
+            guard let textView = nsView.documentView as? PastingTextView else {
+                return
+            }
 
-        init(parent: AutoPasteTextEditor) {
-            self.parent = parent
-        }
+            if textView.string != text {
+                textView.string = text
+            }
 
-        func textDidChange(_ notification: Notification) {
-            guard let textView = notification.object as? NSTextView else { return }
-            let updated = textView.string
-            if parent.text != updated {
-                parent.text = updated
+            textView.onPaste = onPaste
+            if textView.placeholderAttributedString?.string != placeholder {
+                textView.placeholderAttributedString = makePlaceholderAttributedString()
             }
         }
-    }
 
-    private func makePlaceholderAttributedString() -> NSAttributedString {
-        NSAttributedString(
-            string: placeholder,
-            attributes: [
-                .foregroundColor: NSColor.secondaryLabelColor
-            ]
-        )
-    }
-}
+        final class Coordinator: NSObject, NSTextViewDelegate {
+            private let parent: AutoPasteTextEditor
 
-private final class PastingTextView: NSTextView {
-    var onPaste: ((String) -> Void)?
-    var placeholderAttributedString: NSAttributedString? {
-        didSet { needsDisplay = true }
-    }
+            init(parent: AutoPasteTextEditor) {
+                self.parent = parent
+            }
 
-    override func paste(_ sender: Any?) {
-        super.paste(sender)
-        let current = string
-        let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        onPaste?(current)
-        needsDisplay = true
-    }
-
-    override var isRichText: Bool {
-        get { false }
-        set { }
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        super.draw(dirtyRect)
-        guard string.isEmpty,
-              window?.firstResponder !== self,
-              let placeholder = placeholderAttributedString else {
-            return
-        }
-
-        let inset = textContainerInset
-        let padding = textContainer?.lineFragmentPadding ?? 0
-        // Draw placeholder at top-left (text cursor position), not vertically centered
-        let origin = CGPoint(
-            x: inset.width + padding,
-            y: inset.height
-        )
-        placeholder.draw(at: origin)
-    }
-
-    override func becomeFirstResponder() -> Bool {
-        let result = super.becomeFirstResponder()
-        if result { needsDisplay = true }
-        return result
-    }
-
-    override func resignFirstResponder() -> Bool {
-        let result = super.resignFirstResponder()
-        if result { needsDisplay = true }
-        return result
-    }
-
-    override func didChangeText() {
-        super.didChangeText()
-        needsDisplay = true
-    }
-}
-#elseif os(iOS)
-private struct AutoPasteTextEditor: UIViewRepresentable {
-    @Binding var text: String
-    let placeholder: String
-    let onPaste: (String) -> Void
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(parent: self)
-    }
-
-    func makeUIView(context: Context) -> PastingTextView {
-        let textView = PastingTextView()
-        textView.delegate = context.coordinator
-        textView.backgroundColor = .clear
-        textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
-        textView.text = text
-        textView.onPaste = onPaste
-        textView.isScrollEnabled = true
-        textView.alwaysBounceVertical = true
-        textView.adjustsFontForContentSizeCategory = true
-        textView.font = UIFont.preferredFont(forTextStyle: .body)
-        textView.autocorrectionType = .default
-        textView.smartDashesType = .no
-        textView.smartQuotesType = .no
-        textView.accessibilityHint = placeholder
-        return textView
-    }
-
-    func updateUIView(_ uiView: PastingTextView, context: Context) {
-        if uiView.text != text {
-            uiView.text = text
-        }
-        uiView.onPaste = onPaste
-    }
-
-    final class Coordinator: NSObject, UITextViewDelegate {
-        private let parent: AutoPasteTextEditor
-
-        init(parent: AutoPasteTextEditor) {
-            self.parent = parent
-        }
-
-        func textViewDidChange(_ textView: UITextView) {
-            let updated = textView.text ?? ""
-            if parent.text != updated {
-                parent.text = updated
+            func textDidChange(_ notification: Notification) {
+                guard let textView = notification.object as? NSTextView else { return }
+                let updated = textView.string
+                if parent.text != updated {
+                    parent.text = updated
+                }
             }
         }
+
+        private func makePlaceholderAttributedString() -> NSAttributedString {
+            NSAttributedString(
+                string: placeholder,
+                attributes: [
+                    .foregroundColor: NSColor.secondaryLabelColor,
+                ]
+            )
+        }
     }
-}
 
-private final class PastingTextView: UITextView {
-    var onPaste: ((String) -> Void)?
+    private final class PastingTextView: NSTextView {
+        var onPaste: ((String) -> Void)?
+        var placeholderAttributedString: NSAttributedString? {
+            didSet { needsDisplay = true }
+        }
 
-    override func paste(_ sender: Any?) {
-        super.paste(sender)
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            let current = self.text ?? ""
+        override func paste(_ sender: Any?) {
+            super.paste(sender)
+            let current = string
             let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return }
-            self.onPaste?(current)
+            onPaste?(current)
+            needsDisplay = true
+        }
+
+        override var isRichText: Bool {
+            get { false }
+            set {}
+        }
+
+        override func draw(_ dirtyRect: NSRect) {
+            super.draw(dirtyRect)
+            guard string.isEmpty,
+                  window?.firstResponder !== self,
+                  let placeholder = placeholderAttributedString
+            else {
+                return
+            }
+
+            let inset = textContainerInset
+            let padding = textContainer?.lineFragmentPadding ?? 0
+            // Draw placeholder at top-left (text cursor position), not vertically centered
+            let origin = CGPoint(
+                x: inset.width + padding,
+                y: inset.height
+            )
+            placeholder.draw(at: origin)
+        }
+
+        override func becomeFirstResponder() -> Bool {
+            let result = super.becomeFirstResponder()
+            if result { needsDisplay = true }
+            return result
+        }
+
+        override func resignFirstResponder() -> Bool {
+            let result = super.resignFirstResponder()
+            if result { needsDisplay = true }
+            return result
+        }
+
+        override func didChangeText() {
+            super.didChangeText()
+            needsDisplay = true
         }
     }
-}
+
+#elseif os(iOS)
+    private struct AutoPasteTextEditor: UIViewRepresentable {
+        @Binding var text: String
+        let placeholder: String
+        let onPaste: (String) -> Void
+
+        func makeCoordinator() -> Coordinator {
+            Coordinator(parent: self)
+        }
+
+        func makeUIView(context: Context) -> PastingTextView {
+            let textView = PastingTextView()
+            textView.delegate = context.coordinator
+            textView.backgroundColor = .clear
+            textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
+            textView.text = text
+            textView.onPaste = onPaste
+            textView.isScrollEnabled = true
+            textView.alwaysBounceVertical = true
+            textView.adjustsFontForContentSizeCategory = true
+            textView.font = UIFont.preferredFont(forTextStyle: .body)
+            textView.autocorrectionType = .default
+            textView.smartDashesType = .no
+            textView.smartQuotesType = .no
+            textView.accessibilityHint = placeholder
+            return textView
+        }
+
+        func updateUIView(_ uiView: PastingTextView, context _: Context) {
+            if uiView.text != text {
+                uiView.text = text
+            }
+            uiView.onPaste = onPaste
+        }
+
+        final class Coordinator: NSObject, UITextViewDelegate {
+            private let parent: AutoPasteTextEditor
+
+            init(parent: AutoPasteTextEditor) {
+                self.parent = parent
+            }
+
+            func textViewDidChange(_ textView: UITextView) {
+                let updated = textView.text ?? ""
+                if parent.text != updated {
+                    parent.text = updated
+                }
+            }
+        }
+    }
+
+    private final class PastingTextView: UITextView {
+        var onPaste: ((String) -> Void)?
+
+        override func paste(_ sender: Any?) {
+            super.paste(sender)
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                let current = self.text ?? ""
+                let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                self.onPaste?(current)
+            }
+        }
+    }
 #endif
 
 // MARK: - Default App Guide Sheet
@@ -1334,7 +1331,7 @@ private struct DefaultAppGuideSheet: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text("\(number).")
+                    Text(verbatim: "\(number).")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(colors.accent)
                     Text(title)
@@ -1363,7 +1360,7 @@ private struct ShimmerModifier: ViewModifier {
                         gradient: Gradient(colors: [
                             .clear,
                             .white.opacity(0.4),
-                            .clear
+                            .clear,
                         ]),
                         startPoint: .leading,
                         endPoint: .trailing
@@ -1388,18 +1385,18 @@ private extension View {
 }
 
 #Preview {
-  HomeView(context: nil)
+    HomeView(context: nil)
         .preferredColorScheme(.dark)
 }
 
 #if os(macOS)
-extension Notification.Name {
-  /// Notification posted when text is received from macOS Services (right-click menu)
-  static let serviceTextReceived = Notification.Name("serviceTextReceived")
-}
+    extension Notification.Name {
+        /// Notification posted when text is received from macOS Services (right-click menu)
+        static let serviceTextReceived = Notification.Name("serviceTextReceived")
+    }
 #endif
 
 public extension Notification.Name {
-  /// Notification posted to open target language settings in the main app
-  static let openTargetLanguageSettings = Notification.Name("openTargetLanguageSettings")
+    /// Notification posted to open target language settings in the main app
+    static let openTargetLanguageSettings = Notification.Name("openTargetLanguageSettings")
 }

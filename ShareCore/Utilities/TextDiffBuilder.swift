@@ -141,8 +141,8 @@ public enum TextDiffBuilder {
         let columns = revised.count + 1
         var matrix = Array(repeating: Array(repeating: 0, count: columns), count: rows)
 
-        for i in 1..<rows {
-            for j in 1..<columns {
+        for i in 1 ..< rows {
+            for j in 1 ..< columns {
                 if original[i - 1] == revised[j - 1] {
                     matrix[i][j] = matrix[i - 1][j - 1] + 1
                 } else {

@@ -4,8 +4,8 @@
 //
 //  Created by Codex on 2025/10/19.
 //
-import Foundation
 import CryptoKit
+import Foundation
 
 /// Represents a streaming update that can be either plain text or sentence pairs.
 public enum StreamingUpdate: Sendable {
@@ -33,13 +33,13 @@ public final class LLMService {
         var result = prompt
 
         let targetLanguageOption = AppPreferences.shared.targetLanguage
-        
-        print("[LLMService] substitutePromptPlaceholders called")
-        print("[LLMService] targetLanguage.rawValue: \(targetLanguageOption.rawValue)")
-        print("[LLMService] targetLanguage.promptDescriptor: \(targetLanguageOption.promptDescriptor)")
-        
+
+        Logger.debug("[LLMService] substitutePromptPlaceholders called")
+        Logger.debug("[LLMService] targetLanguage.rawValue: \(targetLanguageOption.rawValue)")
+        Logger.debug("[LLMService] targetLanguage.promptDescriptor: \(targetLanguageOption.promptDescriptor)")
+
         let storedValue = AppPreferences.sharedDefaults.string(forKey: TargetLanguageOption.storageKey)
-        print("[LLMService] Direct read from UserDefaults[\(TargetLanguageOption.storageKey)]: \(storedValue ?? "nil")")
+        Logger.debug("[LLMService] Direct read from UserDefaults[\(TargetLanguageOption.storageKey)]: \(storedValue ?? "nil")")
 
         // Replace {targetLanguage} and {{targetLanguage}} with the actual target language
         let targetLanguage = targetLanguageOption.promptDescriptor
@@ -143,20 +143,20 @@ public final class LLMService {
         let messages: [LLMRequestPayload.Message]
         if action.prompt.isEmpty {
             messages = [
-                .init(role: "user", content: text)
+                .init(role: "user", content: text),
             ]
         } else {
             let processedPrompt = substitutePromptPlaceholders(action.prompt, text: text)
             let promptContainsTextPlaceholder = action.prompt.contains("{text}") || action.prompt.contains("{{text}}")
-            
+
             if promptContainsTextPlaceholder {
                 messages = [
-                    .init(role: "user", content: processedPrompt)
+                    .init(role: "user", content: processedPrompt),
                 ]
             } else {
                 messages = [
                     .init(role: "system", content: processedPrompt),
-                    .init(role: "user", content: text)
+                    .init(role: "user", content: text),
                 ]
             }
         }
@@ -168,10 +168,11 @@ public final class LLMService {
             let payloadData: Data
 
             if let structuredOutputConfig,
-               let responseFormat = structuredOutputConfig.responseFormatPayload() {
+               let responseFormat = structuredOutputConfig.responseFormatPayload()
+            {
                 var body: [String: Any] = [
                     "messages": messages.map { ["role": $0.role, "content": $0.content] },
-                    "stream": enableStreaming
+                    "stream": enableStreaming,
                 ]
                 body["response_format"] = responseFormat
                 payloadData = try JSONSerialization.data(withJSONObject: body, options: [.prettyPrinted])
@@ -186,12 +187,12 @@ public final class LLMService {
             request.httpBody = payloadData
 
             if let jsonString = String(data: payloadData, encoding: .utf8) {
-                print("[LLMService] Request Debug - Model: \(model.displayName)")
-                print("[LLMService] URL: \(requestURL.absoluteString)")
-                print("[LLMService] Action: \(action.name)")
-                print("[LLMService] Original Prompt: \(action.prompt)")
-                print("[LLMService] Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))")
-                print("[LLMService] Request payload: \(jsonString)")
+                Logger.debug("[LLMService] Request Debug - Model: \(model.displayName)")
+                Logger.debug("[LLMService] URL: \(requestURL.absoluteString)")
+                Logger.debug("[LLMService] Action: \(action.name)")
+                Logger.debug("[LLMService] Original Prompt: \(action.prompt)")
+                Logger.debug("[LLMService] Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))")
+                Logger.debug("[LLMService] Request payload: \(jsonString)")
             }
 
             try Task.checkCancellation()
@@ -213,9 +214,9 @@ public final class LLMService {
                 }
 
                 let responseString = String(data: data, encoding: .utf8) ?? ""
-                print("[LLMService] Response JSON from \(model.displayName): \(responseString)")
+                Logger.debug("[LLMService] Response JSON from \(model.displayName): \(responseString)")
 
-                guard (200...299).contains(httpResponse.statusCode) else {
+                guard (200 ... 299).contains(httpResponse.statusCode) else {
                     throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
                 }
 
@@ -261,13 +262,13 @@ public final class LLMService {
             throw URLError(.badServerResponse)
         }
 
-        guard (200...299).contains(httpResponse.statusCode) else {
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
             var errorData = Data()
             for try await chunk in bytes {
                 errorData.append(chunk)
             }
             let responseString = String(data: errorData, encoding: .utf8) ?? ""
-            print("[LLMService] Response JSON from \(model.displayName): \(responseString)")
+            Logger.debug("[LLMService] Response JSON from \(model.displayName): \(responseString)")
             throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
         }
 
@@ -276,7 +277,7 @@ public final class LLMService {
         let isStructuredOutputMode = structuredOutputConfig != nil && !isSentencePairsMode
 
         if contentType.contains("text/event-stream") {
-            print("[LLMService] Streaming response from \(model.displayName)")
+            Logger.debug("[LLMService] Streaming response from \(model.displayName)")
             var aggregatedText = ""
             let sentencePairParser = isSentencePairsMode ? StreamingSentencePairParser() : nil
             let structuredParser = isStructuredOutputMode ? StreamingStructuredOutputParser(config: structuredOutputConfig!) : nil
@@ -312,7 +313,7 @@ public final class LLMService {
             try Task.checkCancellation()
             guard !finalText.isEmpty else { throw LLMServiceError.emptyContent }
 
-            print("[LLMService] Final stream output from \(model.displayName): \(finalText)")
+            Logger.debug("[LLMService] Final stream output from \(model.displayName): \(finalText)")
 
             if isSentencePairsMode {
                 let pairs = parseSentencePairsFromJSON(finalText)
@@ -352,7 +353,7 @@ public final class LLMService {
             }
 
             let responseString = String(data: data, encoding: .utf8) ?? ""
-            print("[LLMService] Non-stream response from \(model.displayName): \(responseString)")
+            Logger.debug("[LLMService] Non-stream response from \(model.displayName): \(responseString)")
 
             let parsed = try parseResponsePayload(data: data, structuredOutput: structuredOutputConfig)
             let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -378,7 +379,8 @@ public final class LLMService {
     private func parseSentencePairsFromJSON(_ jsonString: String) -> [SentencePair] {
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let pairsArray = json["sentence_pairs"] as? [[String: Any]] else {
+              let pairsArray = json["sentence_pairs"] as? [[String: Any]]
+        else {
             return []
         }
 
@@ -386,7 +388,8 @@ public final class LLMService {
             guard let original = dict["original"] as? String,
                   let translation = dict["translation"] as? String,
                   !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                  !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else {
                 return nil
             }
             return SentencePair(
@@ -402,12 +405,14 @@ public final class LLMService {
         config: ActionConfig.StructuredOutputConfig
     ) -> ParsedResponse? {
         guard let data = jsonString.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
             return nil
         }
 
         guard let primaryValue = json[config.primaryField] as? String,
-              !primaryValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+              !primaryValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
             return nil
         }
 
@@ -415,7 +420,8 @@ public final class LLMService {
         var supplemental: [String] = []
         for field in config.additionalFields {
             guard let value = json[field] as? String,
-                  !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                  !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else {
                 continue
             }
             supplemental.append(value.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -472,11 +478,11 @@ private final class StreamingStructuredOutputParser {
         guard contentStart < nsBuffer.length else { return "" }
 
         // UTF-16 character constants
-        let backslashChar: unichar = 0x5C  // '\'
-        let quoteChar: unichar = 0x22      // '"'
-        let nChar: unichar = 0x6E          // 'n'
-        let tChar: unichar = 0x74          // 't'
-        let rChar: unichar = 0x72          // 'r'
+        let backslashChar: unichar = 0x5C // '\'
+        let quoteChar: unichar = 0x22 // '"'
+        let nChar: unichar = 0x6E // 'n'
+        let tChar: unichar = 0x74 // 't'
+        let rChar: unichar = 0x72 // 'r'
 
         // Extract content, handling escaped characters
         var result = ""
@@ -571,7 +577,8 @@ private final class StreamingSentencePairParser {
               let original = dict["original"],
               let translation = dict["translation"],
               !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+              !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
             return nil
         }
 
@@ -730,7 +737,8 @@ private extension LLMService.JSONValue {
     static func dictionary(from string: String) -> [String: LLMService.JSONValue]? {
         guard let data = string.data(using: .utf8) else { return nil }
         guard let value = try? JSONDecoder.llmDecoder.decode(LLMService.JSONValue.self, from: data),
-              case let .object(object) = value else {
+              case let .object(object) = value
+        else {
             return nil
         }
         return object
@@ -762,11 +770,13 @@ private extension LLMService.ChatCompletionsResponse.Message {
                     }
                 }
                 if let text = part.text,
-                   let dictionary = JSONValue.dictionary(from: text) {
+                   let dictionary = JSONValue.dictionary(from: text)
+                {
                     return dictionary
                 }
                 if let content = part.content,
-                   let dictionary = JSONValue.dictionary(from: content) {
+                   let dictionary = JSONValue.dictionary(from: content)
+                {
                     return dictionary
                 }
             }
@@ -783,30 +793,36 @@ private extension LLMService.ChatCompletionsResponse.Message {
             var fragments: [String] = []
             for part in parts {
                 if let text = part.text?.trimmingCharacters(in: .whitespacesAndNewlines),
-                   !text.isEmpty {
+                   !text.isEmpty
+                {
                     fragments.append(text)
                 }
                 if let content = part.content?.trimmingCharacters(in: .whitespacesAndNewlines),
-                   !content.isEmpty {
+                   !content.isEmpty
+                {
                     fragments.append(content)
                 }
                 if let data = part.data?.trimmingCharacters(in: .whitespacesAndNewlines),
-                   !data.isEmpty {
+                   !data.isEmpty
+                {
                     fragments.append(data)
                 }
                 if let json = part.json?.renderedString?
                     .trimmingCharacters(in: .whitespacesAndNewlines),
-                   !json.isEmpty {
+                    !json.isEmpty
+                {
                     fragments.append(json)
                 }
                 if let output = part.jsonSchema?.output?.renderedString?
                     .trimmingCharacters(in: .whitespacesAndNewlines),
-                   !output.isEmpty {
+                    !output.isEmpty
+                {
                     fragments.append(output)
                 }
                 if let result = part.jsonSchema?.result?.renderedString?
                     .trimmingCharacters(in: .whitespacesAndNewlines),
-                   !result.isEmpty {
+                    !result.isEmpty
+                {
                     fragments.append(result)
                 }
             }
@@ -833,18 +849,21 @@ private extension LLMService {
         }
 
         if let structuredOutput,
-           let dictionary = message.structuredDictionary() {
+           let dictionary = message.structuredDictionary()
+        {
             // Check for sentence_pairs array (for sentence-by-sentence translation)
             if structuredOutput.primaryField == "sentence_pairs",
                let pairsValue = dictionary["sentence_pairs"],
-               case let .array(pairsArray) = pairsValue {
+               case let .array(pairsArray) = pairsValue
+            {
                 let pairs = pairsArray.compactMap { item -> SentencePair? in
                     guard case let .object(obj) = item,
                           let originalValue = obj["original"],
                           let translationValue = obj["translation"],
                           let original = originalValue.renderedString?.trimmingCharacters(in: .whitespacesAndNewlines),
                           let translation = translationValue.renderedString?.trimmingCharacters(in: .whitespacesAndNewlines),
-                          !original.isEmpty, !translation.isEmpty else {
+                          !original.isEmpty, !translation.isEmpty
+                    else {
                         return nil
                     }
                     return SentencePair(original: original, translation: translation)
@@ -865,12 +884,14 @@ private extension LLMService {
             // Standard structured output handling
             if let primaryValue = dictionary[structuredOutput.primaryField]?.renderedString?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
-               !primaryValue.isEmpty {
+                !primaryValue.isEmpty
+            {
                 var supplemental: [String] = []
                 for field in structuredOutput.additionalFields {
                     guard let value = dictionary[field]?.renderedString?
                         .trimmingCharacters(in: .whitespacesAndNewlines),
-                          !value.isEmpty else {
+                        !value.isEmpty
+                    else {
                         continue
                     }
                     supplemental.append(value)
@@ -915,34 +936,5 @@ private extension JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         return encoder
-    }
-}
-
-// MARK: - Data Hex Extensions
-
-private extension Data {
-    /// Initialize Data from a hex string
-    init?(hexString: String) {
-        let hex = hexString.lowercased()
-        guard hex.count % 2 == 0 else { return nil }
-
-        var data = Data(capacity: hex.count / 2)
-        var index = hex.startIndex
-
-        while index < hex.endIndex {
-            let nextIndex = hex.index(index, offsetBy: 2)
-            guard let byte = UInt8(hex[index..<nextIndex], radix: 16) else {
-                return nil
-            }
-            data.append(byte)
-            index = nextIndex
-        }
-
-        self = data
-    }
-
-    /// Convert Data to hex string
-    func hexEncodedString() -> String {
-        map { String(format: "%02x", $0) }.joined()
     }
 }

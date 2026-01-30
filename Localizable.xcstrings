@@ -130,6 +130,16 @@
     "App stays active when window is closed" : {
 
     },
+    "AVAILABLE MODELS" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用模型"
+          }
+        }
+      }
+    },
     "Are you sure you want to delete '%@'? This action cannot be undone." : {
 
     },
@@ -640,6 +650,16 @@
     "Error Details" : {
 
     },
+    "Export Configuration" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Configuration"
+          }
+        }
+      }
+    },
     "Export Successful" : {
       "localizations" : {
         "zh-Hans" : {
@@ -710,6 +730,16 @@
     "How to Use TLingo" : {
 
     },
+    "Import Configuration" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Configuration"
+          }
+        }
+      }
+    },
     "Import Failed" : {
       "localizations" : {
         "zh-Hans" : {
@@ -759,6 +789,16 @@
         }
       }
     },
+    "Models" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型"
+          }
+        }
+      }
+    },
     "Model Selection" : {
       "localizations" : {
         "zh-Hans" : {
@@ -785,6 +825,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暂无动作"
+          }
+        }
+      }
+    },
+    "No models available" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无可用模型"
           }
         }
       }
@@ -890,6 +940,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提供商"
+          }
+        }
+      }
+    },
+    "Powered by Built-in Cloud - No API key required" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内置云服务驱动 - 无需 API 密钥"
           }
         }
       }
@@ -1026,6 +1086,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择你要使用的模型"
+          }
+        }
+      }
+    },
+    "Select models to use for translation" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择用于翻译的模型"
           }
         }
       }

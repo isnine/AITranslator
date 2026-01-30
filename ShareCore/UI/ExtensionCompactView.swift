@@ -6,255 +6,240 @@
 //
 
 #if canImport(UIKit) && canImport(TranslationUIProvider)
-import SwiftUI
-import TranslationUIProvider
+    import SwiftUI
+    import TranslationUIProvider
 
-/// A compact view for iOS Translation Extension, mirroring the Mac MenuBarPopoverView style
-public struct ExtensionCompactView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @StateObject private var viewModel: HomeViewModel
-    @State private var hasTriggeredAutoRequest = false
-    @State private var isLanguagePickerPresented: Bool = false
-    @State private var targetLanguageCode: String = AppPreferences.shared.targetLanguage.rawValue
-    
-    private let context: TranslationUIProviderContext
-    
-    private var colors: AppColorPalette {
-        AppColors.palette(for: colorScheme)
-    }
-    
-    private var usageScene: ActionConfig.UsageScene {
-        context.allowsReplacement ? .contextEdit : .contextRead
-    }
-    
-    private var inputText: String {
-        guard let text = context.inputText else { return "" }
-        return String(text.characters)
-    }
-    
-    public init(context: TranslationUIProviderContext) {
-        self.context = context
-        let initialScene: ActionConfig.UsageScene = context.allowsReplacement ? .contextEdit : .contextRead
-        _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
-    }
-    
-    public var body: some View {
-        ZStack {
-            VStack(alignment: .leading, spacing: 12) {
-                selectedTextPreview
-                
-                Divider()
-                    .background(colors.divider)
-                
-                actionChips
-                
-                if !viewModel.modelRuns.isEmpty {
-                    resultSection
-                } else if !viewModel.isLoadingConfiguration {
-                    hintLabel
+    /// A compact view for iOS Translation Extension, mirroring the Mac MenuBarPopoverView style
+    public struct ExtensionCompactView: View {
+        @Environment(\.colorScheme) private var colorScheme
+        @StateObject private var viewModel: HomeViewModel
+        @State private var hasTriggeredAutoRequest = false
+        @State private var isLanguagePickerPresented: Bool = false
+        @State private var targetLanguageCode: String = AppPreferences.shared.targetLanguage.rawValue
+
+        private let context: TranslationUIProviderContext
+
+        private var colors: AppColorPalette {
+            AppColors.palette(for: colorScheme)
+        }
+
+        private var usageScene: ActionConfig.UsageScene {
+            context.allowsReplacement ? .contextEdit : .contextRead
+        }
+
+        private var inputText: String {
+            guard let text = context.inputText else { return "" }
+            return String(text.characters)
+        }
+
+        public init(context: TranslationUIProviderContext) {
+            self.context = context
+            let initialScene: ActionConfig.UsageScene = context.allowsReplacement ? .contextEdit : .contextRead
+            _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
+        }
+
+        public var body: some View {
+            ZStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    selectedTextPreview
+
+                    Divider()
+                        .background(colors.divider)
+
+                    actionChips
+
+                    if !viewModel.modelRuns.isEmpty {
+                        resultSection
+                    } else if !viewModel.isLoadingConfiguration {
+                        hintLabel
+                    }
+
+                    Spacer(minLength: 0)
                 }
-                
-                Spacer(minLength: 0)
+                .padding(16)
+
+                if viewModel.isLoadingConfiguration {
+                    configurationLoadingOverlay
+                }
             }
-            .padding(16)
-            
-            if viewModel.isLoadingConfiguration {
-                configurationLoadingOverlay
+            .onAppear {
+                AppPreferences.shared.refreshFromDefaults()
+
+                if !hasTriggeredAutoRequest {
+                    viewModel.refreshConfiguration()
+                    viewModel.updateUsageScene(usageScene)
+                    viewModel.inputText = inputText
+                    hasTriggeredAutoRequest = true
+                    viewModel.performSelectedAction()
+                }
             }
-        }
-        .onAppear {
-            AppPreferences.shared.refreshFromDefaults()
-            
-            if !hasTriggeredAutoRequest {
-                viewModel.refreshConfiguration()
+            .onChange(of: context.allowsReplacement) {
                 viewModel.updateUsageScene(usageScene)
-                viewModel.inputText = inputText
-                hasTriggeredAutoRequest = true
-                viewModel.performSelectedAction()
+            }
+            .sheet(isPresented: $isLanguagePickerPresented) {
+                LanguagePickerView(
+                    selectedCode: $targetLanguageCode,
+                    isPresented: $isLanguagePickerPresented
+                )
+            }
+            .onChange(of: targetLanguageCode) {
+                let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
+                AppPreferences.shared.setTargetLanguage(option)
+                viewModel.refreshConfiguration()
             }
         }
-        .onChange(of: context.allowsReplacement) {
-            viewModel.updateUsageScene(usageScene)
+
+        // MARK: - Selected Text Preview
+
+        private var selectedTextPreview: some View {
+            HStack(spacing: 8) {
+                Image(systemName: "doc.on.clipboard")
+                    .font(.system(size: 12))
+                    .foregroundColor(colors.textSecondary)
+
+                Text(inputText)
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Spacer(minLength: 0)
+
+                targetLanguageIndicator
+
+                if AppPreferences.shared.ttsConfiguration.isValid && !inputText.isEmpty {
+                    inputSpeakButton
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(selectedTextPreviewBackground)
         }
-        .sheet(isPresented: $isLanguagePickerPresented) {
-            LanguagePickerView(
-                selectedCode: $targetLanguageCode,
-                isPresented: $isLanguagePickerPresented
+
+        @ViewBuilder
+        private var inputSpeakButton: some View {
+            Button {
+                viewModel.speakInputText()
+            } label: {
+                if viewModel.isSpeakingInputText {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .controlSize(.small)
+                        .tint(colors.accent)
+                } else {
+                    Image(systemName: "speaker.wave.2.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.accent)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(viewModel.isSpeakingInputText)
+        }
+
+        private var targetLanguageIndicator: some View {
+            let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
+            let displayName: String = {
+                if option == .appLanguage {
+                    return TargetLanguageOption.appLanguageEnglishName
+                } else {
+                    return option.primaryLabel
+                }
+            }()
+
+            return TargetLanguageButton(
+                title: displayName,
+                action: { isLanguagePickerPresented = true },
+                foregroundColor: colors.textSecondary.opacity(0.7),
+                spacing: 4,
+                globeFont: .system(size: 10),
+                textFont: .system(size: 11),
+                chevronSystemName: "chevron.up.chevron.down",
+                chevronFont: .system(size: 8)
             )
         }
-        .onChange(of: targetLanguageCode) {
-            let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-            AppPreferences.shared.setTargetLanguage(option)
-            viewModel.refreshConfiguration()
+
+        // MARK: - Action Chips
+
+        private var actionChips: some View {
+            ActionChipsView(
+                actions: viewModel.actions,
+                selectedActionID: viewModel.selectedAction?.id,
+                spacing: 8,
+                font: .system(size: 13, weight: .medium),
+                textColor: { isSelected in
+                    isSelected ? colors.chipPrimaryText : colors.chipSecondaryText
+                },
+                background: { isSelected in
+                    AnyView(chipBackground(isSelected: isSelected))
+                },
+                horizontalPadding: 14,
+                verticalPadding: 8
+            ) { action in
+                if viewModel.selectAction(action) {
+                    viewModel.performSelectedAction()
+                }
+            }
         }
-    }
-    
-    // MARK: - Selected Text Preview
-    
-    private var selectedTextPreview: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "doc.on.clipboard")
-                .font(.system(size: 12))
+
+        // MARK: - Hint Label
+
+        private var hintLabel: some View {
+            Text(viewModel.placeholderHint)
+                .font(.system(size: 13))
                 .foregroundColor(colors.textSecondary)
-            
-            Text(inputText)
-                .font(.system(size: 14))
-                .foregroundColor(colors.textPrimary)
-                .lineLimit(1)
-                .truncationMode(.tail)
-            
-            Spacer(minLength: 0)
-            
-            targetLanguageIndicator
-            
-            if AppPreferences.shared.ttsConfiguration.isValid && !inputText.isEmpty {
-                inputSpeakButton
-            }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 8)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(selectedTextPreviewBackground)
-    }
-    
-    @ViewBuilder
-    private var inputSpeakButton: some View {
-        Button {
-            viewModel.speakInputText()
-        } label: {
-            if viewModel.isSpeakingInputText {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .controlSize(.small)
-                    .tint(colors.accent)
-            } else {
-                Image(systemName: "speaker.wave.2.fill")
-                    .font(.system(size: 14))
-                    .foregroundColor(colors.accent)
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(viewModel.isSpeakingInputText)
-    }
 
-    private var targetLanguageIndicator: some View {
-        let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-        let displayName: String = {
-            if option == .appLanguage {
-                return TargetLanguageOption.appLanguageEnglishName
-            } else {
-                return option.primaryLabel
-            }
-        }()
+        // MARK: - Result Section
 
-        return Button {
-            isLanguagePickerPresented = true
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "globe")
-                    .font(.system(size: 10))
-                Text(displayName)
-                    .font(.system(size: 11))
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 8))
-            }
-            .foregroundColor(colors.textSecondary.opacity(0.7))
-        }
-        .buttonStyle(.plain)
-    }
-    
-    // MARK: - Action Chips
-    
-    private var actionChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(viewModel.actions) { action in
-                    actionChip(for: action, isSelected: action.id == viewModel.selectedAction?.id)
+        @ViewBuilder
+        private var resultSection: some View {
+            let showModelName = viewModel.modelRuns.count > 1
+            ScrollView {
+                VStack(spacing: 12) {
+                    ForEach(viewModel.modelRuns) { run in
+                        ProviderResultCardView(
+                            run: run,
+                            showModelName: showModelName,
+                            viewModel: viewModel,
+                            onCopy: { text in
+                                UIPasteboard.general.string = text
+                            },
+                            onReplace: context.allowsReplacement ? { text in
+                                context.finish(translation: AttributedString(text))
+                            } : nil
+                        )
+                    }
                 }
             }
         }
-    }
-    
-    private func actionChip(for action: ActionConfig, isSelected: Bool) -> some View {
-        Button {
-            if viewModel.selectAction(action) {
-                viewModel.performSelectedAction()
-            }
-        } label: {
-            Text(action.name)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(isSelected ? colors.chipPrimaryText : colors.chipSecondaryText)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(chipBackground(isSelected: isSelected))
+
+        // MARK: - Loading Overlay
+
+        private var configurationLoadingOverlay: some View {
+            LoadingOverlay(
+                backgroundColor: Color(UIColor.systemBackground).opacity(0.95),
+                messageFont: .system(size: 13),
+                textColor: colors.textSecondary,
+                accentColor: colors.accent
+            )
         }
-        .buttonStyle(.plain)
-    }
-    
-    // MARK: - Hint Label
-    
-    private var hintLabel: some View {
-        Text(viewModel.placeholderHint)
-            .font(.system(size: 13))
-            .foregroundColor(colors.textSecondary)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.top, 8)
-    }
-    
-    // MARK: - Result Section
-    
-    @ViewBuilder
-    private var resultSection: some View {
-        let showModelName = viewModel.modelRuns.count > 1
-        ScrollView {
-            VStack(spacing: 12) {
-                ForEach(viewModel.modelRuns) { run in
-                    ProviderResultCardView(
-                        run: run,
-                        showModelName: showModelName,
-                        viewModel: viewModel,
-                        onCopy: { text in
-                            UIPasteboard.general.string = text
-                        },
-                        onReplace: context.allowsReplacement ? { text in
-                            context.finish(translation: AttributedString(text))
-                        } : nil
-                    )
-                }
-            }
+
+        // MARK: - Liquid Glass Backgrounds
+
+        @ViewBuilder
+        private var selectedTextPreviewBackground: some View {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.clear)
+                .glassEffect(.regular, in: .rect(cornerRadius: 8))
+        }
+
+        @ViewBuilder
+        private func chipBackground(isSelected: Bool) -> some View {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(.clear)
+                .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 8))
         }
     }
-    
-    // MARK: - Loading Overlay
-    
-    private var configurationLoadingOverlay: some View {
-        ZStack {
-            Color(UIColor.systemBackground).opacity(0.95)
-            VStack(spacing: 12) {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(colors.accent)
-                    .controlSize(.regular)
-                Text("Loading...")
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
-            }
-        }
-    }
-
-    // MARK: - Liquid Glass Backgrounds
-
-    @ViewBuilder
-    private var selectedTextPreviewBackground: some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular, in: .rect(cornerRadius: 8))
-    }
-
-    @ViewBuilder
-    private func chipBackground(isSelected: Bool) -> some View {
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(.clear)
-            .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 8))
-    }
-}
 #endif

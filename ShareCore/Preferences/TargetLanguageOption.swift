@@ -30,7 +30,7 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
             .korean,
             .french,
             .german,
-            .spanish
+            .spanish,
         ]
     }
 
@@ -87,7 +87,8 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
         }
         let components = Locale.Components(identifier: identifier)
         if let languageCode = components.languageComponents.languageCode,
-           let english = englishLocale.localizedString(forLanguageCode: languageCode.identifier) {
+           let english = englishLocale.localizedString(forLanguageCode: languageCode.identifier)
+        {
             return english
         }
         return identifier
@@ -169,7 +170,8 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
 
         if let scriptCode = components.languageComponents.script,
            let scriptName = locale.localizedString(forScriptCode: scriptCode.identifier),
-           !scriptName.isEmpty {
+           !scriptName.isEmpty
+        {
             name += " (\(scriptName))"
         }
 

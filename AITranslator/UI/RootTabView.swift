@@ -5,8 +5,8 @@
 //  Created by Codex on 2025/10/19.
 //
 
-import SwiftUI
 import ShareCore
+import SwiftUI
 
 struct RootTabView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -54,7 +54,7 @@ struct RootTabView: View {
         AppColors.palette(for: colorScheme)
     }
 
-var body: some View {
+    var body: some View {
         TabView(selection: $selection) {
             Tab(TabItem.home.title, systemImage: TabItem.home.systemImage, value: TabItem.home) {
                 tabContent(for: TabItem.home)
@@ -71,12 +71,12 @@ var body: some View {
         }
         .tabViewStyle(.sidebarAdaptable)
         #if !os(macOS)
-        .tabBarMinimizeBehavior(.onScrollDown)
+            .tabBarMinimizeBehavior(.onScrollDown)
         #endif
-        .tint(colors.accent)
-        .onReceive(NotificationCenter.default.publisher(for: .openTargetLanguageSettings)) { _ in
-            selection = .settings
-        }
+            .tint(colors.accent)
+            .onReceive(NotificationCenter.default.publisher(for: .openTargetLanguageSettings)) { _ in
+                selection = .settings
+            }
     }
 
     @ViewBuilder
@@ -93,5 +93,3 @@ var body: some View {
         }
     }
 }
-
-
