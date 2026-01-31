@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AITranslatorCloudEndpoint</key>
+	<string>$(AITRANSLATOR_CLOUD_ENDPOINT)</string>
+	<key>AITranslatorCloudToken</key>
+	<string>$(AITRANSLATOR_CLOUD_TOKEN)</string>
+	<key>AITranslatorCloudSecret</key>
+	<string>$(AITRANSLATOR_CLOUD_SECRET)</string>
 	<key>com.apple.developer.translation-ui-provider.network-access</key>
 	<true/>
 	<key>NSServices</key>

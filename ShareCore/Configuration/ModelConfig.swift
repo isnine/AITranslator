@@ -38,11 +38,15 @@ public struct ModelsResponse: Codable, Sendable {
 
 public enum CloudServiceConstants {
     /// CloudFlare worker endpoint for the built-in cloud service
-    public static let endpoint = URL(string: "https://translator-api.zanderwang.com")!
+    public static var endpoint: URL {
+        BuildEnvironment.cloudEndpoint
+    }
 
     /// Shared secret for HMAC signing
-    public static let secret = "REDACTED_HMAC_SECRET"
+    public static var secret: String {
+        BuildEnvironment.cloudSecret
+    }
 
     /// API version parameter
-    public static let apiVersion = "2025-01-01-preview"
+    public static let apiVersion = BuildEnvironment.apiVersion
 }

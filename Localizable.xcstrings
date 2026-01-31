@@ -15,6 +15,7 @@
       }
     },
     "%@:" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -25,6 +26,7 @@
       }
     },
     "%lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -35,6 +37,7 @@
       }
     },
     "%lld Actions" : {
+      "comment" : "Configuration actions count",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -56,13 +59,7 @@
       }
     },
     "%lld models" : {
-
-    },
-    "%lld Providers" : {
-
-    },
-    "%lld." : {
-
+      "comment" : "Number of models"
     },
     "Action Name" : {
       "localizations" : {
@@ -98,6 +95,7 @@
       }
     },
     "API Token" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -108,6 +106,7 @@
       }
     },
     "API Version" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -130,20 +129,11 @@
     "App stays active when window is closed" : {
 
     },
-    "AVAILABLE MODELS" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可用模型"
-          }
-        }
-      }
-    },
     "Are you sure you want to delete '%@'? This action cannot be undone." : {
-
+      "comment" : "Delete configuration confirmation"
     },
     "Are you sure you want to delete \"%@\"? This action cannot be undone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -157,6 +147,7 @@
 
     },
     "Auth Header Name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -176,6 +167,16 @@
         }
       }
     },
+    "AVAILABLE MODELS" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用模型"
+          }
+        }
+      }
+    },
     "Back" : {
       "localizations" : {
         "zh-Hans" : {
@@ -187,6 +188,7 @@
       }
     },
     "Base Endpoint" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -256,9 +258,6 @@
         }
       }
     },
-    "Configuration changes are disabled. The app uses the default configuration." : {
-
-    },
     "Configuration exported successfully." : {
       "localizations" : {
         "zh-Hans" : {
@@ -270,6 +269,7 @@
       }
     },
     "Configuration Name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -290,6 +290,7 @@
       }
     },
     "Configure AI providers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -303,6 +304,7 @@
 
     },
     "Connection" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -313,6 +315,7 @@
       }
     },
     "Connection successful" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -323,6 +326,7 @@
       }
     },
     "Connection successful (%@ms)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -335,10 +339,8 @@
     "Context options apply to the iOS Translation Extension only" : {
 
     },
-    "Create" : {
-
-    },
     "Create Custom Configuration" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -359,6 +361,7 @@
       }
     },
     "Custom" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -379,6 +382,7 @@
       }
     },
     "Debug" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -389,6 +393,7 @@
       }
     },
     "Debug Info" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -410,6 +415,7 @@
     },
     "Default Configuration" : {
       "comment" : "Name shown when using default configuration",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -436,6 +442,7 @@
 
     },
     "Delete Provider" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -446,6 +453,7 @@
       }
     },
     "Deployment Names" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -456,6 +464,7 @@
       }
     },
     "Deployments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -466,6 +475,7 @@
       }
     },
     "Disabled" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -496,6 +506,7 @@
       }
     },
     "Display Name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -526,6 +537,7 @@
       }
     },
     "Duration: %@" : {
+      "comment" : "Provider run duration",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -556,6 +568,7 @@
       }
     },
     "e.g., model-router, gpt-5, gpt-4o" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -586,6 +599,7 @@
       }
     },
     "Enabled" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -596,6 +610,7 @@
       }
     },
     "Enabled Deployments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -789,6 +804,17 @@
         }
       }
     },
+    "Model Selection" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模型选择"
+          }
+        }
+      }
+    },
     "Models" : {
       "localizations" : {
         "zh-Hans" : {
@@ -799,17 +825,8 @@
         }
       }
     },
-    "Model Selection" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "模型选择"
-          }
-        }
-      }
-    },
     "My Configuration" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -838,9 +855,6 @@
           }
         }
       }
-    },
-    "No Providers Yet" : {
-
     },
     "No text available for speech." : {
       "comment" : "TTS empty input error",
@@ -903,6 +917,16 @@
         }
       }
     },
+    "Powered by Built-in Cloud - No API key required" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内置云服务驱动 - 无需 API 密钥"
+          }
+        }
+      }
+    },
     "Processing..." : {
       "comment" : "Menu bar popover processing state",
       "localizations" : {
@@ -925,6 +949,7 @@
       }
     },
     "Provider Type" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -935,6 +960,7 @@
       }
     },
     "Providers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -943,19 +969,6 @@
           }
         }
       }
-    },
-    "Powered by Built-in Cloud - No API key required" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "内置云服务驱动 - 无需 API 密钥"
-          }
-        }
-      }
-    },
-    "PROVIDERS" : {
-
     },
     "Quick Translate" : {
       "comment" : "Menu bar header",
@@ -969,6 +982,7 @@
       }
     },
     "Read-Only" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -977,9 +991,6 @@
           }
         }
       }
-    },
-    "Read-Only Configuration" : {
-
     },
     "Read-Only Context" : {
       "localizations" : {
@@ -992,9 +1003,10 @@
       }
     },
     "Ready to use" : {
-      "comment" : "Apple Foundation available status\nApple Translation available status"
+      "comment" : "Apple Translation available status"
     },
     "Ready to use - No API key required" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1034,9 +1046,6 @@
         }
       }
     },
-    "Requires Apple Intelligence" : {
-      "comment" : "Apple Foundation unavailable status"
-    },
     "Requires iOS 17.4+ or macOS 14.4+" : {
       "comment" : "Apple Translation unavailable status"
     },
@@ -1070,6 +1079,16 @@
         }
       }
     },
+    "Select models to use for translation" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择用于翻译的模型"
+          }
+        }
+      }
+    },
     "Select Target Language" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1081,21 +1100,12 @@
       }
     },
     "Select the models you want to use" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择你要使用的模型"
-          }
-        }
-      }
-    },
-    "Select models to use for translation" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择用于翻译的模型"
           }
         }
       }
@@ -1143,6 +1153,7 @@
       }
     },
     "Separate multiple deployments with commas" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1264,9 +1275,6 @@
         }
       }
     },
-    "Tap + to add your first provider" : {
-
-    },
     "Tap + to create your first action" : {
 
     },
@@ -1284,6 +1292,7 @@
 
     },
     "Test Deployments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1294,6 +1303,7 @@
       }
     },
     "Testing..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1348,9 +1358,6 @@
         }
       }
     },
-    "Unknown deployment" : {
-      "comment" : "Unknown local deployment"
-    },
     "Usage Scenes" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1398,6 +1405,7 @@
       }
     },
     "Waiting..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1418,6 +1426,7 @@
       }
     },
     "You're using the default configuration which is read-only. To make changes, create your own configuration." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

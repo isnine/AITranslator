@@ -67,6 +67,7 @@
 
 /* Begin PBXFileReference section */
 		CE23B5982EAA44B40033543C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		CE3703262F2E39700039FC39 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		CE4EB0DD2EA33ADD00DDDFA5 /* AITranslator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AITranslator.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = TranslationUI.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ShareCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -140,6 +141,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CE3703302F2E40000039FC39 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				CE3703262F2E39700039FC39 /* Base.xcconfig */,
+			);
+			name = Configuration;
+			path = Configuration;
+			sourceTree = "<group>";
+		};
 		CE4EB0D42EA33ADD00DDDFA5 = {
 			isa = PBXGroup;
 			children = (
@@ -147,6 +157,7 @@
 				CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */,
 				CE4EB1092EA33CAD00DDDFA5 /* TranslationUI */,
 				CE4EB11F2EA4F47400DDDFA5 /* ShareCore */,
+				CE3703302F2E40000039FC39 /* Configuration */,
 				CE4EB12A2EA4F4B000DDDFA5 /* Frameworks */,
 				CE4EB0DE2EA33ADD00DDDFA5 /* Products */,
 			);
@@ -370,6 +381,7 @@
 /* Begin XCBuildConfiguration section */
 		CE4EB0E62EA33ADF00DDDFA5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -435,6 +447,7 @@
 		};
 		CE4EB0E72EA33ADF00DDDFA5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -493,6 +506,7 @@
 		};
 		CE4EB0E92EA33ADF00DDDFA5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -551,6 +565,7 @@
 		};
 		CE4EB0EA2EA33ADF00DDDFA5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -616,6 +631,7 @@
 		};
 		CE4EB1112EA33CAD00DDDFA5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TranslationUI/TranslationUI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -649,6 +665,7 @@
 		};
 		CE4EB1122EA33CAD00DDDFA5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = TranslationUI/TranslationUI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -682,6 +699,7 @@
 		};
 		CE4EB1272EA4F47400DDDFA5 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CODE_SIGN_STYLE = Automatic;
@@ -729,6 +747,7 @@
 		};
 		CE4EB1282EA4F47400DDDFA5 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
 				CODE_SIGN_STYLE = Automatic;

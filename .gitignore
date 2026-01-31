@@ -59,3 +59,8 @@ playground.xcworkspace
 *.tmp
 *.lock
 
+# Secrets and local configuration
+Secrets.plist
+Configuration/Local.xcconfig
+Configuration/Secrets.xcconfig
+.env

@@ -33,26 +33,87 @@ git clone https://github.com/isnine/AITranslator.git
 cd AITranslator
 git config core.hooksPath .githooks
 
-# 2. Deploy Worker (需要 Azure OpenAI API Key)
-cd Workers
-npm install -g wrangler && wrangler login
-wrangler secret put APP_SECRET      # openssl rand -hex 32
-wrangler secret put AZURE_API_KEY
-wrangler secret put AZURE_ENDPOINT
-wrangler secret put TTS_ENDPOINT
-wrangler deploy
-cd ..
+# 2. Configure Secrets
+make setup
+# Edit .env file with your API credentials, then:
+make secrets
 
-# 3. Configure App
-cp Secrets.plist.example Secrets.plist
-# 编辑 Secrets.plist，填入与 APP_SECRET 相同的值
-# 将 Secrets.plist 添加到 Xcode 项目
+# 3. Configure Xcode (one-time setup)
+# See "Xcode Configuration" section below
 
 # 4. Build
 open AITranslator.xcodeproj
+# Or: make build
 ```
 
-> 详细配置说明见 [Workers/README.md](Workers/README.md)
+> For Cloudflare Worker deployment, see [Workers/README.md](Workers/README.md)
+
+---
+
+## Configuration
+
+### Environment Variables
+
+The app uses environment variables for configuration, supporting three build environments:
+
+| Environment | Use Case | How to Configure |
+|-------------|----------|------------------|
+| **App Store** | Xcode Cloud builds | Set environment variables in App Store Connect |
+| **Development** | Your local machine | Use `.env` file + `make secrets` |
+| **Contributor** | Other developers | Use `.env` file or run with defaults |
+
+### Required Variables
+
+| Variable | Description |
+|----------|-------------|
+| `AITRANSLATOR_CLOUD_SECRET` | HMAC signing secret for cloud API authentication |
+
+### Optional Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `AITRANSLATOR_CLOUD_TOKEN` | Authentication token for cloud API | (empty) |
+| `AITRANSLATOR_CLOUD_ENDPOINT` | Cloud service endpoint URL | `https://translator-api.zanderwang.com` |
+| `AITRANSLATOR_BUILD_ENVIRONMENT` | Build environment type | `contributor` |
+
+### Local Development Setup
+
+```bash
+# 1. Copy the example environment file
+cp .env.example .env
+
+# 2. Edit .env with your credentials
+nano .env
+
+# 3. Generate Secrets.xcconfig
+make secrets
+
+# 4. Build the app
+make build
+```
+
+### Xcode Cloud Setup
+
+1. Go to **App Store Connect** > **Xcode Cloud** > **Workflows**
+2. Edit your workflow and go to **Environment** tab
+3. Add environment variables:
+   - `AITRANSLATOR_CLOUD_SECRET` (mark as **Secret**)
+   - `AITRANSLATOR_CLOUD_TOKEN` (optional, mark as **Secret**)
+4. The `ci_scripts/ci_post_clone.sh` script will automatically inject these into the build
+
+### Xcode Project Configuration (One-Time Setup)
+
+To enable xcconfig-based configuration, you need to configure Xcode to use the configuration files:
+
+1. Open `AITranslator.xcodeproj` in Xcode
+2. Select the **project** (not a target) in the navigator
+3. Go to the **Info** tab
+4. Under **Configurations**, expand **Debug** and **Release**
+5. For each target, set the configuration file:
+   - Debug: `Configuration/Debug.xcconfig`
+   - Release: `Configuration/Release.xcconfig`
+
+Alternatively, you can set the configurations at the project level, and they will apply to all targets.
 
 ---
 
@@ -71,7 +132,17 @@ AITranslator/
 ├── Workers/                   # Cloudflare Worker 代理
 │   ├── azureProxyWorker.ts    # Worker 源码
 │   └── wrangler.toml          # Wrangler 配置
-├── Secrets.plist.example      # 密钥配置模板
+├── Configuration/             # Xcode build configuration
+│   ├── Base.xcconfig          # Base settings (shared)
+│   ├── Debug.xcconfig         # Debug build settings
+│   ├── Release.xcconfig       # Release build settings
+│   └── Secrets.xcconfig       # Generated secrets (git-ignored)
+├── Scripts/                   # Development scripts
+│   └── inject-secrets.sh      # Secrets injection script
+├── ci_scripts/                # Xcode Cloud CI scripts
+│   └── ci_post_clone.sh       # Post-clone hook for CI
+├── Makefile                   # Development commands
+├── .env.example               # Environment template
 └── .githooks/                 # Git hooks（secret 检测）
 ```
 
@@ -97,6 +168,17 @@ AITranslator/
 ---
 
 ## Development
+
+### Make Commands
+
+```bash
+make help           # Show all available commands
+make setup          # First-time setup for new developers
+make secrets        # Inject secrets from .env into xcconfig
+make secrets-check  # Verify secrets are configured
+make build          # Build for iOS Simulator
+make clean          # Clean build products
+```
 
 ### Code Style
 
@@ -144,7 +226,15 @@ git config core.hooksPath .githooks
 git checkout -b feature/your-feature-name
 ```
 
-### 3. Make Changes
+### 3. Setup Development Environment
+
+```bash
+make setup
+# Edit .env with your credentials (or leave empty to use defaults)
+make secrets
+```
+
+### 4. Make Changes
 
 - 遵循现有代码风格
 - 添加必要的注释
@@ -186,9 +276,10 @@ git push origin feature/your-feature-name
 
 ## Security
 
-- 密钥通过 `Secrets.plist` 或环境变量加载，**不存储在代码中**
-- Pre-commit hook 自动检测意外提交的密钥
-- `.gitignore` 已配置排除敏感文件
+- Secrets are loaded from environment variables or `.env` file, **never stored in code**
+- `Secrets.xcconfig` is auto-generated and git-ignored
+- Pre-commit hook automatically detects accidentally committed secrets
+- `.gitignore` is configured to exclude sensitive files (`.env`, `Secrets.plist`, `Secrets.xcconfig`)
 
 如果发现安全问题，请通过 Issue 私密报告或发送邮件。
 

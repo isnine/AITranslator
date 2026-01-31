@@ -2,11 +2,16 @@ name = "aitranslator"
 main = "azureProxyWorker.ts"
 compatibility_date = "2024-01-01"
 
+# Custom domain (requires DNS configured in Cloudflare)
+routes = [
+  { pattern = "translator-api.zanderwang.com/*", zone_name = "zanderwang.com" }
+]
+
+# Default workers.dev subdomain: https://aitranslator.xiaozwan.workers.dev/
+
 # Enable observability (logs and tracing)
 [observability]
 enabled = true
-
-# The worker is deployed at: https://aitranslator.xiaozwan.workers.dev/
 
 # Environment variables (secrets should be set via `wrangler secret put`)
 # Required secrets:

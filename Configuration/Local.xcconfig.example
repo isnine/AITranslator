@@ -1,0 +1,21 @@
+// Local.xcconfig
+// LOCAL DEVELOPMENT OVERRIDES
+// 
+// This file is for YOUR local development settings.
+// DO NOT commit this file to version control!
+//
+// Copy Local.xcconfig.example to Local.xcconfig and fill in your values.
+
+// MARK: - Cloud Service Credentials
+
+// Your HMAC secret for signing requests to the cloud service
+AITRANSLATOR_CLOUD_SECRET = YOUR_SECRET_HERE
+
+// Your authentication token for the cloud API
+AITRANSLATOR_CLOUD_TOKEN = YOUR_TOKEN_HERE
+
+// Optional: Override the cloud endpoint (e.g., for local testing)
+// AITRANSLATOR_CLOUD_ENDPOINT = http:/$()/localhost:8787
+
+// Optional: Override build environment
+// AITRANSLATOR_BUILD_ENVIRONMENT = development

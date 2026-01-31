@@ -18,6 +18,23 @@ struct AITranslatorApp: App {
         @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     #endif
 
+    init() {
+        // Debug: Print configuration on launch
+        #if DEBUG
+        print("🚀 AITranslator launching...")
+        print(BuildEnvironment.debugDescription)
+        // Print first/last 4 chars of secret for verification
+        let secret = BuildEnvironment.cloudSecret
+        if secret.isEmpty {
+            print("⚠️ WARNING: Cloud secret is empty!")
+        } else {
+            let prefix = String(secret.prefix(4))
+            let suffix = String(secret.suffix(4))
+            print("🔑 Secret preview: \(prefix)...\(suffix) (\(secret.count) chars)")
+        }
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             RootTabView()
