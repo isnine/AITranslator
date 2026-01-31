@@ -10,15 +10,12 @@
 #   AITRANSLATOR_CLOUD_SECRET - HMAC signing secret (mark as Secret)
 #
 # Optional Environment Variables:
-#   AITRANSLATOR_CLOUD_TOKEN      - Authentication token (mark as Secret)
-#   AITRANSLATOR_CLOUD_ENDPOINT   - Custom endpoint URL
-#   AITRANSLATOR_BUILD_ENVIRONMENT - Override build environment
+#   AITRANSLATOR_CLOUD_ENDPOINT - Custom endpoint URL
 
 set -e
 
 echo "================================================"
 echo "  Xcode Cloud Post-Clone Script"
-echo "  AITranslator"
 echo "================================================"
 echo ""
 
@@ -30,9 +27,6 @@ echo "Workflow:   $CI_WORKFLOW"
 echo "Branch:     $CI_BRANCH"
 echo "Commit:     $CI_COMMIT"
 echo ""
-
-# Set build environment to 'appstore' for Xcode Cloud builds
-export AITRANSLATOR_BUILD_ENVIRONMENT="${AITRANSLATOR_BUILD_ENVIRONMENT:-appstore}"
 
 # Call the unified secrets injection script
 echo "Running secrets injection..."

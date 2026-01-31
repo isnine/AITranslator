@@ -103,9 +103,6 @@ cat > .env << EOF
 # Cloud Service Configuration
 AITRANSLATOR_CLOUD_SECRET=${SECRET}
 AITRANSLATOR_CLOUD_ENDPOINT=${ENDPOINT}
-
-# Optional settings (uncomment to use)
-# AITRANSLATOR_CLOUD_TOKEN=
 EOF
 
 echo ""

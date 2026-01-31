@@ -20,7 +20,6 @@ public enum BuildEnvironment {
     
     private enum EnvKeys {
         static let cloudEndpoint = "AITRANSLATOR_CLOUD_ENDPOINT"
-        static let cloudToken = "AITRANSLATOR_CLOUD_TOKEN"
         static let cloudSecret = "AITRANSLATOR_CLOUD_SECRET"
     }
     
@@ -28,7 +27,6 @@ public enum BuildEnvironment {
     
     private enum InfoPlistKeys {
         static let cloudEndpoint = "AITranslatorCloudEndpoint"
-        static let cloudToken = "AITranslatorCloudToken"
         static let cloudSecret = "AITranslatorCloudSecret"
     }
     
@@ -49,15 +47,6 @@ public enum BuildEnvironment {
         ) ?? Defaults.cloudEndpoint
         
         return URL(string: urlString) ?? URL(string: Defaults.cloudEndpoint)!
-    }
-    
-    /// Cloud service authentication token
-    public static var cloudToken: String {
-        loadValue(
-            envKey: EnvKeys.cloudToken,
-            plistKey: InfoPlistKeys.cloudToken,
-            secretsPlistKey: "CloudToken"
-        ) ?? ""
     }
     
     /// Cloud service HMAC signing secret
@@ -96,7 +85,6 @@ public enum BuildEnvironment {
         """
         BuildEnvironment:
           - Cloud Endpoint: \(cloudEndpoint.absoluteString)
-          - Cloud Token: \(cloudToken.isEmpty ? "(not set)" : "(set, \(cloudToken.count) chars)")
           - Cloud Secret: \(cloudSecret.isEmpty ? "(not set)" : "(set, \(cloudSecret.count) chars)")
           - Is Configured: \(isCloudConfigured)
         """

@@ -10,9 +10,6 @@
 // Cloud API endpoint URL - default value
 AITRANSLATOR_CLOUD_ENDPOINT = https:/$()/translator-api.zanderwang.com
 
-// Cloud API token - empty by default
-AITRANSLATOR_CLOUD_TOKEN = 
-
 // Built-in cloud HMAC secret - empty by default
 AITRANSLATOR_CLOUD_SECRET = 
 

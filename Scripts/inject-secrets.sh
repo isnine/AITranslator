@@ -21,8 +21,7 @@
 #   AITRANSLATOR_CLOUD_SECRET  - HMAC signing secret for cloud service
 #
 # Optional Variables:
-#   AITRANSLATOR_CLOUD_TOKEN      - Authentication token for cloud API
-#   AITRANSLATOR_CLOUD_ENDPOINT   - Cloud service endpoint URL
+#   AITRANSLATOR_CLOUD_ENDPOINT - Cloud service endpoint URL
 
 set -e
 
@@ -84,7 +83,6 @@ DEFAULT_ENDPOINT="https://translator-api.zanderwang.com"
 
 # Get values with fallbacks
 CLOUD_SECRET="${AITRANSLATOR_CLOUD_SECRET:-}"
-CLOUD_TOKEN="${AITRANSLATOR_CLOUD_TOKEN:-}"
 CLOUD_ENDPOINT="${AITRANSLATOR_CLOUD_ENDPOINT:-$DEFAULT_ENDPOINT}"
 
 # Escape // in URLs for xcconfig (// is treated as comment)
@@ -109,9 +107,6 @@ cat > "$SECRETS_XCCONFIG" << EOF
 // HMAC signing secret for cloud service authentication
 AITRANSLATOR_CLOUD_SECRET = ${CLOUD_SECRET}
 
-// Authentication token for cloud API
-AITRANSLATOR_CLOUD_TOKEN = ${CLOUD_TOKEN}
-
 // Cloud service endpoint URL
 AITRANSLATOR_CLOUD_ENDPOINT = ${CLOUD_ENDPOINT_ESCAPED}
 EOF
@@ -124,7 +119,6 @@ echo ""
 echo -e "  Output: ${BLUE}${SECRETS_XCCONFIG}${NC}"
 echo ""
 echo -e "  CLOUD_SECRET:      $([ -n "$CLOUD_SECRET" ] && echo -e "${GREEN}Set (${#CLOUD_SECRET} chars)${NC}" || echo -e "${YELLOW}Not set${NC}")"
-echo -e "  CLOUD_TOKEN:       $([ -n "$CLOUD_TOKEN" ] && echo -e "${GREEN}Set (${#CLOUD_TOKEN} chars)${NC}" || echo -e "${YELLOW}Not set${NC}")"
 echo -e "  CLOUD_ENDPOINT:    ${BLUE}${CLOUD_ENDPOINT}${NC}"
 echo ""
 
@@ -137,8 +131,4 @@ if [ -z "$CLOUD_SECRET" ]; then
 fi
 
 echo -e "${GREEN}[DONE]${NC} Secrets injection complete!"
-echo ""
-echo -e "Next steps:"
-echo -e "  1. Ensure Xcode project is configured to use Configuration/*.xcconfig files"
-echo -e "  2. Build the project: ${BLUE}xcodebuild -scheme AITranslator${NC}"
 echo ""

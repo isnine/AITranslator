@@ -4,8 +4,6 @@
 <dict>
 	<key>AITranslatorCloudEndpoint</key>
 	<string>$(AITRANSLATOR_CLOUD_ENDPOINT)</string>
-	<key>AITranslatorCloudToken</key>
-	<string>$(AITRANSLATOR_CLOUD_TOKEN)</string>
 	<key>AITranslatorCloudSecret</key>
 	<string>$(AITRANSLATOR_CLOUD_SECRET)</string>
 	<key>EXAppExtensionAttributes</key>
