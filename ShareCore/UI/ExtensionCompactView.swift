@@ -73,6 +73,20 @@
                     viewModel.performSelectedAction()
                 }
             }
+            // When the user changes the selection in the host app, the system may reuse the same
+            // extension instance and only update the context's selected text. We need to re-run the
+            // currently selected action so results update immediately (without requiring the user to
+            // switch actions back-and-forth).
+            .onChange(of: inputText) {
+                guard hasTriggeredAutoRequest else { return }
+                // Avoid redundant requests.
+                guard viewModel.inputText != inputText else { return }
+
+                viewModel.inputText = inputText
+                if !inputText.isEmpty {
+                    viewModel.performSelectedAction()
+                }
+            }
             .onChange(of: context.allowsReplacement) {
                 viewModel.updateUsageScene(usageScene)
             }
@@ -166,8 +180,11 @@
                 selectedActionID: viewModel.selectedAction?.id,
                 spacing: 8,
                 font: .system(size: 13, weight: .medium),
+                // NOTE: In the iOS Translation UI extension we render chips using a glassEffect
+                // background (not a solid accent fill). Using white text (chipPrimaryText) makes the
+                // selected action illegible in Light Mode with Liquid Glass.
                 textColor: { isSelected in
-                    isSelected ? colors.chipPrimaryText : colors.chipSecondaryText
+                    isSelected ? colors.textPrimary : colors.textSecondary
                 },
                 background: { isSelected in
                     AnyView(chipBackground(isSelected: isSelected))
