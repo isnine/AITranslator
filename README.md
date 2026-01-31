@@ -27,108 +27,32 @@ A Swift/SwiftUI iOS/macOS translation app with system translation integration. S
 
 ## Quick Start
 
-### 1. Clone the Repository
-
 ```bash
+# 1. Clone
 git clone https://github.com/isnine/AITranslator.git
 cd AITranslator
-
-# Enable pre-commit hook for secret detection
 git config core.hooksPath .githooks
-```
 
-### 2. Deploy Cloudflare Worker (Backend)
-
-应用使用 Cloudflare Worker 作为代理后端，转发请求到 Azure OpenAI。
-
-#### 2.1 Install Wrangler CLI
-
-```bash
-npm install -g wrangler
-wrangler login
-```
-
-#### 2.2 Configure Secrets
-
-```bash
+# 2. Deploy Worker (需要 Azure OpenAI API Key)
 cd Workers
-
-# Set required secrets (you'll be prompted to enter values)
-wrangler secret put APP_SECRET        # HMAC shared secret (generate with: openssl rand -hex 32)
-wrangler secret put AZURE_API_KEY     # Your Azure OpenAI API key
-wrangler secret put AZURE_ENDPOINT    # e.g., https://your-resource.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2025-01-01-preview
-wrangler secret put TTS_ENDPOINT      # e.g., https://your-resource.openai.azure.com/openai/deployments/gpt-4o-mini-tts/audio/speech?api-version=2025-03-01-preview
-```
-
-#### 2.3 Deploy
-
-```bash
+npm install -g wrangler && wrangler login
+wrangler secret put APP_SECRET      # openssl rand -hex 32
+wrangler secret put AZURE_API_KEY
+wrangler secret put AZURE_ENDPOINT
+wrangler secret put TTS_ENDPOINT
 wrangler deploy
-```
+cd ..
 
-Worker 将部署到 `https://your-worker-name.your-subdomain.workers.dev/`
-
-#### 2.4 Available Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/models` | GET | 获取可用模型列表（无需认证） |
-| `/{model}/chat/completions` | POST | LLM 聊天请求 |
-| `/tts` | POST | 文字转语音请求 |
-
-### 3. Configure iOS/macOS App
-
-#### Option A: Secrets.plist (本地开发推荐)
-
-```bash
+# 3. Configure App
 cp Secrets.plist.example Secrets.plist
-```
+# 编辑 Secrets.plist，填入与 APP_SECRET 相同的值
+# 将 Secrets.plist 添加到 Xcode 项目
 
-编辑 `Secrets.plist`：
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>BuiltInCloudSecret</key>
-    <string>your-hmac-secret-here</string>  <!-- 与 Worker 的 APP_SECRET 相同 -->
-</dict>
-</plist>
-```
-
-将 `Secrets.plist` 拖入 Xcode 项目（添加到 AITranslator 和 TranslationUI targets）。
-
-> **重要**：`Secrets.plist` 已在 `.gitignore` 中，不会被提交。
-
-#### Option B: Environment Variables (CI/CD 推荐)
-
-| Variable | Description |
-|----------|-------------|
-| `AITRANSLATOR_BUILTIN_CLOUD_SECRET` | HMAC secret（与 Worker APP_SECRET 相同） |
-
-### 4. Update Cloud Endpoint (Optional)
-
-如果你部署了自己的 Worker，需要更新代码中的 endpoint：
-
-编辑 `ShareCore/Configuration/ModelConfig.swift`：
-
-```swift
-public static let endpoint = URL(string: "https://your-worker.your-subdomain.workers.dev")!
-```
-
-### 5. Build and Run
-
-```bash
-# iOS Simulator
-xcodebuild -project AITranslator.xcodeproj \
-  -scheme AITranslator \
-  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
-  build
-
-# Or open in Xcode
+# 4. Build
 open AITranslator.xcodeproj
 ```
+
+> 详细配置说明见 [Workers/README.md](Workers/README.md)
 
 ---
 
