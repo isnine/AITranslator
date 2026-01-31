@@ -109,11 +109,14 @@
             HStack(spacing: 8) {
                 Image(systemName: "doc.on.clipboard")
                     .font(.system(size: 12))
-                    .foregroundColor(colors.textSecondary)
+                    // Use system dynamic colors instead of relying on SwiftUI colorScheme in the
+                    // Translation UI extension; iOS 26 + Liquid Glass can produce unexpected
+                    // foreground contrast if we pin to a palette value.
+                    .foregroundStyle(.secondary)
 
                 Text(inputText)
                     .font(.system(size: 14))
-                    .foregroundColor(colors.textPrimary)
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
 
