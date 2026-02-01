@@ -160,7 +160,10 @@ public enum TextToSpeechServiceError: LocalizedError {
                 body
             )
         case .platformUnsupported:
-            return NSLocalizedString("Speech playback is not supported on this platform.", comment: "TTS platform unsupported error")
+            return NSLocalizedString(
+                "Speech playback is not supported on this platform.",
+                comment: "TTS platform unsupported error"
+            )
         }
     }
 }

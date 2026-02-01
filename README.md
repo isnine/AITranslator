@@ -29,6 +29,10 @@ make gen
 open AITranslator.xcodeproj
 ```
 
+## Screenshots
+
+Add product screenshots to `test_screenshots/` and update this section when sharing releases.
+
 ## Configuration
 
 ### Environment Variables
@@ -63,6 +67,7 @@ Configuration/         # xcconfig files
   Secrets.xcconfig     # Generated, git-ignored
 Scripts/               # Development scripts
 ci_scripts/            # Xcode Cloud CI scripts
+docs/                  # Project documentation
 ```
 
 ## Make Commands
@@ -72,8 +77,24 @@ make help           # Show commands
 make gen            # Interactive .env setup
 make secrets        # Inject secrets to xcconfig
 make secrets-check  # Verify configuration
+make lint           # Run SwiftLint and SwiftFormat in lint mode
+make format         # Auto-format Swift code
 ```
+
+## Documentation
+
+- `docs/agent.md`
+- `docs/Swift Style Guide.md`
+- `docs/TestPlan.md`
+- `docs/TestReport.md`
+- `docs/AppStoreMetadata.md`
+- `docs/KEY_ROTATION_CHECKLIST.md`
+- `docs/HISTORY_CLEANUP_PLAN.md`
+
+## Contributing
+
+See `CONTRIBUTING.md` for setup, style, and workflow guidelines.
 
 ## License
 
-MIT
+MIT. See `LICENSE`.

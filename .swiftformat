@@ -1,0 +1,6 @@
+--indent 4
+--linebreaks lf
+--wraparguments before-first
+--wrapcollections before-first
+--maxwidth 130
+--exclude build,DerivedData,.build,.swiftpm,Carthage,Pods,Workers

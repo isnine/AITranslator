@@ -430,7 +430,8 @@ private extension AppConfigurationStore {
             comment: "Name of the sentence-by-sentence translation action"
         )
 
-        private static let translateLegacyPrompt = "Translate the selected text intelligently, keep the original meaning, and return a concise result."
+        private static let translateLegacyPrompt =
+            "Translate the selected text intelligently, keep the original meaning, and return a concise result."
         private static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
 
         init?(action: ActionConfig) {
@@ -495,7 +496,9 @@ private extension AppConfigurationStore {
         static func sentenceAnalysisPrompt(for language: TargetLanguageOption) -> String {
             let descriptor = language.promptDescriptor
             return """
-            Analyze the provided sentence or short paragraph and respond entirely in \(descriptor). Follow exactly two Markdown sections:
+            Analyze the provided sentence or short paragraph and respond entirely in \(
+                descriptor
+            ). Follow exactly two Markdown sections:
 
             ## 📚语法分析
             - Explain the sentence structure (clauses, parts of speech, tense/voice) and how key components relate.
@@ -512,7 +515,9 @@ private extension AppConfigurationStore {
         static func sentenceBySentenceTranslatePrompt(for language: TargetLanguageOption) -> String {
             let descriptor = language.promptDescriptor
             return """
-            Translate the following text sentence by sentence into \(descriptor). If the input language already matches the target language, translate it into English instead. Split the input into individual sentences, keeping punctuation with each sentence. For each sentence, provide the original text and its translation as a pair. Preserve the original meaning, tone, and style.
+            Translate the following text sentence by sentence into \(
+                descriptor
+            ). If the input language already matches the target language, translate it into English instead. Split the input into individual sentences, keeping punctuation with each sentence. For each sentence, provide the original text and its translation as a pair. Preserve the original meaning, tone, and style.
             """
         }
     }

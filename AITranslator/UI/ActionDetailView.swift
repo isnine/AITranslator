@@ -147,8 +147,16 @@ struct ActionDetailView: View {
         section(title: "Usage Scenes", subtitle: "Context options apply to the iOS Translation Extension only") {
             VStack(alignment: .leading, spacing: 12) {
                 usageSceneRow(title: "In App", description: "Available inside the app", scene: .app)
-                usageSceneRow(title: "Read-Only Context", description: "Show in iOS Extension when viewing text", scene: .contextRead)
-                usageSceneRow(title: "Editable Context", description: "Show in iOS Extension when editing text", scene: .contextEdit)
+                usageSceneRow(
+                    title: "Read-Only Context",
+                    description: "Show in iOS Extension when viewing text",
+                    scene: .contextRead
+                )
+                usageSceneRow(
+                    title: "Editable Context",
+                    description: "Show in iOS Extension when editing text",
+                    scene: .contextEdit
+                )
             }
         }
     }

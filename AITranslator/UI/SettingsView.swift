@@ -368,7 +368,10 @@ private extension SettingsView {
                         } label: {
                             Text(isRecording ? "Press keys..." : (config.isEmpty ? "Click to set" : config.displayString))
                                 .font(.system(size: 13, weight: .medium, design: config.isEmpty ? .default : .monospaced))
-                                .foregroundColor(isRecording ? colors.accent : (config.isEmpty ? colors.textSecondary : colors.textPrimary))
+                                .foregroundColor(
+                                    isRecording ? colors
+                                        .accent : (config.isEmpty ? colors.textSecondary : colors.textPrimary)
+                                )
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
                                 .background(
@@ -543,7 +546,6 @@ private extension SettingsView {
                     prepareAndExport()
                 }
             }
-
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -737,7 +739,11 @@ private extension SettingsView {
                     updateStorageLocation()
                 }
 
-                storageOptionPill(location: .iCloud, isSelected: currentStorageLocation == .iCloud, isDisabled: !AppPreferences.isICloudAvailable) {
+                storageOptionPill(
+                    location: .iCloud,
+                    isSelected: currentStorageLocation == .iCloud,
+                    isDisabled: !AppPreferences.isICloudAvailable
+                ) {
                     ConfigurationFileManager.shared.switchToICloud(migrate: true)
                     updateStorageLocation()
                 }
@@ -869,7 +875,12 @@ private extension SettingsView {
 
     var ttsCustomConfigSection: some View {
         VStack(spacing: 12) {
-            ttsInputField(label: "Endpoint", placeholder: "https://api.openai.com/v1/audio/speech", text: $customTTSEndpoint, isSecure: false)
+            ttsInputField(
+                label: "Endpoint",
+                placeholder: "https://api.openai.com/v1/audio/speech",
+                text: $customTTSEndpoint,
+                isSecure: false
+            )
             ttsInputField(label: "API Key", placeholder: "Enter your API key", text: $customTTSAPIKey, isSecure: true)
             ttsInputField(label: "Model", placeholder: "e.g. gpt-4o-mini-tts", text: $customTTSModel, isSecure: false)
             ttsInputField(label: "Voice", placeholder: "e.g. alloy", text: $customTTSVoice, isSecure: false)
@@ -1736,11 +1747,14 @@ struct ConfigurationEditorView: View {
             case let .dataCorrupted(context):
                 validationErrorMessage = "JSON format error: \(context.debugDescription)"
             case let .keyNotFound(key, context):
-                validationErrorMessage = "Missing required field '\(key.stringValue)' at \(context.codingPath.map(\.stringValue).joined(separator: "."))"
+                validationErrorMessage =
+                    "Missing required field '\(key.stringValue)' at \(context.codingPath.map(\.stringValue).joined(separator: "."))"
             case let .typeMismatch(type, context):
-                validationErrorMessage = "Type mismatch for \(type) at \(context.codingPath.map(\.stringValue).joined(separator: ".")): \(context.debugDescription)"
+                validationErrorMessage =
+                    "Type mismatch for \(type) at \(context.codingPath.map(\.stringValue).joined(separator: ".")): \(context.debugDescription)"
             case let .valueNotFound(type, context):
-                validationErrorMessage = "Missing value for \(type) at \(context.codingPath.map(\.stringValue).joined(separator: "."))"
+                validationErrorMessage =
+                    "Missing value for \(type) at \(context.codingPath.map(\.stringValue).joined(separator: "."))"
             @unknown default:
                 validationErrorMessage = "JSON parsing error: \(decodingError.localizedDescription)"
             }

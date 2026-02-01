@@ -81,11 +81,23 @@
                 let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
                 Logger.debug("[MenuBar] Language Change - targetLanguageCode: \(targetLanguageCode)")
                 Logger.debug("[MenuBar] Parsed option: \(option.rawValue) (\(option.promptDescriptor))")
-                Logger.debug("[MenuBar] BEFORE setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)")
-                Logger.debug("[MenuBar] BEFORE setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)")
+                Logger
+                    .debug(
+                        "[MenuBar] BEFORE setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)"
+                    )
+                Logger
+                    .debug(
+                        "[MenuBar] BEFORE setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)"
+                    )
                 preferences.setTargetLanguage(option)
-                Logger.debug("[MenuBar] AFTER setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)")
-                Logger.debug("[MenuBar] AFTER setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)")
+                Logger
+                    .debug(
+                        "[MenuBar] AFTER setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)"
+                    )
+                Logger
+                    .debug(
+                        "[MenuBar] AFTER setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)"
+                    )
                 viewModel.refreshConfiguration()
             }
         }
@@ -205,7 +217,10 @@
                         .padding(.vertical, 6)
                         .background(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? colors.accent.opacity(0.5) : colors.accent)
+                                .fill(
+                                    inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? colors.accent
+                                        .opacity(0.5) : colors.accent
+                                )
                         )
                     }
                     .buttonStyle(.plain)

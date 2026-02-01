@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install lint tools
+        run: brew install swiftlint swiftformat
+
+      - name: SwiftFormat (lint)
+        run: swiftformat --lint .
+
+      - name: SwiftLint
+        run: swiftlint
+
+      - name: Build (iOS Simulator)
+        run: xcodebuild -project AITranslator.xcodeproj -scheme AITranslator -destination 'generic/platform=iOS Simulator' build

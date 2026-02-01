@@ -191,7 +191,10 @@ public final class LLMService {
                 Logger.debug("[LLMService] URL: \(requestURL.absoluteString)")
                 Logger.debug("[LLMService] Action: \(action.name)")
                 Logger.debug("[LLMService] Original Prompt: \(action.prompt)")
-                Logger.debug("[LLMService] Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))")
+                Logger
+                    .debug(
+                        "[LLMService] Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))"
+                    )
                 Logger.debug("[LLMService] Request payload: \(jsonString)")
             }
 
@@ -548,7 +551,8 @@ private final class StreamingSentencePairParser {
 
         // Pattern to match complete sentence pair objects:
         // {"original": "...", "translation": "..."} or {"translation": "...", "original": "..."}
-        let pattern = #"\{\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*\}"#
+        let pattern =
+            #"\{\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*\}"#
 
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
             return pairs

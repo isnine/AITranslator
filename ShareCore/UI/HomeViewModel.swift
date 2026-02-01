@@ -422,7 +422,10 @@ public final class HomeViewModel: ObservableObject {
                 switch result.response {
                 case let .success(message):
                     let diffTarget = result.diffSource ?? message
-                    let diff = currentActionShowsDiff ? TextDiffBuilder.build(original: currentRequestInputText, revised: diffTarget) : nil
+                    let diff = currentActionShowsDiff ? TextDiffBuilder.build(
+                        original: currentRequestInputText,
+                        revised: diffTarget
+                    ) : nil
                     runState = .success(
                         text: message,
                         copyText: diffTarget,

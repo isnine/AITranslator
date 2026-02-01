@@ -8,7 +8,7 @@
 #   make secrets-check  - Verify secrets configuration
 #   make help           - Show this help message
 
-.PHONY: gen secrets secrets-check help
+.PHONY: gen secrets secrets-check lint format help
 
 # Default target
 .DEFAULT_GOAL := help
@@ -37,6 +37,19 @@ secrets-check:
 		echo "✗ Secrets.xcconfig not found. Run 'make secrets' first."; \
 		exit 1; \
 	fi
+
+#===============================================================================
+# Linting and Formatting
+#===============================================================================
+
+## lint: Run SwiftLint and SwiftFormat in lint mode
+lint:
+	@swiftformat --lint .
+	@swiftlint
+
+## format: Auto-format Swift code
+format:
+	@swiftformat .
 
 #===============================================================================
 # Help
