@@ -303,13 +303,6 @@ public struct HomeView: View {
                     Spacer()
 
                     if !isCollapsed {
-                        // Input speak button (only show when TTS is configured)
-                        if !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                            && AppPreferences.shared.ttsConfiguration.isValid
-                        {
-                            inputSpeakButton
-                        }
-
                         Button {
                             hideKeyboard()
                             viewModel.performSelectedAction()
@@ -346,58 +339,30 @@ public struct HomeView: View {
 
     private var collapsedInputSummary: some View {
         let displayText = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return HStack(spacing: 8) {
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    isInputExpanded = true
-                }
-            } label: {
-                HStack(spacing: 12) {
-                    Text(displayText.isEmpty ? viewModel.inputPlaceholder : displayText)
-                        .font(.system(size: 15))
-                        .foregroundColor(displayText.isEmpty ? colors.textSecondary : colors.textPrimary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-
-                    Spacer(minLength: 8)
-
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(colors.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 14)
-                .contentShape(Rectangle())
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isInputExpanded = true
             }
-            .buttonStyle(.plain)
-
-            if !displayText.isEmpty && AppPreferences.shared.ttsConfiguration.isValid {
-                inputSpeakButton
-                    .padding(.trailing, 12)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var inputSpeakButton: some View {
-        Button {
-            viewModel.speakInputText()
         } label: {
-            if viewModel.isSpeakingInputText {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .controlSize(.small)
-                    .tint(colors.accent)
-            } else {
-                Image(systemName: "speaker.wave.2.fill")
-                    .font(.system(size: 14))
+            HStack(spacing: 12) {
+                Text(displayText.isEmpty ? viewModel.inputPlaceholder : displayText)
+                    .font(.system(size: 15))
+                    .foregroundColor(displayText.isEmpty ? colors.textSecondary : colors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.glass)
-        .tint(colors.accent)
-        .buttonBorderShape(.circle)
-        .disabled(viewModel.isSpeakingInputText)
+        .buttonStyle(.plain)
     }
 
     private var expandedInputEditor: some View {
@@ -679,7 +644,6 @@ public struct HomeView: View {
     private func actionButtons(copyText: String, runID: String) -> some View {
         // Full action buttons for bottom bar (plain text mode)
         diffToggleButton(for: runID)
-        compactSpeakButton(for: copyText, runID: runID)
         compactCopyButton(for: copyText)
         #if canImport(TranslationUIProvider)
             if let context, context.allowsReplacement {
@@ -699,7 +663,6 @@ public struct HomeView: View {
     private func contentActionButtons(copyText: String, runID: String) -> some View {
         // Action buttons above divider (for grammarCheck/diff modes with supplementalTexts)
         diffToggleButton(for: runID)
-        compactSpeakButton(for: copyText, runID: runID)
         compactCopyButton(for: copyText)
         #if canImport(TranslationUIProvider)
             if let context, context.allowsReplacement {
@@ -799,30 +762,6 @@ public struct HomeView: View {
                     .frame(maxWidth: index == 2 ? 180 : .infinity)
                     .shimmer()
             }
-        }
-    }
-
-    @ViewBuilder
-    private func compactSpeakButton(for text: String, runID: String) -> some View {
-        // Only show speak button when TTS is configured
-        if AppPreferences.shared.ttsConfiguration.isValid {
-            let isSpeaking = viewModel.isSpeaking(runID: runID)
-            Button {
-                viewModel.speakResult(text, runID: runID)
-            } label: {
-                if isSpeaking {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .controlSize(.small)
-                        .tint(colors.accent)
-                } else {
-                    Image(systemName: "speaker.wave.2.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(colors.accent)
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(isSpeaking)
         }
     }
 

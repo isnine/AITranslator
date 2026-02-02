@@ -123,34 +123,10 @@
                 Spacer(minLength: 0)
 
                 targetLanguageIndicator
-
-                if AppPreferences.shared.ttsConfiguration.isValid && !inputText.isEmpty {
-                    inputSpeakButton
-                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(selectedTextPreviewBackground)
-        }
-
-        @ViewBuilder
-        private var inputSpeakButton: some View {
-            Button {
-                viewModel.speakInputText()
-            } label: {
-                if viewModel.isSpeakingInputText {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .controlSize(.small)
-                        .tint(colors.accent)
-                } else {
-                    Image(systemName: "speaker.wave.2.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(colors.accent)
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isSpeakingInputText)
         }
 
         private var targetLanguageIndicator: some View {

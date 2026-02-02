@@ -20,11 +20,7 @@ struct SettingsView: View {
     @ObservedObject private var preferences: AppPreferences
     @ObservedObject private var configStore = AppConfigurationStore.shared
     @State private var isLanguagePickerPresented = false
-    @State private var customTTSEndpoint: String
-    @State private var customTTSAPIKey: String
-    @State private var customTTSModel: String
-    @State private var customTTSVoice: String
-    @State private var ttsUseBuiltInCloud: Bool
+    @State private var isVoicePickerPresented = false
 
     // Configuration import/export state
     @State private var isImportPresented = false
@@ -44,8 +40,6 @@ struct SettingsView: View {
     // Storage location state for UI refresh
     @State private var currentStorageLocation: ConfigurationFileManager.StorageLocation = .local
 
-    // Sync control flag to prevent update loops
-    @State private var isUpdatingFromPreferences = false
     @State private var isShareSheetPresented = false
     @State private var configFileToShare: URL?
 
@@ -64,14 +58,7 @@ struct SettingsView: View {
     }
 
     init(preferences: AppPreferences = .shared) {
-        // Always show the actual stored custom TTS configuration (not the hardcoded default)
-        let configuration = preferences.ttsConfiguration
         _preferences = ObservedObject(wrappedValue: preferences)
-        _customTTSEndpoint = State(initialValue: configuration.endpointURL.absoluteString)
-        _customTTSAPIKey = State(initialValue: configuration.apiKey)
-        _customTTSModel = State(initialValue: configuration.model)
-        _customTTSVoice = State(initialValue: configuration.voice)
-        _ttsUseBuiltInCloud = State(initialValue: configuration.useBuiltInCloud)
     }
 
     var body: some View {
@@ -97,39 +84,19 @@ struct SettingsView: View {
                 isPresented: $isLanguagePickerPresented
             )
         }
+        .sheet(isPresented: $isVoicePickerPresented) {
+            VoicePickerView(
+                isPresented: $isVoicePickerPresented
+            )
+        }
         .onAppear {
             preferences.refreshFromDefaults()
-            syncTTSPreferencesFromStore()
         }
         .onChange(of: targetLanguageCode) {
             let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
             // targetLanguage is a user preference that persists independently of configuration
             // It's stored in UserDefaults and doesn't require creating a custom configuration
             preferences.setTargetLanguage(option)
-        }
-        .onChange(of: customTTSEndpoint) {
-            guard !isUpdatingFromPreferences else { return }
-            persistCustomTTSConfiguration()
-        }
-        .onChange(of: customTTSAPIKey) {
-            guard !isUpdatingFromPreferences else { return }
-            persistCustomTTSConfiguration()
-        }
-        .onChange(of: customTTSModel) {
-            guard !isUpdatingFromPreferences else { return }
-            persistCustomTTSConfiguration()
-        }
-        .onChange(of: customTTSVoice) {
-            guard !isUpdatingFromPreferences else { return }
-            persistCustomTTSConfiguration()
-        }
-        .onChange(of: ttsUseBuiltInCloud) {
-            guard !isUpdatingFromPreferences else { return }
-            persistCustomTTSConfiguration()
-        }
-        .onReceive(configStore.configurationSwitchedPublisher) { _ in
-            // Configuration was switched, sync UI to match the new configuration's values
-            syncTTSPreferencesFromStore()
         }
         .fileImporter(
             isPresented: $isImportPresented,
@@ -220,6 +187,9 @@ struct SettingsView: View {
             settingsSection(title: "General", icon: "gearshape") {
                 VStack(spacing: 0) {
                     languagePreferenceRow
+                    Divider()
+                        .padding(.leading, 52)
+                    voicePreferenceRow
                     #if os(macOS)
                         Divider()
                             .padding(.leading, 52)
@@ -239,23 +209,6 @@ struct SettingsView: View {
                     Divider()
                         .padding(.leading, 52)
                     configurationActionsRow
-                }
-            }
-
-            // MARK: - Text to Speech Section
-
-            settingsSection(title: "Text to Speech", icon: "speaker.wave.2") {
-                VStack(spacing: 0) {
-                    ttsToggleRow
-                    if !ttsUseBuiltInCloud {
-                        Divider()
-                            .padding(.leading, 52)
-                        ttsCustomConfigSection
-                    } else {
-                        Divider()
-                            .padding(.leading, 52)
-                        ttsVoicePickerRow
-                    }
                 }
             }
         }
@@ -333,6 +286,51 @@ private extension SettingsView {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    var voicePreferenceRow: some View {
+        Button {
+            isVoicePickerPresented = true
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.purple.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "waveform")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.purple)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Voice")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(colors.textPrimary)
+                    Text(voiceDisplayName)
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary.opacity(0.5))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var voiceDisplayName: String {
+        let voiceID = preferences.selectedVoiceID
+        // Try to find voice name from defaults, otherwise capitalize the ID
+        if let voice = VoiceConfig.defaultVoices.first(where: { $0.id == voiceID }) {
+            return voice.name
+        }
+        return voiceID.capitalized
     }
 
     #if os(macOS)
@@ -794,131 +792,6 @@ private extension SettingsView {
             )
     }
 
-    // MARK: - TTS Rows
-
-    var ttsToggleRow: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.green.opacity(0.15))
-                    .frame(width: 36, height: 36)
-                Image(systemName: "icloud.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.green)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Use Built-in Cloud")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(colors.textPrimary)
-                Text("Free TTS service powered by the app")
-                    .font(.system(size: 12))
-                    .foregroundColor(colors.textSecondary)
-            }
-
-            Spacer()
-
-            Toggle("", isOn: $ttsUseBuiltInCloud)
-                .labelsHidden()
-                .toggleStyle(.switch)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-    }
-
-    var ttsVoicePickerRow: some View {
-        HStack(spacing: 16) {
-            // Alignment spacer
-            Color.clear
-                .frame(width: 36, height: 36)
-
-            Text("Voice")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(colors.textPrimary)
-
-            Spacer()
-
-            Menu {
-                ForEach(TTSConfiguration.builtInCloudVoices, id: \.self) { voice in
-                    Button {
-                        customTTSVoice = voice
-                    } label: {
-                        HStack {
-                            Text(voice.capitalized)
-                            if customTTSVoice == voice {
-                                Image(systemName: "checkmark")
-                            }
-                        }
-                    }
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(customTTSVoice.isEmpty ? "Select" : customTTSVoice.capitalized)
-                        .font(.system(size: 14))
-                        .foregroundColor(colors.textPrimary)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 10))
-                        .foregroundColor(colors.textSecondary)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(colors.inputBackground)
-                )
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
-
-    var ttsCustomConfigSection: some View {
-        VStack(spacing: 12) {
-            ttsInputField(
-                label: "Endpoint",
-                placeholder: "https://api.openai.com/v1/audio/speech",
-                text: $customTTSEndpoint,
-                isSecure: false
-            )
-            ttsInputField(label: "API Key", placeholder: "Enter your API key", text: $customTTSAPIKey, isSecure: true)
-            ttsInputField(label: "Model", placeholder: "e.g. gpt-4o-mini-tts", text: $customTTSModel, isSecure: false)
-            ttsInputField(label: "Voice", placeholder: "e.g. alloy", text: $customTTSVoice, isSecure: false)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .padding(.leading, 52)
-    }
-
-    func ttsInputField(label: String, placeholder: String, text: Binding<String>, isSecure: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(colors.textSecondary)
-
-            Group {
-                if isSecure {
-                    SecureField(placeholder, text: text)
-                } else {
-                    TextField(placeholder, text: text)
-                }
-            }
-            .textFieldStyle(.plain)
-            .font(.system(size: 14))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .foregroundColor(colors.textPrimary)
-            .background(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(colors.inputBackground)
-            )
-            .autocorrectionDisabled()
-            #if os(iOS)
-                .textInputAutocapitalization(.never)
-            #endif
-        }
-    }
-
     // MARK: - Configuration Helper Functions
 
     func openConfigEditor(_ config: ConfigurationFileInfo) {
@@ -1333,56 +1206,6 @@ private extension SettingsView {
         case let .failure(error):
             importError = error.localizedDescription
             showImportError = true
-        }
-    }
-
-    func persistCustomTTSConfiguration() {
-        let trimmedVoice = customTTSVoice.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        let configuration: TTSConfiguration
-        if ttsUseBuiltInCloud {
-            // Built-in cloud mode: only voice matters
-            configuration = TTSConfiguration.builtInCloud(
-                voice: trimmedVoice.isEmpty ? TTSConfiguration.builtInCloudDefaultVoice : trimmedVoice
-            )
-        } else {
-            // Custom mode: use all fields
-            let trimmedEndpoint = customTTSEndpoint
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let endpointURL = URL(string: trimmedEndpoint) ?? URL(string: "https://")!
-            let trimmedKey = customTTSAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedModel = customTTSModel.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            configuration = TTSConfiguration(
-                endpointURL: endpointURL,
-                apiKey: trimmedKey,
-                model: trimmedModel,
-                voice: trimmedVoice
-            )
-        }
-
-        preferences.setTTSConfiguration(configuration)
-    }
-
-    func syncTTSPreferencesFromStore() {
-        // Always show the actual stored custom TTS configuration values
-        // This allows user to see what custom values are saved (even when using defaults)
-        isUpdatingFromPreferences = true
-
-        let configuration = preferences.ttsConfiguration
-        ttsUseBuiltInCloud = configuration.useBuiltInCloud
-        customTTSVoice = configuration.voice
-
-        if !configuration.useBuiltInCloud {
-            customTTSEndpoint = configuration.endpointURL.absoluteString
-            customTTSAPIKey = configuration.apiKey
-            customTTSModel = configuration.model
-        }
-
-        // Reset the flag after a short delay to ensure all @State changes
-        // have been processed and their .onChange handlers have completed
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [self] in
-            isUpdatingFromPreferences = false
         }
     }
 

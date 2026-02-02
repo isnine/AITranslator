@@ -19,12 +19,12 @@ public final class AppPreferences: ObservableObject {
     public static let shared = AppPreferences()
 
     @Published public private(set) var targetLanguage: TargetLanguageOption
-    @Published public private(set) var ttsConfiguration: TTSConfiguration
     @Published public private(set) var currentConfigName: String?
     @Published public private(set) var customConfigDirectory: URL?
     @Published public private(set) var useICloudForConfig: Bool
     @Published public private(set) var defaultAppHintDismissed: Bool
     @Published public private(set) var enabledModelIDs: Set<String>
+    @Published public private(set) var selectedVoiceID: String
     #if os(macOS)
         @Published public private(set) var keepRunningWhenClosed: Bool
     #endif
@@ -35,12 +35,12 @@ public final class AppPreferences: ObservableObject {
     private init(defaults: UserDefaults = AppPreferences.resolveSharedDefaults()) {
         self.defaults = defaults
         targetLanguage = AppPreferences.readTargetLanguage(from: defaults)
-        ttsConfiguration = AppPreferences.readTTSConfiguration(from: defaults)
         currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
         customConfigDirectory = AppPreferences.readCustomConfigDirectory(from: defaults)
         useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
         defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
         enabledModelIDs = AppPreferences.readEnabledModelIDs(from: defaults)
+        selectedVoiceID = defaults.string(forKey: StorageKeys.selectedVoiceID) ?? VoiceConfig.defaultVoiceID
         #if os(macOS)
             // Default to true - keep app running in menu bar when window is closed
             keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
@@ -83,18 +83,6 @@ public final class AppPreferences: ObservableObject {
         // Verify the write
         let readBack = defaults.string(forKey: TargetLanguageOption.storageKey)
         Logger.debug("[Preferences] Read back from UserDefaults: \(readBack ?? "nil")")
-    }
-
-    public func setTTSConfiguration(_ configuration: TTSConfiguration) {
-        guard ttsConfiguration != configuration else { return }
-
-        ttsConfiguration = configuration
-        defaults.set(configuration.useBuiltInCloud, forKey: StorageKeys.ttsUseBuiltInCloud)
-        defaults.set(configuration.endpointURL.absoluteString, forKey: StorageKeys.ttsEndpoint)
-        defaults.set(configuration.apiKey, forKey: StorageKeys.ttsAPIKey)
-        defaults.set(configuration.model, forKey: StorageKeys.ttsModel)
-        defaults.set(configuration.voice, forKey: StorageKeys.ttsVoice)
-        defaults.synchronize()
     }
 
     public func setCurrentConfigName(_ name: String?) {
@@ -169,6 +157,16 @@ public final class AppPreferences: ObservableObject {
         defaults.synchronize()
     }
 
+    // MARK: - Voice Selection
+
+    public func setSelectedVoiceID(_ voiceID: String) {
+        guard selectedVoiceID != voiceID else { return }
+
+        selectedVoiceID = voiceID
+        defaults.set(voiceID, forKey: StorageKeys.selectedVoiceID)
+        defaults.synchronize()
+    }
+
     /// Returns the iCloud Documents directory URL if available
     public static var iCloudDocumentsURL: URL? {
         FileManager.default.url(forUbiquityContainerIdentifier: nil)?
@@ -185,11 +183,6 @@ public final class AppPreferences: ObservableObject {
         let resolved = AppPreferences.readTargetLanguage(from: defaults)
         if resolved != targetLanguage {
             targetLanguage = resolved
-        }
-
-        let ttsConfig = AppPreferences.readTTSConfiguration(from: defaults)
-        if ttsConfiguration != ttsConfig {
-            ttsConfiguration = ttsConfig
         }
 
         let storedConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
@@ -219,6 +212,11 @@ public final class AppPreferences: ObservableObject {
         let storedEnabledModels = AppPreferences.readEnabledModelIDs(from: defaults)
         if enabledModelIDs != storedEnabledModels {
             enabledModelIDs = storedEnabledModels
+        }
+
+        let storedVoiceID = defaults.string(forKey: StorageKeys.selectedVoiceID) ?? VoiceConfig.defaultVoiceID
+        if selectedVoiceID != storedVoiceID {
+            selectedVoiceID = storedVoiceID
         }
     }
 
@@ -263,29 +261,6 @@ public final class AppPreferences: ObservableObject {
         return TargetLanguageOption(rawValue: stored ?? "") ?? .appLanguage
     }
 
-    private static func readTTSConfiguration(from defaults: UserDefaults) -> TTSConfiguration {
-        let useBuiltInCloud = defaults.bool(forKey: StorageKeys.ttsUseBuiltInCloud)
-
-        // If using built-in cloud, only voice matters
-        if useBuiltInCloud {
-            let voice = defaults.string(forKey: StorageKeys.ttsVoice) ?? TTSConfiguration.builtInCloudDefaultVoice
-            return TTSConfiguration.builtInCloud(voice: voice)
-        }
-
-        let endpointString = defaults.string(forKey: StorageKeys.ttsEndpoint) ?? ""
-        let apiKey = defaults.string(forKey: StorageKeys.ttsAPIKey) ?? ""
-        let model = defaults.string(forKey: StorageKeys.ttsModel) ?? ""
-        let voice = defaults.string(forKey: StorageKeys.ttsVoice) ?? ""
-
-        let endpointURL = URL(string: endpointString) ?? URL(string: "https://")!
-        return TTSConfiguration(
-            endpointURL: endpointURL,
-            apiKey: apiKey,
-            model: model,
-            voice: voice
-        )
-    }
-
     private static func readEnabledModelIDs(from defaults: UserDefaults) -> Set<String> {
         guard let array = defaults.stringArray(forKey: StorageKeys.enabledModels) else {
             return []
@@ -296,16 +271,13 @@ public final class AppPreferences: ObservableObject {
 
 private enum StorageKeys {
     static let currentConfigName = "current_config_name"
-    static let ttsUseBuiltInCloud = "tts_use_builtin_cloud"
-    static let ttsEndpoint = "tts_endpoint_url"
-    static let ttsAPIKey = "tts_api_key"
-    static let ttsModel = "tts_model"
-    static let ttsVoice = "tts_voice"
     static let customConfigDirectory = "custom_config_directory"
     static let useICloudForConfig = "use_icloud_for_config"
     static let defaultAppHintDismissed = "default_app_hint_dismissed"
     /// Key for enabled model IDs (flat model architecture)
     static let enabledModels = "enabled_models"
+    /// Key for selected TTS voice ID
+    static let selectedVoiceID = "selected_voice_id"
     #if os(macOS)
         static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif

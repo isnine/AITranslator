@@ -378,7 +378,6 @@ struct ResultActionButtons: View {
             if showDiffToggle {
                 DiffToggleButton(runID: runID, viewModel: viewModel)
             }
-            SpeakButton(text: copyText, runID: runID, viewModel: viewModel)
             CopyButton(text: copyText, onCopy: onCopy)
             if let onReplace {
                 ReplaceButton(text: copyText, onReplace: onReplace)
@@ -412,42 +411,6 @@ struct DiffToggleButton: View {
             }
             .buttonStyle(.plain)
             .help(isShowingDiff ? "Hide changes" : "Show changes")
-        }
-    }
-}
-
-/// Button for text-to-speech functionality
-struct SpeakButton: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let text: String
-    let runID: String
-    let viewModel: HomeViewModel
-
-    private var colors: AppColorPalette {
-        AppColors.palette(for: colorScheme)
-    }
-
-    var body: some View {
-        // Only show when TTS is configured
-        if AppPreferences.shared.ttsConfiguration.isValid {
-            let isSpeaking = viewModel.isSpeaking(runID: runID)
-            Button {
-                viewModel.speakResult(text, runID: runID)
-            } label: {
-                if isSpeaking {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .controlSize(.small)
-                        .tint(colors.accent)
-                } else {
-                    Image(systemName: "speaker.wave.2.fill")
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.accent)
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(isSpeaking)
         }
     }
 }

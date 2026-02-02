@@ -199,10 +199,6 @@
 
                     Spacer()
 
-                    if AppPreferences.shared.ttsConfiguration.isValid && !inputText.isEmpty {
-                        inputSpeakButton
-                    }
-
                     Button {
                         executeTranslation()
                     } label: {
@@ -228,27 +224,6 @@
                     .keyboardShortcut(.return, modifiers: .command)
                 }
             }
-        }
-
-        @ViewBuilder
-        private var inputSpeakButton: some View {
-            Button {
-                viewModel.inputText = inputText
-                viewModel.speakInputText()
-            } label: {
-                if viewModel.isSpeakingInputText {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .controlSize(.small)
-                        .tint(colors.accent)
-                } else {
-                    Image(systemName: "speaker.wave.2.fill")
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.accent)
-                }
-            }
-            .buttonStyle(.plain)
-            .disabled(viewModel.isSpeakingInputText)
         }
 
         private var targetLanguageIndicator: some View {

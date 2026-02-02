@@ -85,6 +85,7 @@
 
     },
     "API Key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -548,6 +549,7 @@
       }
     },
     "e.g. alloy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -558,6 +560,7 @@
       }
     },
     "e.g. gpt-4o-mini-tts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -621,6 +624,7 @@
       }
     },
     "Endpoint" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -653,6 +657,7 @@
       }
     },
     "Enter your API key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -686,6 +691,7 @@
       }
     },
     "Free TTS service powered by the app" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -781,6 +787,9 @@
         }
       }
     },
+    "Loading voices..." : {
+
+    },
     "Loading..." : {
       "localizations" : {
         "zh-Hans" : {
@@ -795,6 +804,7 @@
       "comment" : "Local provider name"
     },
     "Model" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -858,6 +868,7 @@
     },
     "No text available for speech." : {
       "comment" : "TTS empty input error",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1110,6 +1121,9 @@
         }
       }
     },
+    "Select Voice" : {
+
+    },
     "Send" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1224,22 +1238,12 @@
     },
     "Speech playback is not supported on this platform." : {
       "comment" : "TTS platform unsupported error",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "此平台不支持语音播放。"
-          }
-        }
-      }
-    },
-    "Speech service returned an error (%d). Details: %@" : {
-      "comment" : "TTS HTTP error",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Speech service returned an error (%1$d). Details: %2$@"
           }
         }
       }
@@ -1349,6 +1353,7 @@
     },
     "Unable to connect to the speech service." : {
       "comment" : "TTS invalid response error",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1375,6 +1380,7 @@
 
     },
     "Use Built-in Cloud" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

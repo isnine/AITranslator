@@ -64,3 +64,6 @@ Secrets.plist
 Configuration/Local.xcconfig
 Configuration/Secrets.xcconfig
 .env
+
+# Build tools
+Makefile

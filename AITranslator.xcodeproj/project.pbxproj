@@ -146,7 +146,6 @@
 			children = (
 				CE3703262F2E39700039FC39 /* Base.xcconfig */,
 			);
-			name = Configuration;
 			path = Configuration;
 			sourceTree = "<group>";
 		};

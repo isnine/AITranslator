@@ -85,8 +85,6 @@ public final class HomeViewModel: ObservableObject {
     @Published public private(set) var models: [ModelConfig] = []
     @Published public var selectedActionID: UUID?
     @Published public private(set) var modelRuns: [ModelRunViewState] = []
-    @Published public private(set) var speakingModels: Set<String> = []
-    @Published public private(set) var isSpeakingInputText: Bool = false
     @Published public private(set) var isLoadingConfiguration: Bool = true
 
     public let placeholderHint: String = NSLocalizedString(
@@ -100,7 +98,6 @@ public final class HomeViewModel: ObservableObject {
 
     private let configurationStore: AppConfigurationStore
     private let llmService: LLMService
-    private let textToSpeechService: TextToSpeechService
     private let preferences: AppPreferences
     private var cancellables = Set<AnyCancellable>()
     private var currentRequestTask: Task<Void, Never>?
@@ -113,14 +110,12 @@ public final class HomeViewModel: ObservableObject {
     public init(
         configurationStore: AppConfigurationStore? = nil,
         llmService: LLMService = .shared,
-        textToSpeechService: TextToSpeechService = .shared,
         preferences: AppPreferences = .shared,
         usageScene: ActionConfig.UsageScene = .app
     ) {
         let store = configurationStore ?? .shared
         self.configurationStore = store
         self.llmService = llmService
-        self.textToSpeechService = textToSpeechService
         self.preferences = preferences
         self.usageScene = usageScene
         allActions = store.actions
@@ -281,51 +276,6 @@ public final class HomeViewModel: ObservableObject {
                 models: modelsToUse
             )
         }
-    }
-
-    public func speakResult(_ text: String, runID: String) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        guard !speakingModels.contains(runID) else { return }
-
-        speakingModels.insert(runID)
-
-        _ = Task { [weak self] in
-            guard let self else { return }
-            do {
-                try await self.textToSpeechService.speak(text: trimmed)
-            } catch {
-                Logger.debug("[HomeViewModel] TTS playback failed for run \(runID): \(error)")
-            }
-            _ = await MainActor.run { [weak self] in
-                self?.speakingModels.remove(runID)
-            }
-        }
-    }
-
-    /// Speak the input text using TTS
-    public func speakInputText() {
-        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        guard !isSpeakingInputText else { return }
-
-        isSpeakingInputText = true
-
-        _ = Task { [weak self] in
-            guard let self else { return }
-            do {
-                try await self.textToSpeechService.speak(text: trimmed)
-            } catch {
-                Logger.debug("[HomeViewModel] TTS playback failed for input text: \(error)")
-            }
-            _ = await MainActor.run { [weak self] in
-                self?.isSpeakingInputText = false
-            }
-        }
-    }
-
-    public func isSpeaking(runID: String) -> Bool {
-        speakingModels.contains(runID)
     }
 
     public func toggleDiffDisplay(for runID: String) {
