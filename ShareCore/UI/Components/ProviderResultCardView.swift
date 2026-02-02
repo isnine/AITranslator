@@ -60,8 +60,7 @@ public struct ProviderResultCardView: View {
     @ViewBuilder
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+            .fill(colors.cardBackground)
     }
 }
 
