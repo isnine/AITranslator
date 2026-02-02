@@ -63,6 +63,21 @@ public final class TextToSpeechService {
     // MARK: - Request Building
 
     private func buildBuiltInCloudRequest(text: String, configuration: TTSConfiguration) throws -> URLRequest {
+        // Validate cloud secret is configured
+        guard BuildEnvironment.isCloudConfigured else {
+            assertionFailure("""
+                [TTS] Cloud secret not configured!
+                
+                To fix this, add BuiltInCloudSecret to one of these locations:
+                1. Environment variable: AITRANSLATOR_CLOUD_SECRET
+                2. Info.plist key: AITranslatorCloudSecret
+                3. Secrets.plist file with key: BuiltInCloudSecret
+                
+                See README.md for detailed setup instructions.
+                """)
+            throw TextToSpeechServiceError.missingCloudSecret
+        }
+
         var request = URLRequest(url: TTSConfiguration.builtInCloudEndpoint)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -109,15 +124,10 @@ public final class TextToSpeechService {
 
     private func generateSignature(timestamp: String, path: String) -> String {
         let message = "\(timestamp):\(path)"
-        guard let secretData = Data(hexString: TTSConfiguration.builtInCloudSecret),
-              let messageData = message.data(using: .utf8)
-        else {
-            return ""
-        }
-
-        let key = SymmetricKey(data: secretData)
-        let signature = HMAC<SHA256>.authenticationCode(for: messageData, using: key)
-        return Data(signature).map { String(format: "%02x", $0) }.joined()
+        // Use the same secret source as LLM service (from BuildEnvironment)
+        let key = SymmetricKey(data: Data(hexString: CloudServiceConstants.secret) ?? Data())
+        let signature = HMAC<SHA256>.authenticationCode(for: Data(message.utf8), using: key)
+        return Data(signature).hexEncodedString()
     }
 
     @MainActor
@@ -143,6 +153,7 @@ public enum TextToSpeechServiceError: LocalizedError {
     case invalidResponse
     case httpError(statusCode: Int, body: String)
     case platformUnsupported
+    case missingCloudSecret
 
     public var errorDescription: String? {
         switch self {
@@ -163,6 +174,11 @@ public enum TextToSpeechServiceError: LocalizedError {
             return NSLocalizedString(
                 "Speech playback is not supported on this platform.",
                 comment: "TTS platform unsupported error"
+            )
+        case .missingCloudSecret:
+            return NSLocalizedString(
+                "Built-in TTS service is not configured. Please add BuiltInCloudSecret to Secrets.plist or set AITRANSLATOR_CLOUD_SECRET environment variable.",
+                comment: "TTS missing cloud secret error"
             )
         }
     }

@@ -30,8 +30,10 @@ public struct TTSConfiguration: Equatable {
 
     // MARK: - Built-in Cloud Constants
 
-    /// Built-in cloud TTS endpoint (via CloudFlare Worker)
-    public static let builtInCloudEndpoint = URL(string: "https://aitranslator.xiaozwan.workers.dev/tts")!
+    /// Built-in cloud TTS endpoint (uses CloudServiceConstants for consistency with LLM)
+    public static var builtInCloudEndpoint: URL {
+        CloudServiceConstants.endpoint.appendingPathComponent("tts")
+    }
 
     /// Available voices for built-in cloud TTS
     public static let builtInCloudVoices = ["alloy", "ash", "coral", "echo", "fable", "nova", "onyx", "sage", "shimmer"]
@@ -41,9 +43,6 @@ public struct TTSConfiguration: Equatable {
 
     /// Built-in cloud TTS model
     public static let builtInCloudModel = "gpt-4o-mini-tts"
-
-    /// Shared secret for HMAC signing (same as LLM)
-    public static let builtInCloudSecret = "REDACTED_HMAC_SECRET"
 
     /// Create a built-in cloud TTS configuration
     public static func builtInCloud(voice: String = builtInCloudDefaultVoice) -> TTSConfiguration {
