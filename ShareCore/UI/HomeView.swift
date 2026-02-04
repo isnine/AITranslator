@@ -303,6 +303,8 @@ public struct HomeView: View {
                     Spacer()
 
                     if !isCollapsed {
+                        inputSpeakButton
+
                         Button {
                             hideKeyboard()
                             viewModel.performSelectedAction()
@@ -335,6 +337,32 @@ public struct HomeView: View {
         .frame(maxWidth: .infinity)
 //        .frame(minHeight: isCollapsed ? 16 : 170)
         .animation(.easeInOut(duration: 0.2), value: isInputExpanded)
+    }
+
+    @ViewBuilder
+    private var inputSpeakButton: some View {
+        let hasText = !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+        Button {
+            if viewModel.isSpeakingInputText {
+                viewModel.stopSpeaking()
+            } else {
+                viewModel.speakInputText()
+            }
+        } label: {
+            if viewModel.isSpeakingInputText {
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 14))
+            } else {
+                Image(systemName: "speaker.wave.2.fill")
+                    .font(.system(size: 14))
+            }
+        }
+        .buttonStyle(.glass)
+        .tint(viewModel.isSpeakingInputText ? .red : colors.accent)
+        .buttonBorderShape(.circle)
+        .disabled(!hasText && !viewModel.isSpeakingInputText)
+        .opacity(hasText || viewModel.isSpeakingInputText ? 1.0 : 0.5)
     }
 
     private var collapsedInputSummary: some View {

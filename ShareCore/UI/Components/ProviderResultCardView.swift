@@ -378,6 +378,7 @@ struct ResultActionButtons: View {
             if showDiffToggle {
                 DiffToggleButton(runID: runID, viewModel: viewModel)
             }
+            SpeakButton(text: copyText, runID: runID, viewModel: viewModel)
             CopyButton(text: copyText, onCopy: onCopy)
             if let onReplace {
                 ReplaceButton(text: copyText, onReplace: onReplace)
@@ -458,6 +459,39 @@ struct ReplaceButton: View {
         }
         .buttonStyle(.plain)
         .foregroundColor(colors.accent)
+    }
+}
+
+/// Button for speaking text aloud via TTS
+struct SpeakButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let text: String
+    let runID: String
+    let viewModel: HomeViewModel
+
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+
+    private var isSpeaking: Bool {
+        viewModel.isSpeaking(runID: runID)
+    }
+
+    var body: some View {
+        Button {
+            if isSpeaking {
+                viewModel.stopSpeaking()
+            } else {
+                viewModel.speakResult(text, runID: runID)
+            }
+        } label: {
+            Image(systemName: isSpeaking ? "stop.fill" : "speaker.wave.2.fill")
+                .font(.system(size: 13))
+                .foregroundColor(isSpeaking ? colors.error : colors.accent)
+        }
+        .buttonStyle(.plain)
+        .help(isSpeaking ? "Stop speaking" : "Speak text")
     }
 }
 

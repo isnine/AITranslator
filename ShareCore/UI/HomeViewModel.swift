@@ -87,6 +87,12 @@ public final class HomeViewModel: ObservableObject {
     @Published public private(set) var modelRuns: [ModelRunViewState] = []
     @Published public private(set) var isLoadingConfiguration: Bool = true
 
+    // MARK: - TTS Playback State
+
+    @Published public private(set) var speakingModels: Set<String> = []
+    @Published public private(set) var isSpeakingInputText: Bool = false
+    private let ttsService: TTSPreviewService
+
     public let placeholderHint: String = NSLocalizedString(
         "Enter text and choose an action to get started",
         comment: "Hint shown above the action list when no input or results exist"
@@ -111,13 +117,15 @@ public final class HomeViewModel: ObservableObject {
         configurationStore: AppConfigurationStore? = nil,
         llmService: LLMService = .shared,
         preferences: AppPreferences = .shared,
-        usageScene: ActionConfig.UsageScene = .app
+        usageScene: ActionConfig.UsageScene = .app,
+        ttsService: TTSPreviewService = .shared
     ) {
         let store = configurationStore ?? .shared
         self.configurationStore = store
         self.llmService = llmService
         self.preferences = preferences
         self.usageScene = usageScene
+        self.ttsService = ttsService
         allActions = store.actions
         selectedActionID = store.defaultAction?.id
         actions = []
@@ -316,6 +324,54 @@ public final class HomeViewModel: ObservableObject {
             }
             NSWorkspace.shared.open(settingsURL)
         #endif
+    }
+
+    // MARK: - TTS Playback
+
+    /// Speaks the result text for a specific run
+    public func speakResult(_ text: String, runID: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !speakingModels.contains(runID) else { return }
+
+        speakingModels.insert(runID)
+
+        Task { [weak self] in
+            guard let self else { return }
+            await self.ttsService.speak(text: trimmed, textID: runID)
+            await MainActor.run { [weak self] in
+                self?.speakingModels.remove(runID)
+            }
+        }
+    }
+
+    /// Speaks the current input text
+    public func speakInputText() {
+        let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        guard !isSpeakingInputText else { return }
+
+        isSpeakingInputText = true
+
+        Task { [weak self] in
+            guard let self else { return }
+            await self.ttsService.speak(text: trimmed, textID: "input")
+            await MainActor.run { [weak self] in
+                self?.isSpeakingInputText = false
+            }
+        }
+    }
+
+    /// Check if a specific run is currently being spoken
+    public func isSpeaking(runID: String) -> Bool {
+        speakingModels.contains(runID)
+    }
+
+    /// Stop any current TTS playback
+    public func stopSpeaking() {
+        ttsService.stopPlayback()
+        speakingModels.removeAll()
+        isSpeakingInputText = false
     }
 
     deinit {

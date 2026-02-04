@@ -122,11 +122,31 @@
 
                 Spacer(minLength: 0)
 
+                inputSpeakButton
+
                 targetLanguageIndicator
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
             .background(selectedTextPreviewBackground)
+        }
+
+        @ViewBuilder
+        private var inputSpeakButton: some View {
+            let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            Button {
+                if viewModel.isSpeakingInputText {
+                    viewModel.stopSpeaking()
+                } else {
+                    viewModel.speakInputText()
+                }
+            } label: {
+                Image(systemName: viewModel.isSpeakingInputText ? "stop.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(viewModel.isSpeakingInputText ? colors.error : colors.accent)
+            }
+            .buttonStyle(.plain)
+            .disabled(!hasText && !viewModel.isSpeakingInputText)
         }
 
         private var targetLanguageIndicator: some View {

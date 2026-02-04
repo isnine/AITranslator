@@ -199,6 +199,8 @@
 
                     Spacer()
 
+                    inputSpeakButton
+
                     Button {
                         executeTranslation()
                     } label: {
@@ -224,6 +226,26 @@
                     .keyboardShortcut(.return, modifiers: .command)
                 }
             }
+        }
+
+        @ViewBuilder
+        private var inputSpeakButton: some View {
+            let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            Button {
+                if viewModel.isSpeakingInputText {
+                    viewModel.stopSpeaking()
+                } else {
+                    viewModel.inputText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    viewModel.speakInputText()
+                }
+            } label: {
+                Image(systemName: viewModel.isSpeakingInputText ? "stop.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(viewModel.isSpeakingInputText ? colors.error : colors.accent)
+            }
+            .buttonStyle(.plain)
+            .disabled(!hasText && !viewModel.isSpeakingInputText)
+            .help(viewModel.isSpeakingInputText ? "Stop speaking" : "Speak input text")
         }
 
         private var targetLanguageIndicator: some View {

@@ -22,12 +22,41 @@ public final class TTSPreviewService: ObservableObject {
 
     @Published public private(set) var isPlaying = false
     @Published public private(set) var currentVoiceID: String?
+    /// ID of the text currently being spoken (for tracking which result is playing)
+    @Published public private(set) var currentTextID: String?
 
     private let urlSession: URLSession
     private var audioPlayer: AVAudioPlayer?
 
     public init(urlSession: URLSession = .shared) {
         self.urlSession = urlSession
+    }
+
+    /// Speaks the given text using the user's selected voice
+    /// - Parameters:
+    ///   - text: The text to speak
+    ///   - textID: Optional identifier to track which text is being spoken (e.g., runID)
+    @MainActor
+    public func speak(text: String, textID: String? = nil) async {
+        let voiceID = AppPreferences.shared.selectedVoiceID
+
+        // Stop any current playback
+        stopPlayback()
+
+        isPlaying = true
+        currentVoiceID = voiceID
+        currentTextID = textID
+
+        do {
+            let audioData = try await fetchTTSAudio(text: text, voiceID: voiceID)
+            try await playAudio(data: audioData)
+        } catch {
+            Logger.debug("[TTSPreviewService] TTS playback failed: \(error)")
+        }
+
+        isPlaying = false
+        currentVoiceID = nil
+        currentTextID = nil
     }
 
     /// Plays a TTS preview for the specified voice
@@ -41,7 +70,7 @@ public final class TTSPreviewService: ObservableObject {
         currentVoiceID = voiceID
 
         do {
-            let audioData = try await fetchTTSAudio(voiceID: voiceID)
+            let audioData = try await fetchTTSAudio(text: Self.previewText, voiceID: voiceID)
             try await playAudio(data: audioData)
         } catch {
             Logger.debug("[TTSPreviewService] Preview failed for voice '\(voiceID)': \(error)")
@@ -58,11 +87,17 @@ public final class TTSPreviewService: ObservableObject {
         audioPlayer = nil
         isPlaying = false
         currentVoiceID = nil
+        currentTextID = nil
+    }
+
+    /// Check if currently speaking a specific text ID
+    public func isSpeaking(textID: String) -> Bool {
+        isPlaying && currentTextID == textID
     }
 
     // MARK: - Private Methods
 
-    private func fetchTTSAudio(voiceID: String) async throws -> Data {
+    private func fetchTTSAudio(text: String, voiceID: String) async throws -> Data {
         let url = CloudServiceConstants.endpoint.appendingPathComponent("tts")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -76,12 +111,12 @@ public final class TTSPreviewService: ObservableObject {
         // Build request body
         let body: [String: Any] = [
             "model": Self.ttsModel,
-            "input": Self.previewText,
+            "input": text,
             "voice": voiceID,
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        Logger.debug("[TTSPreviewService] Requesting TTS preview for voice: \(voiceID)")
+        Logger.debug("[TTSPreviewService] Requesting TTS for voice: \(voiceID), text length: \(text.count)")
 
         let (data, response) = try await urlSession.data(for: request)
 
