@@ -12,7 +12,7 @@
 		CE23B5992EAA44B40033543C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CE23B5982EAA44B40033543C /* Localizable.xcstrings */; };
 		CE23B59A2EAA44B40033543C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CE23B5982EAA44B40033543C /* Localizable.xcstrings */; };
 		CE23B59B2EAA44B40033543C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CE23B5982EAA44B40033543C /* Localizable.xcstrings */; };
-		CE4EB10F2EA33CAD00DDDFA5 /* TranslationUI.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CE4EB10F2EA33CAD00DDDFA5 /* TLingoTranslation.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = CE4EB1082EA33CAD00DDDFA5 /* TLingoTranslation.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		CE4EB12B2EA4F4B000DDDFA5 /* ShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; };
 /* End PBXBuildFile section */
 
@@ -29,7 +29,7 @@
 			containerPortal = CE4EB0D52EA33ADD00DDDFA5 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = CE4EB1072EA33CAD00DDDFA5;
-			remoteInfo = TranslationUI;
+			remoteInfo = TLingoTranslation;
 		};
 		CE4EB12D2EA4F4B000DDDFA5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -58,7 +58,7 @@
 			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
 			dstSubfolderSpec = 16;
 			files = (
-				CE4EB10F2EA33CAD00DDDFA5 /* TranslationUI.appex in Embed ExtensionKit Extensions */,
+				CE4EB10F2EA33CAD00DDDFA5 /* TLingoTranslation.appex in Embed ExtensionKit Extensions */,
 			);
 			name = "Embed ExtensionKit Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -68,25 +68,25 @@
 /* Begin PBXFileReference section */
 		CE23B5982EAA44B40033543C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CE3703262F2E39700039FC39 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
-		CE4EB0DD2EA33ADD00DDDFA5 /* AITranslator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AITranslator.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = TranslationUI.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE4EB0DD2EA33ADD00DDDFA5 /* TLingo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TLingo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE4EB1082EA33CAD00DDDFA5 /* TLingoTranslation.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = TLingoTranslation.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ShareCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		CE4EB1132EA33CAD00DDDFA5 /* Exceptions for "TranslationUI" folder in "TranslationUI" target */ = {
+		CE4EB1132EA33CAD00DDDFA5 /* Exceptions for "TranslationUI" folder in "TLingoTranslation" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */;
+			target = CE4EB1072EA33CAD00DDDFA5 /* TLingoTranslation */;
 		};
-		CE4EB13B2EA50B1300DDDFA5 /* Exceptions for "AITranslator" folder in "AITranslator" target */ = {
+		CE4EB13B2EA50B1300DDDFA5 /* Exceptions for "AITranslator" folder in "TLingo" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = CE4EB0DC2EA33ADD00DDDFA5 /* AITranslator */;
+			target = CE4EB0DC2EA33ADD00DDDFA5 /* TLingo */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -94,7 +94,7 @@
 		CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				CE4EB13B2EA50B1300DDDFA5 /* Exceptions for "AITranslator" folder in "AITranslator" target */,
+				CE4EB13B2EA50B1300DDDFA5 /* Exceptions for "AITranslator" folder in "TLingo" target */,
 			);
 			path = AITranslator;
 			sourceTree = "<group>";
@@ -102,7 +102,7 @@
 		CE4EB1092EA33CAD00DDDFA5 /* TranslationUI */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				CE4EB1132EA33CAD00DDDFA5 /* Exceptions for "TranslationUI" folder in "TranslationUI" target */,
+				CE4EB1132EA33CAD00DDDFA5 /* Exceptions for "TranslationUI" folder in "TLingoTranslation" target */,
 			);
 			path = TranslationUI;
 			sourceTree = "<group>";
@@ -165,8 +165,8 @@
 		CE4EB0DE2EA33ADD00DDDFA5 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CE4EB0DD2EA33ADD00DDDFA5 /* AITranslator.app */,
-				CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */,
+				CE4EB0DD2EA33ADD00DDDFA5 /* TLingo.app */,
+				CE4EB1082EA33CAD00DDDFA5 /* TLingoTranslation.appex */,
 				CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */,
 			);
 			name = Products;
@@ -192,9 +192,9 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
-		CE4EB0DC2EA33ADD00DDDFA5 /* AITranslator */ = {
+		CE4EB0DC2EA33ADD00DDDFA5 /* TLingo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CE4EB0E82EA33ADF00DDDFA5 /* Build configuration list for PBXNativeTarget "AITranslator" */;
+			buildConfigurationList = CE4EB0E82EA33ADF00DDDFA5 /* Build configuration list for PBXNativeTarget "TLingo" */;
 			buildPhases = (
 				CE4EB0D92EA33ADD00DDDFA5 /* Sources */,
 				CE4EB0DA2EA33ADD00DDDFA5 /* Frameworks */,
@@ -211,16 +211,16 @@
 			fileSystemSynchronizedGroups = (
 				CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */,
 			);
-			name = AITranslator;
+			name = TLingo;
 			packageProductDependencies = (
 			);
-			productName = AITranslator;
-			productReference = CE4EB0DD2EA33ADD00DDDFA5 /* AITranslator.app */;
+			productName = TLingo;
+			productReference = CE4EB0DD2EA33ADD00DDDFA5 /* TLingo.app */;
 			productType = "com.apple.product-type.application";
 		};
-		CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */ = {
+		CE4EB1072EA33CAD00DDDFA5 /* TLingoTranslation */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CE4EB1142EA33CAD00DDDFA5 /* Build configuration list for PBXNativeTarget "TranslationUI" */;
+			buildConfigurationList = CE4EB1142EA33CAD00DDDFA5 /* Build configuration list for PBXNativeTarget "TLingoTranslation" */;
 			buildPhases = (
 				CE4EB1042EA33CAD00DDDFA5 /* Sources */,
 				CE4EB1052EA33CAD00DDDFA5 /* Frameworks */,
@@ -234,16 +234,16 @@
 			fileSystemSynchronizedGroups = (
 				CE4EB1092EA33CAD00DDDFA5 /* TranslationUI */,
 			);
-			name = TranslationUI;
+			name = TLingoTranslation;
 			packageProductDependencies = (
 			);
-			productName = TranslationUI;
-			productReference = CE4EB1082EA33CAD00DDDFA5 /* TranslationUI.appex */;
+			productName = TLingoTranslation;
+			productReference = CE4EB1082EA33CAD00DDDFA5 /* TLingoTranslation.appex */;
 			productType = "com.apple.product-type.extensionkit-extension";
 		};
-		CE4EB11D2EA4F47400DDDFA5 /* ShareCore */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = CE4EB1262EA4F47400DDDFA5 /* Build configuration list for PBXNativeTarget "ShareCore" */;
+	CE4EB11D2EA4F47400DDDFA5 /* ShareCore */ = {
+		isa = PBXNativeTarget;
+		buildConfigurationList = CE4EB1262EA4F47400DDDFA5 /* Build configuration list for PBXNativeTarget "ShareCore" */;
 			buildPhases = (
 				CE4EB1192EA4F47400DDDFA5 /* Headers */,
 				CE4EB11A2EA4F47400DDDFA5 /* Sources */,
@@ -257,11 +257,11 @@
 			fileSystemSynchronizedGroups = (
 				CE4EB11F2EA4F47400DDDFA5 /* ShareCore */,
 			);
-			name = ShareCore;
-			packageProductDependencies = (
-			);
-			productName = ShareCore;
-			productReference = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */;
+		name = ShareCore;
+		packageProductDependencies = (
+		);
+		productName = ShareCore;
+		productReference = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */;
 			productType = "com.apple.product-type.framework";
 		};
 /* End PBXNativeTarget section */
@@ -300,8 +300,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				CE4EB0DC2EA33ADD00DDDFA5 /* AITranslator */,
-				CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */,
+				CE4EB0DC2EA33ADD00DDDFA5 /* TLingo */,
+				CE4EB1072EA33CAD00DDDFA5 /* TLingoTranslation */,
 				CE4EB11D2EA4F47400DDDFA5 /* ShareCore */,
 			);
 		};
@@ -367,7 +367,7 @@
 		CE4EB10E2EA33CAD00DDDFA5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			platformFilter = ios;
-			target = CE4EB1072EA33CAD00DDDFA5 /* TranslationUI */;
+			target = CE4EB1072EA33CAD00DDDFA5 /* TLingoTranslation */;
 			targetProxy = CE4EB10D2EA33CAD00DDDFA5 /* PBXContainerItemProxy */;
 		};
 		CE4EB12E2EA4F4B000DDDFA5 /* PBXTargetDependency */ = {
@@ -804,7 +804,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		CE4EB0E82EA33ADF00DDDFA5 /* Build configuration list for PBXNativeTarget "AITranslator" */ = {
+		CE4EB0E82EA33ADF00DDDFA5 /* Build configuration list for PBXNativeTarget "TLingo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CE4EB0E92EA33ADF00DDDFA5 /* Debug */,
@@ -813,7 +813,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		CE4EB1142EA33CAD00DDDFA5 /* Build configuration list for PBXNativeTarget "TranslationUI" */ = {
+		CE4EB1142EA33CAD00DDDFA5 /* Build configuration list for PBXNativeTarget "TLingoTranslation" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CE4EB1112EA33CAD00DDDFA5 /* Debug */,

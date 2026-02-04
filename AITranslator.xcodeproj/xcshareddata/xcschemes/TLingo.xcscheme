@@ -16,8 +16,8 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "CE4EB0DC2EA33ADD00DDDFA5"
-               BuildableName = "AITranslator.app"
-               BlueprintName = "AITranslator"
+               BuildableName = "TLingo.app"
+               BlueprintName = "TLingo"
                ReferencedContainer = "container:AITranslator.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -45,8 +45,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CE4EB0DC2EA33ADD00DDDFA5"
-            BuildableName = "AITranslator.app"
-            BlueprintName = "AITranslator"
+            BuildableName = "TLingo.app"
+            BlueprintName = "TLingo"
             ReferencedContainer = "container:AITranslator.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -62,8 +62,8 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CE4EB0DC2EA33ADD00DDDFA5"
-            BuildableName = "AITranslator.app"
-            BlueprintName = "AITranslator"
+            BuildableName = "TLingo.app"
+            BlueprintName = "TLingo"
             ReferencedContainer = "container:AITranslator.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
