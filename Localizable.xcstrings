@@ -1236,6 +1236,9 @@
         }
       }
     },
+    "Speak text" : {
+
+    },
     "Speech playback is not supported on this platform." : {
       "comment" : "TTS platform unsupported error",
       "extractionState" : "stale",
@@ -1257,6 +1260,9 @@
           }
         }
       }
+    },
+    "Stop speaking" : {
+
     },
     "Storage Location" : {
       "localizations" : {
