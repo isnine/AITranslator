@@ -112,6 +112,8 @@ public final class HomeViewModel: ObservableObject {
     private var usageScene: ActionConfig.UsageScene
     private var currentRequestInputText: String = ""
     private var currentActionShowsDiff: Bool = false
+    /// When true, `performSelectedAction()` will be called automatically once models finish loading.
+    private var pendingAutoAction: Bool = false
 
     public init(
         configurationStore: AppConfigurationStore? = nil,
@@ -204,6 +206,12 @@ public final class HomeViewModel: ObservableObject {
                     guard let self else { return }
                     self.models = fetchedModels
                     self.updateEnabledModels()
+
+                    // If a request was attempted before models loaded, trigger it now.
+                    if self.pendingAutoAction {
+                        self.pendingAutoAction = false
+                        self.performSelectedAction()
+                    }
                 }
             } catch {
                 Logger.debug("[HomeViewModel] Failed to fetch models: \(error)")
@@ -264,10 +272,16 @@ public final class HomeViewModel: ObservableObject {
         let modelsToUse = getEnabledModels()
 
         guard !modelsToUse.isEmpty else {
-            Logger.debug("[HomeViewModel] No enabled models configured.")
+            // Models may still be loading asynchronously. Mark as pending so we
+            // auto-trigger once models become available.
+            Logger.debug("[HomeViewModel] No enabled models yet; marking pending auto-action.")
+            pendingAutoAction = true
             modelRuns = []
             return
         }
+
+        // Clear pending flag since we're now executing
+        pendingAutoAction = false
 
         let requestID = UUID()
         activeRequestID = requestID
