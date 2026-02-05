@@ -241,9 +241,9 @@
 			productReference = CE4EB1082EA33CAD00DDDFA5 /* TLingoTranslation.appex */;
 			productType = "com.apple.product-type.extensionkit-extension";
 		};
-	CE4EB11D2EA4F47400DDDFA5 /* ShareCore */ = {
-		isa = PBXNativeTarget;
-		buildConfigurationList = CE4EB1262EA4F47400DDDFA5 /* Build configuration list for PBXNativeTarget "ShareCore" */;
+		CE4EB11D2EA4F47400DDDFA5 /* ShareCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE4EB1262EA4F47400DDDFA5 /* Build configuration list for PBXNativeTarget "ShareCore" */;
 			buildPhases = (
 				CE4EB1192EA4F47400DDDFA5 /* Headers */,
 				CE4EB11A2EA4F47400DDDFA5 /* Sources */,
@@ -257,11 +257,11 @@
 			fileSystemSynchronizedGroups = (
 				CE4EB11F2EA4F47400DDDFA5 /* ShareCore */,
 			);
-		name = ShareCore;
-		packageProductDependencies = (
-		);
-		productName = ShareCore;
-		productReference = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */;
+			name = ShareCore;
+			packageProductDependencies = (
+			);
+			productName = ShareCore;
+			productReference = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */;
 			productType = "com.apple.product-type.framework";
 		};
 /* End PBXNativeTarget section */
@@ -544,7 +544,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -605,7 +605,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
@@ -646,7 +646,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TranslationUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -680,7 +680,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TranslationUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
