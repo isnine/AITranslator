@@ -110,7 +110,7 @@ public final class HomeViewModel: ObservableObject {
     private var activeRequestID: UUID?
     private var allActions: [ActionConfig]
     private var usageScene: ActionConfig.UsageScene
-    private var currentRequestInputText: String = ""
+    public private(set) var currentRequestInputText: String = ""
     private var currentActionShowsDiff: Bool = false
     /// When true, `performSelectedAction()` will be called automatically once models finish loading.
     private var pendingAutoAction: Bool = false
@@ -405,6 +405,74 @@ public final class HomeViewModel: ObservableObject {
         ttsService.stopPlayback()
         speakingModels.removeAll()
         isSpeakingInputText = false
+    }
+
+    // MARK: - Continue Conversation
+
+    /// Creates a ``ConversationSession`` from a completed model run,
+    /// reconstructing the original prompt messages so the conversation
+    /// starts with full context.
+    public func createConversation(from run: ModelRunViewState) -> ConversationSession? {
+        guard let action = selectedAction else { return nil }
+
+        // Extract the assistant's response text from the success state
+        let assistantText: String
+        switch run.status {
+        case let .success(_, copyText, _, _, _, _):
+            assistantText = copyText
+        default:
+            return nil
+        }
+
+        // Reconstruct the original messages using the same logic as LLMService
+        var chatMessages: [ChatMessage] = []
+
+        let text = currentRequestInputText
+        let prompt = action.prompt
+
+        if prompt.isEmpty {
+            chatMessages.append(ChatMessage(role: "user", content: text))
+        } else {
+            let processedPrompt = Self.substitutePromptPlaceholders(prompt, text: text)
+            let promptContainsTextPlaceholder = prompt.contains("{text}") || prompt.contains("{{text}}")
+
+            if promptContainsTextPlaceholder {
+                chatMessages.append(ChatMessage(role: "user", content: processedPrompt))
+            } else {
+                chatMessages.append(ChatMessage(role: "system", content: processedPrompt))
+                chatMessages.append(ChatMessage(role: "user", content: text))
+            }
+        }
+
+        // Add the assistant's response
+        chatMessages.append(ChatMessage(role: "assistant", content: assistantText))
+
+        return ConversationSession(
+            model: run.model,
+            action: action,
+            availableModels: preferences.isPremium ? models : models.filter { !$0.isPremium },
+            messages: chatMessages
+        )
+    }
+
+    /// Mirrors LLMService.substitutePromptPlaceholders logic so we can
+    /// reconstruct the original messages without exposing the private method.
+    private static func substitutePromptPlaceholders(_ prompt: String, text: String) -> String {
+        var result = prompt
+
+        let targetLanguageOption = AppPreferences.shared.targetLanguage
+        let targetLanguage = targetLanguageOption.promptDescriptor
+        result = result.replacingOccurrences(of: "{{targetLanguage}}", with: targetLanguage)
+        result = result.replacingOccurrences(of: "{targetLanguage}", with: targetLanguage)
+
+        let fallbackLanguage = targetLanguageOption.fallbackLanguageDescriptor
+        result = result.replacingOccurrences(of: "{{fallbackLanguage}}", with: fallbackLanguage)
+        result = result.replacingOccurrences(of: "{fallbackLanguage}", with: fallbackLanguage)
+
+        result = result.replacingOccurrences(of: "{{text}}", with: text)
+        result = result.replacingOccurrences(of: "{text}", with: text)
+
+        return result
     }
 
     deinit {

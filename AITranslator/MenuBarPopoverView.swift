@@ -20,6 +20,7 @@
         @State private var inputText: String = ""
         @State private var showHotkeyHint: Bool = true
         @State private var isLanguagePickerPresented: Bool = false
+        @State private var activeConversationSession: ConversationSession?
         @State private var targetLanguageCode: String = AppPreferences.shared.targetLanguage.rawValue
         @FocusState private var isInputFocused: Bool
         let onClose: () -> Void
@@ -40,32 +41,16 @@
 
         var body: some View {
             ZStack {
-                VStack(alignment: .leading, spacing: 12) {
-                    headerSection
-
-                    Divider()
-                        .background(colors.divider)
-
-                    inputSection
-                    actionChips
-
-                    if !viewModel.modelRuns.isEmpty {
-                        Divider()
-                            .background(colors.divider)
-                        resultSection
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .padding(16)
-                .frame(width: 360, height: 420)
-                .background(colors.background)
-
-                if viewModel.isLoadingConfiguration {
-                    configurationLoadingOverlay
+                if let session = activeConversationSession {
+                    inlineConversationView(session: session)
+                        .transition(.move(edge: .trailing))
+                } else {
+                    translateContent
+                        .transition(.move(edge: .leading))
                 }
             }
             .frame(width: 360, height: 420)
+            .animation(.easeInOut(duration: 0.25), value: activeConversationSession != nil)
             .onReceive(NotificationCenter.default.publisher(for: .menuBarPopoverDidShow)) { _ in
                 viewModel.refreshConfiguration()
                 targetLanguageCode = preferences.targetLanguage.rawValue
@@ -108,6 +93,50 @@
                 messageFont: .system(size: 13),
                 textColor: colors.textSecondary,
                 accentColor: colors.accent
+            )
+        }
+
+        // MARK: - Translate Content
+
+        private var translateContent: some View {
+            ZStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    headerSection
+
+                    Divider()
+                        .background(colors.divider)
+
+                    inputSection
+                    actionChips
+
+                    if !viewModel.modelRuns.isEmpty {
+                        Divider()
+                            .background(colors.divider)
+                        resultSection
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(16)
+                .frame(width: 360, height: 420)
+                .background(colors.background)
+
+                if viewModel.isLoadingConfiguration {
+                    configurationLoadingOverlay
+                }
+            }
+        }
+
+        // MARK: - Inline Conversation View
+
+        private func inlineConversationView(session: ConversationSession) -> some View {
+            InlineConversationContent(
+                session: session,
+                colors: colors,
+                onBack: {
+                    activeConversationSession = nil
+                },
+                onClose: onClose
             )
         }
 
@@ -310,6 +339,11 @@
                                 let pasteboard = NSPasteboard.general
                                 pasteboard.clearContents()
                                 pasteboard.setString(text, forType: .string)
+                            },
+                            onChat: {
+                                if let session = viewModel.createConversation(from: run) {
+                                    activeConversationSession = session
+                                }
                             }
                         )
                     }
@@ -407,6 +441,161 @@
                     parent.text = updated
                 }
             }
+        }
+    }
+
+    // MARK: - Inline Conversation Content
+
+    /// A compact conversation view designed to be embedded inline within the menu bar popover.
+    /// Replaces the translate content when a conversation session is active.
+    private struct InlineConversationContent: View {
+        @Environment(\.colorScheme) private var colorScheme
+        @StateObject private var viewModel: ConversationViewModel
+        let onBack: () -> Void
+        let onClose: () -> Void
+
+        private var colors: AppColorPalette {
+            AppColors.palette(for: colorScheme)
+        }
+
+        init(
+            session: ConversationSession,
+            colors _: AppColorPalette,
+            onBack: @escaping () -> Void,
+            onClose: @escaping () -> Void
+        ) {
+            _viewModel = StateObject(wrappedValue: ConversationViewModel(session: session))
+            self.onBack = onBack
+            self.onClose = onClose
+        }
+
+        var body: some View {
+            VStack(spacing: 0) {
+                // Header with back button
+                conversationHeader
+
+                Divider()
+                    .foregroundColor(colors.divider)
+
+                // Message list
+                messageList
+
+                // Error banner
+                if let error = viewModel.errorMessage {
+                    errorBanner(error)
+                }
+
+                Divider()
+                    .foregroundColor(colors.divider)
+
+                // Input bar
+                ConversationInputBar(
+                    text: $viewModel.inputText,
+                    selectedModel: $viewModel.model,
+                    isStreaming: viewModel.isStreaming,
+                    canSend: viewModel.canSend,
+                    availableModels: viewModel.availableModels,
+                    onSend: { viewModel.send() },
+                    onStop: { viewModel.stopStreaming() }
+                )
+            }
+            .frame(width: 360, height: 420)
+            .background(colors.background)
+            .onKeyPress(.tab) {
+                viewModel.cycleModel()
+                return .handled
+            }
+        }
+
+        private var conversationHeader: some View {
+            HStack(spacing: 8) {
+                Button {
+                    onBack()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(colors.accent)
+                }
+                .buttonStyle(.plain)
+
+                Text(viewModel.action.name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+                    .lineLimit(1)
+
+                Spacer()
+
+                Button {
+                    onClose()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+
+        private var messageList: some View {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(viewModel.messages) { message in
+                            MessageBubbleView(message: message)
+                                .id(message.id)
+                        }
+
+                        if viewModel.isStreaming {
+                            StreamingBubbleView(text: viewModel.streamingText)
+                                .id("streaming")
+                        }
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 8)
+                }
+                .onChange(of: viewModel.messages.count) { _, _ in
+                    scrollToBottom(proxy: proxy)
+                }
+                .onChange(of: viewModel.streamingText) { _, _ in
+                    scrollToBottom(proxy: proxy)
+                }
+            }
+        }
+
+        private func scrollToBottom(proxy: ScrollViewProxy) {
+            withAnimation(.easeOut(duration: 0.2)) {
+                if viewModel.isStreaming {
+                    proxy.scrollTo("streaming", anchor: .bottom)
+                } else if let lastMessage = viewModel.messages.last {
+                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                }
+            }
+        }
+
+        private func errorBanner(_ message: String) -> some View {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 12))
+                    .foregroundColor(colors.error)
+                Text(message)
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.error)
+                    .lineLimit(2)
+                Spacer()
+                Button {
+                    viewModel.errorMessage = nil
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(colors.textSecondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(colors.error.opacity(0.1))
         }
     }
 #endif

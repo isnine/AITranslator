@@ -18,6 +18,7 @@ public struct ProviderResultCardView: View {
     let viewModel: HomeViewModel
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
+    let onChat: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -28,13 +29,15 @@ public struct ProviderResultCardView: View {
         showModelName: Bool,
         viewModel: HomeViewModel,
         onCopy: @escaping (String) -> Void,
-        onReplace: ((String) -> Void)? = nil
+        onReplace: ((String) -> Void)? = nil,
+        onChat: (() -> Void)? = nil
     ) {
         self.run = run
         self.showModelName = showModelName
         self.viewModel = viewModel
         self.onCopy = onCopy
         self.onReplace = onReplace
+        self.onChat = onChat
     }
 
     public var body: some View {
@@ -43,14 +46,16 @@ public struct ProviderResultCardView: View {
                 run: run,
                 viewModel: viewModel,
                 onCopy: onCopy,
-                onReplace: onReplace
+                onReplace: onReplace,
+                onChat: onChat
             )
             ResultBottomInfoBar(
                 run: run,
                 showModelName: showModelName,
                 viewModel: viewModel,
                 onCopy: onCopy,
-                onReplace: onReplace
+                onReplace: onReplace,
+                onChat: onChat
             )
         }
         .padding(14)
@@ -75,6 +80,7 @@ struct ResultContentView: View {
     let viewModel: HomeViewModel
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
+    let onChat: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -198,7 +204,8 @@ struct ResultContentView: View {
                         viewModel: viewModel,
                         showDiffToggle: true,
                         onCopy: onCopy,
-                        onReplace: onReplace
+                        onReplace: onReplace,
+                        onChat: onChat
                     )
                 }
             }
@@ -229,6 +236,7 @@ struct ResultBottomInfoBar: View {
     let viewModel: HomeViewModel
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
+    let onChat: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -318,7 +326,8 @@ struct ResultBottomInfoBar: View {
                     viewModel: viewModel,
                     showDiffToggle: true,
                     onCopy: onCopy,
-                    onReplace: onReplace
+                    onReplace: onReplace,
+                    onChat: onChat
                 )
             }
         }
@@ -368,6 +377,7 @@ struct ResultActionButtons: View {
     let showDiffToggle: Bool
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
+    let onChat: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -380,6 +390,9 @@ struct ResultActionButtons: View {
             }
             SpeakButton(text: copyText, runID: runID, viewModel: viewModel)
             CopyButton(text: copyText, onCopy: onCopy)
+            if let onChat {
+                ContinueChatButton(onChat: onChat)
+            }
             if let onReplace {
                 ReplaceButton(text: copyText, onReplace: onReplace)
             }
@@ -436,6 +449,29 @@ struct CopyButton: View {
                 .foregroundColor(colors.accent)
         }
         .buttonStyle(.plain)
+    }
+}
+
+/// Button for opening continue-conversation chat
+struct ContinueChatButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let onChat: () -> Void
+
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+
+    var body: some View {
+        Button {
+            onChat()
+        } label: {
+            Image(systemName: "text.bubble")
+                .font(.system(size: 13))
+                .foregroundColor(colors.accent)
+        }
+        .buttonStyle(.plain)
+        .help("Continue conversation")
     }
 }
 

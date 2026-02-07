@@ -150,6 +150,9 @@
     "Are you sure you want to delete this action? This cannot be undone." : {
 
     },
+    "Ask for follow-up changes" : {
+
+    },
     "Auth Header Name" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -342,6 +345,9 @@
       }
     },
     "Context options apply to the iOS Translation Extension only" : {
+
+    },
+    "Continue conversation" : {
 
     },
     "Create Custom Configuration" : {
@@ -1105,9 +1111,6 @@
           }
         }
       }
-    },
-    "Save 50%" : {
-
     },
     "Select models to use for translation" : {
       "localizations" : {

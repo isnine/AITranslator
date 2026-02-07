@@ -16,6 +16,7 @@
         @State private var hasTriggeredAutoRequest = false
         @State private var isLanguagePickerPresented: Bool = false
         @State private var targetLanguageCode: String = AppPreferences.shared.targetLanguage.rawValue
+        @State private var activeConversationSession: ConversationSession?
 
         private let context: TranslationUIProviderContext
 
@@ -100,6 +101,11 @@
                 let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
                 AppPreferences.shared.setTargetLanguage(option)
                 viewModel.refreshConfiguration()
+            }
+            .sheet(item: $activeConversationSession) { session in
+                ConversationView(session: session)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
         }
 
@@ -224,7 +230,12 @@
                             },
                             onReplace: context.allowsReplacement ? { text in
                                 context.finish(translation: AttributedString(text))
-                            } : nil
+                            } : nil,
+                            onChat: {
+                                if let session = viewModel.createConversation(from: run) {
+                                    activeConversationSession = session
+                                }
+                            }
                         )
                     }
                 }

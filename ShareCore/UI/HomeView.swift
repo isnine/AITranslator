@@ -32,7 +32,18 @@ public struct HomeView: View {
     @State private var isInputExpanded: Bool
     @State private var showingProviderInfo: String?
     @State private var showDefaultAppGuide = false
+    @State private var activeConversationSession: ConversationSession?
     @Namespace private var chipNamespace
+
+    #if os(macOS)
+    private var conversationInspectorBinding: Binding<Bool> {
+        Binding(
+            get: { activeConversationSession != nil },
+            set: { if !$0 { activeConversationSession = nil } }
+        )
+    }
+    #endif
+
     var openFromExtension: Bool {
         #if canImport(TranslationUIProvider)
             return context != nil
@@ -180,6 +191,22 @@ public struct HomeView: View {
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
+        #if os(macOS)
+        .inspector(isPresented: conversationInspectorBinding) {
+            if let session = activeConversationSession {
+                ConversationContentView(session: session) {
+                    activeConversationSession = nil
+                }
+                .inspectorColumnWidth(min: 280, ideal: 320, max: 400)
+            }
+        }
+        #else
+        .sheet(item: $activeConversationSession) { session in
+            ConversationView(session: session)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        #endif
     }
 
     private var configurationLoadingOverlay: some View {
@@ -673,6 +700,7 @@ public struct HomeView: View {
         // Full action buttons for bottom bar (plain text mode)
         diffToggleButton(for: runID)
         compactCopyButton(for: copyText)
+        chatButton(for: runID)
         #if canImport(TranslationUIProvider)
             if let context, context.allowsReplacement {
                 Button {
@@ -692,6 +720,7 @@ public struct HomeView: View {
         // Action buttons above divider (for grammarCheck/diff modes with supplementalTexts)
         diffToggleButton(for: runID)
         compactCopyButton(for: copyText)
+        chatButton(for: runID)
         #if canImport(TranslationUIProvider)
             if let context, context.allowsReplacement {
                 Button {
@@ -803,6 +832,23 @@ public struct HomeView: View {
                 .foregroundColor(colors.accent)
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func chatButton(for runID: String) -> some View {
+        Button {
+            if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
+               let session = viewModel.createConversation(from: run)
+            {
+                activeConversationSession = session
+            }
+        } label: {
+            Image(systemName: "text.bubble")
+                .font(.system(size: 14))
+                .foregroundColor(colors.accent)
+        }
+        .buttonStyle(.plain)
+        .help("Continue conversation")
     }
 
     @ViewBuilder

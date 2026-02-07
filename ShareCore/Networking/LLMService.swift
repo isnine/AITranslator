@@ -383,6 +383,96 @@ public final class LLMService {
         }
     }
 
+    // MARK: - Conversation Continuation
+
+    /// Sends a continuation message in an ongoing conversation.
+    /// Accepts a pre-built messages array (full conversation history) and streams the response.
+    /// No structured output / response_format is used for follow-up conversation.
+    public func sendContinuation(
+        messages: [LLMRequestPayload.Message],
+        model: ModelConfig,
+        partialHandler: @escaping @MainActor @Sendable (String) -> Void
+    ) async throws -> String {
+        let requestURL = CloudServiceConstants.endpoint
+            .appendingPathComponent(model.id)
+            .appendingPathComponent("chat/completions")
+
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+
+        let path = "/\(model.id)/chat/completions"
+        applyCloudAuth(to: &request, path: path)
+
+        let payload = LLMRequestPayload(messages: messages, stream: true)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted]
+        request.httpBody = try encoder.encode(payload)
+
+        Logger.debug("[LLMService] Continuation request - Model: \(model.displayName)")
+        Logger.debug("[LLMService] URL: \(requestURL.absoluteString)")
+        Logger.debug("[LLMService] Messages count: \(messages.count)")
+
+        try Task.checkCancellation()
+
+        let (bytes, response) = try await urlSession.bytes(for: request)
+
+        try Task.checkCancellation()
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            var errorData = Data()
+            for try await chunk in bytes {
+                errorData.append(chunk)
+            }
+            let responseString = String(data: errorData, encoding: .utf8) ?? ""
+            throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
+        }
+
+        let contentType = (httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
+        let decoder = JSONDecoder.llmDecoder
+
+        if contentType.contains("text/event-stream") {
+            var aggregatedText = ""
+
+            for try await line in bytes.lines {
+                try Task.checkCancellation()
+                let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard trimmedLine.hasPrefix("data:") else { continue }
+                let payload = trimmedLine.dropFirst("data:".count).trimmingCharacters(in: .whitespaces)
+                if payload == "[DONE]" { break }
+
+                guard let data = payload.data(using: .utf8), !data.isEmpty else { continue }
+                let chunk = try decoder.decode(ChatCompletionsStreamChunk.self, from: data)
+                let deltaText = chunk.combinedText
+                guard !deltaText.isEmpty else { continue }
+                aggregatedText.append(deltaText)
+                try Task.checkCancellation()
+                await partialHandler(aggregatedText)
+            }
+
+            let finalText = aggregatedText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !finalText.isEmpty else { throw LLMServiceError.emptyContent }
+            return finalText
+        } else {
+            // Non-streaming fallback
+            var data = Data()
+            for try await chunk in bytes {
+                try Task.checkCancellation()
+                data.append(chunk)
+            }
+            let parsed = try parseResponsePayload(data: data, structuredOutput: nil)
+            let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
+            await partialHandler(trimmed)
+            return trimmed
+        }
+    }
+
     /// Parse sentence pairs from raw JSON string
     private func parseSentencePairsFromJSON(_ jsonString: String) -> [SentencePair] {
         guard let data = jsonString.data(using: .utf8),
