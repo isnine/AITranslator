@@ -148,7 +148,15 @@ public final class HomeViewModel: ObservableObject {
         preferences.$enabledModelIDs
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
+                self?.objectWillChange.send()
                 self?.updateEnabledModels()
+            }
+            .store(in: &cancellables)
+
+        preferences.$isPremium
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
             }
             .store(in: &cancellables)
 
@@ -191,7 +199,7 @@ public final class HomeViewModel: ObservableObject {
 
     private func getEnabledModels() -> [ModelConfig] {
         let enabledIDs = preferences.enabledModelIDs
-        let isPremium = AppPreferences.sharedDefaults.bool(forKey: "is_premium_subscriber")
+        let isPremium = preferences.isPremium
 
         var available: [ModelConfig]
         if enabledIDs.isEmpty {
