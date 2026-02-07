@@ -331,8 +331,8 @@ public struct HomeView: View {
                         .foregroundColor(colors.textSecondary)
                     }
 
-                    #if os(macOS)
-                        if !isCollapsed {
+                    if !isCollapsed {
+                        #if os(macOS)
                             Button {
                                 let panel = NSOpenPanel()
                                 panel.allowedContentTypes = [.image]
@@ -353,15 +353,7 @@ public struct HomeView: View {
                             }
                             .buttonStyle(.plain)
                             .foregroundColor(colors.accent)
-                        }
-                    #endif
-
-                    Spacer()
-
-                    if !isCollapsed {
-                        inputSpeakButton
-
-                        #if os(iOS)
+                        #elseif os(iOS)
                             PhotosPicker(
                                 selection: $selectedPhotoItems,
                                 matching: .images,
@@ -388,6 +380,12 @@ public struct HomeView: View {
                                 }
                             }
                         #endif
+                    }
+
+                    Spacer()
+
+                    if !isCollapsed {
+                        inputSpeakButton
 
                         Button {
                             hideKeyboard()
