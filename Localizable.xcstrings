@@ -84,6 +84,9 @@
     "ACTIONS" : {
 
     },
+    "Active" : {
+
+    },
     "API Key" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -169,6 +172,7 @@
       }
     },
     "AVAILABLE MODELS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -690,6 +694,9 @@
         }
       }
     },
+    "Free" : {
+
+    },
     "Free TTS service powered by the app" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -938,6 +945,9 @@
         }
       }
     },
+    "Premium" : {
+
+    },
     "Processing..." : {
       "comment" : "Menu bar popover processing state",
       "localizations" : {
@@ -948,6 +958,9 @@
           }
         }
       }
+    },
+    "Products unavailable. Please try again later." : {
+
     },
     "Prompt Template" : {
       "localizations" : {
@@ -1060,6 +1073,9 @@
     "Requires iOS 17.4+ or macOS 14.4+" : {
       "comment" : "Apple Translation unavailable status"
     },
+    "Restore Purchases" : {
+
+    },
     "Retry" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1089,6 +1105,9 @@
           }
         }
       }
+    },
+    "Save 50%" : {
+
     },
     "Select models to use for translation" : {
       "localizations" : {
@@ -1236,6 +1255,9 @@
         }
       }
     },
+    "Speak input text" : {
+
+    },
     "Speak text" : {
 
     },
@@ -1273,6 +1295,12 @@
           }
         }
       }
+    },
+    "Subscription" : {
+
+    },
+    "Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period." : {
+
     },
     "Summarize" : {
       "comment" : "Name of the summarize action",
@@ -1368,6 +1396,15 @@
           }
         }
       }
+    },
+    "Unlock the most powerful translation models" : {
+
+    },
+    "Upgrade" : {
+
+    },
+    "Upgrade to Premium" : {
+
     },
     "Usage Scenes" : {
       "localizations" : {

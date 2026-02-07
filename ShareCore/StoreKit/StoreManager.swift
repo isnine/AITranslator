@@ -66,7 +66,6 @@ public final class StoreManager: ObservableObject {
                 return lhs.price < rhs.price
             }
 
-            Logger.debug("[StoreManager] Loaded \(products.count) products")
         } catch {
             Logger.debug("[StoreManager] Failed to load products: \(error)")
         }

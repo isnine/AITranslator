@@ -165,8 +165,8 @@ struct PaywallView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(colors.textPrimary)
 
-                        if isAnnual {
-                            Text("Save 50%")
+                        if isAnnual, let savingsText = annualSavingsText {
+                            Text(savingsText)
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 8)
@@ -203,6 +203,21 @@ struct PaywallView: View {
         .buttonStyle(.plain)
         .disabled(storeManager.isPurchasing)
         .opacity(storeManager.isPurchasing ? 0.6 : 1.0)
+    }
+
+    // MARK: - Savings Calculation
+
+    private var annualSavingsText: String? {
+        guard let monthly = storeManager.monthlyProduct,
+              let annual = storeManager.annualProduct else {
+            return nil
+        }
+        let annualized = monthly.price * 12
+        guard annualized > annual.price else { return nil }
+        let savings = (annualized - annual.price) / annualized * 100
+        let percent = Int(NSDecimalNumber(decimal: savings).doubleValue)
+        guard percent > 0 else { return nil }
+        return "Save \(percent)%"
     }
 
     // MARK: - Restore

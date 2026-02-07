@@ -10,4 +10,4 @@
 
 ## UI
 
-- [ ] **Dynamic savings label**: The "Save 50%" badge in `PaywallView` is hardcoded. If subscription pricing changes, this label will become inaccurate. Consider computing it from the actual product prices.
+- [x] **Dynamic savings label**: The savings badge in `PaywallView` is now dynamically computed from the actual monthly and annual product prices fetched from App Store Connect.
