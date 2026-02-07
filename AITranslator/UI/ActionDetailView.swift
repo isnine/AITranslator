@@ -24,6 +24,10 @@ struct ActionDetailView: View {
     @State private var showValidationError = false
     @State private var validationErrorMessage = ""
 
+    // Collapsible section state
+    @State private var isUsageScenesExpanded = false
+    @State private var isOutputTypeExpanded = false
+
     // Delete confirmation state
     @State private var showDeleteConfirmation = false
 
@@ -143,8 +147,21 @@ struct ActionDetailView: View {
         }
     }
 
+    private var usageScenesSummary: String {
+        var parts: [String] = []
+        if usageScenes.contains(.app) { parts.append("In App") }
+        if usageScenes.contains(.contextRead) { parts.append("Read-Only") }
+        if usageScenes.contains(.contextEdit) { parts.append("Editable") }
+        return parts.isEmpty ? "None" : parts.joined(separator: ", ")
+    }
+
     private var usageSection: some View {
-        section(title: "Usage Scenes", subtitle: "Context options apply to the iOS Translation Extension only") {
+        collapsibleSection(
+            title: "Usage Scenes",
+            subtitle: "Context options apply to the iOS Translation Extension only",
+            summary: usageScenesSummary,
+            isExpanded: $isUsageScenesExpanded
+        ) {
             VStack(alignment: .leading, spacing: 12) {
                 usageSceneRow(title: "In App", description: "Available inside the app", scene: .app)
                 usageSceneRow(
@@ -161,8 +178,21 @@ struct ActionDetailView: View {
         }
     }
 
+    private var outputTypeSummary: String {
+        switch outputType {
+        case .plain: return "Plain Text"
+        case .diff: return "Show Diff"
+        case .sentencePairs: return "Sentence Pairs"
+        case .grammarCheck: return "Grammar Check"
+        }
+    }
+
     private var optionsSection: some View {
-        section(title: "Output Type") {
+        collapsibleSection(
+            title: "Output Type",
+            summary: outputTypeSummary,
+            isExpanded: $isOutputTypeExpanded
+        ) {
             VStack(spacing: 12) {
                 outputTypeRow(
                     type: .plain,
@@ -276,6 +306,54 @@ struct ActionDetailView: View {
             }
 
             content()
+        }
+    }
+
+    @ViewBuilder
+    private func collapsibleSection(
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey? = nil,
+        summary: String,
+        isExpanded: Binding<Bool>,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    isExpanded.wrappedValue.toggle()
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Text(title)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
+
+                    Spacer()
+
+                    if !isExpanded.wrappedValue {
+                        Text(summary)
+                            .font(.system(size: 14))
+                            .foregroundColor(colors.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary.opacity(0.5))
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded.wrappedValue {
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                content()
+            }
         }
     }
 
