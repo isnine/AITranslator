@@ -12,6 +12,9 @@ import SwiftUI
 #if canImport(AppKit)
     import AppKit
 #endif
+#if canImport(PhotosUI)
+    import PhotosUI
+#endif
 #if canImport(TranslationUIProvider)
     import TranslationUIProvider
 #endif
@@ -33,6 +36,7 @@ public struct HomeView: View {
     @State private var showingProviderInfo: String?
     @State private var showDefaultAppGuide = false
     @State private var activeConversationSession: ConversationSession?
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @Namespace private var chipNamespace
 
     #if os(macOS)
@@ -327,10 +331,63 @@ public struct HomeView: View {
                         .foregroundColor(colors.textSecondary)
                     }
 
+                    #if os(macOS)
+                        if !isCollapsed {
+                            Button {
+                                let panel = NSOpenPanel()
+                                panel.allowedContentTypes = [.image]
+                                panel.allowsMultipleSelection = true
+                                panel.canChooseDirectories = false
+                                if panel.runModal() == .OK {
+                                    for url in panel.urls {
+                                        if let nsImage = NSImage(contentsOf: url),
+                                           let attachment = ImageAttachment.from(nsImage: nsImage)
+                                        {
+                                            viewModel.addImage(attachment)
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(colors.accent)
+                        }
+                    #endif
+
                     Spacer()
 
                     if !isCollapsed {
                         inputSpeakButton
+
+                        #if os(iOS)
+                            PhotosPicker(
+                                selection: $selectedPhotoItems,
+                                matching: .images,
+                                photoLibrary: .shared()
+                            ) {
+                                Image(systemName: "photo.on.rectangle.angled")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(colors.accent)
+                            .onChange(of: selectedPhotoItems) {
+                                let items = selectedPhotoItems
+                                guard !items.isEmpty else { return }
+                                Task {
+                                    for item in items {
+                                        if let data = try? await item.loadTransferable(type: Data.self),
+                                           let uiImage = UIImage(data: data),
+                                           let attachment = ImageAttachment.from(uiImage: uiImage)
+                                        {
+                                            viewModel.addImage(attachment)
+                                        }
+                                    }
+                                    selectedPhotoItems = []
+                                }
+                            }
+                        #endif
 
                         Button {
                             hideKeyboard()
@@ -435,19 +492,39 @@ public struct HomeView: View {
                 #if os(macOS)
                     AutoPasteTextEditor(
                         text: $viewModel.inputText,
-                        placeholder: viewModel.inputPlaceholder
-                    ) { pastedText in
-                        applyPastedTextIfNeeded(pastedText)
-                    }
+                        placeholder: viewModel.inputPlaceholder,
+                        onPaste: { pastedText in
+                            applyPastedTextIfNeeded(pastedText)
+                        },
+                        onImagePaste: { nsImages in
+                            Logger.debug("onImagePaste callback: received \(nsImages.count) NSImage(s)", tag: "ImagePaste")
+                            for nsImage in nsImages {
+                                if let attachment = ImageAttachment.from(nsImage: nsImage) {
+                                    Logger.debug("onImagePaste: attachment created, size: \(String(format: "%.2f", attachment.sizeMB))MB", tag: "ImagePaste")
+                                    viewModel.addImage(attachment)
+                                } else {
+                                    Logger.debug("onImagePaste: ImageAttachment.from(nsImage:) returned nil for image size \(nsImage.size)", tag: "ImagePaste")
+                                }
+                            }
+                        }
+                    )
                     .frame(minHeight: 140, maxHeight: 160)
                     .padding(12)
                 #elseif os(iOS)
                     AutoPasteTextEditor(
                         text: $viewModel.inputText,
-                        placeholder: viewModel.inputPlaceholder
-                    ) { pastedText in
-                        applyPastedTextIfNeeded(pastedText)
-                    }
+                        placeholder: viewModel.inputPlaceholder,
+                        onPaste: { pastedText in
+                            applyPastedTextIfNeeded(pastedText)
+                        },
+                        onImagePaste: { uiImages in
+                            for uiImage in uiImages {
+                                if let attachment = ImageAttachment.from(uiImage: uiImage) {
+                                    viewModel.addImage(attachment)
+                                }
+                            }
+                        }
+                    )
                     .frame(minHeight: 140, maxHeight: 160)
                     .padding(12)
                 #else
@@ -460,6 +537,18 @@ public struct HomeView: View {
                             handlePasteCommand(providers: providers)
                         }
                 #endif
+            }
+
+            // Image attachment preview
+            if !viewModel.attachedImages.isEmpty {
+                ImageAttachmentPreview(
+                    images: viewModel.attachedImages,
+                    onRemove: { id in
+                        viewModel.removeImage(id: id)
+                    }
+                )
+                .padding(.horizontal, 12)
+                .padding(.bottom, 4)
             }
         }
     }
@@ -1070,6 +1159,7 @@ public struct HomeView: View {
         @Binding var text: String
         let placeholder: String
         let onPaste: (String) -> Void
+        var onImagePaste: (([NSImage]) -> Void)?
 
         func makeCoordinator() -> Coordinator {
             Coordinator(parent: self)
@@ -1091,7 +1181,11 @@ public struct HomeView: View {
             textView.textContainer?.widthTracksTextView = true
             textView.string = text
             textView.onPaste = onPaste
+            textView.onImagePaste = onImagePaste
             textView.placeholderAttributedString = makePlaceholderAttributedString()
+
+            // Register for drag & drop of image files and image pasteboard types
+            textView.registerForDraggedTypes([.fileURL, .tiff, .png, NSPasteboard.PasteboardType("public.jpeg")])
 
             let scrollView = NSScrollView()
             scrollView.drawsBackground = false
@@ -1111,6 +1205,7 @@ public struct HomeView: View {
             }
 
             textView.onPaste = onPaste
+            textView.onImagePaste = onImagePaste
             if textView.placeholderAttributedString?.string != placeholder {
                 textView.placeholderAttributedString = makePlaceholderAttributedString()
             }
@@ -1144,17 +1239,90 @@ public struct HomeView: View {
 
     private final class PastingTextView: NSTextView {
         var onPaste: ((String) -> Void)?
+        var onImagePaste: (([NSImage]) -> Void)?
         var placeholderAttributedString: NSAttributedString? {
             didSet { needsDisplay = true }
         }
 
         override func paste(_ sender: Any?) {
+            // Check for images on the pasteboard first
+            let pb = NSPasteboard.general
+            let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
+            Logger.debug("Paste: pasteboard types = \(pb.types?.map(\.rawValue) ?? [])", tag: "ImagePaste")
+            if let availableType = pb.availableType(from: imageTypes) {
+                Logger.debug("Paste: found raw image type: \(availableType.rawValue)", tag: "ImagePaste")
+                if let data = pb.data(forType: availableType),
+                   let image = NSImage(data: data)
+                {
+                    Logger.debug("Paste: created NSImage from raw data, size: \(image.size)", tag: "ImagePaste")
+                    onImagePaste?([image])
+                    return
+                }
+                Logger.debug("Paste: failed to create NSImage from raw data", tag: "ImagePaste")
+            }
+
+            // Also check for image file URLs
+            if let urls = pb.readObjects(forClasses: [NSURL.self], options: [
+                .urlReadingContentsConformToTypes: [UTType.image.identifier],
+            ]) as? [URL], !urls.isEmpty {
+                Logger.debug("Paste: found \(urls.count) image file URLs", tag: "ImagePaste")
+                let images = urls.compactMap { NSImage(contentsOf: $0) }
+                if !images.isEmpty {
+                    onImagePaste?(images)
+                    return
+                }
+            }
+
+            Logger.debug("Paste: no images found, falling through to text paste", tag: "ImagePaste")
+            // Fall through to text paste
             super.paste(sender)
             let current = string
             let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return }
             onPaste?(current)
             needsDisplay = true
+        }
+
+        // MARK: - Drag & Drop
+
+        override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+            let pb = sender.draggingPasteboard
+            if pb.canReadObject(forClasses: [NSURL.self], options: [
+                .urlReadingContentsConformToTypes: [UTType.image.identifier],
+            ]) {
+                return .copy
+            }
+            if pb.availableType(from: [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]) != nil {
+                return .copy
+            }
+            return super.draggingEntered(sender)
+        }
+
+        override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+            let pb = sender.draggingPasteboard
+
+            // Check for image file URLs
+            if let urls = pb.readObjects(forClasses: [NSURL.self], options: [
+                .urlReadingContentsConformToTypes: [UTType.image.identifier],
+            ]) as? [URL], !urls.isEmpty {
+                let images = urls.compactMap { NSImage(contentsOf: $0) }
+                if !images.isEmpty {
+                    onImagePaste?(images)
+                    return true
+                }
+            }
+
+            // Check for raw image data
+            let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
+            if let availableType = pb.availableType(from: imageTypes),
+               let data = pb.data(forType: availableType),
+               let image = NSImage(data: data)
+            {
+                onImagePaste?([image])
+                return true
+            }
+
+            return super.performDragOperation(sender)
         }
 
         override var isRichText: Bool {
@@ -1204,6 +1372,7 @@ public struct HomeView: View {
         @Binding var text: String
         let placeholder: String
         let onPaste: (String) -> Void
+        var onImagePaste: (([UIImage]) -> Void)?
 
         func makeCoordinator() -> Coordinator {
             Coordinator(parent: self)
@@ -1216,6 +1385,7 @@ public struct HomeView: View {
             textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
             textView.text = text
             textView.onPaste = onPaste
+            textView.onImagePaste = onImagePaste
             textView.isScrollEnabled = true
             textView.alwaysBounceVertical = true
             textView.adjustsFontForContentSizeCategory = true
@@ -1232,6 +1402,7 @@ public struct HomeView: View {
                 uiView.text = text
             }
             uiView.onPaste = onPaste
+            uiView.onImagePaste = onImagePaste
         }
 
         final class Coordinator: NSObject, UITextViewDelegate {
@@ -1252,8 +1423,17 @@ public struct HomeView: View {
 
     private final class PastingTextView: UITextView {
         var onPaste: ((String) -> Void)?
+        var onImagePaste: (([UIImage]) -> Void)?
 
         override func paste(_ sender: Any?) {
+            // Check for images on the pasteboard first
+            let pb = UIPasteboard.general
+            if pb.hasImages, let images = pb.images, !images.isEmpty {
+                onImagePaste?(images)
+                return
+            }
+
+            // Fall through to text paste
             super.paste(sender)
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
