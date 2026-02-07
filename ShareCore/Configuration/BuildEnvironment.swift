@@ -32,7 +32,11 @@ public enum BuildEnvironment {
     // MARK: - Default Values
 
     private enum Defaults {
-        static let cloudEndpoint = "https://translator-api.zanderwang.com"
+        #if DEBUG
+            static let cloudEndpoint = "https://aitranslator-dev.xiaozwan.workers.dev"
+        #else
+            static let cloudEndpoint = "https://translator-api.zanderwang.com"
+        #endif
     }
 
     // MARK: - Public Properties

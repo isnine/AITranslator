@@ -65,5 +65,11 @@ Configuration/Local.xcconfig
 Configuration/Secrets.xcconfig
 .env
 
+# Node
+node_modules/
+
+# OpenCode
+.opencode/
+
 # Build tools
 Makefile

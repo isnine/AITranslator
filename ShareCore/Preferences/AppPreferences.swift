@@ -25,6 +25,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var defaultAppHintDismissed: Bool
     @Published public private(set) var enabledModelIDs: Set<String>
     @Published public private(set) var selectedVoiceID: String
+    @Published public private(set) var isPremium: Bool
     #if os(macOS)
         @Published public private(set) var keepRunningWhenClosed: Bool
     #endif
@@ -41,6 +42,7 @@ public final class AppPreferences: ObservableObject {
         defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
         enabledModelIDs = AppPreferences.readEnabledModelIDs(from: defaults)
         selectedVoiceID = defaults.string(forKey: StorageKeys.selectedVoiceID) ?? VoiceConfig.defaultVoiceID
+        isPremium = defaults.bool(forKey: StorageKeys.isPremium)
         #if os(macOS)
             // Default to true - keep app running in menu bar when window is closed
             keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
@@ -218,6 +220,11 @@ public final class AppPreferences: ObservableObject {
         if selectedVoiceID != storedVoiceID {
             selectedVoiceID = storedVoiceID
         }
+
+        let storedIsPremium = defaults.bool(forKey: StorageKeys.isPremium)
+        if isPremium != storedIsPremium {
+            isPremium = storedIsPremium
+        }
     }
 
     private static func readCustomConfigDirectory(from defaults: UserDefaults) -> URL? {
@@ -278,6 +285,8 @@ private enum StorageKeys {
     static let enabledModels = "enabled_models"
     /// Key for selected TTS voice ID
     static let selectedVoiceID = "selected_voice_id"
+    /// Key for premium subscription status
+    static let isPremium = "is_premium_subscriber"
     #if os(macOS)
         static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif

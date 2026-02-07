@@ -18,7 +18,8 @@ public final class ModelsService: Sendable {
     }
 
     public func fetchModels() async throws -> [ModelConfig] {
-        let url = CloudServiceConstants.endpoint.appendingPathComponent("models")
+        var url = CloudServiceConstants.endpoint.appendingPathComponent("models")
+        url.append(queryItems: [URLQueryItem(name: "premium", value: "1")])
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")

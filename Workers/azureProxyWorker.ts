@@ -27,32 +27,63 @@ const TIMESTAMP_TOLERANCE_SECONDS = 120;
 
 // Allowed models for the built-in cloud service
 const ALLOWED_MODELS = [
+  // Free tier
   "gpt-4o-mini",
   "gpt-4.1-mini",
   "gpt-4.1-nano",
   "gpt-5-nano",
   "gpt-5-mini",
+  // Premium tier
+  "gpt-4o",
+  "gpt-4.1",
+  "gpt-4.5-preview",
+  "gpt-5",
+  "gpt-5-chat",
+  "o3-mini",
+  "o4-mini",
+  // Hidden (allowed but not listed)
   "model-router",
 ];
+
+// Premium models require an active subscription
+const PREMIUM_MODELS = new Set([
+  "gpt-4o",
+  "gpt-4.1",
+  "gpt-4.5-preview",
+  "gpt-5",
+  "gpt-5-chat",
+  "o3-mini",
+  "o4-mini",
+]);
 
 interface ModelInfo {
   id: string;
   displayName: string;
   isDefault: boolean;
+  isPremium: boolean;
 }
 
 const MODELS_LIST: ModelInfo[] = [
-  { id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true },
-  { id: "gpt-4.1-mini", displayName: "GPT-4.1 Mini", isDefault: false },
-  { id: "gpt-4o-mini", displayName: "GPT-4o Mini", isDefault: false },
-  { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false },
-  { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false },
+  // Free tier models
+  { id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true, isPremium: false },
+  { id: "gpt-4.1-mini", displayName: "GPT-4.1 Mini", isDefault: false, isPremium: false },
+  { id: "gpt-4o-mini", displayName: "GPT-4o Mini", isDefault: false, isPremium: false },
+  { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false, isPremium: false },
+  { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false, isPremium: false },
+  // Premium tier models
+  { id: "gpt-4o", displayName: "GPT-4o", isDefault: false, isPremium: true },
+  { id: "gpt-4.1", displayName: "GPT-4.1", isDefault: false, isPremium: true },
+  { id: "gpt-4.5-preview", displayName: "GPT-4.5 Preview", isDefault: false, isPremium: true },
+  { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true },
+  { id: "gpt-5-chat", displayName: "GPT-5 Chat", isDefault: false, isPremium: true },
+  { id: "o3-mini", displayName: "o3 Mini", isDefault: false, isPremium: true },
+  { id: "o4-mini", displayName: "o4 Mini", isDefault: false, isPremium: true },
 ];
 
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "Content-Type, api-key, Authorization, Accept, Accept-Language, X-Timestamp, X-Signature",
+    "Content-Type, api-key, Authorization, Accept, Accept-Language, X-Timestamp, X-Signature, X-Premium",
   "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,DELETE,OPTIONS",
 };
 
@@ -67,7 +98,7 @@ export default {
 
     // Route: /models - Return available models list (no auth required)
     if (path === "/models") {
-      return handleModelsRequest();
+      return handleModelsRequest(url);
     }
 
     // Validate HMAC signature for all other routes
@@ -90,9 +121,13 @@ export default {
   },
 };
 
-function handleModelsRequest(): Response {
+function handleModelsRequest(url: URL): Response {
+  const includePremium = url.searchParams.get("premium") === "1";
+  const models = includePremium
+    ? MODELS_LIST
+    : MODELS_LIST.filter((m) => !m.isPremium).map(({ isPremium, ...rest }) => rest);
   return buildResponse(
-    JSON.stringify({ models: MODELS_LIST }),
+    JSON.stringify({ models }),
     200,
     "application/json"
   );
@@ -179,6 +214,21 @@ async function handleLLMRequest(request: Request, env: Env): Promise<Response> {
       400,
       "application/json"
     );
+  }
+
+  // Validate premium access for premium models
+  if (PREMIUM_MODELS.has(requestedModel)) {
+    const premiumHeader = request.headers.get("X-Premium");
+    if (premiumHeader !== "true") {
+      return buildResponse(
+        JSON.stringify({
+          error: "Premium required",
+          message: `Model '${requestedModel}' requires a premium subscription.`,
+        }),
+        403,
+        "application/json"
+      );
+    }
   }
 
   try {

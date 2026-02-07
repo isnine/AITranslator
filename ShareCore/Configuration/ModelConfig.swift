@@ -18,10 +18,14 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
     /// Whether this model is the default selection
     public let isDefault: Bool
 
-    public init(id: String, displayName: String, isDefault: Bool = false) {
+    /// Whether this model requires a premium subscription
+    public let isPremium: Bool
+
+    public init(id: String, displayName: String, isDefault: Bool = false, isPremium: Bool = false) {
         self.id = id
         self.displayName = displayName
         self.isDefault = isDefault
+        self.isPremium = isPremium
     }
 }
 

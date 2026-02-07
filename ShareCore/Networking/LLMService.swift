@@ -73,6 +73,11 @@ public final class LLMService {
         let signature = generateSignature(timestamp: timestamp, path: path)
         request.setValue(timestamp, forHTTPHeaderField: "X-Timestamp")
         request.setValue(signature, forHTTPHeaderField: "X-Signature")
+
+        // Include premium header when user has active subscription
+        if AppPreferences.sharedDefaults.bool(forKey: "is_premium_subscriber") {
+            request.setValue("true", forHTTPHeaderField: "X-Premium")
+        }
     }
 
     public func perform(

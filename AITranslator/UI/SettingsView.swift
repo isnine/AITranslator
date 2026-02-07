@@ -19,8 +19,10 @@ struct SettingsView: View {
     private var targetLanguageCode: String = TargetLanguageOption.appLanguage.rawValue
     @ObservedObject private var preferences: AppPreferences
     @ObservedObject private var configStore = AppConfigurationStore.shared
+    @ObservedObject private var storeManager = StoreManager.shared
     @State private var isLanguagePickerPresented = false
     @State private var isVoicePickerPresented = false
+    @State private var showPaywall = false
 
     // Configuration import/export state
     @State private var isImportPresented = false
@@ -88,6 +90,9 @@ struct SettingsView: View {
             VoicePickerView(
                 isPresented: $isVoicePickerPresented
             )
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
         }
         .onAppear {
             preferences.refreshFromDefaults()
@@ -190,6 +195,9 @@ struct SettingsView: View {
                     Divider()
                         .padding(.leading, 52)
                     voicePreferenceRow
+                    Divider()
+                        .padding(.leading, 52)
+                    subscriptionRow
                     #if os(macOS)
                         Divider()
                             .padding(.leading, 52)
@@ -331,6 +339,62 @@ private extension SettingsView {
             return voice.name
         }
         return voiceID.capitalized
+    }
+
+    var subscriptionRow: some View {
+        Button {
+            if !storeManager.isPremium {
+                showPaywall = true
+            }
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "crown.fill")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.orange)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Subscription")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(colors.textPrimary)
+                    Text(storeManager.isPremium ? "Premium" : "Free")
+                        .font(.system(size: 13))
+                        .foregroundColor(storeManager.isPremium ? .orange : colors.textSecondary)
+                }
+
+                Spacer()
+
+                if storeManager.isPremium {
+                    Text("Active")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.orange.opacity(0.15))
+                        )
+                } else {
+                    Text("Upgrade")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.orange)
+                        )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     #if os(macOS)

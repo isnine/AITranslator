@@ -191,10 +191,21 @@ public final class HomeViewModel: ObservableObject {
 
     private func getEnabledModels() -> [ModelConfig] {
         let enabledIDs = preferences.enabledModelIDs
+        let isPremium = AppPreferences.sharedDefaults.bool(forKey: "is_premium_subscriber")
+
+        var available: [ModelConfig]
         if enabledIDs.isEmpty {
-            return models.filter { $0.isDefault }
+            available = models.filter { $0.isDefault }
+        } else {
+            available = models.filter { enabledIDs.contains($0.id) }
         }
-        return models.filter { enabledIDs.contains($0.id) }
+
+        // Filter out premium models if user is not subscribed
+        if !isPremium {
+            available = available.filter { !$0.isPremium }
+        }
+
+        return available
     }
 
     private func loadModels() {

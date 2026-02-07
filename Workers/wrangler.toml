@@ -18,3 +18,13 @@ enabled = true
 # - APP_SECRET: The HMAC shared secret for request signing
 # - AZURE_API_KEY: Azure OpenAI API key
 # - AZURE_ENDPOINT: Azure OpenAI endpoint URL
+
+# ---- Dev environment ----
+# Deployed as: https://aitranslator-dev.xiaozwan.workers.dev/
+# Deploy with:  npx wrangler deploy --env dev
+# Set secrets:  npx wrangler secret put APP_SECRET --env dev
+#               npx wrangler secret put AZURE_API_KEY --env dev
+#               npx wrangler secret put AZURE_ENDPOINT --env dev
+[env.dev]
+name = "aitranslator-dev"
+routes = []
