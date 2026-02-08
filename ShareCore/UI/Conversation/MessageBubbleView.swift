@@ -56,16 +56,22 @@ public struct MessageBubbleView: View {
     private var userBubble: some View {
         HStack {
             Spacer(minLength: 60)
-            Text(message.content)
-                .font(.system(size: 15))
-                .foregroundColor(colors.textPrimary)
-                .textSelection(.enabled)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(colors.accent.opacity(0.15))
-                )
+            VStack(alignment: .trailing, spacing: 6) {
+                if !message.images.isEmpty {
+                    ImageAttachmentInline(images: message.images)
+                }
+
+                Text(message.content)
+                    .font(.system(size: 15))
+                    .foregroundColor(colors.textPrimary)
+                    .textSelection(.enabled)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(colors.accent.opacity(0.15))
+            )
         }
         .padding(.horizontal, 8)
     }

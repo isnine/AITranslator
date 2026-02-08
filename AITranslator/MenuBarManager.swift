@@ -116,6 +116,11 @@
 
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
 
+            // Ensure the popover window becomes key so keyboard events (Cmd+V) route here
+            DispatchQueue.main.async {
+                popover.contentViewController?.view.window?.makeKey()
+            }
+
             // Notify that popover is now visible
             NotificationCenter.default.post(name: .menuBarPopoverDidShow, object: nil)
 

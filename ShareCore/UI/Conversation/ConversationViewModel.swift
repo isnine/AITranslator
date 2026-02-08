@@ -7,6 +7,7 @@ public final class ConversationViewModel: ObservableObject {
     @Published public var isStreaming: Bool = false
     @Published public var streamingText: String = ""
     @Published public var inputText: String = ""
+    @Published public var attachedImages: [ImageAttachment] = []
     @Published public var errorMessage: String?
 
     @Published public var model: ModelConfig
@@ -29,7 +30,21 @@ public final class ConversationViewModel: ObservableObject {
     }
 
     public var canSend: Bool {
-        !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isStreaming
+        (!inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !attachedImages.isEmpty) && !isStreaming
+    }
+
+    // MARK: - Image Management
+
+    public func addImage(_ image: ImageAttachment) {
+        attachedImages.append(image)
+    }
+
+    public func removeImage(id: UUID) {
+        attachedImages.removeAll { $0.id == id }
+    }
+
+    public func clearImages() {
+        attachedImages.removeAll()
     }
 
     /// Cycles to the next available model in the list.
@@ -45,13 +60,15 @@ public final class ConversationViewModel: ObservableObject {
 
     public func send() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isStreaming else { return }
+        guard !text.isEmpty || !attachedImages.isEmpty, !isStreaming else { return }
 
+        let currentImages = attachedImages
         inputText = ""
+        attachedImages.removeAll()
         errorMessage = nil
 
         // Add user message
-        let userMessage = ChatMessage(role: "user", content: text)
+        let userMessage = ChatMessage(role: "user", content: text, images: currentImages)
         messages.append(userMessage)
 
         // Start streaming
@@ -62,8 +79,12 @@ public final class ConversationViewModel: ObservableObject {
             guard let self else { return }
             do {
                 // Build the full messages array for the API
-                let apiMessages = self.messages.map {
-                    LLMRequestPayload.Message(role: $0.role, content: $0.content)
+                let apiMessages = self.messages.map { msg in
+                    LLMRequestPayload.Message(
+                        role: msg.role,
+                        text: msg.content,
+                        imageDataURLs: msg.images.map { $0.base64DataURL }
+                    )
                 }
 
                 let finalText = try await self.llmService.sendContinuation(

@@ -10,6 +10,7 @@ import Foundation
 public enum LLMServiceError: LocalizedError {
     case emptyContent
     case httpError(statusCode: Int, body: String)
+    case visionNotSupported(modelName: String)
 
     public var errorDescription: String? {
         switch self {
@@ -17,6 +18,8 @@ public enum LLMServiceError: LocalizedError {
             return "No content returned from the model"
         case let .httpError(statusCode, body):
             return "HTTP error \(statusCode): \(body)"
+        case let .visionNotSupported(modelName):
+            return "\(modelName) does not support image input"
         }
     }
 }

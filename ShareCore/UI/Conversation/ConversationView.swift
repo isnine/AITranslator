@@ -41,6 +41,21 @@ public struct ConversationContentView: View {
                 isStreaming: viewModel.isStreaming,
                 canSend: viewModel.canSend,
                 availableModels: viewModel.availableModels,
+                images: viewModel.attachedImages,
+                onRemoveImage: { id in viewModel.removeImage(id: id) },
+                onAddImages: { platformImages in
+                    for img in platformImages {
+                        #if os(macOS)
+                            if let attachment = ImageAttachment.from(nsImage: img) {
+                                viewModel.addImage(attachment)
+                            }
+                        #else
+                            if let attachment = ImageAttachment.from(uiImage: img) {
+                                viewModel.addImage(attachment)
+                            }
+                        #endif
+                    }
+                },
                 onSend: { viewModel.send() },
                 onStop: { viewModel.stopStreaming() }
             )

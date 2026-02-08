@@ -81,6 +81,25 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
+    @Published public var attachedImages: [ImageAttachment] = [] {
+        didSet {
+            guard attachedImages.count != oldValue.count else { return }
+            cancelActiveRequest(clearResults: true)
+        }
+    }
+
+    public func addImage(_ image: ImageAttachment) {
+        attachedImages.append(image)
+    }
+
+    public func removeImage(id: UUID) {
+        attachedImages.removeAll { $0.id == id }
+    }
+
+    public func clearImages() {
+        attachedImages.removeAll()
+    }
+
     @Published public private(set) var actions: [ActionConfig]
     @Published public private(set) var models: [ModelConfig] = []
     @Published public var selectedActionID: UUID?
@@ -111,6 +130,7 @@ public final class HomeViewModel: ObservableObject {
     private var allActions: [ActionConfig]
     private var usageScene: ActionConfig.UsageScene
     public private(set) var currentRequestInputText: String = ""
+    private var currentRequestImages: [ImageAttachment] = []
     private var currentActionShowsDiff: Bool = false
     /// When true, `performSelectedAction()` will be called automatically once models finish loading.
     private var pendingAutoAction: Bool = false
@@ -279,13 +299,14 @@ public final class HomeViewModel: ObservableObject {
         }
 
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else {
-            Logger.debug("[HomeViewModel] Input text is empty; skipping request.")
+        guard !text.isEmpty || !attachedImages.isEmpty else {
+            Logger.debug("[HomeViewModel] Input text is empty and no images attached; skipping request.")
             modelRuns = []
             return
         }
 
         currentRequestInputText = text
+        currentRequestImages = attachedImages
         currentActionShowsDiff = action.showsDiff
 
         let modelsToUse = getEnabledModels()
@@ -314,7 +335,8 @@ public final class HomeViewModel: ObservableObject {
                 requestID: requestID,
                 text: text,
                 action: action,
-                models: modelsToUse
+                models: modelsToUse,
+                images: attachedImages
             )
         }
     }
@@ -431,16 +453,16 @@ public final class HomeViewModel: ObservableObject {
         let prompt = action.prompt
 
         if prompt.isEmpty {
-            chatMessages.append(ChatMessage(role: "user", content: text))
+            chatMessages.append(ChatMessage(role: "user", content: text, images: currentRequestImages))
         } else {
             let processedPrompt = Self.substitutePromptPlaceholders(prompt, text: text)
             let promptContainsTextPlaceholder = prompt.contains("{text}") || prompt.contains("{{text}}")
 
             if promptContainsTextPlaceholder {
-                chatMessages.append(ChatMessage(role: "user", content: processedPrompt))
+                chatMessages.append(ChatMessage(role: "user", content: processedPrompt, images: currentRequestImages))
             } else {
                 chatMessages.append(ChatMessage(role: "system", content: processedPrompt))
-                chatMessages.append(ChatMessage(role: "user", content: text))
+                chatMessages.append(ChatMessage(role: "user", content: text, images: currentRequestImages))
             }
         }
 
@@ -483,7 +505,8 @@ public final class HomeViewModel: ObservableObject {
         requestID: UUID,
         text: String,
         action: ActionConfig,
-        models: [ModelConfig]
+        models: [ModelConfig],
+        images: [ImageAttachment] = []
     ) async {
         guard !Task.isCancelled else { return }
 
@@ -491,6 +514,7 @@ public final class HomeViewModel: ObservableObject {
             text: text,
             with: action,
             models: models,
+            images: images,
             partialHandler: { [weak self] modelID, update in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }

@@ -931,6 +931,9 @@
         }
       }
     },
+    "Paste image from clipboard" : {
+
+    },
     "Plain Text" : {
       "localizations" : {
         "zh-Hans" : {

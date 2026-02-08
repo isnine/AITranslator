@@ -1185,6 +1185,9 @@ public struct HomeView: View {
             // Register for drag & drop of image files and image pasteboard types
             textView.registerForDraggedTypes([.fileURL, .tiff, .png, NSPasteboard.PasteboardType("public.jpeg")])
 
+            // Store reference for the local event monitor in Coordinator
+            context.coordinator.textView = textView
+
             let scrollView = NSScrollView()
             scrollView.drawsBackground = false
             scrollView.hasVerticalScroller = true
@@ -1211,9 +1214,31 @@ public struct HomeView: View {
 
         final class Coordinator: NSObject, NSTextViewDelegate {
             private let parent: AutoPasteTextEditor
+            private var eventMonitor: Any?
+            weak var textView: PastingTextView?
 
             init(parent: AutoPasteTextEditor) {
                 self.parent = parent
+                super.init()
+                // Install local event monitor to intercept Cmd+V before SwiftUI's
+                // NSHostingView routes it to the auto-generated Edit > Paste menu item.
+                eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                    guard let self, let textView = self.textView else { return event }
+                    if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+                       event.charactersIgnoringModifiers == "v",
+                       textView.window?.firstResponder === textView
+                    {
+                        textView.paste(nil)
+                        return nil // consume event
+                    }
+                    return event
+                }
+            }
+
+            deinit {
+                if let monitor = eventMonitor {
+                    NSEvent.removeMonitor(monitor)
+                }
             }
 
             func textDidChange(_ notification: Notification) {
@@ -1243,35 +1268,31 @@ public struct HomeView: View {
         }
 
         override func paste(_ sender: Any?) {
-            // Check for images on the pasteboard first
             let pb = NSPasteboard.general
             let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
-            Logger.debug("Paste: pasteboard types = \(pb.types?.map(\.rawValue) ?? [])", tag: "ImagePaste")
-            if let availableType = pb.availableType(from: imageTypes) {
-                Logger.debug("Paste: found raw image type: \(availableType.rawValue)", tag: "ImagePaste")
-                if let data = pb.data(forType: availableType),
-                   let image = NSImage(data: data)
-                {
-                    Logger.debug("Paste: created NSImage from raw data, size: \(image.size)", tag: "ImagePaste")
-                    onImagePaste?([image])
-                    return
-                }
-                Logger.debug("Paste: failed to create NSImage from raw data", tag: "ImagePaste")
+
+            // Check for raw image data first
+            if let availableType = pb.availableType(from: imageTypes),
+               let data = pb.data(forType: availableType),
+               let image = NSImage(data: data)
+            {
+                Logger.debug("Paste: image from raw data (\(availableType.rawValue)), size: \(image.size)", tag: "ImagePaste")
+                onImagePaste?([image])
+                return
             }
 
-            // Also check for image file URLs
+            // Check for image file URLs
             if let urls = pb.readObjects(forClasses: [NSURL.self], options: [
                 .urlReadingContentsConformToTypes: [UTType.image.identifier],
             ]) as? [URL], !urls.isEmpty {
-                Logger.debug("Paste: found \(urls.count) image file URLs", tag: "ImagePaste")
                 let images = urls.compactMap { NSImage(contentsOf: $0) }
                 if !images.isEmpty {
+                    Logger.debug("Paste: \(images.count) image(s) from file URLs", tag: "ImagePaste")
                     onImagePaste?(images)
                     return
                 }
             }
 
-            Logger.debug("Paste: no images found, falling through to text paste", tag: "ImagePaste")
             // Fall through to text paste
             super.paste(sender)
             let current = string
@@ -1321,11 +1342,6 @@ public struct HomeView: View {
             }
 
             return super.performDragOperation(sender)
-        }
-
-        override var isRichText: Bool {
-            get { false }
-            set {}
         }
 
         override func draw(_ dirtyRect: NSRect) {

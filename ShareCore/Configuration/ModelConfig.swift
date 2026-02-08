@@ -21,11 +21,28 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
     /// Whether this model requires a premium subscription
     public let isPremium: Bool
 
-    public init(id: String, displayName: String, isDefault: Bool = false, isPremium: Bool = false) {
+    /// Whether this model supports vision (image input)
+    public let supportsVision: Bool
+
+    private enum CodingKeys: String, CodingKey {
+        case id, displayName, isDefault, isPremium, supportsVision
+    }
+
+    public init(id: String, displayName: String, isDefault: Bool = false, isPremium: Bool = false, supportsVision: Bool = true) {
         self.id = id
         self.displayName = displayName
         self.isDefault = isDefault
         self.isPremium = isPremium
+        self.supportsVision = supportsVision
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        isDefault = try container.decode(Bool.self, forKey: .isDefault)
+        isPremium = try container.decode(Bool.self, forKey: .isPremium)
+        supportsVision = try container.decodeIfPresent(Bool.self, forKey: .supportsVision) ?? true
     }
 }
 

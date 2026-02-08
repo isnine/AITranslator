@@ -61,23 +61,24 @@ interface ModelInfo {
   displayName: string;
   isDefault: boolean;
   isPremium: boolean;
+  supportsVision: boolean;
 }
 
 const MODELS_LIST: ModelInfo[] = [
   // Free tier models
-  { id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true, isPremium: false },
-  { id: "gpt-4.1-mini", displayName: "GPT-4.1 Mini", isDefault: false, isPremium: false },
-  { id: "gpt-4o-mini", displayName: "GPT-4o Mini", isDefault: false, isPremium: false },
-  { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false, isPremium: false },
-  { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false, isPremium: false },
+  { id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true, isPremium: false, supportsVision: true },
+  { id: "gpt-4.1-mini", displayName: "GPT-4.1 Mini", isDefault: false, isPremium: false, supportsVision: true },
+  { id: "gpt-4o-mini", displayName: "GPT-4o Mini", isDefault: false, isPremium: false, supportsVision: true },
+  { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false, isPremium: false, supportsVision: true },
+  { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false, isPremium: false, supportsVision: true },
   // Premium tier models
-  { id: "gpt-4o", displayName: "GPT-4o", isDefault: false, isPremium: true },
-  { id: "gpt-4.1", displayName: "GPT-4.1", isDefault: false, isPremium: true },
-  { id: "gpt-4.5-preview", displayName: "GPT-4.5 Preview", isDefault: false, isPremium: true },
-  { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true },
-  { id: "gpt-5-chat", displayName: "GPT-5 Chat", isDefault: false, isPremium: true },
-  { id: "o3-mini", displayName: "o3 Mini", isDefault: false, isPremium: true },
-  { id: "o4-mini", displayName: "o4 Mini", isDefault: false, isPremium: true },
+  { id: "gpt-4o", displayName: "GPT-4o", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-4.1", displayName: "GPT-4.1", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-4.5-preview", displayName: "GPT-4.5 Preview", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-5-chat", displayName: "GPT-5 Chat", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "o3-mini", displayName: "o3 Mini", isDefault: false, isPremium: true, supportsVision: false },
+  { id: "o4-mini", displayName: "o4 Mini", isDefault: false, isPremium: true, supportsVision: true },
 ];
 
 const CORS_HEADERS: Record<string, string> = {

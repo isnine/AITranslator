@@ -84,18 +84,31 @@ public final class LLMService {
         text: String,
         with action: ActionConfig,
         models: [ModelConfig],
+        images: [ImageAttachment] = [],
         partialHandler: (@MainActor @Sendable (String, StreamingUpdate) -> Void)? = nil,
         completionHandler: (@MainActor @Sendable (ModelExecutionResult) -> Void)? = nil
     ) async -> [ModelExecutionResult] {
-        await withTaskGroup(of: ModelExecutionResult?.self) { group in
+        let hasImages = !images.isEmpty
+        return await withTaskGroup(of: ModelExecutionResult?.self) { group in
             for model in models {
                 group.addTask { [weak self] in
                     guard let self else { return nil }
+
+                    // Skip models that don't support vision when images are attached
+                    if hasImages && !model.supportsVision {
+                        return ModelExecutionResult(
+                            modelID: model.id,
+                            duration: 0,
+                            response: .failure(LLMServiceError.visionNotSupported(modelName: model.displayName))
+                        )
+                    }
+
                     do {
                         return try await self.sendModelRequest(
                             text: text,
                             action: action,
                             model: model,
+                            images: images,
                             partialHandler: partialHandler
                         )
                     } catch is CancellationError {
@@ -124,6 +137,7 @@ public final class LLMService {
         text: String,
         action: ActionConfig,
         model: ModelConfig,
+        images: [ImageAttachment] = [],
         partialHandler: (@MainActor @Sendable (String, StreamingUpdate) -> Void)?
     ) async throws -> ModelExecutionResult {
         let start = Date()
@@ -146,9 +160,11 @@ public final class LLMService {
         }
 
         let messages: [LLMRequestPayload.Message]
+        let imageDataURLs = images.map { $0.base64DataURL }
+
         if action.prompt.isEmpty {
             messages = [
-                .init(role: "user", content: text),
+                .init(role: "user", text: text, imageDataURLs: imageDataURLs),
             ]
         } else {
             let processedPrompt = substitutePromptPlaceholders(action.prompt, text: text)
@@ -156,12 +172,12 @@ public final class LLMService {
 
             if promptContainsTextPlaceholder {
                 messages = [
-                    .init(role: "user", content: processedPrompt),
+                    .init(role: "user", text: processedPrompt, imageDataURLs: imageDataURLs),
                 ]
             } else {
                 messages = [
                     .init(role: "system", content: processedPrompt),
-                    .init(role: "user", content: text),
+                    .init(role: "user", text: text, imageDataURLs: imageDataURLs),
                 ]
             }
         }
@@ -175,8 +191,22 @@ public final class LLMService {
             if let structuredOutputConfig,
                let responseFormat = structuredOutputConfig.responseFormatPayload()
             {
+                // For structured output, we must use JSONSerialization to include response_format.
+                // Build message dicts manually, supporting multimodal content.
+                let messageDicts: [[String: Any]] = messages.map { msg in
+                    // Encode the message to JSON data first, then deserialize to dict
+                    // This leverages the custom Encodable to handle both text and parts
+                    if let data = try? JSONEncoder().encode(msg),
+                       let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+                    {
+                        return dict
+                    }
+                    // Fallback: text-only
+                    return ["role": msg.role, "content": msg.textContent]
+                }
+
                 var body: [String: Any] = [
-                    "messages": messages.map { ["role": $0.role, "content": $0.content] },
+                    "messages": messageDicts,
                     "stream": enableStreaming,
                 ]
                 body["response_format"] = responseFormat

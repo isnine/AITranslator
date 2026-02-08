@@ -1,0 +1,73 @@
+import SwiftUI
+
+/// A horizontal scrollable row of image thumbnails with delete buttons.
+/// Shared across HomeView, MenuBarPopoverView, and ConversationInputBar.
+public struct ImageAttachmentPreview: View {
+    let images: [ImageAttachment]
+    let onRemove: (UUID) -> Void
+
+    public init(images: [ImageAttachment], onRemove: @escaping (UUID) -> Void) {
+        self.images = images
+        self.onRemove = onRemove
+    }
+
+    public var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(images) { attachment in
+                    ImageThumbnailView(attachment: attachment, onRemove: onRemove)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+        }
+    }
+}
+
+/// A single image thumbnail with a delete (X) overlay button.
+private struct ImageThumbnailView: View {
+    let attachment: ImageAttachment
+    let onRemove: (UUID) -> Void
+
+    var body: some View {
+        attachment.thumbnailImage
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: 60, height: 60)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(alignment: .topTrailing) {
+                Button {
+                    onRemove(attachment.id)
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.white, .black.opacity(0.6))
+                }
+                .buttonStyle(.plain)
+                .offset(x: 4, y: -4)
+            }
+    }
+}
+
+/// Inline thumbnail images for displaying in message bubbles (no delete button).
+public struct ImageAttachmentInline: View {
+    let images: [ImageAttachment]
+
+    public init(images: [ImageAttachment]) {
+        self.images = images
+    }
+
+    public var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(images) { attachment in
+                    attachment.thumbnailImage
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+            }
+        }
+    }
+}
