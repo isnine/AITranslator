@@ -41,10 +41,23 @@ public struct ProviderResultCardView: View {
     }
 
     public var body: some View {
+        let hasDiff = viewModel.hasDiff(for: run.id)
+        let isShowingDiff = viewModel.isDiffShown(for: run.id)
+        let isSpeaking = viewModel.isSpeaking(runID: run.id)
+        let copyText: String = {
+            if case let .success(_, ct, _, _, _, _) = run.status { return ct }
+            return ""
+        }()
+
         VStack(alignment: .leading, spacing: 10) {
             ResultContentView(
                 run: run,
-                viewModel: viewModel,
+                hasDiff: hasDiff,
+                isShowingDiff: isShowingDiff,
+                onToggleDiff: { viewModel.toggleDiffDisplay(for: run.id) },
+                isSpeaking: isSpeaking,
+                onSpeak: { viewModel.speakResult(copyText, runID: run.id) },
+                onStopSpeaking: { viewModel.stopSpeaking() },
                 onCopy: onCopy,
                 onReplace: onReplace,
                 onChat: onChat
@@ -52,7 +65,13 @@ public struct ProviderResultCardView: View {
             ResultBottomInfoBar(
                 run: run,
                 showModelName: showModelName,
-                viewModel: viewModel,
+                hasDiff: hasDiff,
+                isShowingDiff: isShowingDiff,
+                onToggleDiff: { viewModel.toggleDiffDisplay(for: run.id) },
+                isSpeaking: isSpeaking,
+                onSpeak: { viewModel.speakResult(copyText, runID: run.id) },
+                onStopSpeaking: { viewModel.stopSpeaking() },
+                onRetry: { viewModel.performSelectedAction() },
                 onCopy: onCopy,
                 onReplace: onReplace,
                 onChat: onChat
@@ -77,7 +96,12 @@ struct ResultContentView: View {
     @State private var showingErrorDetails = false
 
     let run: HomeViewModel.ModelRunViewState
-    let viewModel: HomeViewModel
+    let hasDiff: Bool
+    let isShowingDiff: Bool
+    let onToggleDiff: () -> Void
+    let isSpeaking: Bool
+    let onSpeak: () -> Void
+    let onStopSpeaking: () -> Void
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
     let onChat: (() -> Void)?
@@ -178,13 +202,10 @@ struct ResultContentView: View {
         supplementalTexts: [String],
         sentencePairs: [SentencePair]
     ) -> some View {
-        let showDiff = run.showDiff
-        let runID = run.id
-
         VStack(alignment: .leading, spacing: 10) {
             if !sentencePairs.isEmpty {
                 SentencePairsView(pairs: sentencePairs)
-            } else if let diff, showDiff {
+            } else if let diff, isShowingDiff {
                 DiffView(diff: diff)
             } else {
                 let mainText = !supplementalTexts.isEmpty ? copyText : text
@@ -200,9 +221,13 @@ struct ResultContentView: View {
                     Spacer()
                     ResultActionButtons(
                         copyText: copyText,
-                        runID: runID,
-                        viewModel: viewModel,
                         showDiffToggle: true,
+                        hasDiff: hasDiff,
+                        isShowingDiff: isShowingDiff,
+                        onToggleDiff: onToggleDiff,
+                        isSpeaking: isSpeaking,
+                        onSpeak: onSpeak,
+                        onStopSpeaking: onStopSpeaking,
                         onCopy: onCopy,
                         onReplace: onReplace,
                         onChat: onChat
@@ -233,7 +258,13 @@ struct ResultBottomInfoBar: View {
 
     let run: HomeViewModel.ModelRunViewState
     let showModelName: Bool
-    let viewModel: HomeViewModel
+    let hasDiff: Bool
+    let isShowingDiff: Bool
+    let onToggleDiff: () -> Void
+    let isSpeaking: Bool
+    let onSpeak: () -> Void
+    let onStopSpeaking: () -> Void
+    let onRetry: () -> Void
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
     let onChat: (() -> Void)?
@@ -322,9 +353,13 @@ struct ResultBottomInfoBar: View {
             if sentencePairs.isEmpty && supplementalTexts.isEmpty {
                 ResultActionButtons(
                     copyText: copyText,
-                    runID: run.id,
-                    viewModel: viewModel,
                     showDiffToggle: true,
+                    hasDiff: hasDiff,
+                    isShowingDiff: isShowingDiff,
+                    onToggleDiff: onToggleDiff,
+                    isSpeaking: isSpeaking,
+                    onSpeak: onSpeak,
+                    onStopSpeaking: onStopSpeaking,
                     onCopy: onCopy,
                     onReplace: onReplace,
                     onChat: onChat
@@ -354,7 +389,7 @@ struct ResultBottomInfoBar: View {
             Spacer()
 
             Button {
-                viewModel.performSelectedAction()
+                onRetry()
             } label: {
                 Label("Retry", systemImage: "arrow.clockwise")
                     .font(.system(size: 12, weight: .medium))
@@ -372,9 +407,13 @@ struct ResultActionButtons: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let copyText: String
-    let runID: String
-    let viewModel: HomeViewModel
     let showDiffToggle: Bool
+    let hasDiff: Bool
+    let isShowingDiff: Bool
+    let onToggleDiff: () -> Void
+    let isSpeaking: Bool
+    let onSpeak: () -> Void
+    let onStopSpeaking: () -> Void
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
     let onChat: (() -> Void)?
@@ -386,9 +425,9 @@ struct ResultActionButtons: View {
     var body: some View {
         Group {
             if showDiffToggle {
-                DiffToggleButton(runID: runID, viewModel: viewModel)
+                DiffToggleButton(hasDiff: hasDiff, isShowingDiff: isShowingDiff, onToggle: onToggleDiff)
             }
-            SpeakButton(text: copyText, runID: runID, viewModel: viewModel)
+            SpeakButton(isSpeaking: isSpeaking, onSpeak: onSpeak, onStop: onStopSpeaking)
             CopyButton(text: copyText, onCopy: onCopy)
             if let onChat {
                 ContinueChatButton(onChat: onChat)
@@ -406,18 +445,18 @@ struct ResultActionButtons: View {
 struct DiffToggleButton: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    let runID: String
-    let viewModel: HomeViewModel
+    let hasDiff: Bool
+    let isShowingDiff: Bool
+    let onToggle: () -> Void
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
 
     var body: some View {
-        if viewModel.hasDiff(for: runID) {
-            let isShowingDiff = viewModel.isDiffShown(for: runID)
+        if hasDiff {
             Button {
-                viewModel.toggleDiffDisplay(for: runID)
+                onToggle()
             } label: {
                 Image(systemName: isShowingDiff ? "eye.slash" : "eye")
                     .font(.system(size: 13))
@@ -502,24 +541,20 @@ struct ReplaceButton: View {
 struct SpeakButton: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    let text: String
-    let runID: String
-    let viewModel: HomeViewModel
+    let isSpeaking: Bool
+    let onSpeak: () -> Void
+    let onStop: () -> Void
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
 
-    private var isSpeaking: Bool {
-        viewModel.isSpeaking(runID: runID)
-    }
-
     var body: some View {
         Button {
             if isSpeaking {
-                viewModel.stopSpeaking()
+                onStop()
             } else {
-                viewModel.speakResult(text, runID: runID)
+                onSpeak()
             }
         } label: {
             Image(systemName: isSpeaking ? "stop.fill" : "speaker.wave.2.fill")
@@ -544,9 +579,9 @@ struct LiveTimer: View {
     }
 
     var body: some View {
-        TimelineView(.periodic(from: start, by: 0.1)) { timeline in
+        TimelineView(.periodic(from: start, by: 1.0)) { timeline in
             let elapsed = timeline.date.timeIntervalSince(start)
-            Text(String(format: "%.1fs", elapsed))
+            Text(String(format: "%.0fs", elapsed))
                 .font(.system(size: 11, weight: .medium).monospacedDigit())
                 .foregroundColor(colors.textSecondary)
         }

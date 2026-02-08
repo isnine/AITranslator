@@ -321,7 +321,7 @@
                     chipTextColor(isSelected: isSelected)
                 },
                 background: { isSelected in
-                    AnyView(chipBackground(isSelected: isSelected))
+                    chipBackground(isSelected: isSelected)
                 },
                 horizontalPadding: 14,
                 verticalPadding: 8

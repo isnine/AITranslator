@@ -568,14 +568,12 @@ public struct HomeView: View {
                 isSelected ? Color.white : Color.primary
             },
             background: { isSelected in
-                AnyView(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(
-                            isSelected
-                                ? AnyShapeStyle(colors.chipPrimaryBackground)
-                                : AnyShapeStyle(.regularMaterial)
-                        )
-                )
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(
+                        isSelected
+                            ? AnyShapeStyle(colors.chipPrimaryBackground)
+                            : AnyShapeStyle(.regularMaterial)
+                    )
             },
             horizontalPadding: 18,
             verticalPadding: 10
@@ -892,9 +890,9 @@ public struct HomeView: View {
     }
 
     private func liveTimer(start: Date) -> some View {
-        TimelineView(.periodic(from: start, by: 0.1)) { timeline in
+        TimelineView(.periodic(from: start, by: 1.0)) { timeline in
             let elapsed = timeline.date.timeIntervalSince(start)
-            Text(String(format: "%.1fs", elapsed))
+            Text(String(format: "%.0fs", elapsed))
                 .font(.system(size: 12, weight: .medium).monospacedDigit())
                 .foregroundColor(colors.textSecondary)
         }

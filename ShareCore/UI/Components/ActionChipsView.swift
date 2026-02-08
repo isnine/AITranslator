@@ -1,13 +1,13 @@
 import SwiftUI
 
-public struct ActionChipsView: View {
+public struct ActionChipsView<Background: View>: View {
     let actions: [ActionConfig]
     let selectedActionID: ActionConfig.ID?
     let spacing: CGFloat
     let contentVerticalPadding: CGFloat
     let font: Font
     let textColor: (Bool) -> Color
-    let background: (Bool) -> AnyView
+    let background: (Bool) -> Background
     let horizontalPadding: CGFloat
     let verticalPadding: CGFloat
     let onSelect: (ActionConfig) -> Void
@@ -19,7 +19,7 @@ public struct ActionChipsView: View {
         contentVerticalPadding: CGFloat = 0,
         font: Font = .system(size: 13, weight: .medium),
         textColor: @escaping (Bool) -> Color,
-        background: @escaping (Bool) -> AnyView,
+        background: @escaping (Bool) -> Background,
         horizontalPadding: CGFloat = 14,
         verticalPadding: CGFloat = 8,
         onSelect: @escaping (ActionConfig) -> Void
