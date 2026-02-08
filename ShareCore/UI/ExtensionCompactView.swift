@@ -39,28 +39,18 @@
 
         public var body: some View {
             ZStack {
-                VStack(alignment: .leading, spacing: 12) {
-                    selectedTextPreview
-
-                    Divider()
-                        .background(colors.divider)
-
-                    actionChips
-
-                    if !viewModel.modelRuns.isEmpty {
-                        resultSection
-                    } else if !viewModel.isLoadingConfiguration {
-                        hintLabel
-                    }
-
-                    Spacer(minLength: 0)
-                }
-                .padding(16)
-
-                if viewModel.isLoadingConfiguration {
-                    configurationLoadingOverlay
+                if let session = activeConversationSession {
+                    ConversationContentView(
+                        session: session,
+                        onBack: { activeConversationSession = nil }
+                    )
+                    .transition(.move(edge: .trailing))
+                } else {
+                    translateContent
+                        .transition(.move(edge: .leading))
                 }
             }
+            .animation(.easeInOut(duration: 0.25), value: activeConversationSession != nil)
             .onAppear {
                 AppPreferences.shared.refreshFromDefaults()
 
@@ -89,10 +79,33 @@
             .onChange(of: context.allowsReplacement) {
                 viewModel.updateUsageScene(usageScene)
             }
-            .sheet(item: $activeConversationSession) { session in
-                ConversationView(session: session)
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
+        }
+
+        // MARK: - Translate Content
+
+        private var translateContent: some View {
+            ZStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    selectedTextPreview
+
+                    Divider()
+                        .background(colors.divider)
+
+                    actionChips
+
+                    if !viewModel.modelRuns.isEmpty {
+                        resultSection
+                    } else if !viewModel.isLoadingConfiguration {
+                        hintLabel
+                    }
+
+                    Spacer(minLength: 0)
+                }
+                .padding(16)
+
+                if viewModel.isLoadingConfiguration {
+                    configurationLoadingOverlay
+                }
             }
         }
 
@@ -162,7 +175,7 @@
                     isSelected ? colors.textPrimary : colors.textSecondary
                 },
                 background: { isSelected in
-                    AnyView(chipBackground(isSelected: isSelected))
+                    chipBackground(isSelected: isSelected)
                 },
                 horizontalPadding: 14,
                 verticalPadding: 8

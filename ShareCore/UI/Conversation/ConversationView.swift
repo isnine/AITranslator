@@ -2,29 +2,41 @@ import SwiftUI
 
 /// Standalone conversation content without NavigationStack wrapper.
 /// Used by the macOS inspector panel and can be embedded in any container.
+/// When `onBack` is provided, shows a chevron-left back button in the header (push-style).
+/// When only `onDismiss` is provided, shows an xmark close button (panel-style).
 public struct ConversationContentView: View {
     @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel: ConversationViewModel
 
+    private let onBack: (() -> Void)?
     private let onDismiss: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
 
-    public init(session: ConversationSession, onDismiss: (() -> Void)? = nil) {
+    public init(
+        session: ConversationSession,
+        onBack: (() -> Void)? = nil,
+        onDismiss: (() -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: ConversationViewModel(session: session))
+        self.onBack = onBack
         self.onDismiss = onDismiss
+    }
+
+    private var showHeader: Bool {
+        onBack != nil || onDismiss != nil
     }
 
     public var body: some View {
         VStack(spacing: 0) {
-            #if os(macOS)
-            header
+            if showHeader {
+                header
 
-            Divider()
-                .foregroundColor(colors.divider)
-            #endif
+                Divider()
+                    .foregroundColor(colors.divider)
+            }
 
             messageList
 
@@ -72,7 +84,18 @@ public struct ConversationContentView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack {
+        HStack(spacing: 8) {
+            if let onBack {
+                Button {
+                    onBack()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(colors.accent)
+                }
+                .buttonStyle(.plain)
+            }
+
             Text(viewModel.action.name)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(colors.textPrimary)
@@ -97,6 +120,8 @@ public struct ConversationContentView: View {
 
     // MARK: - Message List
 
+    @State private var lastScrollTime = Date.distantPast
+
     private var messageList: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -117,6 +142,9 @@ public struct ConversationContentView: View {
                 scrollToBottom(proxy: proxy)
             }
             .onChange(of: viewModel.streamingText) { _, _ in
+                let now = Date()
+                guard now.timeIntervalSince(lastScrollTime) >= 0.2 else { return }
+                lastScrollTime = now
                 scrollToBottom(proxy: proxy)
             }
         }
