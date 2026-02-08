@@ -108,12 +108,6 @@
             guard let button = statusItem?.button,
                   let popover = popover else { return }
 
-            // Recreate popover content to trigger onShow with fresh state
-            let contentView = MenuBarPopoverView { [weak self] in
-                self?.closePopover()
-            }
-            popoverHostingController?.rootView = contentView
-
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
 
             // Ensure the popover window becomes key so keyboard events (Cmd+V) route here
@@ -125,6 +119,9 @@
             NotificationCenter.default.post(name: .menuBarPopoverDidShow, object: nil)
 
             // Setup event monitor to close popover when clicking outside
+            if let existingMonitor = eventMonitor {
+                NSEvent.removeMonitor(existingMonitor)
+            }
             eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
                 self?.closePopover()
             }

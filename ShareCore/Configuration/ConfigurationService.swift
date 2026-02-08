@@ -118,7 +118,7 @@ public final class ConfigurationService: Sendable {
         }
 
         return AppConfiguration(
-            version: "1.1.0",
+            version: AppConfiguration.currentVersion,
             actions: actionEntries
         )
     }
