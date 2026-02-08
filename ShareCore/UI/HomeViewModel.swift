@@ -77,14 +77,18 @@ public final class HomeViewModel: ObservableObject {
     @Published public var inputText: String = "" {
         didSet {
             guard inputText != oldValue else { return }
-            cancelActiveRequest(clearResults: true)
+            Task { @MainActor in
+                self.cancelActiveRequest(clearResults: true)
+            }
         }
     }
 
     @Published public var attachedImages: [ImageAttachment] = [] {
         didSet {
             guard attachedImages.count != oldValue.count else { return }
-            cancelActiveRequest(clearResults: true)
+            Task { @MainActor in
+                self.cancelActiveRequest(clearResults: true)
+            }
         }
     }
 
@@ -168,15 +172,7 @@ public final class HomeViewModel: ObservableObject {
         preferences.$enabledModelIDs
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
-                self?.objectWillChange.send()
                 self?.updateEnabledModels()
-            }
-            .store(in: &cancellables)
-
-        preferences.$isPremium
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.objectWillChange.send()
             }
             .store(in: &cancellables)
 

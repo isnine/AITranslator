@@ -32,6 +32,7 @@ public final class AppPreferences: ObservableObject {
 
     private let defaults: UserDefaults
     private var notificationObserver: NSObjectProtocol?
+    private var isRefreshing = false
 
     private init(defaults: UserDefaults = AppPreferences.resolveSharedDefaults()) {
         self.defaults = defaults
@@ -55,7 +56,9 @@ public final class AppPreferences: ObservableObject {
             object: defaults,
             queue: .main
         ) { [weak self] _ in
-            self?.refreshFromDefaults()
+            DispatchQueue.main.async {
+                self?.refreshFromDefaults()
+            }
         }
     }
 
@@ -181,6 +184,10 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func refreshFromDefaults() {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+
         defaults.synchronize()
         let resolved = AppPreferences.readTargetLanguage(from: defaults)
         if resolved != targetLanguage {
