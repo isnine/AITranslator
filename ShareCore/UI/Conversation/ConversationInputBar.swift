@@ -306,7 +306,8 @@ public struct ConversationInputBar: View {
                 super.init()
                 eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
                     guard let self, let textView = self.textView else { return event }
-                    guard textView.window?.firstResponder === textView else { return event }
+                    guard textView.window?.isKeyWindow == true,
+                          textView.window?.firstResponder === textView else { return event }
 
                     let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
@@ -353,6 +354,14 @@ public struct ConversationInputBar: View {
         }
 
         override func paste(_ sender: Any?) {
+            // Only handle image paste when this text view has focus.
+            // Prevents images from appearing in the wrong input field
+            // when multiple text views coexist.
+            guard window?.firstResponder === self else {
+                super.paste(sender)
+                return
+            }
+
             let pb = NSPasteboard.general
             let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
 

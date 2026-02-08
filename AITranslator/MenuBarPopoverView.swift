@@ -116,15 +116,25 @@
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let hasRecentClipboard = ClipboardMonitor.shared.hasRecentContent(within: 5)
 
-            // Check for clipboard images
+            // Only auto-load clipboard images when the main app window is NOT visible.
+            // When both the popover and main window are shown, the user likely intended
+            // clipboard images for the main app — let explicit Cmd+V handle image paste
+            // based on which input field has focus.
+            let mainWindowVisible = NSApp.windows.contains { window in
+                window.isVisible && window.level == .normal
+                    && !(window is NSPanel)
+            }
+
             var clipboardImages: [ImageAttachment] = []
-            let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png]
-            if let availableType = pb.availableType(from: imageTypes),
-               let data = pb.data(forType: availableType),
-               let nsImage = NSImage(data: data),
-               let attachment = ImageAttachment.from(nsImage: nsImage)
-            {
-                clipboardImages.append(attachment)
+            if !mainWindowVisible {
+                let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png]
+                if let availableType = pb.availableType(from: imageTypes),
+                   let data = pb.data(forType: availableType),
+                   let nsImage = NSImage(data: data),
+                   let attachment = ImageAttachment.from(nsImage: nsImage)
+                {
+                    clipboardImages.append(attachment)
+                }
             }
 
             if hasRecentClipboard && (!clipboardContent.isEmpty || !clipboardImages.isEmpty) {
@@ -219,7 +229,7 @@
                     }
                     )
                     .font(.system(size: 13))
-                    .frame(height: viewModel.attachedImages.isEmpty ? 60 : 40)
+                    .frame(height: viewModel.attachedImages.isEmpty ? 60 : 36)
 
                     if !viewModel.attachedImages.isEmpty {
                         ImageAttachmentPreview(
@@ -228,7 +238,7 @@
                                 viewModel.removeImage(id: id)
                             }
                         )
-                        .frame(height: 28)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.horizontal, 4)
                         .padding(.bottom, 2)
                     }
@@ -456,6 +466,7 @@
                     guard let self, let textView = self.textView else { return event }
                     if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
                        event.charactersIgnoringModifiers == "v",
+                       textView.window?.isKeyWindow == true,
                        textView.window?.firstResponder === textView
                     {
                         textView.paste(nil)
@@ -486,6 +497,14 @@
         var onImagePaste: (([NSImage]) -> Void)?
 
         override func paste(_ sender: Any?) {
+            // Only handle image paste when this text view has focus.
+            // When both the popover and main window are visible, this prevents
+            // images from appearing in the wrong input field.
+            guard window?.firstResponder === self else {
+                super.paste(sender)
+                return
+            }
+
             let pb = NSPasteboard.general
             let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
 

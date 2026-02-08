@@ -1229,6 +1229,7 @@ public struct HomeView: View {
                     guard let self, let textView = self.textView else { return event }
                     if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
                        event.charactersIgnoringModifiers == "v",
+                       textView.window?.isKeyWindow == true,
                        textView.window?.firstResponder === textView
                     {
                         textView.paste(nil)
@@ -1271,6 +1272,14 @@ public struct HomeView: View {
         }
 
         override func paste(_ sender: Any?) {
+            // Only handle image paste when this text view has focus.
+            // When both the popover and main window are visible, this prevents
+            // images from appearing in the wrong input field.
+            guard window?.firstResponder === self else {
+                super.paste(sender)
+                return
+            }
+
             let pb = NSPasteboard.general
             let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
 
