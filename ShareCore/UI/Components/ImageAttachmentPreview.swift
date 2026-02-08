@@ -24,28 +24,32 @@ public struct ImageAttachmentPreview: View {
     }
 }
 
-/// A single image thumbnail with a delete (X) overlay button.
+/// A single image thumbnail with a delete (X) button.
+/// Uses ZStack instead of overlay+offset so the button's hit-test area
+/// stays within the layout bounds (fixes taps failing in tight containers).
 private struct ImageThumbnailView: View {
     let attachment: ImageAttachment
     let onRemove: (UUID) -> Void
 
     var body: some View {
-        attachment.thumbnailImage
-            .resizable()
-            .aspectRatio(contentMode: .fill)
-            .frame(width: 60, height: 60)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(alignment: .topTrailing) {
-                Button {
-                    onRemove(attachment.id)
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
-                        .foregroundStyle(.white, .black.opacity(0.6))
-                }
-                .buttonStyle(.plain)
-                .offset(x: 4, y: -4)
+        ZStack(alignment: .topTrailing) {
+            attachment.thumbnailImage
+                .resizable()
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .padding(.top, 8)
+                .padding(.trailing, 8)
+
+            Button {
+                onRemove(attachment.id)
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(.white, .black.opacity(0.6))
             }
+            .buttonStyle(.plain)
+        }
     }
 }
 
