@@ -83,7 +83,6 @@ public final class AppPreferences: ObservableObject {
         Logger.debug("[Preferences] Proceeding with update...")
         targetLanguage = option
         defaults.set(option.rawValue, forKey: TargetLanguageOption.storageKey)
-        defaults.synchronize()
         Logger.debug("[Preferences] Updated targetLanguage to: \(targetLanguage.rawValue)")
         Logger.debug("[Preferences] Wrote to UserDefaults key '\(TargetLanguageOption.storageKey)': \(option.rawValue)")
 
@@ -96,7 +95,6 @@ public final class AppPreferences: ObservableObject {
         guard sourceLanguage != option else { return }
         sourceLanguage = option
         defaults.set(option.rawValue, forKey: SourceLanguageOption.storageKey)
-        defaults.synchronize()
     }
 
     public func setCurrentConfigName(_ name: String?) {
@@ -108,7 +106,6 @@ public final class AppPreferences: ObservableObject {
         } else {
             defaults.removeObject(forKey: StorageKeys.currentConfigName)
         }
-        defaults.synchronize()
     }
 
     public func setCustomConfigDirectory(_ url: URL?) {
@@ -132,7 +129,6 @@ public final class AppPreferences: ObservableObject {
         } else {
             defaults.removeObject(forKey: StorageKeys.customConfigDirectory)
         }
-        defaults.synchronize()
     }
 
     public func setUseICloudForConfig(_ useICloud: Bool) {
@@ -140,7 +136,6 @@ public final class AppPreferences: ObservableObject {
 
         useICloudForConfig = useICloud
         defaults.set(useICloud, forKey: StorageKeys.useICloudForConfig)
-        defaults.synchronize()
     }
 
     public func setDefaultAppHintDismissed(_ dismissed: Bool) {
@@ -148,7 +143,6 @@ public final class AppPreferences: ObservableObject {
 
         defaultAppHintDismissed = dismissed
         defaults.set(dismissed, forKey: StorageKeys.defaultAppHintDismissed)
-        defaults.synchronize()
     }
 
     #if os(macOS)
@@ -157,7 +151,6 @@ public final class AppPreferences: ObservableObject {
 
             keepRunningWhenClosed = keepRunning
             defaults.set(keepRunning, forKey: StorageKeys.keepRunningWhenClosed)
-            defaults.synchronize()
         }
     #endif
 
@@ -168,7 +161,6 @@ public final class AppPreferences: ObservableObject {
 
         enabledModelIDs = ids
         defaults.set(Array(ids), forKey: StorageKeys.enabledModels)
-        defaults.synchronize()
     }
 
     // MARK: - Voice Selection
@@ -178,7 +170,6 @@ public final class AppPreferences: ObservableObject {
 
         selectedVoiceID = voiceID
         defaults.set(voiceID, forKey: StorageKeys.selectedVoiceID)
-        defaults.synchronize()
     }
 
     /// Returns the iCloud Documents directory URL if available
@@ -197,7 +188,6 @@ public final class AppPreferences: ObservableObject {
         isRefreshing = true
         defer { isRefreshing = false }
 
-        defaults.synchronize()
         let resolved = AppPreferences.readTargetLanguage(from: defaults)
         if resolved != targetLanguage {
             targetLanguage = resolved

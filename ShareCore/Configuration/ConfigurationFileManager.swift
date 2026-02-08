@@ -22,6 +22,9 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
     private let fileManager = FileManager.default
 
+    /// Tracks directories we've already verified exist to avoid repeated filesystem checks
+    private var ensuredDirectories: Set<String> = []
+
     /// App Group identifier for shared container
     private static let appGroupIdentifier = "group.com.zanderwang.AITranslator"
 
@@ -121,9 +124,12 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     }
 
     private func ensureDirectoryExists(_ url: URL) {
-        if !fileManager.fileExists(atPath: url.path) {
+        let path = url.path
+        guard !ensuredDirectories.contains(path) else { return }
+        if !fileManager.fileExists(atPath: path) {
             try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
         }
+        ensuredDirectories.insert(path)
     }
 
     /// Copy the bundled default configuration to the configurations directory if it doesn't exist
@@ -198,6 +204,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
             migrateConfigurations(from: oldDirectory, to: newDirectory)
         }
 
+        ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
         Logger.debug("[ConfigFileManager] ✅ Switched to iCloud storage")
         return true
@@ -218,6 +225,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
             migrateConfigurations(from: oldDirectory, to: newDirectory)
         }
 
+        ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
         Logger.debug("[ConfigFileManager] ✅ Switched to local storage")
     }
@@ -239,6 +247,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
             migrateConfigurations(from: oldDirectory, to: newDirectory)
         }
 
+        ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
         Logger.debug("[ConfigFileManager] ✅ Switched to custom directory: \(url.path)")
     }
@@ -435,10 +444,14 @@ public struct ConfigurationFileInfo: Identifiable, Sendable {
         self.modifiedDate = modifiedDate
     }
 
+    private static let dateFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return f
+    }()
+
     public var formattedDate: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: modifiedDate, relativeTo: Date())
+        Self.dateFormatter.localizedString(for: modifiedDate, relativeTo: Date())
     }
 }
 

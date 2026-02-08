@@ -16,6 +16,7 @@ public final class ConversationViewModel: ObservableObject {
 
     private let llmService: LLMService
     private var streamingTask: Task<Void, Never>?
+    private var lastStreamingUpdateTime = Date.distantPast
 
     public init(session: ConversationSession, llmService: LLMService = .shared) {
         self.messages = session.messages
@@ -77,6 +78,7 @@ public final class ConversationViewModel: ObservableObject {
 
         streamingTask = Task { [weak self] in
             guard let self else { return }
+            self.lastStreamingUpdateTime = .distantPast
             do {
                 // Build the full messages array for the API
                 let apiMessages = self.messages.map { msg in
@@ -92,6 +94,9 @@ public final class ConversationViewModel: ObservableObject {
                     model: self.model
                 ) { [weak self] partialText in
                     guard let self else { return }
+                    let now = Date()
+                    guard now.timeIntervalSince(self.lastStreamingUpdateTime) >= 0.066 else { return }
+                    self.lastStreamingUpdateTime = now
                     self.streamingText = partialText
                 }
 
