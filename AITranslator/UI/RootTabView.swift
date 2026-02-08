@@ -59,15 +59,19 @@ struct RootTabView: View {
             Tab(TabItem.home.title, systemImage: TabItem.home.systemImage, value: TabItem.home) {
                 tabContent(for: TabItem.home)
             }
+            .accessibilityIdentifier("tab_home")
             Tab(TabItem.actions.title, systemImage: TabItem.actions.systemImage, value: TabItem.actions) {
                 tabContent(for: TabItem.actions)
             }
+            .accessibilityIdentifier("tab_actions")
             Tab(TabItem.models.title, systemImage: TabItem.models.systemImage, value: TabItem.models) {
                 tabContent(for: TabItem.models)
             }
+            .accessibilityIdentifier("tab_models")
             Tab(TabItem.settings.title, systemImage: TabItem.settings.systemImage, value: TabItem.settings) {
                 tabContent(for: TabItem.settings)
             }
+            .accessibilityIdentifier("tab_settings")
         }
         .tabViewStyle(.sidebarAdaptable)
         #if !os(macOS)
