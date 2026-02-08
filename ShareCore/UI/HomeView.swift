@@ -332,6 +332,12 @@ public struct HomeView: View {
                     }
 
                     if !isCollapsed {
+                        LanguageSwitcherView(
+                            globeFont: .system(size: 12),
+                            textFont: .system(size: 13, weight: .medium),
+                            foregroundColor: colors.accent
+                        )
+
                         #if os(macOS)
                             Button {
                                 let panel = NSOpenPanel()
@@ -581,14 +587,11 @@ public struct HomeView: View {
     }
 
     private var hintLabel: some View {
-        HStack(spacing: 12) {
-            Text(viewModel.placeholderHint)
-                .font(.system(size: 14))
-                .foregroundColor(colors.textSecondary)
-            targetLanguageIndicator
-        }
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.top, 8)
+        Text(viewModel.placeholderHint)
+            .font(.system(size: 14))
+            .foregroundColor(colors.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.top, 8)
     }
 
     private var targetLanguageIndicator: some View {

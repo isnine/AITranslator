@@ -14,8 +14,6 @@
         @Environment(\.colorScheme) private var colorScheme
         @StateObject private var viewModel: HomeViewModel
         @State private var hasTriggeredAutoRequest = false
-        @State private var isLanguagePickerPresented: Bool = false
-        @State private var targetLanguageCode: String = AppPreferences.shared.targetLanguage.rawValue
         @State private var activeConversationSession: ConversationSession?
 
         private let context: TranslationUIProviderContext
@@ -91,17 +89,6 @@
             .onChange(of: context.allowsReplacement) {
                 viewModel.updateUsageScene(usageScene)
             }
-            .sheet(isPresented: $isLanguagePickerPresented) {
-                LanguagePickerView(
-                    selectedCode: $targetLanguageCode,
-                    isPresented: $isLanguagePickerPresented
-                )
-            }
-            .onChange(of: targetLanguageCode) {
-                let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-                AppPreferences.shared.setTargetLanguage(option)
-                viewModel.refreshConfiguration()
-            }
             .sheet(item: $activeConversationSession) { session in
                 ConversationView(session: session)
                     .presentationDetents([.medium, .large])
@@ -130,7 +117,12 @@
 
                 inputSpeakButton
 
-                targetLanguageIndicator
+                LanguageSwitcherView(
+                    globeFont: .system(size: 10),
+                    textFont: .system(size: 11, weight: .medium),
+                    chevronFont: .system(size: 7),
+                    foregroundColor: colors.textSecondary.opacity(0.7)
+                )
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
@@ -153,28 +145,6 @@
             }
             .buttonStyle(.plain)
             .disabled(!hasText && !viewModel.isSpeakingInputText)
-        }
-
-        private var targetLanguageIndicator: some View {
-            let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-            let displayName: String = {
-                if option == .appLanguage {
-                    return TargetLanguageOption.appLanguageEnglishName
-                } else {
-                    return option.primaryLabel
-                }
-            }()
-
-            return TargetLanguageButton(
-                title: displayName,
-                action: { isLanguagePickerPresented = true },
-                foregroundColor: colors.textSecondary.opacity(0.7),
-                spacing: 4,
-                globeFont: .system(size: 10),
-                textFont: .system(size: 11),
-                chevronSystemName: "chevron.up.chevron.down",
-                chevronFont: .system(size: 8)
-            )
         }
 
         // MARK: - Action Chips

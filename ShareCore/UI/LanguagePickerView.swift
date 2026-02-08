@@ -7,19 +7,55 @@
 
 import SwiftUI
 
-/// A reusable language picker view that can be presented as a sheet
+/// Defines whether the picker is selecting a source or target language.
+public enum LanguagePickerMode {
+    case source
+    case target
+}
+
+/// A row model that unifies source and target language options for display.
+private struct LanguageRow: Identifiable {
+    let id: String // rawValue
+    let primaryLabel: String
+    let secondaryLabel: String
+}
+
+/// A reusable language picker view that can be presented as a sheet.
+/// Supports both source language (with Auto option) and target language selection.
 public struct LanguagePickerView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Binding var selectedCode: String
     @Binding var isPresented: Bool
+    let mode: LanguagePickerMode
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
 
-    public init(selectedCode: Binding<String>, isPresented: Binding<Bool>) {
+    private var title: String {
+        switch mode {
+        case .source: return "Select Source Language"
+        case .target: return "Select Target Language"
+        }
+    }
+
+    private var rows: [LanguageRow] {
+        switch mode {
+        case .source:
+            return SourceLanguageOption.selectionOptions.map { option in
+                LanguageRow(id: option.rawValue, primaryLabel: option.primaryLabel, secondaryLabel: option.secondaryLabel)
+            }
+        case .target:
+            return TargetLanguageOption.selectionOptions.map { option in
+                LanguageRow(id: option.rawValue, primaryLabel: option.primaryLabel, secondaryLabel: option.secondaryLabel)
+            }
+        }
+    }
+
+    public init(selectedCode: Binding<String>, isPresented: Binding<Bool>, mode: LanguagePickerMode = .target) {
         _selectedCode = selectedCode
         _isPresented = isPresented
+        self.mode = mode
     }
 
     public var body: some View {
@@ -33,7 +69,7 @@ public struct LanguagePickerView: View {
     #if os(macOS)
         private var macOSPicker: some View {
             VStack(spacing: 0) {
-                Text("Select Target Language")
+                Text(title)
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(colors.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -41,24 +77,24 @@ public struct LanguagePickerView: View {
 
                 ScrollView {
                     LazyVStack(spacing: 12) {
-                        ForEach(TargetLanguageOption.selectionOptions) { option in
+                        ForEach(rows) { row in
                             Button {
-                                selectedCode = option.rawValue
+                                selectedCode = row.id
                                 isPresented = false
                             } label: {
                                 HStack(spacing: 12) {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(option.primaryLabel)
+                                        Text(row.primaryLabel)
                                             .font(.system(size: 16, weight: .medium))
                                             .foregroundColor(colors.textPrimary)
-                                        Text(option.secondaryLabel)
+                                        Text(row.secondaryLabel)
                                             .font(.system(size: 13))
                                             .foregroundColor(colors.textSecondary)
                                     }
 
                                     Spacer()
 
-                                    if selectedCode == option.rawValue {
+                                    if selectedCode == row.id {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundColor(colors.accent)
@@ -108,24 +144,24 @@ public struct LanguagePickerView: View {
             NavigationStack {
                 List {
                     Section {
-                        ForEach(TargetLanguageOption.selectionOptions) { option in
+                        ForEach(rows) { row in
                             Button {
-                                selectedCode = option.rawValue
+                                selectedCode = row.id
                                 isPresented = false
                             } label: {
                                 HStack(spacing: 12) {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(option.primaryLabel)
+                                        Text(row.primaryLabel)
                                             .font(.system(size: 16, weight: .medium))
                                             .foregroundColor(colors.textPrimary)
-                                        Text(option.secondaryLabel)
+                                        Text(row.secondaryLabel)
                                             .font(.system(size: 13))
                                             .foregroundColor(colors.textSecondary)
                                     }
 
                                     Spacer()
 
-                                    if selectedCode == option.rawValue {
+                                    if selectedCode == row.id {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 14, weight: .semibold))
                                             .foregroundColor(colors.accent)
@@ -140,7 +176,7 @@ public struct LanguagePickerView: View {
                 }
                 .scrollContentBackground(.hidden)
                 .background(colors.background.ignoresSafeArea())
-                .navigationTitle("Select Target Language")
+                .navigationTitle(title)
                 .listStyle(.insetGrouped)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

@@ -28,6 +28,7 @@ public final class LLMService {
     /// Supported placeholders:
     /// - `{text}` or `{{text}}` - The user's input text
     /// - `{targetLanguage}` or `{{targetLanguage}}` - The user's configured target language
+    /// - `{sourceLanguage}` or `{{sourceLanguage}}` - The user's configured source language (empty when Auto)
     /// - `{fallbackLanguage}` or `{{fallbackLanguage}}` - The fallback language from user's system preferences
     private func substitutePromptPlaceholders(_ prompt: String, text: String) -> String {
         var result = prompt
@@ -45,6 +46,15 @@ public final class LLMService {
         let targetLanguage = targetLanguageOption.promptDescriptor
         result = result.replacingOccurrences(of: "{{targetLanguage}}", with: targetLanguage)
         result = result.replacingOccurrences(of: "{targetLanguage}", with: targetLanguage)
+
+        // Replace {sourceLanguage} and {{sourceLanguage}} with the source language
+        // When set to Auto, the placeholder is replaced with an empty string
+        let sourceLanguageOption = AppPreferences.shared.sourceLanguage
+        let sourceLanguage = sourceLanguageOption.promptDescriptor ?? ""
+        Logger.debug("[LLMService] sourceLanguage.rawValue: \(sourceLanguageOption.rawValue)")
+        Logger.debug("[LLMService] sourceLanguage resolved: \(sourceLanguage.isEmpty ? "(auto)" : sourceLanguage)")
+        result = result.replacingOccurrences(of: "{{sourceLanguage}}", with: sourceLanguage)
+        result = result.replacingOccurrences(of: "{sourceLanguage}", with: sourceLanguage)
 
         // Replace {fallbackLanguage} and {{fallbackLanguage}} with the fallback language
         let fallbackLanguage = targetLanguageOption.fallbackLanguageDescriptor

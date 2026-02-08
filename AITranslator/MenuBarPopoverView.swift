@@ -20,9 +20,7 @@
         @ObservedObject private var preferences = AppPreferences.shared
         @State private var inputText: String = ""
         @State private var showHotkeyHint: Bool = true
-        @State private var isLanguagePickerPresented: Bool = false
         @State private var activeConversationSession: ConversationSession?
-        @State private var targetLanguageCode: String = AppPreferences.shared.targetLanguage.rawValue
         // Focus is managed via AppKit's first responder, not SwiftUI's @FocusState,
         // because @FocusState on NSViewRepresentable competes with AppKit's responder chain.
         let onClose: () -> Void
@@ -55,37 +53,7 @@
             .animation(.easeInOut(duration: 0.25), value: activeConversationSession != nil)
             .onReceive(NotificationCenter.default.publisher(for: .menuBarPopoverDidShow)) { _ in
                 viewModel.refreshConfiguration()
-                targetLanguageCode = preferences.targetLanguage.rawValue
                 loadClipboardAndExecute()
-            }
-            .sheet(isPresented: $isLanguagePickerPresented) {
-                LanguagePickerView(
-                    selectedCode: $targetLanguageCode,
-                    isPresented: $isLanguagePickerPresented
-                )
-            }
-            .onChange(of: targetLanguageCode) {
-                let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-                Logger.debug("[MenuBar] Language Change - targetLanguageCode: \(targetLanguageCode)")
-                Logger.debug("[MenuBar] Parsed option: \(option.rawValue) (\(option.promptDescriptor))")
-                Logger
-                    .debug(
-                        "[MenuBar] BEFORE setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)"
-                    )
-                Logger
-                    .debug(
-                        "[MenuBar] BEFORE setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)"
-                    )
-                preferences.setTargetLanguage(option)
-                Logger
-                    .debug(
-                        "[MenuBar] AFTER setTargetLanguage - preferences.targetLanguage: \(preferences.targetLanguage.rawValue)"
-                    )
-                Logger
-                    .debug(
-                        "[MenuBar] AFTER setTargetLanguage - AppPreferences.shared.targetLanguage: \(AppPreferences.shared.targetLanguage.rawValue)"
-                    )
-                viewModel.refreshConfiguration()
             }
         }
 
@@ -269,7 +237,12 @@
                 .background(inputSectionBackground)
 
                 HStack(spacing: 8) {
-                    targetLanguageIndicator
+                    LanguageSwitcherView(
+                        globeFont: .system(size: 10),
+                        textFont: .system(size: 11, weight: .medium),
+                        chevronFont: .system(size: 7),
+                        foregroundColor: colors.textSecondary.opacity(0.7)
+                    )
 
                     Spacer()
 
@@ -324,28 +297,6 @@
             .buttonStyle(.plain)
             .disabled(!hasText && !viewModel.isSpeakingInputText)
             .help(viewModel.isSpeakingInputText ? "Stop speaking" : "Speak input text")
-        }
-
-        private var targetLanguageIndicator: some View {
-            let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-            let displayName: String = {
-                if option == .appLanguage {
-                    return TargetLanguageOption.appLanguageEnglishName
-                } else {
-                    return option.primaryLabel
-                }
-            }()
-
-            return TargetLanguageButton(
-                title: displayName,
-                action: { isLanguagePickerPresented = true },
-                foregroundColor: colors.textSecondary.opacity(0.7),
-                spacing: 4,
-                globeFont: .system(size: 10),
-                textFont: .system(size: 11),
-                chevronSystemName: "chevron.up.chevron.down",
-                chevronFont: .system(size: 8)
-            )
         }
 
         // MARK: - Action Chips
