@@ -24,61 +24,41 @@ public enum TextDiffBuilder {
             return nil
         }
 
-        let originalChars = Array(original)
-        let revisedChars = Array(revised)
-        guard !originalChars.isEmpty || !revisedChars.isEmpty else {
+        let originalTokens = tokenize(original)
+        let revisedTokens = tokenize(revised)
+        guard !originalTokens.isEmpty || !revisedTokens.isEmpty else {
             return nil
         }
 
-        let lcsMatrix = buildLCSMatrix(original: originalChars, revised: revisedChars)
+        let lcsMatrix = buildLCSMatrix(original: originalTokens, revised: revisedTokens)
 
-        var segments: [Segment] = []
-        var i = originalChars.count
-        var j = revisedChars.count
-        var addedBuffer: [Character] = []
-        var removedBuffer: [Character] = []
-
-        func flushAdded() {
-            guard !addedBuffer.isEmpty else { return }
-            let text = String(addedBuffer.reversed())
-            segments.append(.init(kind: .added, text: text))
-            addedBuffer.removeAll(keepingCapacity: true)
-        }
-
-        func flushRemoved() {
-            guard !removedBuffer.isEmpty else { return }
-            let text = String(removedBuffer.reversed())
-            segments.append(.init(kind: .removed, text: text))
-            removedBuffer.removeAll(keepingCapacity: true)
-        }
+        // Backtrack to collect diff tokens, then merge adjacent same-kind tokens
+        var tokenKinds: [(token: Substring, kind: Segment.Kind)] = []
+        var i = originalTokens.count
+        var j = revisedTokens.count
 
         while i > 0 || j > 0 {
-            if i > 0, j > 0, originalChars[i - 1] == revisedChars[j - 1] {
-                flushAdded()
-                flushRemoved()
-                segments.append(.init(kind: .equal, text: String(originalChars[i - 1])))
+            if i > 0, j > 0, originalTokens[i - 1] == revisedTokens[j - 1] {
+                tokenKinds.append((originalTokens[i - 1], .equal))
                 i -= 1
                 j -= 1
             } else if j > 0, i == 0 || lcsMatrix[i][j - 1] >= lcsMatrix[i - 1][j] {
-                addedBuffer.append(revisedChars[j - 1])
+                tokenKinds.append((revisedTokens[j - 1], .added))
                 j -= 1
             } else if i > 0 {
-                removedBuffer.append(originalChars[i - 1])
+                tokenKinds.append((originalTokens[i - 1], .removed))
                 i -= 1
             }
         }
 
-        flushAdded()
-        flushRemoved()
-
-        segments.reverse()
-
-        var merged: [Segment] = []
-        for segment in segments {
-            if let lastIndex = merged.indices.last, merged[lastIndex].kind == segment.kind {
-                merged[lastIndex].text.append(contentsOf: segment.text)
+        // Build merged segments in forward order
+        var segments: [Segment] = []
+        for idx in tokenKinds.indices.reversed() {
+            let (token, kind) = tokenKinds[idx]
+            if let lastIdx = segments.indices.last, segments[lastIdx].kind == kind {
+                segments[lastIdx].text.append(contentsOf: token)
             } else {
-                merged.append(segment)
+                segments.append(.init(kind: kind, text: String(token)))
             }
         }
 
@@ -87,7 +67,7 @@ public enum TextDiffBuilder {
         var hasRemovals = false
         var hasAdditions = false
 
-        for segment in merged {
+        for segment in segments {
             switch segment.kind {
             case .equal:
                 originalSegments.append(segment)
@@ -136,7 +116,39 @@ public enum TextDiffBuilder {
         return attributed
     }
 
-    private static func buildLCSMatrix(original: [Character], revised: [Character]) -> [[Int]] {
+    /// Tokenize a string into words and whitespace/punctuation tokens.
+    /// Preserves all characters so `tokens.joined() == input`.
+    private static func tokenize(_ string: String) -> [Substring] {
+        var tokens: [Substring] = []
+        let s = string[...]
+        var i = s.startIndex
+        while i < s.endIndex {
+            let c = s[i]
+            if c.isWhitespace {
+                // Collect contiguous whitespace
+                let start = i
+                while i < s.endIndex, s[i].isWhitespace {
+                    i = s.index(after: i)
+                }
+                tokens.append(s[start ..< i])
+            } else if c.isPunctuation || c.isSymbol {
+                // Each punctuation/symbol character is its own token
+                let next = s.index(after: i)
+                tokens.append(s[i ..< next])
+                i = next
+            } else {
+                // Collect contiguous word characters
+                let start = i
+                while i < s.endIndex, !s[i].isWhitespace, !s[i].isPunctuation, !s[i].isSymbol {
+                    i = s.index(after: i)
+                }
+                tokens.append(s[start ..< i])
+            }
+        }
+        return tokens
+    }
+
+    private static func buildLCSMatrix(original: [Substring], revised: [Substring]) -> [[Int]] {
         let rows = original.count + 1
         let columns = revised.count + 1
         var matrix = Array(repeating: Array(repeating: 0, count: columns), count: rows)
