@@ -7,55 +7,36 @@
 
 import SwiftUI
 
-/// Defines whether the picker is selecting a source or target language.
-public enum LanguagePickerMode {
-    case source
-    case target
-}
-
-/// A row model that unifies source and target language options for display.
+/// A row model for target language options display.
 private struct LanguageRow: Identifiable {
     let id: String // rawValue
     let primaryLabel: String
     let secondaryLabel: String
 }
 
-/// A reusable language picker view that can be presented as a sheet.
-/// Supports both source language (with Auto option) and target language selection.
+/// A language picker view for selecting the target language, presented as a sheet.
 public struct LanguagePickerView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Binding var selectedCode: String
     @Binding var isPresented: Bool
-    let mode: LanguagePickerMode
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
 
     private var title: String {
-        switch mode {
-        case .source: return "Select Source Language"
-        case .target: return "Select Target Language"
-        }
+        "Select Target Language"
     }
 
     private var rows: [LanguageRow] {
-        switch mode {
-        case .source:
-            return SourceLanguageOption.selectionOptions.map { option in
-                LanguageRow(id: option.rawValue, primaryLabel: option.primaryLabel, secondaryLabel: option.secondaryLabel)
-            }
-        case .target:
-            return TargetLanguageOption.selectionOptions.map { option in
-                LanguageRow(id: option.rawValue, primaryLabel: option.primaryLabel, secondaryLabel: option.secondaryLabel)
-            }
+        TargetLanguageOption.selectionOptions.map { option in
+            LanguageRow(id: option.rawValue, primaryLabel: option.primaryLabel, secondaryLabel: option.secondaryLabel)
         }
     }
 
-    public init(selectedCode: Binding<String>, isPresented: Binding<Bool>, mode: LanguagePickerMode = .target) {
+    public init(selectedCode: Binding<String>, isPresented: Binding<Bool>) {
         _selectedCode = selectedCode
         _isPresented = isPresented
-        self.mode = mode
     }
 
     public var body: some View {

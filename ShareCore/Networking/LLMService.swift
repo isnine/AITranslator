@@ -135,7 +135,7 @@ public final class LLMService {
                 prompt: action.prompt,
                 text: text,
                 targetLanguage: AppPreferences.shared.targetLanguage.promptDescriptor,
-                sourceLanguage: AppPreferences.shared.sourceLanguage.promptDescriptor ?? ""
+                sourceLanguage: ""
             )
             let promptContainsTextPlaceholder = PromptSubstitution.containsTextPlaceholder(action.prompt)
 

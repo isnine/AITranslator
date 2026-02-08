@@ -538,7 +538,7 @@ public final class HomeViewModel: ObservableObject {
                 prompt: prompt,
                 text: text,
                 targetLanguage: AppPreferences.shared.targetLanguage.promptDescriptor,
-                sourceLanguage: AppPreferences.shared.sourceLanguage.promptDescriptor ?? ""
+                sourceLanguage: ""
             )
             let promptContainsTextPlaceholder = PromptSubstitution.containsTextPlaceholder(prompt)
 

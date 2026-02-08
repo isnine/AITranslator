@@ -131,7 +131,7 @@ struct ActionDetailView: View {
     }
 
     private var promptSection: some View {
-        section(title: "Prompt Template", subtitle: "Use {text}, {targetLanguage}, and {sourceLanguage} as placeholders") {
+        section(title: "Prompt Template", subtitle: "Use {text} and {targetLanguage} as placeholders") {
             VStack(alignment: .leading, spacing: 8) {
                 TextEditor(text: $prompt)
                     .font(.system(size: 15))

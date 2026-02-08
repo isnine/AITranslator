@@ -1431,12 +1431,12 @@
     "Use" : {
 
     },
-    "Use {text}, {targetLanguage}, and {sourceLanguage} as placeholders" : {
+    "Use {text} and {targetLanguage} as placeholders" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用 {text}、{targetLanguage} 和 {sourceLanguage} 作为占位符"
+            "value" : "使用 {text} 和 {targetLanguage} 作为占位符"
           }
         }
       }
