@@ -13,8 +13,11 @@ public struct AppConfiguration: Codable, Sendable {
     public var version: String
     public var actions: [ActionEntry]
 
+    /// Single source of truth for the current configuration version.
+    public static let currentVersion = "1.3.0"
+
     public init(
-        version: String = "1.1.0",
+        version: String = AppConfiguration.currentVersion,
         actions: [ActionEntry] = []
     ) {
         self.version = version

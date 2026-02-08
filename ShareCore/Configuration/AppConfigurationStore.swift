@@ -250,20 +250,24 @@ public final class AppConfigurationStore: ObservableObject {
 
     private func tryLoadConfiguration(named name: String) -> Bool {
         do {
-            let config = try configFileManager.loadConfiguration(named: name)
+            var config = try configFileManager.loadConfiguration(named: name)
 
             // Check version compatibility - require 1.1.0 or higher
             if !isVersionCompatible(config.version) {
-                Logger.debug("[ConfigStore] ⚠️ Configuration '\(name)' has incompatible version: \(config.version)")
+                Logger.debug("[ConfigStore] \u{26a0}\u{fe0f} Configuration '\(name)' has incompatible version: \(config.version)")
                 return false
             }
+
+            // Migrate to current version if needed
+            let (migrated, didMigrate) = ConfigurationMigrator.migrateIfNeeded(config)
+            config = migrated
 
             // Validate the loaded configuration
             let validationResult = ConfigurationValidator.shared.validate(config)
             lastValidationResult = validationResult
 
             if validationResult.hasErrors {
-                Logger.debug("[ConfigStore] ❌ Configuration '\(name)' has validation errors:")
+                Logger.debug("[ConfigStore] \u{274c} Configuration '\(name)' has validation errors:")
                 for error in validationResult.errors {
                     Logger.debug("[ConfigStore]   - \(error.message)")
                 }
@@ -272,7 +276,7 @@ public final class AppConfigurationStore: ObservableObject {
             }
 
             if validationResult.hasWarnings {
-                Logger.debug("[ConfigStore] ⚠️ Configuration '\(name)' has validation warnings:")
+                Logger.debug("[ConfigStore] \u{26a0}\u{fe0f} Configuration '\(name)' has validation warnings:")
                 for warning in validationResult.warnings {
                     Logger.debug("[ConfigStore]   - \(warning.message)")
                 }
@@ -281,6 +285,12 @@ public final class AppConfigurationStore: ObservableObject {
             applyLoadedConfiguration(config)
             currentConfigurationName = name
             preferences.setCurrentConfigName(name)
+
+            // Persist the migrated configuration so the migration is not repeated
+            if didMigrate {
+                Logger.debug("[ConfigStore] Persisting migrated configuration '\(name)'")
+                saveConfiguration(force: true)
+            }
 
             // Start monitoring the configuration
             configFileManager.startMonitoring(configurationNamed: name)
@@ -361,7 +371,7 @@ public final class AppConfigurationStore: ObservableObject {
         }
 
         return AppConfiguration(
-            version: "1.1.0",
+            version: AppConfiguration.currentVersion,
             actions: actionEntries
         )
     }
@@ -430,9 +440,13 @@ private extension AppConfigurationStore {
             comment: "Name of the sentence-by-sentence translation action"
         )
 
-        private static let translateLegacyPrompt =
-            "Translate the selected text intelligently, keep the original meaning, and return a concise result."
+        private static let translatePromptTemplate =
+            #"Translate: "{text}" to {targetLanguage} with tone: fluent"#
         private static let summarizeLegacyPrompt = "Provide a concise summary of the selected text, preserving the key meaning."
+
+        private static let sentenceAnalysisPromptTemplate = "Analyze in {{targetLanguage}} using exactly these sections:\n\n## 📚语法分析\n- Sentence structure (clauses, parts of speech, tense/voice)\n- Key grammar patterns\n\n## ✍️ 搭配积累\n- Useful phrases/collocations with brief meanings and examples\n\nBe concise. No extra sections."
+
+        private static let sentenceBySentenceTranslatePromptTemplate = "If input is in {{targetLanguage}}, translate sentence by sentence to English; otherwise translate to {{targetLanguage}}. Return original-translation pairs. Keep meaning and style."
 
         init?(action: ActionConfig) {
             switch action.name {
@@ -452,13 +466,13 @@ private extension AppConfigurationStore {
         func prompt(for language: TargetLanguageOption) -> String {
             switch self {
             case .translate:
-                return Self.translatePrompt(for: language)
+                return Self.translatePromptTemplate
             case .summarize:
                 return "Provide a concise summary of the selected text in \(language.promptDescriptor). Preserve the essential meaning without adding new information."
             case .sentenceAnalysis:
-                return Self.sentenceAnalysisPrompt(for: language)
+                return Self.sentenceAnalysisPromptTemplate
             case .sentenceBySentenceTranslate:
-                return Self.sentenceBySentenceTranslatePrompt(for: language)
+                return Self.sentenceBySentenceTranslatePromptTemplate
             }
         }
 
@@ -467,33 +481,36 @@ private extension AppConfigurationStore {
                 TargetLanguageOption.selectionOptions.map { prompt(for: $0) }
             )
 
+            // Also recognize old baked-in-language prompts from pre-1.3 code
+            // so they get replaced with template versions
+            let legacyGenerated = Set(
+                TargetLanguageOption.selectionOptions.map { legacyPrompt(for: $0) }
+            )
+
             switch self {
-            case .translate:
-                var acceptable = generated
-                acceptable.formUnion(
-                    TargetLanguageOption.selectionOptions.map { Self.translateLegacyPrompt(for: $0) }
-                )
-                acceptable.insert(Self.translateLegacyPrompt)
-                return acceptable.contains(currentPrompt)
-            case .summarize:
-                return currentPrompt == Self.summarizeLegacyPrompt || generated.contains(currentPrompt)
-            case .sentenceAnalysis:
-                return generated.contains(currentPrompt)
-            case .sentenceBySentenceTranslate:
-                return generated.contains(currentPrompt)
+            case .translate, .summarize, .sentenceAnalysis, .sentenceBySentenceTranslate:
+                return currentPrompt == Self.summarizeLegacyPrompt
+                    || generated.contains(currentPrompt)
+                    || legacyGenerated.contains(currentPrompt)
             }
         }
 
-        private static func translatePrompt(for language: TargetLanguageOption) -> String {
-            let descriptor = language.promptDescriptor
-            return "Translate the selected text into \(descriptor). If the input language already matches the target language, translate it into English instead. Preserve tone, intent, and terminology. Respond with only the translated text."
+        /// Returns the old baked-in-language prompt that was generated by pre-1.3 code.
+        /// Used by `shouldUpdatePrompt` to recognize prompts that need updating.
+        private func legacyPrompt(for language: TargetLanguageOption) -> String {
+            switch self {
+            case .translate:
+                return Self.translatePromptTemplate
+            case .summarize:
+                return "Provide a concise summary of the selected text in \(language.promptDescriptor). Preserve the essential meaning without adding new information."
+            case .sentenceAnalysis:
+                return Self.legacySentenceAnalysisPrompt(for: language)
+            case .sentenceBySentenceTranslate:
+                return Self.legacySentenceBySentenceTranslatePrompt(for: language)
+            }
         }
 
-        private static func translateLegacyPrompt(for language: TargetLanguageOption) -> String {
-            "Translate the selected text into \(language.promptDescriptor). Preserve tone, intent, and terminology. Respond with only the translated text."
-        }
-
-        static func sentenceAnalysisPrompt(for language: TargetLanguageOption) -> String {
+        private static func legacySentenceAnalysisPrompt(for language: TargetLanguageOption) -> String {
             let descriptor = language.promptDescriptor
             return """
             Analyze the provided sentence or short paragraph and respond entirely in \(
@@ -512,7 +529,7 @@ private extension AppConfigurationStore {
             """
         }
 
-        static func sentenceBySentenceTranslatePrompt(for language: TargetLanguageOption) -> String {
+        private static func legacySentenceBySentenceTranslatePrompt(for language: TargetLanguageOption) -> String {
             let descriptor = language.promptDescriptor
             return """
             Translate the following text sentence by sentence into \(

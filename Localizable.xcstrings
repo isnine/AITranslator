@@ -944,6 +944,9 @@
         }
       }
     },
+    "Polish Writing" : {
+
+    },
     "Powered by Built-in Cloud - No API key required" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1357,6 +1360,9 @@
         }
       }
     },
+    "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet." : {
+      "comment" : "Snapshot mock input text"
+    },
     "This action is not supported by the selected provider" : {
       "comment" : "Unsupported action error"
     },
@@ -1425,8 +1431,15 @@
     "Use" : {
 
     },
-    "Use {text} and {targetLanguage} as placeholders" : {
-
+    "Use {text}, {targetLanguage}, and {sourceLanguage} as placeholders" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用 {text}、{targetLanguage} 和 {sourceLanguage} 作为占位符"
+          }
+        }
+      }
     },
     "Use Built-in Cloud" : {
       "extractionState" : "stale",
@@ -1490,6 +1503,12 @@
           }
         }
       }
+    },
+    "敏捷的棕色狐狸跳过了懒惰的狗。这句话包含了字母表中的每个字母。" : {
+      "comment" : "Snapshot mock translation result"
+    },
+    "那只敏捷的棕色狐狸跃过了那条懒狗。这个句子包含了英文字母表里的每一个字母。" : {
+      "comment" : "Snapshot mock translation result alt"
     }
   },
   "version" : "1.1"

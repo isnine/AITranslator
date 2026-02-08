@@ -77,18 +77,14 @@ public final class HomeViewModel: ObservableObject {
     @Published public var inputText: String = "" {
         didSet {
             guard inputText != oldValue else { return }
-            Task { @MainActor in
-                self.cancelActiveRequest(clearResults: true)
-            }
+            self.cancelActiveRequest(clearResults: true)
         }
     }
 
     @Published public var attachedImages: [ImageAttachment] = [] {
         didSet {
             guard attachedImages.count != oldValue.count else { return }
-            Task { @MainActor in
-                self.cancelActiveRequest(clearResults: true)
-            }
+            self.cancelActiveRequest(clearResults: true)
         }
     }
 
@@ -136,8 +132,18 @@ public final class HomeViewModel: ObservableObject {
     public private(set) var currentRequestInputText: String = ""
     private var currentRequestImages: [ImageAttachment] = []
     private var currentActionShowsDiff: Bool = false
+    /// Timestamp-based throttle for streaming UI updates (~15Hz).
+    private var lastStreamingUpdateTime: [String: Date] = [:]
     /// When true, `performSelectedAction()` will be called automatically once models finish loading.
     private var pendingAutoAction: Bool = false
+
+    // MARK: - Snapshot Mode
+
+    /// Returns `true` when the app is launched with `-FASTLANE_SNAPSHOT`
+    /// (used by Fastlane's snapshot tool to capture App Store screenshots).
+    public static var isSnapshotMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("-FASTLANE_SNAPSHOT")
+    }
 
     public init(
         configurationStore: AppConfigurationStore? = nil,
@@ -157,26 +163,100 @@ public final class HomeViewModel: ObservableObject {
         actions = []
         isLoadingConfiguration = true
 
-        refreshActions()
-        loadModels()
+        if Self.isSnapshotMode {
+            populateSnapshotData()
+        } else {
+            refreshActions()
+            loadModels()
 
-        store.$actions
-            .receive(on: RunLoop.main)
-            .sink { [weak self] in
-                guard let self else { return }
-                self.allActions = $0
-                self.refreshActions()
-            }
-            .store(in: &cancellables)
+            store.$actions
+                .receive(on: RunLoop.main)
+                .sink { [weak self] in
+                    guard let self else { return }
+                    self.allActions = $0
+                    self.refreshActions()
+                }
+                .store(in: &cancellables)
 
-        preferences.$enabledModelIDs
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.updateEnabledModels()
-            }
-            .store(in: &cancellables)
+            preferences.$enabledModelIDs
+                .receive(on: RunLoop.main)
+                .sink { [weak self] _ in
+                    self?.updateEnabledModels()
+                }
+                .store(in: &cancellables)
+        }
 
         isLoadingConfiguration = false
+    }
+
+    // MARK: - Snapshot Mock Data
+
+    /// Populates the view model with realistic-looking mock data for
+    /// Fastlane App Store screenshot capture.
+    private func populateSnapshotData() {
+        // Mock models
+        let gpt4Model = ModelConfig(id: "gpt-4.1", displayName: "GPT-4.1", isDefault: true)
+        let claudeModel = ModelConfig(id: "claude-sonnet-4", displayName: "Claude Sonnet 4")
+        let geminiModel = ModelConfig(id: "gemini-2.5-flash", displayName: "Gemini 2.5 Flash")
+        models = [gpt4Model, claudeModel, geminiModel]
+
+        // Mock actions
+        let translateAction = ActionConfig(
+            name: NSLocalizedString("Translate", comment: ""),
+            prompt: "Translate the following text",
+            usageScenes: .all,
+            outputType: .plain
+        )
+        let grammarAction = ActionConfig(
+            name: NSLocalizedString("Grammar Check", comment: ""),
+            prompt: "Check grammar",
+            usageScenes: .all,
+            outputType: .grammarCheck
+        )
+        let polishAction = ActionConfig(
+            name: NSLocalizedString("Polish Writing", comment: ""),
+            prompt: "Polish the writing",
+            usageScenes: .all,
+            outputType: .diff
+        )
+
+        allActions = [translateAction, grammarAction, polishAction]
+        actions = [translateAction, grammarAction, polishAction]
+        selectedActionID = translateAction.id
+
+        // Set input text — this will trigger didSet which clears modelRuns,
+        // so we set modelRuns AFTER setting inputText.
+        inputText = NSLocalizedString(
+            "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet.",
+            comment: "Snapshot mock input text"
+        )
+
+        // Mock translation results (set after inputText to avoid being cleared)
+        let translatedText = NSLocalizedString(
+            "敏捷的棕色狐狸跳过了懒惰的狗。这句话包含了字母表中的每个字母。",
+            comment: "Snapshot mock translation result"
+        )
+        modelRuns = [
+            ModelRunViewState(
+                model: gpt4Model,
+                status: .success(
+                    text: translatedText,
+                    copyText: translatedText,
+                    duration: 1.2
+                )
+            ),
+            ModelRunViewState(
+                model: claudeModel,
+                status: .success(
+                    text: NSLocalizedString(
+                        "那只敏捷的棕色狐狸跃过了那条懒狗。这个句子包含了英文字母表里的每一个字母。",
+                        comment: "Snapshot mock translation result alt"
+                    ),
+                    copyText: "那只敏捷的棕色狐狸跃过了那条懒狗。这个句子包含了英文字母表里的每一个字母。",
+                    duration: 1.5
+                )
+            ),
+        ]
     }
 
     public var defaultAction: ActionConfig? {
@@ -319,6 +399,9 @@ public final class HomeViewModel: ObservableObject {
         // Clear pending flag since we're now executing
         pendingAutoAction = false
 
+        // Clear throttle timestamps for this request
+        lastStreamingUpdateTime.removeAll()
+
         let requestID = UUID()
         activeRequestID = requestID
 
@@ -451,8 +534,13 @@ public final class HomeViewModel: ObservableObject {
         if prompt.isEmpty {
             chatMessages.append(ChatMessage(role: "user", content: text, images: currentRequestImages))
         } else {
-            let processedPrompt = Self.substitutePromptPlaceholders(prompt, text: text)
-            let promptContainsTextPlaceholder = prompt.contains("{text}") || prompt.contains("{{text}}")
+            let processedPrompt = PromptSubstitution.substitute(
+                prompt: prompt,
+                text: text,
+                targetLanguage: AppPreferences.shared.targetLanguage.promptDescriptor,
+                sourceLanguage: AppPreferences.shared.sourceLanguage.promptDescriptor ?? ""
+            )
+            let promptContainsTextPlaceholder = PromptSubstitution.containsTextPlaceholder(prompt)
 
             if promptContainsTextPlaceholder {
                 chatMessages.append(ChatMessage(role: "user", content: processedPrompt, images: currentRequestImages))
@@ -471,26 +559,6 @@ public final class HomeViewModel: ObservableObject {
             availableModels: preferences.isPremium ? models : models.filter { !$0.isPremium },
             messages: chatMessages
         )
-    }
-
-    /// Mirrors LLMService.substitutePromptPlaceholders logic so we can
-    /// reconstruct the original messages without exposing the private method.
-    private static func substitutePromptPlaceholders(_ prompt: String, text: String) -> String {
-        var result = prompt
-
-        let targetLanguageOption = AppPreferences.shared.targetLanguage
-        let targetLanguage = targetLanguageOption.promptDescriptor
-        result = result.replacingOccurrences(of: "{{targetLanguage}}", with: targetLanguage)
-        result = result.replacingOccurrences(of: "{targetLanguage}", with: targetLanguage)
-
-        let fallbackLanguage = targetLanguageOption.fallbackLanguageDescriptor
-        result = result.replacingOccurrences(of: "{{fallbackLanguage}}", with: fallbackLanguage)
-        result = result.replacingOccurrences(of: "{fallbackLanguage}", with: fallbackLanguage)
-
-        result = result.replacingOccurrences(of: "{{text}}", with: text)
-        result = result.replacingOccurrences(of: "{text}", with: text)
-
-        return result
     }
 
     deinit {
@@ -517,6 +585,16 @@ public final class HomeViewModel: ObservableObject {
                 guard let index = self.modelRuns.firstIndex(where: { $0.id == modelID }) else {
                     return
                 }
+
+                // Throttle streaming UI updates to ~15Hz (66ms)
+                let now = Date()
+                if let lastUpdate = self.lastStreamingUpdateTime[modelID],
+                   now.timeIntervalSince(lastUpdate) < 0.066
+                {
+                    return
+                }
+                self.lastStreamingUpdateTime[modelID] = now
+
                 let startDate = self.modelRuns[index].startDate ?? Date()
                 switch update {
                 case let .text(partialText):
@@ -549,10 +627,15 @@ public final class HomeViewModel: ObservableObject {
                 switch result.response {
                 case let .success(message):
                     let diffTarget = result.diffSource ?? message
-                    let diff = currentActionShowsDiff ? TextDiffBuilder.build(
-                        original: currentRequestInputText,
-                        revised: diffTarget
-                    ) : nil
+                    let diff: TextDiffBuilder.Presentation?
+                    if currentActionShowsDiff {
+                        let inputText = currentRequestInputText
+                        diff = await Task.detached(priority: .userInitiated) {
+                            TextDiffBuilder.build(original: inputText, revised: diffTarget)
+                        }.value
+                    } else {
+                        diff = nil
+                    }
                     runState = .success(
                         text: message,
                         copyText: diffTarget,
@@ -603,15 +686,34 @@ public final class HomeViewModel: ObservableObject {
         switch result.response {
         case let .success(message):
             let diffTarget = result.diffSource ?? message
-            let diff = allowDiff ? TextDiffBuilder.build(original: currentRequestInputText, revised: diffTarget) : nil
-            modelRuns[index].status = .success(
-                text: message,
-                copyText: diffTarget,
-                duration: result.duration,
-                diff: diff,
-                supplementalTexts: result.supplementalTexts,
-                sentencePairs: result.sentencePairs
-            )
+            if allowDiff {
+                // Compute diff off main thread
+                let inputText = currentRequestInputText
+                Task {
+                    let diff = await Task.detached(priority: .userInitiated) {
+                        TextDiffBuilder.build(original: inputText, revised: diffTarget)
+                    }.value
+                    guard self.modelRuns.indices.contains(index),
+                          self.modelRuns[index].id == result.modelID else { return }
+                    self.modelRuns[index].status = .success(
+                        text: message,
+                        copyText: diffTarget,
+                        duration: result.duration,
+                        diff: diff,
+                        supplementalTexts: result.supplementalTexts,
+                        sentencePairs: result.sentencePairs
+                    )
+                }
+            } else {
+                modelRuns[index].status = .success(
+                    text: message,
+                    copyText: diffTarget,
+                    duration: result.duration,
+                    diff: nil,
+                    supplementalTexts: result.supplementalTexts,
+                    sentencePairs: result.sentencePairs
+                )
+            }
         case let .failure(error):
             let responseBody: String?
             if let llmError = error as? LLMServiceError,

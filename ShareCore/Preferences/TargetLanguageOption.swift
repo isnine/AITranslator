@@ -101,43 +101,6 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
         return "\(native) (\(english))"
     }
 
-    /// Returns the fallback language descriptor when input matches target language.
-    /// Uses the user's system preferred languages list to find the next preferred language.
-    public var fallbackLanguageDescriptor: String {
-        let primaryIdentifier = baseIdentifier
-        let primaryLanguageCode = Locale.Components(identifier: primaryIdentifier)
-            .languageComponents.languageCode?.identifier ?? primaryIdentifier
-
-        // Find the first preferred language that differs from the target
-        for identifier in Locale.preferredLanguages {
-            let components = Locale.Components(identifier: identifier)
-            let languageCode = components.languageComponents.languageCode?.identifier ?? identifier
-
-            if languageCode != primaryLanguageCode {
-                return TargetLanguageOption.languageDescriptor(for: identifier)
-            }
-        }
-
-        // Default fallback: if target is English, use Simplified Chinese; otherwise use English
-        if primaryLanguageCode == "en" {
-            return TargetLanguageOption.simplifiedChinese.promptDescriptor
-        } else {
-            return TargetLanguageOption.english.promptDescriptor
-        }
-    }
-
-    /// Returns a language descriptor string for an arbitrary locale identifier.
-    private static func languageDescriptor(for identifier: String) -> String {
-        let locale = Locale(identifier: identifier)
-        let englishLocale = Locale(identifier: "en")
-
-        let native = locale.localizedString(forIdentifier: identifier) ?? identifier
-        let english = englishLocale.localizedString(forIdentifier: identifier) ?? identifier
-
-        guard native != english else { return native }
-        return "\(native) (\(english))"
-    }
-
     private var baseIdentifier: String {
         switch self {
         case .appLanguage:

@@ -22,52 +22,6 @@ public final class LLMService {
         self.urlSession = urlSession
     }
 
-    // MARK: - Prompt Placeholder Substitution
-
-    /// Replaces placeholders in the prompt with actual values.
-    /// Supported placeholders:
-    /// - `{text}` or `{{text}}` - The user's input text
-    /// - `{targetLanguage}` or `{{targetLanguage}}` - The user's configured target language
-    /// - `{sourceLanguage}` or `{{sourceLanguage}}` - The user's configured source language (empty when Auto)
-    /// - `{fallbackLanguage}` or `{{fallbackLanguage}}` - The fallback language from user's system preferences
-    private func substitutePromptPlaceholders(_ prompt: String, text: String) -> String {
-        var result = prompt
-
-        let targetLanguageOption = AppPreferences.shared.targetLanguage
-
-        Logger.debug("[LLMService] substitutePromptPlaceholders called")
-        Logger.debug("[LLMService] targetLanguage.rawValue: \(targetLanguageOption.rawValue)")
-        Logger.debug("[LLMService] targetLanguage.promptDescriptor: \(targetLanguageOption.promptDescriptor)")
-
-        let storedValue = AppPreferences.sharedDefaults.string(forKey: TargetLanguageOption.storageKey)
-        Logger.debug("[LLMService] Direct read from UserDefaults[\(TargetLanguageOption.storageKey)]: \(storedValue ?? "nil")")
-
-        // Replace {targetLanguage} and {{targetLanguage}} with the actual target language
-        let targetLanguage = targetLanguageOption.promptDescriptor
-        result = result.replacingOccurrences(of: "{{targetLanguage}}", with: targetLanguage)
-        result = result.replacingOccurrences(of: "{targetLanguage}", with: targetLanguage)
-
-        // Replace {sourceLanguage} and {{sourceLanguage}} with the source language
-        // When set to Auto, the placeholder is replaced with an empty string
-        let sourceLanguageOption = AppPreferences.shared.sourceLanguage
-        let sourceLanguage = sourceLanguageOption.promptDescriptor ?? ""
-        Logger.debug("[LLMService] sourceLanguage.rawValue: \(sourceLanguageOption.rawValue)")
-        Logger.debug("[LLMService] sourceLanguage resolved: \(sourceLanguage.isEmpty ? "(auto)" : sourceLanguage)")
-        result = result.replacingOccurrences(of: "{{sourceLanguage}}", with: sourceLanguage)
-        result = result.replacingOccurrences(of: "{sourceLanguage}", with: sourceLanguage)
-
-        // Replace {fallbackLanguage} and {{fallbackLanguage}} with the fallback language
-        let fallbackLanguage = targetLanguageOption.fallbackLanguageDescriptor
-        result = result.replacingOccurrences(of: "{{fallbackLanguage}}", with: fallbackLanguage)
-        result = result.replacingOccurrences(of: "{fallbackLanguage}", with: fallbackLanguage)
-
-        // Replace {text} and {{text}} with the actual input text
-        result = result.replacingOccurrences(of: "{{text}}", with: text)
-        result = result.replacingOccurrences(of: "{text}", with: text)
-
-        return result
-    }
-
     // MARK: - HMAC Signing for Built-in Cloud Provider
 
     private func generateSignature(timestamp: String, path: String) -> String {
@@ -177,8 +131,13 @@ public final class LLMService {
                 .init(role: "user", text: text, imageDataURLs: imageDataURLs),
             ]
         } else {
-            let processedPrompt = substitutePromptPlaceholders(action.prompt, text: text)
-            let promptContainsTextPlaceholder = action.prompt.contains("{text}") || action.prompt.contains("{{text}}")
+            let processedPrompt = PromptSubstitution.substitute(
+                prompt: action.prompt,
+                text: text,
+                targetLanguage: AppPreferences.shared.targetLanguage.promptDescriptor,
+                sourceLanguage: AppPreferences.shared.sourceLanguage.promptDescriptor ?? ""
+            )
+            let promptContainsTextPlaceholder = PromptSubstitution.containsTextPlaceholder(action.prompt)
 
             if promptContainsTextPlaceholder {
                 messages = [
@@ -194,7 +153,7 @@ public final class LLMService {
 
         do {
             let encoder = JSONEncoder()
-            encoder.outputFormatting = [.prettyPrinted]
+            encoder.outputFormatting = []
             let decoder = JSONDecoder.llmDecoder
             let payloadData: Data
 
@@ -220,7 +179,7 @@ public final class LLMService {
                     "stream": enableStreaming,
                 ]
                 body["response_format"] = responseFormat
-                payloadData = try JSONSerialization.data(withJSONObject: body, options: [.prettyPrinted])
+                payloadData = try JSONSerialization.data(withJSONObject: body, options: [])
             } else {
                 let payload = LLMRequestPayload(
                     messages: messages,
@@ -311,11 +270,11 @@ public final class LLMService {
         }
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
-            var errorData = Data()
+            var errorBytes: [UInt8] = []
             for try await chunk in bytes {
-                errorData.append(chunk)
+                errorBytes.append(chunk)
             }
-            let responseString = String(data: errorData, encoding: .utf8) ?? ""
+            let responseString = String(data: Data(errorBytes), encoding: .utf8) ?? ""
             Logger.debug("[LLMService] Response JSON from \(model.displayName): \(responseString)")
             throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
         }
@@ -344,7 +303,6 @@ public final class LLMService {
                 let deltaText = chunk.combinedText
                 guard !deltaText.isEmpty else { continue }
                 aggregatedText.append(deltaText)
-                try Task.checkCancellation()
 
                 if let parser = sentencePairParser {
                     let pairs = parser.append(deltaText)
@@ -394,11 +352,12 @@ public final class LLMService {
                 response: .success(finalText)
             )
         } else {
-            var data = Data()
+            var responseBytes: [UInt8] = []
             for try await chunk in bytes {
                 try Task.checkCancellation()
-                data.append(chunk)
+                responseBytes.append(chunk)
             }
+            let data = Data(responseBytes)
 
             let responseString = String(data: data, encoding: .utf8) ?? ""
             Logger.debug("[LLMService] Non-stream response from \(model.displayName): \(responseString)")
@@ -447,7 +406,7 @@ public final class LLMService {
 
         let payload = LLMRequestPayload(messages: messages, stream: true)
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted]
+        encoder.outputFormatting = []
         request.httpBody = try encoder.encode(payload)
 
         Logger.debug("[LLMService] Continuation request - Model: \(model.displayName)")
@@ -465,11 +424,11 @@ public final class LLMService {
         }
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
-            var errorData = Data()
+            var errorBytes: [UInt8] = []
             for try await chunk in bytes {
-                errorData.append(chunk)
+                errorBytes.append(chunk)
             }
-            let responseString = String(data: errorData, encoding: .utf8) ?? ""
+            let responseString = String(data: Data(errorBytes), encoding: .utf8) ?? ""
             throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
         }
 
@@ -491,7 +450,6 @@ public final class LLMService {
                 let deltaText = chunk.combinedText
                 guard !deltaText.isEmpty else { continue }
                 aggregatedText.append(deltaText)
-                try Task.checkCancellation()
                 await partialHandler(aggregatedText)
             }
 
@@ -500,11 +458,12 @@ public final class LLMService {
             return finalText
         } else {
             // Non-streaming fallback
-            var data = Data()
+            var responseBytes: [UInt8] = []
             for try await chunk in bytes {
                 try Task.checkCancellation()
-                data.append(chunk)
+                responseBytes.append(chunk)
             }
+            let data = Data(responseBytes)
             let parsed = try parseResponsePayload(data: data, structuredOutput: nil)
             let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
@@ -524,15 +483,18 @@ public final class LLMService {
 
         return pairsArray.compactMap { dict -> SentencePair? in
             guard let original = dict["original"] as? String,
-                  let translation = dict["translation"] as? String,
-                  !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                  let translation = dict["translation"] as? String
             else {
                 return nil
             }
+            let trimmedOriginal = original.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedTranslation = translation.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedOriginal.isEmpty, !trimmedTranslation.isEmpty else {
+                return nil
+            }
             return SentencePair(
-                original: original.trimmingCharacters(in: .whitespacesAndNewlines),
-                translation: translation.trimmingCharacters(in: .whitespacesAndNewlines)
+                original: trimmedOriginal,
+                translation: trimmedTranslation
             )
         }
     }
@@ -583,9 +545,12 @@ public final class LLMService {
 private final class StreamingStructuredOutputParser {
     private var buffer = ""
     private let config: ActionConfig.StructuredOutputConfig
+    private let fieldRegex: NSRegularExpression?
 
     init(config: ActionConfig.StructuredOutputConfig) {
         self.config = config
+        let fieldPattern = "\"\(config.primaryField)\"\\s*:\\s*\""
+        self.fieldRegex = try? NSRegularExpression(pattern: fieldPattern, options: [])
     }
 
     /// Append new delta text and return the display text for UI.
@@ -597,11 +562,7 @@ private final class StreamingStructuredOutputParser {
     private func extractDisplayText() -> String {
         // Try to extract the primary field value incrementally
         // Look for pattern like "revised_text": "..."
-        let primaryField = config.primaryField
-
-        // Pattern to find the start of the primary field value
-        let fieldPattern = "\"\(primaryField)\"\\s*:\\s*\""
-        guard let fieldRegex = try? NSRegularExpression(pattern: fieldPattern, options: []) else {
+        guard let fieldRegex else {
             return ""
         }
 
@@ -667,6 +628,14 @@ private final class StreamingStructuredOutputParser {
 private final class StreamingSentencePairParser {
     private var buffer = ""
     private var emittedPairs: [SentencePair] = []
+    private var scanOffset = 0
+    private let pairRegex: NSRegularExpression?
+
+    init() {
+        let pattern =
+            #"\{\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*\}"#
+        self.pairRegex = try? NSRegularExpression(pattern: pattern, options: [])
+    }
 
     /// Append new delta text and return all completed pairs found so far.
     func append(_ delta: String) -> [SentencePair] {
@@ -684,27 +653,21 @@ private final class StreamingSentencePairParser {
     private func extractCompletedPairs() -> [SentencePair] {
         var pairs: [SentencePair] = []
 
-        // Pattern to match complete sentence pair objects:
-        // {"original": "...", "translation": "..."} or {"translation": "...", "original": "..."}
-        let pattern =
-            #"\{\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*\}"#
-
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+        guard let regex = pairRegex else {
             return pairs
         }
 
         let nsString = buffer as NSString
-        let matches = regex.matches(in: buffer, options: [], range: NSRange(location: 0, length: nsString.length))
+        let searchRange = NSRange(location: scanOffset, length: nsString.length - scanOffset)
+        let matches = regex.matches(in: buffer, options: [], range: searchRange)
 
-        // Only process matches we haven't emitted yet
-        let startIndex = emittedPairs.count
-        for (index, match) in matches.enumerated() {
-            guard index >= startIndex else { continue }
-
+        for match in matches {
             let matchString = nsString.substring(with: match.range)
             if let pair = parseSinglePair(matchString) {
                 pairs.append(pair)
             }
+            // Advance scan offset past this match
+            scanOffset = match.range.upperBound
         }
 
         return pairs
@@ -714,16 +677,20 @@ private final class StreamingSentencePairParser {
         guard let data = jsonString.data(using: .utf8),
               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String],
               let original = dict["original"],
-              let translation = dict["translation"],
-              !original.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              !translation.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+              let translation = dict["translation"]
         else {
             return nil
         }
 
+        let trimmedOriginal = original.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedTranslation = translation.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedOriginal.isEmpty, !trimmedTranslation.isEmpty else {
+            return nil
+        }
+
         return SentencePair(
-            original: original.trimmingCharacters(in: .whitespacesAndNewlines),
-            translation: translation.trimmingCharacters(in: .whitespacesAndNewlines)
+            original: trimmedOriginal,
+            translation: trimmedTranslation
         )
     }
 }
@@ -1063,17 +1030,17 @@ private extension LLMService {
 }
 
 private extension JSONDecoder {
-    static var llmDecoder: JSONDecoder {
+    static let llmDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return decoder
-    }
+    }()
 }
 
 private extension JSONEncoder {
-    static var llmEncoder: JSONEncoder {
+    static let llmEncoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         return encoder
-    }
+    }()
 }
