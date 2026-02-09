@@ -8,11 +8,6 @@ class TLingoScreenshots: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        setupSnapshot(app)
-        app.launch()
-
-        // Wait for the app to settle after launch
-        sleep(3)
     }
 
     override func tearDownWithError() throws {
@@ -22,33 +17,48 @@ class TLingoScreenshots: XCTestCase {
     // MARK: - Screenshot Tests
 
     func test01Home() {
+        setupSnapshot(app)
+        app.launch()
         // Home tab is selected by default on launch
         // Wait for content to load
-        sleep(2)
+        sleep(3)
         snapshot("01_Home")
     }
 
     func test02Conversation() {
-        // Show the home screen with a translation result
-        // The mock data should display a conversation-like state
-        // Wait for mock content to appear
-        sleep(2)
+        // Pass extra argument so the app auto-presents the conversation sheet
+        // at full height without needing to find and tap the chat button.
+        setupSnapshot(app)
+        app.launchArguments.append("-SNAPSHOT_CONVERSATION")
+        app.launch()
+
+        // Wait for the conversation sheet to fully present
+        sleep(4)
         snapshot("02_Conversation")
     }
 
     func test03Actions() {
+        setupSnapshot(app)
+        app.launch()
+        sleep(3)
         navigateToTab("Actions")
         sleep(2)
         snapshot("03_Actions")
     }
 
     func test04Models() {
+        setupSnapshot(app)
+        app.launch()
+        sleep(3)
         navigateToTab("Models")
         sleep(2)
         snapshot("04_Models")
     }
 
     func test05Settings() {
+        setupSnapshot(app)
+        app.launch()
+        sleep(3)
         navigateToTab("Settings")
         sleep(2)
         snapshot("05_Settings")

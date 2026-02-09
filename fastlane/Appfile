@@ -1,0 +1,3 @@
+app_identifier("com.zanderwang.AITranslator")
+apple_id("") # Your Apple ID (leave blank to be prompted)
+team_id("JW2LR94V6G")

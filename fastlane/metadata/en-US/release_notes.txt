@@ -1,0 +1,7 @@
+TLingo 2.0 — Translation Chat is here!
+
+• NEW: Translation Chat — Continue refining translations in a conversational flow. Ask follow-up questions, adjust tone, and iterate until it's perfect.
+• Improved AI translation accuracy and performance
+• Bug fixes and stability improvements
+
+Set TLingo as your default translator and experience the difference AI makes.

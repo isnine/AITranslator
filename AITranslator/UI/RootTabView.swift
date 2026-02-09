@@ -10,8 +10,20 @@ import SwiftUI
 
 struct RootTabView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @State private var selection: TabItem = .home
+    @State private var selection: TabItem = Self.initialTab
     @ObservedObject private var configStore = AppConfigurationStore.shared
+
+    /// Reads `-SNAPSHOT_TAB <name>` from launch arguments to select a tab at startup.
+    private static var initialTab: TabItem {
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "-SNAPSHOT_TAB"),
+           idx + 1 < args.count,
+           let tab = TabItem(rawValue: args[idx + 1].lowercased())
+        {
+            return tab
+        }
+        return .home
+    }
 
     /// TabItem enum defining all navigation tabs.
     /// Used by both TabView (iPhone) and NavigationSplitView sidebar (iPad/macOS).

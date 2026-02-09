@@ -1,0 +1,1 @@
+translate,language,grammar,writing,polish,text,voice,dictionary,default,system,replace,GPT

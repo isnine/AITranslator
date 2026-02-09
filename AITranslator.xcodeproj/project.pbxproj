@@ -19,13 +19,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		CE37034F2F3E00000000000A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = CE4EB0D52EA33ADD00DDDFA5 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = CE4EB0DC2EA33ADD00DDDFA5;
-			remoteInfo = TLingo;
-		};
 		CE22638D2EB250B800BB7BEF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CE4EB0D52EA33ADD00DDDFA5 /* Project object */;
@@ -39,6 +32,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = CE4EB11D2EA4F47400DDDFA5;
 			remoteInfo = ShareCore;
+		};
+		CE37034F2F3E00000000000A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE4EB0D52EA33ADD00DDDFA5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = CE4EB0DC2EA33ADD00DDDFA5;
+			remoteInfo = TLingo;
 		};
 		CE4EB10D2EA33CAD00DDDFA5 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -86,10 +86,10 @@
 		CE23B5982EAA44B40033543C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CE3703262F2E39700039FC39 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		CE3703402F3E000000000001 /* ShareCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShareCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CE37034F2F3E000000000001 /* TLingoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TLingoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE4EB0DD2EA33ADD00DDDFA5 /* TLingo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TLingo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE4EB1082EA33CAD00DDDFA5 /* TLingoTranslation.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = TLingoTranslation.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = ShareCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		CE37034F2F3E000000000001 /* TLingoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TLingoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -110,14 +110,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CE37034F2F3E000000000002 /* TLingoUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TLingoUITests;
-			sourceTree = "<group>";
-		};
 		CE3703402F3E000000000002 /* ShareCoreTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = ShareCoreTests;
+			sourceTree = "<group>";
+		};
+		CE37034F2F3E000000000002 /* TLingoUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = TLingoUITests;
 			sourceTree = "<group>";
 		};
 		CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */ = {
@@ -152,6 +152,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CE37034F2F3E000000000004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE4EB0DA2EA33ADD00DDDFA5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -170,13 +177,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CE4EB11B2EA4F47400DDDFA5 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		CE37034F2F3E000000000004 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -265,6 +265,29 @@
 			productReference = CE3703402F3E000000000001 /* ShareCoreTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		CE37034F2F3E000000000006 /* TLingoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CE37034F2F3E000000000009 /* Build configuration list for PBXNativeTarget "TLingoUITests" */;
+			buildPhases = (
+				CE37034F2F3E000000000003 /* Sources */,
+				CE37034F2F3E000000000004 /* Frameworks */,
+				CE37034F2F3E000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CE37034F2F3E00000000000B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				CE37034F2F3E000000000002 /* TLingoUITests */,
+			);
+			name = TLingoUITests;
+			packageProductDependencies = (
+			);
+			productName = TLingoUITests;
+			productReference = CE37034F2F3E000000000001 /* TLingoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		CE4EB0DC2EA33ADD00DDDFA5 /* TLingo */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CE4EB0E82EA33ADF00DDDFA5 /* Build configuration list for PBXNativeTarget "TLingo" */;
@@ -337,29 +360,6 @@
 			productReference = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		CE37034F2F3E000000000006 /* TLingoUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = CE37034F2F3E000000000009 /* Build configuration list for PBXNativeTarget "TLingoUITests" */;
-			buildPhases = (
-				CE37034F2F3E000000000003 /* Sources */,
-				CE37034F2F3E000000000004 /* Frameworks */,
-				CE37034F2F3E000000000005 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				CE37034F2F3E00000000000B /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				CE37034F2F3E000000000002 /* TLingoUITests */,
-			);
-			name = TLingoUITests;
-			packageProductDependencies = (
-			);
-			productName = TLingoUITests;
-			productReference = CE37034F2F3E000000000001 /* TLingoUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -420,6 +420,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CE37034F2F3E000000000005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		CE4EB0DB2EA33ADD00DDDFA5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -444,17 +451,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		CE37034F2F3E000000000005 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CE3703402F3E000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-/* End PBXResourcesBuildPhase section */
-
-/* Begin PBXSourcesBuildPhase section */
-		CE3703402F3E000000000005 /* Sources */ = {
+		CE37034F2F3E000000000003 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -482,13 +489,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		CE37034F2F3E000000000003 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -502,6 +502,11 @@
 			target = CE4EB11D2EA4F47400DDDFA5 /* ShareCore */;
 			targetProxy = CE3703402F3E00000000000B /* PBXContainerItemProxy */;
 		};
+		CE37034F2F3E00000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = CE4EB0DC2EA33ADD00DDDFA5 /* TLingo */;
+			targetProxy = CE37034F2F3E00000000000A /* PBXContainerItemProxy */;
+		};
 		CE4EB10E2EA33CAD00DDDFA5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			platformFilter = ios;
@@ -512,11 +517,6 @@
 			isa = PBXTargetDependency;
 			target = CE4EB11D2EA4F47400DDDFA5 /* ShareCore */;
 			targetProxy = CE4EB12D2EA4F4B000DDDFA5 /* PBXContainerItemProxy */;
-		};
-		CE37034F2F3E00000000000B /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = CE4EB0DC2EA33ADD00DDDFA5 /* TLingo */;
-			targetProxy = CE37034F2F3E00000000000A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -574,6 +574,64 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		CE37034F2F3E000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JW2LR94V6G;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TLingoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TLingo;
+			};
+			name = Debug;
+		};
+		CE37034F2F3E000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JW2LR94V6G;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TLingoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = TLingo;
 			};
 			name = Release;
 		};
@@ -991,81 +1049,23 @@
 			};
 			name = Release;
 		};
-		CE37034F2F3E000000000007 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = JW2LR94V6G;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TLingoUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = TLingo;
-			};
-			name = Debug;
-		};
-		CE37034F2F3E000000000008 /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = CE3703262F2E39700039FC39 /* Base.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = JW2LR94V6G;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-					"@loader_path/Frameworks",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TLingoUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = TLingo;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CE37034F2F3E000000000009 /* Build configuration list for PBXNativeTarget "TLingoUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CE37034F2F3E000000000007 /* Debug */,
-				CE37034F2F3E000000000008 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		CE3703402F3E00000000000A /* Build configuration list for PBXNativeTarget "ShareCoreTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CE3703402F3E000000000008 /* Debug */,
 				CE3703402F3E000000000009 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CE37034F2F3E000000000009 /* Build configuration list for PBXNativeTarget "TLingoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CE37034F2F3E000000000007 /* Debug */,
+				CE37034F2F3E000000000008 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

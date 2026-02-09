@@ -35,14 +35,41 @@ struct AITranslatorApp: App {
         #endif
     }
 
+    private static var isSnapshotMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("-FASTLANE_SNAPSHOT")
+    }
+
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                #if os(macOS)
+                .onAppear {
+                    if Self.isSnapshotMode {
+                        // Delay to ensure window is created
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            Self.configureSnapshotWindow()
+                        }
+                    }
+                }
+                #endif
         }
         #if os(macOS)
         .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1280, height: 800)
+        .defaultLaunchBehavior(.presented)
         #endif
     }
+
+    #if os(macOS)
+    /// Configure the main window for screenshot capture mode
+    private static func configureSnapshotWindow() {
+        guard let window = NSApp.windows.first(where: { $0.canBecomeMain }) else { return }
+        let frame = NSRect(x: 50, y: 200, width: 1280, height: 800)
+        window.setFrame(frame, display: true, animate: false)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+    #endif
 }
 
 #if os(macOS)
@@ -54,8 +81,34 @@ struct AITranslatorApp: App {
         /// Text received from macOS Services (right-click menu)
         @Published var serviceReceivedText: String?
 
+        private var isSnapshotMode: Bool {
+            ProcessInfo.processInfo.arguments.contains("-FASTLANE_SNAPSHOT")
+        }
+
         func applicationDidFinishLaunching(_: Notification) {
             AppDelegate.shared = self
+
+            // In snapshot mode, skip menu bar/hotkey setup and force window creation
+            if isSnapshotMode {
+                NSApp.setActivationPolicy(.regular)
+                NSApp.activate(ignoringOtherApps: true)
+
+                // Force SwiftUI to open a new window via the "New Window" menu action
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    // This triggers SwiftUI's WindowGroup to create a new window instance
+                    NSApp.sendAction(#selector(NSWindow.makeKeyAndOrderFront(_:)), to: nil, from: nil)
+
+                    // Also try the newWindowForTab: selector which SwiftUI's WindowGroup responds to
+                    if NSApp.windows.isEmpty || NSApp.windows.allSatisfy({ !$0.canBecomeMain }) {
+                        NSApp.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
+                    }
+
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        self.configureSnapshotWindow()
+                    }
+                }
+                return
+            }
 
             // Start clipboard monitoring for auto-translate feature
             ClipboardMonitor.shared.startMonitoring()
@@ -77,6 +130,24 @@ struct AITranslatorApp: App {
 
             // Force update dynamic services
             NSUpdateDynamicServices()
+        }
+
+        /// Configure window for screenshot capture
+        private func configureSnapshotWindow() {
+            // Try to find or force-create the main window
+            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+                let frame = NSRect(x: 50, y: 200, width: 1280, height: 800)
+                window.setFrame(frame, display: true, animate: false)
+                window.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+                print("📸 Snapshot: Window configured at \(frame)")
+            } else {
+                print("📸 Snapshot: No window found, retrying...")
+                // Retry after a delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.configureSnapshotWindow()
+                }
+            }
         }
 
         func applicationWillTerminate(_: Notification) {

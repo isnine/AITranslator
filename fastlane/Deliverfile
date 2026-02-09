@@ -1,0 +1,17 @@
+# Deliverfile — TLingo App Store delivery configuration
+
+app_identifier("com.zanderwang.AITranslator")
+team_id("JW2LR94V6G")
+
+# Metadata configuration
+metadata_path("./fastlane/metadata")
+
+# Screenshot configuration
+screenshots_path("./fastlane/screenshots")
+overwrite_screenshots(true)
+
+# Don't prompt for confirmation
+force(true)
+
+# App Store version
+app_version("2.0")

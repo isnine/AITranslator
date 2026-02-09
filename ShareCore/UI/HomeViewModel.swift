@@ -145,6 +145,12 @@ public final class HomeViewModel: ObservableObject {
         ProcessInfo.processInfo.arguments.contains("-FASTLANE_SNAPSHOT")
     }
 
+    /// Returns `true` when the app should auto-present the conversation
+    /// sheet for screenshot capture.
+    public static var isSnapshotConversationMode: Bool {
+        ProcessInfo.processInfo.arguments.contains("-SNAPSHOT_CONVERSATION")
+    }
+
     public init(
         configurationStore: AppConfigurationStore? = nil,
         llmService: LLMService = .shared,
@@ -231,6 +237,10 @@ public final class HomeViewModel: ObservableObject {
             comment: "Snapshot mock input text"
         )
 
+        // Also set currentRequestInputText so createConversation(from:) can
+        // reconstruct the full prompt messages for the conversation screen.
+        currentRequestInputText = inputText
+
         // Mock translation results (set after inputText to avoid being cleared)
         let translatedText = NSLocalizedString(
             "敏捷的棕色狐狸跳过了懒惰的狗。这句话包含了字母表中的每个字母。",
@@ -257,6 +267,14 @@ public final class HomeViewModel: ObservableObject {
                 )
             ),
         ]
+    }
+
+    /// Creates a pre-built ``ConversationSession`` for snapshot mode,
+    /// so the conversation sheet can be presented immediately without
+    /// needing to tap a UI button.
+    public func createSnapshotConversationSession() -> ConversationSession? {
+        guard let firstRun = modelRuns.first else { return nil }
+        return createConversation(from: firstRun)
     }
 
     public var defaultAction: ActionConfig? {

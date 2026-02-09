@@ -154,6 +154,25 @@ public struct HomeView: View {
         .onAppear {
             AppPreferences.shared.refreshFromDefaults()
 
+            // In snapshot conversation mode, auto-present the conversation
+            // sheet so the UI test doesn't need to find and tap the chat button.
+            if HomeViewModel.isSnapshotConversationMode {
+                // On macOS the inspector binding needs the view hierarchy to be
+                // fully laid out before it will open. A short async delay ensures
+                // the window and splitter have finished first layout.
+                #if os(macOS)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    if let session = viewModel.createSnapshotConversationSession() {
+                        activeConversationSession = session
+                    }
+                }
+                #else
+                if let session = viewModel.createSnapshotConversationSession() {
+                    activeConversationSession = session
+                }
+                #endif
+            }
+
             #if canImport(TranslationUIProvider)
                 // For extension context: refresh configuration first, then execute
                 if openFromExtension, !hasTriggeredAutoRequest {
@@ -207,8 +226,12 @@ public struct HomeView: View {
         #else
         .sheet(item: $activeConversationSession) { session in
             ConversationView(session: session)
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
+                .presentationDetents(
+                    HomeViewModel.isSnapshotConversationMode ? [.large] : [.medium, .large]
+                )
+                .presentationDragIndicator(
+                    HomeViewModel.isSnapshotConversationMode ? .hidden : .visible
+                )
         }
         #endif
     }
@@ -937,6 +960,7 @@ public struct HomeView: View {
         }
         .buttonStyle(.plain)
         .help("Continue conversation")
+        .accessibilityIdentifier("chat_button")
     }
 
     @ViewBuilder

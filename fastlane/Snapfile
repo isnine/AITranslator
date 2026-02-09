@@ -1,0 +1,51 @@
+# Snapfile — Fastlane snapshot configuration for TLingo
+
+# Devices to capture screenshots on (must match frameit-supported screen sizes)
+devices([
+  "iPhone 14 Pro Max",                       # 6.7" display (1290x2796) — frameit supported
+  "iPhone 13 Pro Max",                       # 6.5" display (1284x2778) — frameit supported
+  "iPad Pro (12.9-inch) (4th generation)"    # 12.9" iPad (2048x2732) — frameit supported
+])
+
+# Languages to capture
+languages([
+  "en-US",
+  "zh-Hans",
+  "ja",
+  "ko",
+  "de"
+])
+
+# Xcode scheme for UI tests
+scheme("TLingoUITests")
+project("./AITranslator.xcodeproj")
+
+# Output directory
+output_directory("./fastlane/screenshots")
+
+# Clear previous screenshots
+# Note: set to false to preserve backgrounds/gradient.png
+# The screenshots lane handles cleanup manually
+clear_previous_screenshots(false)
+
+# Stop after first error (set false for CI)
+stop_after_first_error(true)
+
+# Dark mode (optional — set to true for dark mode screenshots)
+dark_mode(false)
+
+# Number of concurrent simulators
+concurrent_simulators(true)
+
+# Override status bar for clean screenshots
+override_status_bar(true)
+override_status_bar_arguments("--time 9:41 --dataNetwork wifi --wifiMode active --batteryState charged --batteryLevel 100")
+
+# Launch arguments passed to the app
+launch_arguments(["-FASTLANE_SNAPSHOT"])
+
+# Localize simulator (ensures system language matches)
+localize_simulator(true)
+
+# Disable animations for faster/cleaner screenshots
+disable_slide_to_type(true)

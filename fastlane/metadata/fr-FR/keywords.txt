@@ -1,0 +1,1 @@
+traducteur,traduction,langue,grammaire,écriture,correction,voix,dictionnaire,défaut,système,IA,GPT

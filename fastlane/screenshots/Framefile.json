@@ -1,0 +1,84 @@
+{
+  "device_frame_version": "latest",
+  "default": {
+    "keyword": {
+      "fonts": [
+        {
+          "font": "../fonts/PingFangSC-Semibold.ttf",
+          "supported": ["zh-Hans"]
+        },
+        {
+          "font": "../fonts/PingFangSC-Semibold.ttf",
+          "supported": ["ja"]
+        },
+        {
+          "font": "../fonts/PingFangSC-Semibold.ttf",
+          "supported": ["ko"]
+        },
+        {
+          "font": "../fonts/PingFangSC-Semibold.ttf"
+        }
+      ],
+      "font_size": 64,
+      "color": "#FFFFFF"
+    },
+    "title": {
+      "fonts": [
+        {
+          "font": "../fonts/PingFangSC-Regular.ttf",
+          "supported": ["zh-Hans"]
+        },
+        {
+          "font": "../fonts/PingFangSC-Regular.ttf",
+          "supported": ["ja"]
+        },
+        {
+          "font": "../fonts/PingFangSC-Regular.ttf",
+          "supported": ["ko"]
+        },
+        {
+          "font": "../fonts/PingFangSC-Regular.ttf"
+        }
+      ],
+      "font_size": 36,
+      "color": "#FFFFFFCC"
+    },
+    "background": "../backgrounds/gradient.png",
+    "padding": 50,
+    "show_complete_frame": true,
+    "stack_title": true,
+    "title_below_image": false
+  },
+  "data": [
+    {
+      "filter": "01_Home",
+      "keyword": {
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "filter": "02_Conversation",
+      "keyword": {
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "filter": "03_Actions",
+      "keyword": {
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "filter": "04_Models",
+      "keyword": {
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "filter": "05_Settings",
+      "keyword": {
+        "color": "#FFFFFF"
+      }
+    }
+  ]
+}
