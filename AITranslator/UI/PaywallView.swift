@@ -193,10 +193,7 @@ struct PaywallView: View {
                     .fill(colors.cardBackground)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(
-                                isAnnual ? colors.accent : colors.divider,
-                                lineWidth: isAnnual ? 2 : 1
-                            )
+                            .stroke(colors.divider, lineWidth: 1)
                     )
             )
         }

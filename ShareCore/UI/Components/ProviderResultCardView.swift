@@ -429,11 +429,11 @@ struct ResultActionButtons: View {
             }
             SpeakButton(isSpeaking: isSpeaking, onSpeak: onSpeak, onStop: onStopSpeaking)
             CopyButton(text: copyText, onCopy: onCopy)
-            if let onChat {
-                ContinueChatButton(onChat: onChat)
-            }
             if let onReplace {
                 ReplaceButton(text: copyText, onReplace: onReplace)
+            }
+            if let onChat {
+                ContinueChatButton(onChat: onChat)
             }
         }
     }

@@ -35,6 +35,7 @@ struct SettingsView: View {
     @State private var showDeleteConfirmation = false
     @State private var configToDelete: ConfigurationFileInfo?
     @State private var configEditorItem: ConfigEditorItem?
+    @State private var showResetToDefaultConfirmation = false
 
     // Collapsible section states
     @State private var isStorageSettingsExpanded = false
@@ -150,6 +151,28 @@ struct SettingsView: View {
                     )
                 )
             }
+        }
+        .alert(
+            NSLocalizedString(
+                "Reset to Default?",
+                comment: "Reset configuration confirmation title"
+            ),
+            isPresented: $showResetToDefaultConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {}
+            Button(
+                NSLocalizedString("Reset", comment: "Reset configuration button"),
+                role: .destructive
+            ) {
+                configStore.resetToDefault()
+            }
+        } message: {
+            Text(
+                NSLocalizedString(
+                    "This will replace your current actions with the built-in defaults. Any custom changes will be lost.",
+                    comment: "Reset configuration confirmation message"
+                )
+            )
         }
         .sheet(item: $configEditorItem) { item in
             ConfigurationEditorView(
@@ -607,6 +630,17 @@ private extension SettingsView {
                 ) {
                     prepareAndExport()
                 }
+            }
+
+            configActionButton(
+                icon: "arrow.counterclockwise",
+                title: NSLocalizedString(
+                    "Reset to Default",
+                    comment: "Button to reset configuration to bundled default"
+                ),
+                isAccent: false
+            ) {
+                showResetToDefaultConfirmation = true
             }
         }
         .padding(.horizontal, 16)

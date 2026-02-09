@@ -1085,6 +1085,15 @@
     "Requires iOS 17.4+ or macOS 14.4+" : {
       "comment" : "Apple Translation unavailable status"
     },
+    "Reset" : {
+      "comment" : "Reset configuration button"
+    },
+    "Reset to Default" : {
+      "comment" : "Button to reset configuration to bundled default"
+    },
+    "Reset to Default?" : {
+      "comment" : "Reset configuration confirmation title"
+    },
     "Restore Purchases" : {
 
     },
@@ -1365,6 +1374,9 @@
     },
     "This action is not supported by the selected provider" : {
       "comment" : "Unsupported action error"
+    },
+    "This will replace your current actions with the built-in defaults. Any custom changes will be lost." : {
+      "comment" : "Reset configuration confirmation message"
     },
     "TLingo" : {
       "localizations" : {
