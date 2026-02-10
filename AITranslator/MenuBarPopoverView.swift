@@ -254,6 +254,16 @@
                         foregroundColor: colors.textSecondary.opacity(0.7)
                     )
 
+                    if let resolved = viewModel.resolvedTargetLanguage {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 8, weight: .semibold))
+                            Text(resolved.primaryLabel)
+                                .font(.system(size: 11, weight: .medium))
+                        }
+                        .foregroundColor(colors.textSecondary)
+                    }
+
                     Spacer()
 
                     inputSpeakButton

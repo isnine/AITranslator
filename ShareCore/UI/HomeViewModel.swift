@@ -106,6 +106,10 @@ public final class HomeViewModel: ObservableObject {
     @Published public private(set) var modelRuns: [ModelRunViewState] = []
     @Published public private(set) var isLoadingConfiguration: Bool = true
 
+    /// Non-nil when smart detection auto-switched the target language
+    /// (i.e. the resolved target differs from the user's preference).
+    @Published public private(set) var resolvedTargetLanguage: TargetLanguageOption?
+
     // MARK: - TTS Playback State
 
     @Published public private(set) var speakingModels: Set<String> = []
@@ -423,6 +427,8 @@ public final class HomeViewModel: ObservableObject {
         let requestID = UUID()
         activeRequestID = requestID
 
+        resolvedTargetLanguage = nil
+
         modelRuns = modelsToUse.map {
             ModelRunViewState(model: $0, status: .running(start: Date()))
         }
@@ -552,10 +558,16 @@ public final class HomeViewModel: ObservableObject {
         if prompt.isEmpty {
             chatMessages.append(ChatMessage(role: "user", content: text, images: currentRequestImages))
         } else {
+            // Resolve target language the same way as executeRequest
+            let preferred = AppPreferences.shared.targetLanguage
+            let resolvedTarget = SourceLanguageDetector.resolveTargetLanguage(
+                for: text,
+                preferred: preferred
+            )
             let processedPrompt = PromptSubstitution.substitute(
                 prompt: prompt,
                 text: text,
-                targetLanguage: AppPreferences.shared.targetLanguage.promptDescriptor,
+                targetLanguage: resolvedTarget.promptDescriptor,
                 sourceLanguage: ""
             )
             let promptContainsTextPlaceholder = PromptSubstitution.containsTextPlaceholder(prompt)
@@ -592,11 +604,25 @@ public final class HomeViewModel: ObservableObject {
     ) async {
         guard !Task.isCancelled else { return }
 
+        // Resolve target language: detect source and auto-switch if source == target
+        let preferred = AppPreferences.shared.targetLanguage
+        let resolvedTarget = SourceLanguageDetector.resolveTargetLanguage(
+            for: text,
+            preferred: preferred
+        )
+        let targetLanguageDescriptor = resolvedTarget.promptDescriptor
+
+        // Surface the resolved language in the UI only when it differs from the preference
+        if resolvedTarget != preferred {
+            resolvedTargetLanguage = resolvedTarget
+        }
+
         let results = await llmService.perform(
             text: text,
             with: action,
             models: models,
             images: images,
+            targetLanguageDescriptor: targetLanguageDescriptor,
             partialHandler: { [weak self] modelID, update in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }

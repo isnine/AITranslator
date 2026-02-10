@@ -361,6 +361,17 @@ public struct HomeView: View {
                             foregroundColor: colors.accent
                         )
 
+                        if let resolved = viewModel.resolvedTargetLanguage {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 9, weight: .semibold))
+                                Text(resolved.primaryLabel)
+                                    .font(.system(size: 12, weight: .medium))
+                            }
+                            .foregroundColor(colors.textSecondary)
+                            .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                        }
+
                         #if os(macOS)
                             Button {
                                 let panel = NSOpenPanel()
@@ -448,6 +459,7 @@ public struct HomeView: View {
         .frame(maxWidth: .infinity)
 //        .frame(minHeight: isCollapsed ? 16 : 170)
         .animation(.easeInOut(duration: 0.2), value: isInputExpanded)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.resolvedTargetLanguage)
     }
 
     @ViewBuilder
@@ -615,53 +627,11 @@ public struct HomeView: View {
             .padding(.top, 8)
     }
 
-    private var targetLanguageIndicator: some View {
-        let targetLanguage = preferences.targetLanguage
-        let displayName: String = {
-            if targetLanguage == .appLanguage {
-                // Show the actual resolved language name instead of "Match App Language"
-                return TargetLanguageOption.appLanguageEnglishName
-            } else {
-                return targetLanguage.primaryLabel
-            }
-        }()
-
-        return TargetLanguageButton(
-            title: "Target: \(displayName)",
-            action: { openTargetLanguageSettings() },
-            foregroundColor: colors.accent,
-            spacing: 6,
-            globeFont: .system(size: 12),
-            textFont: .system(size: 13, weight: .medium),
-            chevronSystemName: "chevron.right",
-            chevronFont: .system(size: 10, weight: .semibold),
-            horizontalPadding: 12,
-            verticalPadding: 6
-        ) {
-            targetLanguageIndicatorBackground
-        }
-    }
-
-    @ViewBuilder
-    private var targetLanguageIndicatorBackground: some View {
-        RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular.interactive(), in: .capsule)
-    }
-
     @ViewBuilder
     private var providerResultCardBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
             .fill(.clear)
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
-    }
-
-    private func openTargetLanguageSettings() {
-        // Post a notification to open settings tab
-        NotificationCenter.default.post(
-            name: .openTargetLanguageSettings,
-            object: nil
-        )
     }
 
     private var providerResultsSection: some View {
@@ -1636,8 +1606,3 @@ private extension View {
         static let serviceTextReceived = Notification.Name("serviceTextReceived")
     }
 #endif
-
-public extension Notification.Name {
-    /// Notification posted to open target language settings in the main app
-    static let openTargetLanguageSettings = Notification.Name("openTargetLanguageSettings")
-}

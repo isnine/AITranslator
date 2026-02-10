@@ -1344,9 +1344,6 @@
         }
       }
     },
-    "Target: %@" : {
-
-    },
     "Test Deployments" : {
       "extractionState" : "stale",
       "localizations" : {

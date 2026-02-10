@@ -49,6 +49,7 @@ public final class LLMService {
         with action: ActionConfig,
         models: [ModelConfig],
         images: [ImageAttachment] = [],
+        targetLanguageDescriptor: String,
         partialHandler: (@MainActor @Sendable (String, StreamingUpdate) -> Void)? = nil,
         completionHandler: (@MainActor @Sendable (ModelExecutionResult) -> Void)? = nil
     ) async -> [ModelExecutionResult] {
@@ -73,6 +74,7 @@ public final class LLMService {
                             action: action,
                             model: model,
                             images: images,
+                            targetLanguageDescriptor: targetLanguageDescriptor,
                             partialHandler: partialHandler
                         )
                     } catch is CancellationError {
@@ -102,6 +104,7 @@ public final class LLMService {
         action: ActionConfig,
         model: ModelConfig,
         images: [ImageAttachment] = [],
+        targetLanguageDescriptor: String,
         partialHandler: (@MainActor @Sendable (String, StreamingUpdate) -> Void)?
     ) async throws -> ModelExecutionResult {
         let start = Date()
@@ -134,7 +137,7 @@ public final class LLMService {
             let processedPrompt = PromptSubstitution.substitute(
                 prompt: action.prompt,
                 text: text,
-                targetLanguage: AppPreferences.shared.targetLanguage.promptDescriptor,
+                targetLanguage: targetLanguageDescriptor,
                 sourceLanguage: ""
             )
             let promptContainsTextPlaceholder = PromptSubstitution.containsTextPlaceholder(action.prompt)
@@ -197,7 +200,7 @@ public final class LLMService {
                 Logger.debug("[LLMService] Original Prompt: \(action.prompt)")
                 Logger
                     .debug(
-                        "[LLMService] Target Language: \(AppPreferences.shared.targetLanguage.rawValue) (\(AppPreferences.shared.targetLanguage.promptDescriptor))"
+                        "[LLMService] Target Language: \(targetLanguageDescriptor)"
                     )
                 Logger.debug("[LLMService] Request payload: \(jsonString)")
             }

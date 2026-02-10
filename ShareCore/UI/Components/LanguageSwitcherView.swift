@@ -74,10 +74,10 @@ public struct LanguageSwitcherView: View {
                 isPresented: $isTargetPickerPresented
             )
             .presentationDetents([.medium, .large])
-            .onChange(of: targetCode) {
-                if let option = TargetLanguageOption(rawValue: targetCode) {
-                    preferences.setTargetLanguage(option)
-                }
+        }
+        .onChange(of: targetCode) {
+            if let option = TargetLanguageOption(rawValue: targetCode) {
+                preferences.setTargetLanguage(option)
             }
         }
     }

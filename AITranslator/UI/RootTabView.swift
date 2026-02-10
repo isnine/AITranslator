@@ -90,9 +90,6 @@ struct RootTabView: View {
             .tabBarMinimizeBehavior(.onScrollDown)
         #endif
             .tint(colors.accent)
-            .onReceive(NotificationCenter.default.publisher(for: .openTargetLanguageSettings)) { _ in
-                selection = .settings
-            }
     }
 
     @ViewBuilder
