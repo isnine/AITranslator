@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__xcodebuildmcp__discover_projs",
+      "mcp__xcodebuildmcp__list_schemes",
+      "mcp__xcodebuildmcp__session-set-defaults",
+      "mcp__xcodebuildmcp__build_macos",
+      "mcp__xcodebuildmcp__get_mac_app_path",
+      "mcp__xcodebuildmcp__build_sim",
+      "mcp__xcodebuildmcp__get_sim_app_path",
+      "mcp__xcodebuildmcp__get_app_bundle_id",
+      "mcp__xcodebuildmcp__launch_app_sim"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "xcodebuildmcp"
+  ]
+}

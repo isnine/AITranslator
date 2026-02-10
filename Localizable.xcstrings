@@ -1335,6 +1335,7 @@
 
     },
     "Target Language" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
