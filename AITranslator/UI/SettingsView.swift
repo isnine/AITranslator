@@ -15,12 +15,9 @@ import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(TargetLanguageOption.storageKey, store: AppPreferences.sharedDefaults)
-    private var targetLanguageCode: String = TargetLanguageOption.appLanguage.rawValue
     @ObservedObject private var preferences: AppPreferences
     @ObservedObject private var configStore = AppConfigurationStore.shared
     @ObservedObject private var storeManager = StoreManager.shared
-    @State private var isLanguagePickerPresented = false
     @State private var isVoicePickerPresented = false
     @State private var showPaywall = false
 
@@ -56,10 +53,6 @@ struct SettingsView: View {
         AppColors.palette(for: colorScheme)
     }
 
-    private var selectedOption: TargetLanguageOption {
-        TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-    }
-
     init(preferences: AppPreferences = .shared) {
         _preferences = ObservedObject(wrappedValue: preferences)
     }
@@ -81,12 +74,6 @@ struct SettingsView: View {
             #endif
         }
         .tint(colors.accent)
-        .sheet(isPresented: $isLanguagePickerPresented) {
-            LanguagePickerView(
-                selectedCode: $targetLanguageCode,
-                isPresented: $isLanguagePickerPresented
-            )
-        }
         .sheet(isPresented: $isVoicePickerPresented) {
             VoicePickerView(
                 isPresented: $isVoicePickerPresented
@@ -97,12 +84,6 @@ struct SettingsView: View {
         }
         .onAppear {
             preferences.refreshFromDefaults()
-        }
-        .onChange(of: targetLanguageCode) {
-            let option = TargetLanguageOption(rawValue: targetLanguageCode) ?? .appLanguage
-            // targetLanguage is a user preference that persists independently of configuration
-            // It's stored in UserDefaults and doesn't require creating a custom configuration
-            preferences.setTargetLanguage(option)
         }
         .fileImporter(
             isPresented: $isImportPresented,
@@ -214,9 +195,6 @@ struct SettingsView: View {
 
             settingsSection(title: "General", icon: "gearshape") {
                 VStack(spacing: 0) {
-                    languagePreferenceRow
-                    Divider()
-                        .padding(.leading, 52)
                     voicePreferenceRow
                     Divider()
                         .padding(.leading, 52)
@@ -282,42 +260,6 @@ struct SettingsView: View {
 
 private extension SettingsView {
     // MARK: - Row Style Components
-
-    var languagePreferenceRow: some View {
-        Button {
-            isLanguagePickerPresented = true
-        } label: {
-            HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(colors.accent.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "globe")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(colors.accent)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Target Language")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(colors.textPrimary)
-                    Text(selectedOption.primaryLabel)
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(colors.textSecondary.opacity(0.5))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
 
     var voicePreferenceRow: some View {
         Button {
@@ -1304,22 +1246,6 @@ private extension SettingsView {
         case let .failure(error):
             importError = error.localizedDescription
             showImportError = true
-        }
-    }
-
-    struct LanguageValueView: View {
-        let option: TargetLanguageOption
-        let colors: AppColorPalette
-
-        var body: some View {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(option.primaryLabel)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(colors.textPrimary)
-                Text(option.secondaryLabel)
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.textSecondary)
-            }
         }
     }
 }
