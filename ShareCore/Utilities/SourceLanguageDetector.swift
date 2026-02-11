@@ -77,15 +77,27 @@ public enum SourceLanguageDetector {
     }
 
     /// Compares two language codes, matching on the base language
-    /// (e.g. "zh-Hans" matches "zh-Hans", "en-US" matches "en").
+    /// (e.g. "zh-Hans" matches "zh-Hant", "en-US" matches "en").
+    ///
+    /// Script variants of the same language (e.g. Simplified vs Traditional Chinese)
+    /// are treated as matching because NLLanguageRecognizer cannot reliably distinguish
+    /// scripts for short or script-ambiguous text like "你好".
     private static func languageCodesMatch(_ a: String, _ b: String) -> Bool {
         // Exact match
         if a == b { return true }
 
-        // Compare base language codes (before any region suffix but after script)
+        // Compare base language codes (language + script)
         let aBase = baseLanguage(a)
         let bBase = baseLanguage(b)
-        return aBase == bBase
+        if aBase == bBase { return true }
+
+        // Fall back to language-only comparison so that script variants
+        // (zh-Hans vs zh-Hant) are still considered the same language.
+        let aLang = Locale.Language.Components(identifier: a).languageCode?.identifier
+        let bLang = Locale.Language.Components(identifier: b).languageCode?.identifier
+        if let aLang, let bLang, aLang == bLang { return true }
+
+        return false
     }
 
     /// Extracts the base language (language + script if present) from an identifier.
