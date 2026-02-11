@@ -87,6 +87,16 @@
     "Active" : {
 
     },
+    "and" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "和"
+          }
+        }
+      }
+    },
     "API Key" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -960,6 +970,16 @@
     "Premium" : {
 
     },
+    "Privacy Policy" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐私政策"
+          }
+        }
+      }
+    },
     "Processing..." : {
       "comment" : "Menu bar popover processing state",
       "localizations" : {
@@ -1317,8 +1337,15 @@
     "Subscription" : {
 
     },
-    "Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period." : {
-
+    "Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. Payment will be charged to your Apple ID account at confirmation of purchase." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "订阅将自动续期，除非在当前订阅期结束前至少 24 小时关闭自动续期。确认购买后，费用将从您的 Apple ID 账户中扣除。"
+          }
+        }
+      }
     },
     "Summarize" : {
       "comment" : "Name of the summarize action",
@@ -1341,6 +1368,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目标翻译语言"
+          }
+        }
+      }
+    },
+    "Terms of Use (EULA)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用条款 (EULA)"
           }
         }
       }

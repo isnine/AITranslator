@@ -236,12 +236,27 @@ struct PaywallView: View {
 
     // MARK: - Legal
 
+    private static let privacyPolicyURL = URL(
+        string: "https://isnine.notion.site/Privacy-Policy-TLing-304096d1267280fcbea4edac5f95ccda"
+    )!
+    private static let termsOfUseURL = URL(
+        string: "https://isnine.notion.site/Terms-of-Use-EULA-TLingo-304096d126728075b0d7c2e7578214c5"
+    )!
+
     private var legalFooter: some View {
-        VStack(spacing: 4) {
-            Text("Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.")
+        VStack(spacing: 8) {
+            Text("Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. Payment will be charged to your Apple ID account at confirmation of purchase.")
                 .font(.system(size: 11))
                 .foregroundColor(colors.textSecondary.opacity(0.6))
                 .multilineTextAlignment(.center)
+
+            HStack(spacing: 4) {
+                Link("Terms of Use (EULA)", destination: Self.termsOfUseURL)
+                Text("and")
+                    .foregroundColor(colors.textSecondary.opacity(0.6))
+                Link("Privacy Policy", destination: Self.privacyPolicyURL)
+            }
+            .font(.system(size: 12))
         }
         .padding(.horizontal, 8)
     }

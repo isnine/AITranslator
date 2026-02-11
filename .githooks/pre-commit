@@ -56,9 +56,10 @@ for FILE in $STAGED_FILES; do
     
     for PATTERN in "${PATTERNS[@]}"; do
         if echo "$CONTENT" | grep -qE "$PATTERN"; then
-            # Additional check: skip if it's clearly a placeholder
+            # Additional check: skip if it's clearly a placeholder or part of a URL
             MATCH=$(echo "$CONTENT" | grep -oE "$PATTERN" | head -1)
-            if [[ "$MATCH" == *"YOUR_"* ]] || [[ "$MATCH" == *"EXAMPLE"* ]] || [[ "$MATCH" == *"PLACEHOLDER"* ]]; then
+            MATCH_LINE=$(echo "$CONTENT" | grep -E "$PATTERN" | head -1)
+            if [[ "$MATCH" == *"YOUR_"* ]] || [[ "$MATCH" == *"EXAMPLE"* ]] || [[ "$MATCH" == *"PLACEHOLDER"* ]] || [[ "$MATCH_LINE" == *"notion.site"* ]] || [[ "$MATCH_LINE" == *"notion.so"* ]]; then
                 continue
             fi
             
