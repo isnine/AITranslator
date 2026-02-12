@@ -591,6 +591,31 @@ public final class HomeViewModel: ObservableObject {
         )
     }
 
+    /// Creates a conversation session with the selected text as context,
+    /// without any prior translation results. Used by the extension's Chat button.
+    public func createContextConversation(contextText: String) -> ConversationSession? {
+        let availableModels = getEnabledModels()
+        guard let model = availableModels.first,
+              let action = selectedAction else { return nil }
+
+        let trimmed = contextText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var chatMessages: [ChatMessage] = []
+        if !trimmed.isEmpty {
+            chatMessages.append(ChatMessage(
+                role: "system",
+                content: "The user has selected the following text. Use it as context for the conversation:\n\n\(trimmed)"
+            ))
+        }
+
+        return ConversationSession(
+            model: model,
+            action: action,
+            availableModels: preferences.isPremium ? models : models.filter { !$0.isPremium },
+            messages: chatMessages
+        )
+    }
+
     deinit {
         currentRequestTask?.cancel()
     }

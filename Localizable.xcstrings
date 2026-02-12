@@ -879,6 +879,9 @@
         }
       }
     },
+    "No active subscription found. Please check your account or subscribe." : {
+
+    },
     "No models available" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1026,6 +1029,12 @@
         }
       }
     },
+    "Purchase Failed" : {
+
+    },
+    "Purchase Successful" : {
+
+    },
     "Quick Translate" : {
       "comment" : "Menu bar header",
       "localizations" : {
@@ -1114,7 +1123,13 @@
     "Reset to Default?" : {
       "comment" : "Reset configuration confirmation title"
     },
+    "Restore Failed" : {
+
+    },
     "Restore Purchases" : {
+
+    },
+    "Restore Successful" : {
 
     },
     "Retry" : {
@@ -1530,6 +1545,9 @@
         }
       }
     },
+    "You are now a premium subscriber. Enjoy!" : {
+
+    },
     "You have unsaved changes. Are you sure you want to discard them?" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1550,6 +1568,9 @@
           }
         }
       }
+    },
+    "Your purchases have been restored successfully." : {
+
     },
     "敏捷的棕色狐狸跳过了懒惰的狗。这句话包含了字母表中的每个字母。" : {
       "comment" : "Snapshot mock translation result"

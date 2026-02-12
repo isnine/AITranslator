@@ -85,6 +85,11 @@ public final class StoreManager: ObservableObject {
             case let .success(verification):
                 let transaction = try checkVerified(verification)
                 await transaction.finish()
+                // Directly grant premium for verified subscription purchases,
+                // as Transaction.currentEntitlements may lag behind.
+                if SubscriptionProduct.allIdentifiers.contains(transaction.productID) {
+                    updatePremiumStatus(true)
+                }
                 await checkSubscriptionStatus()
                 Logger.debug("[StoreManager] Purchase successful: \(product.id)")
 
@@ -106,6 +111,10 @@ public final class StoreManager: ObservableObject {
     // MARK: - Restore Purchases
 
     public func restorePurchases() async {
+        isPurchasing = true
+        purchaseError = nil
+        defer { isPurchasing = false }
+
         do {
             try await AppStore.sync()
             await checkSubscriptionStatus()

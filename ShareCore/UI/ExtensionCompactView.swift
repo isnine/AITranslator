@@ -15,6 +15,7 @@
         @StateObject private var viewModel: HomeViewModel
         @State private var hasTriggeredAutoRequest = false
         @State private var activeConversationSession: ConversationSession?
+        @State private var displayText: String = ""
 
         private let context: TranslationUIProviderContext
 
@@ -26,15 +27,27 @@
             context.allowsReplacement ? .contextEdit : .contextRead
         }
 
-        private var inputText: String {
-            guard let text = context.inputText else { return "" }
-            return String(text.characters)
-        }
-
         public init(context: TranslationUIProviderContext) {
             self.context = context
             let initialScene: ActionConfig.UsageScene = context.allowsReplacement ? .contextEdit : .contextRead
             _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
+        }
+
+        /// Reads the current input text from the translation context.
+        private func readContextText() -> String {
+            guard let text = context.inputText else { return "" }
+            return String(text.characters)
+        }
+
+        /// Syncs context text into local state and triggers action if non-empty.
+        private func syncContextText() {
+            let text = readContextText()
+            guard text != displayText else { return }
+            displayText = text
+            viewModel.inputText = text
+            if !text.isEmpty {
+                viewModel.performSelectedAction()
+            }
         }
 
         public var body: some View {
@@ -57,23 +70,30 @@
                 if !hasTriggeredAutoRequest {
                     viewModel.refreshConfiguration()
                     viewModel.updateUsageScene(usageScene)
-                    viewModel.inputText = inputText
                     hasTriggeredAutoRequest = true
-                    viewModel.performSelectedAction()
+
+                    let text = readContextText()
+                    displayText = text
+                    viewModel.inputText = text
+                    if !text.isEmpty {
+                        viewModel.performSelectedAction()
+                    }
                 }
             }
-            // When the user changes the selection in the host app, the system may reuse the same
-            // extension instance and only update the context's selected text. We need to re-run the
-            // currently selected action so results update immediately (without requiring the user to
-            // switch actions back-and-forth).
-            .onChange(of: inputText) {
-                guard hasTriggeredAutoRequest else { return }
-                // Avoid redundant requests.
-                guard viewModel.inputText != inputText else { return }
+            .task {
+                guard displayText.isEmpty else { return }
 
-                viewModel.inputText = inputText
-                if !inputText.isEmpty {
-                    viewModel.performSelectedAction()
+                while !Task.isCancelled {
+                    await withCheckedContinuation { continuation in
+                        withObservationTracking {
+                            _ = context.inputText
+                        } onChange: {
+                            continuation.resume()
+                        }
+                    }
+                    guard !Task.isCancelled else { break }
+                    syncContextText()
+                    if !displayText.isEmpty { break }
                 }
             }
             .onChange(of: context.allowsReplacement) {
@@ -86,7 +106,7 @@
         private var translateContent: some View {
             ZStack {
                 VStack(alignment: .leading, spacing: 12) {
-                    selectedTextPreview
+                    headerBar
 
                     Divider()
                         .background(colors.divider)
@@ -109,52 +129,40 @@
             }
         }
 
-        // MARK: - Selected Text Preview
+        // MARK: - Header Bar
 
-        private var selectedTextPreview: some View {
+        private var headerBar: some View {
             HStack(spacing: 8) {
-                Image(systemName: "doc.on.clipboard")
-                    .font(.system(size: 12))
-                    // Use system dynamic colors instead of relying on SwiftUI colorScheme in the
-                    // Translation UI extension; iOS 26 + Liquid Glass can produce unexpected
-                    // foreground contrast if we pin to a palette value.
-                    .foregroundStyle(.secondary)
-
-                Text(inputText)
-                    .font(.system(size: 14))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-
-                Spacer(minLength: 0)
-
-                inputSpeakButton
-
                 LanguageSwitcherView(
-                    globeFont: .system(size: 10),
-                    textFont: .system(size: 11, weight: .medium),
-                    chevronFont: .system(size: 7),
-                    foregroundColor: colors.textSecondary.opacity(0.7)
+                    globeFont: .system(size: 12),
+                    textFont: .system(size: 13, weight: .medium),
+                    chevronFont: .system(size: 8),
+                    foregroundColor: colors.textSecondary
                 )
 
                 if let resolved = viewModel.resolvedTargetLanguage {
                     HStack(spacing: 3) {
                         Image(systemName: "arrow.right")
-                            .font(.system(size: 8, weight: .semibold))
+                            .font(.system(size: 9, weight: .semibold))
                         Text(resolved.primaryLabel)
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 13, weight: .medium))
                     }
                     .foregroundColor(colors.textSecondary)
                 }
+
+                Spacer(minLength: 0)
+
+                inputSpeakButton
+
+                chatButton
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .background(selectedTextPreviewBackground)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 4)
         }
 
         @ViewBuilder
         private var inputSpeakButton: some View {
-            let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let hasText = !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             Button {
                 if viewModel.isSpeakingInputText {
                     viewModel.stopSpeaking()
@@ -163,11 +171,24 @@
                 }
             } label: {
                 Image(systemName: viewModel.isSpeakingInputText ? "stop.fill" : "speaker.wave.2.fill")
-                    .font(.system(size: 12))
+                    .font(.system(size: 14))
                     .foregroundColor(viewModel.isSpeakingInputText ? colors.error : colors.accent)
             }
             .buttonStyle(.plain)
             .disabled(!hasText && !viewModel.isSpeakingInputText)
+        }
+
+        private var chatButton: some View {
+            Button {
+                if let session = viewModel.createContextConversation(contextText: viewModel.inputText) {
+                    activeConversationSession = session
+                }
+            } label: {
+                Image(systemName: "text.bubble")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.accent)
+            }
+            .buttonStyle(.plain)
         }
 
         // MARK: - Action Chips
@@ -178,11 +199,8 @@
                 selectedActionID: viewModel.selectedAction?.id,
                 spacing: 8,
                 font: .system(size: 13, weight: .medium),
-                // NOTE: In the iOS Translation UI extension we render chips using a glassEffect
-                // background (not a solid accent fill). Using white text (chipPrimaryText) makes the
-                // selected action illegible in Light Mode with Liquid Glass.
                 textColor: { isSelected in
-                    isSelected ? colors.textPrimary : colors.textSecondary
+                    isSelected ? .white : colors.textSecondary
                 },
                 background: { isSelected in
                     chipBackground(isSelected: isSelected)
@@ -246,20 +264,17 @@
             )
         }
 
-        // MARK: - Liquid Glass Backgrounds
-
-        @ViewBuilder
-        private var selectedTextPreviewBackground: some View {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 8))
-        }
+        // MARK: - Backgrounds
 
         @ViewBuilder
         private func chipBackground(isSelected: Bool) -> some View {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.clear)
-                .glassEffect(isSelected ? .regular : .regular.interactive(), in: .rect(cornerRadius: 8))
+            if isSelected {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(colors.accent)
+            } else {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.primary.opacity(0.06))
+            }
         }
     }
 #endif

@@ -14,6 +14,11 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var storeManager = StoreManager.shared
 
+    @State private var showRestoreSuccess = false
+    @State private var showRestoreFailure = false
+    @State private var showPurchaseSuccess = false
+    @State private var showPurchaseFailure = false
+
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
@@ -145,6 +150,16 @@ struct PaywallView: View {
                     .padding(.top, 4)
             }
         }
+        .alert("Purchase Successful", isPresented: $showPurchaseSuccess) {
+            Button("OK") { dismiss() }
+        } message: {
+            Text("You are now a premium subscriber. Enjoy!")
+        }
+        .alert("Purchase Failed", isPresented: $showPurchaseFailure) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(storeManager.purchaseError ?? "An unknown error occurred.")
+        }
     }
 
     private func productCard(_ product: Product) -> some View {
@@ -154,7 +169,9 @@ struct PaywallView: View {
             Task {
                 await storeManager.purchase(product)
                 if storeManager.isPremium {
-                    dismiss()
+                    showPurchaseSuccess = true
+                } else if storeManager.purchaseError != nil {
+                    showPurchaseFailure = true
                 }
             }
         } label: {
@@ -223,14 +240,38 @@ struct PaywallView: View {
         Button {
             Task {
                 await storeManager.restorePurchases()
-                if storeManager.isPremium {
-                    dismiss()
+                if storeManager.purchaseError != nil {
+                    showRestoreFailure = true
+                } else if storeManager.isPremium {
+                    showRestoreSuccess = true
+                } else {
+                    showRestoreFailure = true
                 }
             }
         } label: {
-            Text("Restore Purchases")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(colors.accent)
+            if storeManager.isPurchasing {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Text("Restore Purchases")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(colors.accent)
+            }
+        }
+        .disabled(storeManager.isPurchasing)
+        .alert("Restore Successful", isPresented: $showRestoreSuccess) {
+            Button("OK") { dismiss() }
+        } message: {
+            Text("Your purchases have been restored successfully.")
+        }
+        .alert("Restore Failed", isPresented: $showRestoreFailure) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let error = storeManager.purchaseError {
+                Text(error)
+            } else {
+                Text("No active subscription found. Please check your account or subscribe.")
+            }
         }
     }
 
