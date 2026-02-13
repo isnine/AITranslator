@@ -37,6 +37,9 @@ public struct HomeView: View {
     @State private var showDefaultAppGuide = false
     @State private var activeConversationSession: ConversationSession?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    #if os(macOS)
+    @State private var showDataConsent = false
+    #endif
     @Namespace private var chipNamespace
 
     #if os(macOS)
@@ -232,6 +235,21 @@ public struct HomeView: View {
                 .presentationDragIndicator(
                     HomeViewModel.isSnapshotConversationMode ? .hidden : .visible
                 )
+        }
+        #endif
+        #if os(macOS)
+        .sheet(isPresented: $showDataConsent) {
+            DataConsentView {
+                preferences.setHasAcceptedDataSharing(true)
+                viewModel.performSelectedAction()
+            }
+            .interactiveDismissDisabled()
+        }
+        .onChange(of: viewModel.showDataConsentRequest) { _, newValue in
+            if newValue {
+                showDataConsent = true
+                viewModel.showDataConsentRequest = false
+            }
         }
         #endif
     }

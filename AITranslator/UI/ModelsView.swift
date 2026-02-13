@@ -258,14 +258,41 @@ struct ModelsView: View {
         .background(cardBackground)
     }
 
+    private static let privacyPolicyURL = URL(
+        string: "https://isnine.notion.site/Privacy-Policy-TLing-304096d1267280fcbea4edac5f95ccda"
+    )!
+
     private var infoFooter: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 20))
-                .foregroundColor(colors.success)
-            Text("Powered by Built-in Cloud - No API key required")
-                .font(.system(size: 13))
-                .foregroundColor(colors.textSecondary)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(colors.success)
+                Text("Powered by Built-in Cloud - No API key required")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "lock.shield.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.textSecondary.opacity(0.6))
+                    Text("Your translation text is sent to Microsoft Azure OpenAI Service for processing. Data is encrypted in transit and not stored after processing.")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary.opacity(0.8))
+                }
+
+                Link(destination: Self.privacyPolicyURL) {
+                    HStack(spacing: 4) {
+                        Text("Privacy Policy")
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 10))
+                    }
+                    .font(.system(size: 12))
+                }
+                .padding(.leading, 22)
+            }
         }
         .padding(.top, 8)
     }

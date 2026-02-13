@@ -26,6 +26,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var enabledModelIDs: Set<String>
     @Published public private(set) var selectedVoiceID: String
     @Published public private(set) var isPremium: Bool
+    @Published public private(set) var hasAcceptedDataSharing: Bool
     #if os(macOS)
         @Published public private(set) var keepRunningWhenClosed: Bool
     #endif
@@ -44,6 +45,7 @@ public final class AppPreferences: ObservableObject {
         enabledModelIDs = AppPreferences.readEnabledModelIDs(from: defaults)
         selectedVoiceID = defaults.string(forKey: StorageKeys.selectedVoiceID) ?? VoiceConfig.defaultVoiceID
         isPremium = defaults.bool(forKey: StorageKeys.isPremium)
+        hasAcceptedDataSharing = defaults.bool(forKey: StorageKeys.hasAcceptedDataSharing)
         #if os(macOS)
             // Default to true - keep app running in menu bar when window is closed
             keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
@@ -164,6 +166,15 @@ public final class AppPreferences: ObservableObject {
         defaults.set(voiceID, forKey: StorageKeys.selectedVoiceID)
     }
 
+    // MARK: - Data Sharing Consent
+
+    public func setHasAcceptedDataSharing(_ accepted: Bool) {
+        guard hasAcceptedDataSharing != accepted else { return }
+
+        hasAcceptedDataSharing = accepted
+        defaults.set(accepted, forKey: StorageKeys.hasAcceptedDataSharing)
+    }
+
     /// Returns the iCloud Documents directory URL if available
     public static var iCloudDocumentsURL: URL? {
         FileManager.default.url(forUbiquityContainerIdentifier: nil)?
@@ -222,6 +233,11 @@ public final class AppPreferences: ObservableObject {
         let storedIsPremium = defaults.bool(forKey: StorageKeys.isPremium)
         if isPremium != storedIsPremium {
             isPremium = storedIsPremium
+        }
+
+        let storedHasAcceptedDataSharing = defaults.bool(forKey: StorageKeys.hasAcceptedDataSharing)
+        if hasAcceptedDataSharing != storedHasAcceptedDataSharing {
+            hasAcceptedDataSharing = storedHasAcceptedDataSharing
         }
     }
 
@@ -285,6 +301,8 @@ private enum StorageKeys {
     static let selectedVoiceID = "selected_voice_id"
     /// Key for premium subscription status
     static let isPremium = "is_premium_subscriber"
+    /// Key for data sharing consent
+    static let hasAcceptedDataSharing = "has_accepted_data_sharing"
     #if os(macOS)
         static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif

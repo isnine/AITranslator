@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last Updated: February 11, 2026**
+**Last Updated: February 13, 2026**
 
 Zander Wang ("we," "our," or "us") operates the TLingo mobile application (the "App"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our App, including any auto-renewable subscription services offered within the App.
 
@@ -10,7 +10,16 @@ By using TLingo, you agree to the collection and use of information in accordanc
 
 ### 1.1 Translation Content
 
-When you use TLingo to translate text, the text you input is sent to third-party Large Language Model (LLM) providers for processing. We do not permanently store the content of your translations on our servers. Translation requests are processed in real time via streaming and are not retained after the response is delivered.
+When you use TLingo to translate text, the following data is sent to a third-party AI service for processing:
+
+- **Text you input** for translation
+- **Source and target language** selections
+- **Images you attach** (if using vision-capable models)
+- **Translation instructions** (system prompts configured in the app)
+
+This data is sent to **Microsoft Azure OpenAI Service** ("Azure OpenAI"), operated by Microsoft Corporation, to generate translations. We do not permanently store the content of your translations on our servers. Translation requests are processed in real time via streaming and are not retained after the response is delivered.
+
+**Before any data is transmitted**, TLingo displays a consent dialog on first launch that clearly explains what data is shared, identifies the third-party service provider, and requires your explicit agreement before proceeding. You may decline, in which case no data will be sent to any third-party AI service.
 
 ### 1.2 Subscription Information
 
@@ -44,9 +53,22 @@ We use the information we collect to:
 
 ### 3.1 LLM API Providers
 
-TLingo sends your translation text to third-party LLM providers (such as Azure OpenAI or user-configured OpenAI-compatible APIs) to generate translations. These providers process your text according to their own privacy policies. We encourage you to review the privacy policies of any third-party LLM providers you configure.
+TLingo's built-in cloud translation service uses **Microsoft Azure OpenAI Service** to process your translation requests. When you use this service:
 
-When using TLingo's built-in cloud translation service, requests are routed through our proxy server. Requests are authenticated using HMAC-SHA256 signatures and are not logged or stored.
+- **What data is sent**: Your input text, attached images (if any), source/target language, and translation instructions are sent to Azure OpenAI for processing.
+- **Who receives the data**: Microsoft Corporation, through its Azure OpenAI Service. Microsoft processes this data in accordance with [Microsoft's Privacy Statement](https://privacy.microsoft.com/privacystatement) and [Azure OpenAI Data Privacy](https://learn.microsoft.com/legal/cognitive-services/openai/data-privacy).
+- **Data protection**: Microsoft Azure OpenAI does not use customer data to train or improve its models. Your data is encrypted in transit and is not stored after processing.
+- **User consent**: TLingo requires your explicit consent before sending any data to Azure OpenAI. A consent dialog is presented on first launch, and you may revoke consent at any time in Settings.
+
+When requests are routed through our proxy server, they are authenticated using HMAC-SHA256 signatures. Our proxy server does not log or store your translation content.
+
+#### User-Configured Custom API Providers
+
+TLingo also allows you to configure your own OpenAI-compatible API endpoints. When using a custom provider:
+
+- Your translation data is sent directly to the endpoint you configure.
+- We have no control over how third-party providers handle your data.
+- You are responsible for reviewing the privacy policies of any custom providers you configure.
 
 ### 3.2 Apple Services
 
@@ -58,8 +80,11 @@ TLingo includes a system translation extension that integrates with iOS/macOS sy
 
 ## 4. Data Sharing and Disclosure
 
+Your translation data is shared with **Microsoft Azure OpenAI Service** solely for the purpose of generating translations. Microsoft provides equivalent data protection as described in Section 3.1.
+
 We do not sell, trade, or rent your personal information to third parties. We may disclose information only in the following circumstances:
 
+- **Translation Processing**: Your input text and related data are sent to Microsoft Azure OpenAI Service to perform translations, with your explicit consent
 - **Legal Requirements**: If required by law, regulation, or legal process
 - **Protection of Rights**: To protect our rights, privacy, safety, or property
 - **With Your Consent**: When you have given explicit permission

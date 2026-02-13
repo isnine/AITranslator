@@ -114,6 +114,8 @@ public final class HomeViewModel: ObservableObject {
 
     @Published public private(set) var speakingModels: Set<String> = []
     @Published public private(set) var isSpeakingInputText: Bool = false
+    /// Set to `true` when the user triggers an action but has not yet accepted data sharing consent.
+    @Published public var showDataConsentRequest: Bool = false
     private let ttsService: TTSPreviewService
 
     public let placeholderHint: String = NSLocalizedString(
@@ -388,6 +390,14 @@ public final class HomeViewModel: ObservableObject {
     }
 
     public func performSelectedAction() {
+        // Check data sharing consent before sending any data (macOS only)
+        #if os(macOS)
+        if !AppPreferences.shared.hasAcceptedDataSharing {
+            showDataConsentRequest = true
+            return
+        }
+        #endif
+
         cancelActiveRequest(clearResults: false)
 
         guard let action = selectedAction else {

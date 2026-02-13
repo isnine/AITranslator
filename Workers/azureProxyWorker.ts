@@ -39,6 +39,7 @@ const ALLOWED_MODELS = [
   "gpt-4.5-preview",
   "gpt-5",
   "gpt-5-chat",
+  "gpt-5.2-chat",
   "o3-mini",
   "o4-mini",
   // Hidden (allowed but not listed)
@@ -52,6 +53,7 @@ const PREMIUM_MODELS = new Set([
   "gpt-4.5-preview",
   "gpt-5",
   "gpt-5-chat",
+  "gpt-5.2-chat",
   "o3-mini",
   "o4-mini",
 ]);
@@ -77,6 +79,7 @@ const MODELS_LIST: ModelInfo[] = [
   { id: "gpt-4.5-preview", displayName: "GPT-4.5 Preview", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-5-chat", displayName: "GPT-5 Chat", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-5.2-chat", displayName: "GPT-5.2 Chat", isDefault: false, isPremium: true, supportsVision: true },
   { id: "o3-mini", displayName: "o3 Mini", isDefault: false, isPremium: true, supportsVision: false },
   { id: "o4-mini", displayName: "o4 Mini", isDefault: false, isPremium: true, supportsVision: true },
 ];

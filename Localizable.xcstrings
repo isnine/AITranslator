@@ -87,6 +87,9 @@
     "Active" : {
 
     },
+    "Agree & Continue" : {
+
+    },
     "and" : {
       "localizations" : {
         "zh-Hans" : {
@@ -402,6 +405,9 @@
         }
       }
     },
+    "Data Sharing Notice" : {
+
+    },
     "Debug" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -423,6 +429,9 @@
           }
         }
       }
+    },
+    "Decline" : {
+
     },
     "Default" : {
       "localizations" : {
@@ -1438,6 +1447,9 @@
         }
       }
     },
+    "TLingo sends your input text and images to **Microsoft Azure OpenAI Service** to generate translations." : {
+
+    },
     "Translate" : {
       "comment" : "Name of the translate action",
       "localizations" : {
@@ -1569,7 +1581,13 @@
         }
       }
     },
+    "Your data is encrypted in transit and not stored after processing." : {
+
+    },
     "Your purchases have been restored successfully." : {
+
+    },
+    "Your translation text is sent to Microsoft Azure OpenAI Service for processing. Data is encrypted in transit and not stored after processing." : {
 
     },
     "敏捷的棕色狐狸跳过了懒惰的狗。这句话包含了字母表中的每个字母。" : {
