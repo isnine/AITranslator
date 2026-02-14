@@ -35,7 +35,7 @@ struct AITranslatorApp: App {
         #endif
     }
 
-    private static var isSnapshotMode: Bool {
+    static var isSnapshotMode: Bool {
         ProcessInfo.processInfo.arguments.contains("-FASTLANE_SNAPSHOT")
     }
 
@@ -62,12 +62,18 @@ struct AITranslatorApp: App {
 
     #if os(macOS)
     /// Configure the main window for screenshot capture mode
-    private static func configureSnapshotWindow() {
-        guard let window = NSApp.windows.first(where: { $0.canBecomeMain }) else { return }
-        let frame = NSRect(x: 50, y: 200, width: 1280, height: 800)
-        window.setFrame(frame, display: true, animate: false)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+    static func configureSnapshotWindow() {
+        if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+            let frame = NSRect(x: 50, y: 200, width: 1280, height: 800)
+            window.setFrame(frame, display: true, animate: false)
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            // Retry after a delay if window not yet available
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                Self.configureSnapshotWindow()
+            }
+        }
     }
     #endif
 }
@@ -78,18 +84,11 @@ struct AITranslatorApp: App {
         /// Shared instance for accessing the received text from Services
         static var shared: AppDelegate?
 
-        /// Text received from macOS Services (right-click menu)
-        @Published var serviceReceivedText: String?
-
-        private var isSnapshotMode: Bool {
-            ProcessInfo.processInfo.arguments.contains("-FASTLANE_SNAPSHOT")
-        }
-
         func applicationDidFinishLaunching(_: Notification) {
             AppDelegate.shared = self
 
             // In snapshot mode, skip menu bar/hotkey setup and force window creation
-            if isSnapshotMode {
+            if AITranslatorApp.isSnapshotMode {
                 NSApp.setActivationPolicy(.regular)
                 NSApp.activate(ignoringOtherApps: true)
 
@@ -104,7 +103,7 @@ struct AITranslatorApp: App {
                     }
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        self.configureSnapshotWindow()
+                        AITranslatorApp.configureSnapshotWindow()
                     }
                 }
                 return
@@ -130,24 +129,6 @@ struct AITranslatorApp: App {
 
             // Force update dynamic services
             NSUpdateDynamicServices()
-        }
-
-        /// Configure window for screenshot capture
-        private func configureSnapshotWindow() {
-            // Try to find or force-create the main window
-            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
-                let frame = NSRect(x: 50, y: 200, width: 1280, height: 800)
-                window.setFrame(frame, display: true, animate: false)
-                window.makeKeyAndOrderFront(nil)
-                NSApp.activate(ignoringOtherApps: true)
-                print("📸 Snapshot: Window configured at \(frame)")
-            } else {
-                print("📸 Snapshot: No window found, retrying...")
-                // Retry after a delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    self.configureSnapshotWindow()
-                }
-            }
         }
 
         func applicationWillTerminate(_: Notification) {
@@ -199,7 +180,6 @@ struct AITranslatorApp: App {
 
             // Store the received text and bring app to foreground
             DispatchQueue.main.async {
-                self.serviceReceivedText = text
                 NSApp.activate(ignoringOtherApps: true)
 
                 // Post notification so UI can respond
@@ -210,9 +190,5 @@ struct AITranslatorApp: App {
                 )
             }
         }
-    }
-
-    extension Notification.Name {
-        static let serviceTextReceived = Notification.Name("serviceTextReceived")
     }
 #endif

@@ -20,7 +20,6 @@
         private var popover: NSPopover?
         private var popoverHostingController: NSHostingController<MenuBarPopoverView>?
         private var eventMonitor: Any?
-        private var cancellables = Set<AnyCancellable>()
 
         private let configurationStore: AppConfigurationStore
 
@@ -99,11 +98,6 @@
             }
         }
 
-        /// Public method to toggle popover visibility
-        func toggle() {
-            togglePopover(nil)
-        }
-
         private func showPopover() {
             guard let button = statusItem?.button,
                   let popover = popover else { return }
@@ -130,9 +124,6 @@
         private func closePopover() {
             popover?.performClose(nil)
 
-            // Notify that popover is now hidden
-            NotificationCenter.default.post(name: .menuBarPopoverDidClose, object: nil)
-
             if let eventMonitor = eventMonitor {
                 NSEvent.removeMonitor(eventMonitor)
                 self.eventMonitor = nil
@@ -142,6 +133,5 @@
 
     extension Notification.Name {
         static let menuBarPopoverDidShow = Notification.Name("menuBarPopoverDidShow")
-        static let menuBarPopoverDidClose = Notification.Name("menuBarPopoverDidClose")
     }
 #endif

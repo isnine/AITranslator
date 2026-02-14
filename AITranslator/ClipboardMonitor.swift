@@ -7,16 +7,12 @@
 
 #if os(macOS)
     import AppKit
-    import Combine
     import Foundation
 
     /// Monitors clipboard changes and tracks when content was last updated.
     /// Used to determine if clipboard content is "fresh" (recently copied).
     final class ClipboardMonitor {
         static let shared = ClipboardMonitor()
-
-        /// Publisher that emits when clipboard content changes (with the new content)
-        let clipboardChanged = PassthroughSubject<String, Never>()
 
         /// The interval at which to check for clipboard changes (in seconds)
         private let checkInterval: TimeInterval = 1.0
@@ -79,15 +75,6 @@
             return elapsed <= seconds
         }
 
-        /// Gets the clipboard content if it was updated within the specified time interval.
-        /// - Parameter seconds: The time window in seconds
-        /// - Returns: The clipboard string if it's recent, otherwise `nil`
-        func getRecentContent(within seconds: TimeInterval) -> String? {
-            guard hasRecentContent(within: seconds) else { return nil }
-            return NSPasteboard.general.string(forType: .string)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
         // MARK: - Private
 
         private func checkClipboardChange() {
@@ -96,13 +83,6 @@
             if currentChangeCount != lastChangeCount {
                 lastChangeCount = currentChangeCount
                 lastChangeTime = Date()
-
-                // Notify subscribers about the change
-                if let content = NSPasteboard.general.string(forType: .string)?
-                    .trimmingCharacters(in: .whitespacesAndNewlines), !content.isEmpty
-                {
-                    clipboardChanged.send(content)
-                }
             }
         }
     }

@@ -1619,7 +1619,7 @@ private extension View {
 }
 
 #if os(macOS)
-    extension Notification.Name {
+    public extension Notification.Name {
         /// Notification posted when text is received from macOS Services (right-click menu)
         static let serviceTextReceived = Notification.Name("serviceTextReceived")
     }

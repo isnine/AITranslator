@@ -94,7 +94,6 @@
 
         private var eventHandler: EventHandlerRef?
         private var registeredHotKeys: [HotKeyType: EventHotKeyRef] = [:]
-        private var cancellables = Set<AnyCancellable>()
 
         /// Current hotkey configurations
         @Published private(set) var mainAppConfiguration: HotKeyConfiguration
@@ -152,7 +151,6 @@
             let defaults = AppPreferences.sharedDefaults
             defaults.set(newConfiguration.keyCode, forKey: type.storageKeyCode)
             defaults.set(newConfiguration.modifiers, forKey: type.storageModifiers)
-            defaults.synchronize()
 
             // Register the new hotkey if not empty
             if !newConfiguration.isEmpty {
