@@ -30,8 +30,10 @@ struct PaywallView: View {
                     heroSection
                     featuresSection
                     productsSection
-                    restoreButton
                     legalFooter
+                    #if !os(macOS)
+                        restoreButton
+                    #endif
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 28)
@@ -127,39 +129,49 @@ struct PaywallView: View {
     // MARK: - Products
 
     private var productsSection: some View {
-        VStack(spacing: 12) {
-            if storeManager.isLoadingProducts {
-                ProgressView()
-                    .padding(.vertical, 20)
-            } else if storeManager.products.isEmpty {
-                Text("Products unavailable. Please try again later.")
-                    .font(.system(size: 14))
-                    .foregroundColor(colors.textSecondary)
-                    .padding(.vertical, 20)
-            } else {
-                ForEach(storeManager.products, id: \.id) { product in
-                    productCard(product)
+        #if os(macOS)
+            SubscriptionStoreView(productIDs: SubscriptionProduct.allIdentifiers)
+                .subscriptionStorePolicyDestination(url: Self.termsOfUseURL, for: .termsOfService)
+                .subscriptionStorePolicyDestination(url: Self.privacyPolicyURL, for: .privacyPolicy)
+                .storeButton(.visible, for: .restorePurchases)
+                .subscriptionStoreButtonLabel(.multiline)
+                .frame(maxWidth: .infinity, minHeight: 320)
+                .background(cardBackground)
+        #else
+            VStack(spacing: 12) {
+                if storeManager.isLoadingProducts {
+                    ProgressView()
+                        .padding(.vertical, 20)
+                } else if storeManager.products.isEmpty {
+                    Text("Products unavailable. Please try again later.")
+                        .font(.system(size: 14))
+                        .foregroundColor(colors.textSecondary)
+                        .padding(.vertical, 20)
+                } else {
+                    ForEach(storeManager.products, id: \.id) { product in
+                        productCard(product)
+                    }
+                }
+
+                if let error = storeManager.purchaseError {
+                    Text(error)
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.error)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 4)
                 }
             }
-
-            if let error = storeManager.purchaseError {
-                Text(error)
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.error)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 4)
+            .alert("Purchase Successful", isPresented: $showPurchaseSuccess) {
+                Button("OK") { dismiss() }
+            } message: {
+                Text("You are now a premium subscriber. Enjoy!")
             }
-        }
-        .alert("Purchase Successful", isPresented: $showPurchaseSuccess) {
-            Button("OK") { dismiss() }
-        } message: {
-            Text("You are now a premium subscriber. Enjoy!")
-        }
-        .alert("Purchase Failed", isPresented: $showPurchaseFailure) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(storeManager.purchaseError ?? "An unknown error occurred.")
-        }
+            .alert("Purchase Failed", isPresented: $showPurchaseFailure) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(storeManager.purchaseError ?? "An unknown error occurred.")
+            }
+        #endif
     }
 
     private func productCard(_ product: Product) -> some View {
@@ -281,7 +293,7 @@ struct PaywallView: View {
         string: "https://isnine.notion.site/Privacy-Policy-TLing-304096d1267280fcbea4edac5f95ccda"
     )!
     private static let termsOfUseURL = URL(
-        string: "https://isnine.notion.site/Terms-of-Use-EULA-TLingo-304096d126728075b0d7c2e7578214c5"
+        string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
     )!
 
     private var legalFooter: some View {
@@ -298,6 +310,7 @@ struct PaywallView: View {
                 Link("Privacy Policy", destination: Self.privacyPolicyURL)
             }
             .font(.system(size: 12))
+            .underline()
         }
         .padding(.horizontal, 8)
     }

@@ -240,6 +240,7 @@
       }
     },
     "Choose where to store your configuration files." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -301,6 +302,7 @@
       }
     },
     "Configurations will sync across all your devices via iCloud." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -375,6 +377,7 @@
       }
     },
     "Current Path" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -914,6 +917,7 @@
       }
     },
     "Not available" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1152,6 +1156,7 @@
       }
     },
     "Reveal" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1349,6 +1354,7 @@
 
     },
     "Storage Location" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1501,9 +1507,6 @@
           }
         }
       }
-    },
-    "Use" : {
-
     },
     "Use {text} and {targetLanguage} as placeholders" : {
       "localizations" : {

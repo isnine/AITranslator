@@ -1,4 +1,19 @@
 {
+  "mcp": {
+    "XcodeBuildMCP": {
+      "type": "local",
+      "command": ["sh", "-c", "cd /tmp && npx -y xcodebuildmcp@latest"],
+      "enabled": true
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-2be5f141-66b4-406a-becb-889965a1e3ae"
+      },
+      "enabled": true
+    }
+  },
   "mcpServers": {
     "xcodebuildmcp": {
       "command": "npx",
