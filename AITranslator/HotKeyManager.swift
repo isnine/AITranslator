@@ -290,6 +290,7 @@
             if NSApp.isActive && hasVisibleWindow {
                 NSApp.hide(nil)
             } else {
+                AppDelegate.shared?.activateRegularMode()
                 NSApp.activate(ignoringOtherApps: true)
 
                 if !hasVisibleWindow {

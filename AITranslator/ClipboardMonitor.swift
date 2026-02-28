@@ -80,11 +80,9 @@
         /// - Parameter seconds: The time window in seconds (e.g., 5 means "within last 5 seconds")
         /// - Returns: `true` if clipboard content was updated within the specified time window
         func hasRecentContent(within seconds: TimeInterval) -> Bool {
-            // First, check for any change that might have happened right now
             checkClipboardChange()
 
             guard let lastChange = lastChangeTime else {
-                // No recorded change time means content existed before monitoring started
                 return false
             }
 
@@ -96,8 +94,11 @@
 
         /// Advances `lastChangeCount` to the current pasteboard state so the
         /// next timer tick won't treat this copy as an external change.
-        private func recordInternalCopy() {
+        /// Also clears `lastChangeTime` so `hasRecentContent` returns false,
+        /// even if the timer already detected the change before this call.
+        func recordInternalCopy() {
             lastChangeCount = NSPasteboard.general.changeCount
+            lastChangeTime = nil
         }
 
         private func checkClipboardChange() {

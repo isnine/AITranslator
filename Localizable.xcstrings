@@ -938,7 +938,7 @@
       }
     },
     "Open Main Window" : {
-
+      "comment" : "Status bar context menu item to open the main app window"
     },
     "Open Settings" : {
       "localizations" : {
@@ -1063,7 +1063,7 @@
       }
     },
     "Quit TLingo" : {
-
+      "comment" : "Status bar context menu item to quit the app"
     },
     "Read-Only" : {
       "extractionState" : "stale",

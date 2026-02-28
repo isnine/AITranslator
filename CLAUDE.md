@@ -70,3 +70,7 @@ swiftlint
 - Localization uses modern `.xcstrings` format
 - Minimum iOS deployment target: iOS 18.4
 - Architecture documentation: See `agent.md` (Chinese) for detailed implementation notes
+
+## Version Management
+
+- When bumping the app version, only update `MARKETING_VERSION` in the Xcode project. Do **not** modify `CURRENT_PROJECT_VERSION` (build number) — it is managed automatically by Xcode Cloud.

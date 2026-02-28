@@ -84,6 +84,8 @@ struct AITranslatorApp: App {
         /// Shared instance for accessing the received text from Services
         static var shared: AppDelegate?
 
+        private var windowObservers: [NSObjectProtocol] = []
+
         func applicationDidFinishLaunching(_: Notification) {
             AppDelegate.shared = self
 
@@ -129,6 +131,9 @@ struct AITranslatorApp: App {
 
             // Force update dynamic services
             NSUpdateDynamicServices()
+
+            // Observe window lifecycle for smart Dock icon management
+            setupWindowObservers()
         }
 
         func applicationWillTerminate(_: Notification) {
@@ -142,6 +147,12 @@ struct AITranslatorApp: App {
             Task { @MainActor in
                 MenuBarManager.shared.teardown()
             }
+
+            // Remove window observers
+            for observer in windowObservers {
+                NotificationCenter.default.removeObserver(observer)
+            }
+            windowObservers.removeAll()
         }
 
         func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
@@ -157,12 +168,57 @@ struct AITranslatorApp: App {
             return true
         }
 
+        // MARK: - Smart Dock Icon Management
+
+        /// Show Dock icon and menu bar (regular app mode)
+        func activateRegularMode() {
+            NSApp.setActivationPolicy(.regular)
+        }
+
+        /// Hide Dock icon when no windows are visible (menu bar-only mode)
+        private func activateAccessoryModeIfNeeded() {
+            let hasVisibleMainWindow = NSApp.windows.contains {
+                $0.isVisible && !$0.isMiniaturized && $0.canBecomeMain
+            }
+            if !hasVisibleMainWindow {
+                NSApp.setActivationPolicy(.accessory)
+            }
+        }
+
+        private func setupWindowObservers() {
+            // When a window becomes main, show Dock icon
+            let mainObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didBecomeMainNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.activateRegularMode()
+            }
+
+            // When a window closes, hide Dock icon if no other windows remain
+            let closeObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                // Delay check to let the window fully close
+                DispatchQueue.main.async {
+                    self?.activateAccessoryModeIfNeeded()
+                }
+            }
+
+            windowObservers = [mainObserver, closeObserver]
+        }
+
         /// Opens or brings the main window to front
         func openMainWindow() {
+            activateRegularMode()
             NSApp.activate(ignoringOtherApps: true)
-            // Try to find existing window and bring it to front
             if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
                 window.makeKeyAndOrderFront(nil)
+            } else {
+                // Window was destroyed by SwiftUI; ask WindowGroup to create a new one
+                NSApp.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
             }
         }
 

@@ -20,6 +20,7 @@
         private var popover: NSPopover?
         private var popoverHostingController: NSHostingController<MenuBarPopoverView>?
         private var eventMonitor: Any?
+        private var rightClickMonitor: Any?
 
         private let configurationStore: AppConfigurationStore
 
@@ -60,11 +61,16 @@
             }
 
             setupPopover()
+            setupRightClickMenu()
         }
 
         /// Remove the menu bar status item
         func teardown() {
             closePopover()
+            if let rightClickMonitor = rightClickMonitor {
+                NSEvent.removeMonitor(rightClickMonitor)
+                self.rightClickMonitor = nil
+            }
             if let statusItem = statusItem {
                 NSStatusBar.system.removeStatusItem(statusItem)
             }
@@ -88,6 +94,57 @@
             popover.contentViewController = hostingController
 
             self.popover = popover
+        }
+
+        private func setupRightClickMenu() {
+            rightClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { [weak self] event in
+                guard let self = self,
+                      let button = self.statusItem?.button,
+                      event.window == button.window else {
+                    return event
+                }
+
+                self.closePopover()
+                self.showContextMenu()
+                return nil
+            }
+        }
+
+        private func showContextMenu() {
+            let menu = NSMenu()
+
+            let openItem = NSMenuItem(
+                title: NSLocalizedString("Open Main Window", comment: "Status bar context menu item to open the main app window"),
+                action: #selector(openMainWindowAction),
+                keyEquivalent: ""
+            )
+            openItem.target = self
+            menu.addItem(openItem)
+
+            menu.addItem(.separator())
+
+            let quitItem = NSMenuItem(
+                title: NSLocalizedString("Quit TLingo", comment: "Status bar context menu item to quit the app"),
+                action: #selector(quitAppAction),
+                keyEquivalent: ""
+            )
+            quitItem.target = self
+            menu.addItem(quitItem)
+
+            if let button = statusItem?.button {
+                // Temporarily set the menu and trigger it
+                statusItem?.menu = menu
+                button.performClick(nil)
+                statusItem?.menu = nil
+            }
+        }
+
+        @objc private func openMainWindowAction() {
+            AppDelegate.shared?.openMainWindow()
+        }
+
+        @objc private func quitAppAction() {
+            NSApp.terminate(nil)
         }
 
         @objc private func togglePopover(_: Any?) {
@@ -123,6 +180,9 @@
 
         private func closePopover() {
             popover?.performClose(nil)
+            // Mark current clipboard state so any copies made while
+            // the popover was open won't trigger auto-paste on reopen.
+            ClipboardMonitor.shared.recordInternalCopy()
 
             if let eventMonitor = eventMonitor {
                 NSEvent.removeMonitor(eventMonitor)
