@@ -937,6 +937,9 @@
         }
       }
     },
+    "Open Main Window" : {
+
+    },
     "Open Settings" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1058,6 +1061,9 @@
           }
         }
       }
+    },
+    "Quit TLingo" : {
+
     },
     "Read-Only" : {
       "extractionState" : "stale",

@@ -380,13 +380,37 @@ public struct HomeView: View {
                         )
 
                         if let resolved = viewModel.resolvedTargetLanguage {
-                            HStack(spacing: 4) {
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 9, weight: .semibold))
-                                Text(resolved.primaryLabel)
-                                    .font(.system(size: 12, weight: .medium))
+                            Menu {
+                                let preferred = AppPreferences.shared.targetLanguage
+                                if resolved != preferred {
+                                    Button {
+                                        viewModel.overrideTargetLanguage(preferred)
+                                    } label: {
+                                        Label(preferred.primaryLabel, systemImage: "arrow.uturn.backward")
+                                    }
+                                    Divider()
+                                }
+                                ForEach(TargetLanguageOption.selectionOptions.filter { $0 != resolved }) { option in
+                                    Button(option.primaryLabel) {
+                                        viewModel.overrideTargetLanguage(option)
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.right")
+                                        .font(.system(size: 9, weight: .semibold))
+                                    Text(resolved.primaryLabel)
+                                        .font(.system(size: 12, weight: .medium))
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 7))
+                                        .opacity(0.6)
+                                }
+                                .foregroundColor(colors.textSecondary)
                             }
-                            .foregroundColor(colors.textSecondary)
+                            #if os(macOS)
+                            .menuStyle(.borderlessButton)
+                            #endif
+                            .fixedSize()
                             .transition(.opacity.combined(with: .scale(scale: 0.8)))
                         }
 
@@ -1083,13 +1107,7 @@ public struct HomeView: View {
     }
 
     private func copyToPasteboard(_ text: String) {
-        #if canImport(UIKit)
-            UIPasteboard.general.string = text
-        #elseif canImport(AppKit)
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(text, forType: .string)
-        #endif
+        PasteboardHelper.copy(text)
     }
 
     private func handlePasteCommand(providers: [NSItemProvider]) {

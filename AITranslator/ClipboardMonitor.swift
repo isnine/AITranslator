@@ -8,6 +8,7 @@
 #if os(macOS)
     import AppKit
     import Foundation
+    import ShareCore
 
     /// Monitors clipboard changes and tracks when content was last updated.
     /// Used to determine if clipboard content is "fresh" (recently copied).
@@ -29,9 +30,25 @@
         /// Whether monitoring is currently active
         private(set) var isMonitoring: Bool = false
 
+        private var notificationObserver: NSObjectProtocol?
+
         private init() {
             // Initialize with current pasteboard state
             lastChangeCount = NSPasteboard.general.changeCount
+
+            notificationObserver = NotificationCenter.default.addObserver(
+                forName: .didCopyFromApp,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.recordInternalCopy()
+            }
+        }
+
+        deinit {
+            if let observer = notificationObserver {
+                NotificationCenter.default.removeObserver(observer)
+            }
         }
 
         /// Starts monitoring clipboard changes.
@@ -76,6 +93,12 @@
         }
 
         // MARK: - Private
+
+        /// Advances `lastChangeCount` to the current pasteboard state so the
+        /// next timer tick won't treat this copy as an external change.
+        private func recordInternalCopy() {
+            lastChangeCount = NSPasteboard.general.changeCount
+        }
 
         private func checkClipboardChange() {
             let currentChangeCount = NSPasteboard.general.changeCount

@@ -156,6 +156,13 @@
             viewModel.performSelectedAction()
         }
 
+        private func openMainWindow() {
+            onClose()
+            if let appDelegate = NSApp.delegate as? AppDelegate {
+                appDelegate.openMainWindow()
+            }
+        }
+
         // MARK: - Header Section
 
         private var headerSection: some View {
@@ -167,14 +174,27 @@
 
                     Spacer()
 
-                    Button {
-                        onClose()
+                    Menu {
+                        Button {
+                            openMainWindow()
+                        } label: {
+                            Label("Open Main Window", systemImage: "macwindow")
+                        }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            NSApp.terminate(nil)
+                        } label: {
+                            Label("Quit TLingo", systemImage: "power")
+                        }
                     } label: {
-                        Image(systemName: "xmark.circle.fill")
+                        Image(systemName: "ellipsis.circle")
                             .font(.system(size: 18))
                             .foregroundColor(colors.textSecondary)
                     }
-                    .buttonStyle(.plain)
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
                 }
 
                 if !isHotkeyConfigured && showHotkeyHint {
@@ -255,13 +275,35 @@
                     )
 
                     if let resolved = viewModel.resolvedTargetLanguage {
-                        HStack(spacing: 3) {
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 8, weight: .semibold))
-                            Text(resolved.primaryLabel)
-                                .font(.system(size: 11, weight: .medium))
+                        Menu {
+                            let preferred = AppPreferences.shared.targetLanguage
+                            if resolved != preferred {
+                                Button {
+                                    viewModel.overrideTargetLanguage(preferred)
+                                } label: {
+                                    Label(preferred.primaryLabel, systemImage: "arrow.uturn.backward")
+                                }
+                                Divider()
+                            }
+                            ForEach(TargetLanguageOption.selectionOptions.filter { $0 != resolved }) { option in
+                                Button(option.primaryLabel) {
+                                    viewModel.overrideTargetLanguage(option)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 3) {
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 8, weight: .semibold))
+                                Text(resolved.primaryLabel)
+                                    .font(.system(size: 11, weight: .medium))
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 6))
+                                    .opacity(0.6)
+                            }
+                            .foregroundColor(colors.textSecondary)
                         }
-                        .foregroundColor(colors.textSecondary)
+                        .menuStyle(.borderlessButton)
+                        .fixedSize()
                     }
 
                     Spacer()
@@ -356,9 +398,7 @@
                             showModelName: showModelName,
                             viewModel: viewModel,
                             onCopy: { text in
-                                let pasteboard = NSPasteboard.general
-                                pasteboard.clearContents()
-                                pasteboard.setString(text, forType: .string)
+                                PasteboardHelper.copy(text)
                             },
                             onChat: {
                                 if let session = viewModel.createConversation(from: run) {

@@ -107,8 +107,13 @@ public final class HomeViewModel: ObservableObject {
     @Published public private(set) var isLoadingConfiguration: Bool = true
 
     /// Non-nil when smart detection auto-switched the target language
-    /// (i.e. the resolved target differs from the user's preference).
+    /// (i.e. the resolved target differs from the user's preference),
+    /// or when the user manually overrode the target language.
     @Published public private(set) var resolvedTargetLanguage: TargetLanguageOption?
+
+    /// When non-nil, bypasses automatic language detection and uses this
+    /// target language for the current translation.
+    private var targetLanguageOverride: TargetLanguageOption?
 
     // MARK: - TTS Playback State
 
@@ -454,6 +459,16 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
+    /// Manually override the auto-detected target language and re-execute
+    /// the current translation. Pass the user's preferred language to revert
+    /// the automatic redirect.
+    public func overrideTargetLanguage(_ language: TargetLanguageOption) {
+        targetLanguageOverride = language
+        let preferred = AppPreferences.shared.targetLanguage
+        resolvedTargetLanguage = language != preferred ? language : nil
+        performSelectedAction()
+    }
+
     public func toggleDiffDisplay(for runID: String) {
         guard let index = modelRuns.firstIndex(where: { $0.id == runID }) else {
             return
@@ -568,9 +583,10 @@ public final class HomeViewModel: ObservableObject {
         if prompt.isEmpty {
             chatMessages.append(ChatMessage(role: "user", content: text, images: currentRequestImages))
         } else {
-            // Resolve target language the same way as executeRequest
+            // Use the resolved target language that was shown in the UI,
+            // falling back to auto-detection if no override was applied
             let preferred = AppPreferences.shared.targetLanguage
-            let resolvedTarget = SourceLanguageDetector.resolveTargetLanguage(
+            let resolvedTarget = resolvedTargetLanguage ?? SourceLanguageDetector.resolveTargetLanguage(
                 for: text,
                 preferred: preferred
             )
@@ -639,12 +655,19 @@ public final class HomeViewModel: ObservableObject {
     ) async {
         guard !Task.isCancelled else { return }
 
-        // Resolve target language: detect source and auto-switch if source == target
+        // Resolve target language: use manual override if set,
+        // otherwise detect source and auto-switch if source == target
         let preferred = AppPreferences.shared.targetLanguage
-        let resolvedTarget = SourceLanguageDetector.resolveTargetLanguage(
-            for: text,
-            preferred: preferred
-        )
+        let resolvedTarget: TargetLanguageOption
+        if let override = targetLanguageOverride {
+            resolvedTarget = override
+            targetLanguageOverride = nil
+        } else {
+            resolvedTarget = SourceLanguageDetector.resolveTargetLanguage(
+                for: text,
+                preferred: preferred
+            )
+        }
         let targetLanguageDescriptor = resolvedTarget.promptDescriptor
 
         // Surface the resolved language in the UI only when it differs from the preference
@@ -754,6 +777,7 @@ public final class HomeViewModel: ObservableObject {
         activeRequestID = nil
         if clearResults {
             modelRuns = []
+            targetLanguageOverride = nil
         }
     }
 
