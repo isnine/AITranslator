@@ -140,6 +140,7 @@
         }
 
         @objc private func openMainWindowAction() {
+            closePopover()
             AppDelegate.shared?.openMainWindow()
         }
 

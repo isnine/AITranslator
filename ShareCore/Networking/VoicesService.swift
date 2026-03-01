@@ -12,7 +12,7 @@ public final class VoicesService: Sendable {
 
     private let urlSession: URLSession
 
-    public init(urlSession: URLSession = .shared) {
+    public init(urlSession: URLSession = NetworkSession.shared) {
         self.urlSession = urlSession
     }
 

@@ -18,7 +18,7 @@ public final class LLMService {
 
     private let urlSession: URLSession
 
-    public init(urlSession: URLSession = .shared) {
+    public init(urlSession: URLSession = NetworkSession.shared) {
         self.urlSession = urlSession
     }
 
@@ -122,6 +122,7 @@ public final class LLMService {
 
         let structuredOutputConfig = action.structuredOutput
         let enableStreaming = partialHandler != nil
+            && !AppPreferences.sharedDefaults.bool(forKey: "disable_streaming")
         if enableStreaming {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         }
@@ -399,15 +400,19 @@ public final class LLMService {
             .appendingPathComponent(model.id)
             .appendingPathComponent("chat/completions")
 
+        let enableStreaming = !AppPreferences.sharedDefaults.bool(forKey: "disable_streaming")
+
         var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        if enableStreaming {
+            request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        }
 
         let path = "/\(model.id)/chat/completions"
         applyCloudAuth(to: &request, path: path)
 
-        let payload = LLMRequestPayload(messages: messages, stream: true)
+        let payload = LLMRequestPayload(messages: messages, stream: enableStreaming)
         let encoder = JSONEncoder()
         encoder.outputFormatting = []
         request.httpBody = try encoder.encode(payload)
@@ -417,6 +422,25 @@ public final class LLMService {
         Logger.debug("[LLMService] Messages count: \(messages.count)")
 
         try Task.checkCancellation()
+
+        if !enableStreaming {
+            let (data, response) = try await urlSession.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw URLError(.badServerResponse)
+            }
+
+            guard (200 ... 299).contains(httpResponse.statusCode) else {
+                let responseString = String(data: data, encoding: .utf8) ?? ""
+                throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
+            }
+
+            let parsed = try parseResponsePayload(data: data, structuredOutput: nil)
+            let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
+            await partialHandler(trimmed)
+            return trimmed
+        }
 
         let (bytes, response) = try await urlSession.bytes(for: request)
 

@@ -36,6 +36,10 @@ struct SettingsView: View {
     @State private var isShareSheetPresented = false
     @State private var configFileToShare: URL?
 
+    #if DEBUG
+        @State private var showNetworkDebug = false
+    #endif
+
     #if os(macOS)
         @ObservedObject private var hotKeyManager = HotKeyManager.shared
         @State private var recordingHotKeyType: HotKeyType?
@@ -75,6 +79,22 @@ struct SettingsView: View {
         .sheet(isPresented: $showPaywall) {
             PaywallView()
         }
+        #if DEBUG
+            .sheet(isPresented: $showNetworkDebug) {
+                NavigationStack {
+                    NetworkDebugView()
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") { showNetworkDebug = false }
+                            }
+                        }
+                }
+                .presentationDetents([.large])
+                #if os(macOS)
+                    .frame(minWidth: 600, minHeight: 500)
+                #endif
+            }
+        #endif
         .onAppear {
             preferences.refreshFromDefaults()
         }
@@ -192,6 +212,9 @@ struct SettingsView: View {
                     Divider()
                         .padding(.leading, 52)
                     subscriptionRow
+                    Divider()
+                        .padding(.leading, 52)
+                    disableStreamingRow
                     #if os(macOS)
                         Divider()
                             .padding(.leading, 52)
@@ -213,6 +236,45 @@ struct SettingsView: View {
                     configurationActionsRow
                 }
             }
+
+            #if DEBUG
+                // MARK: - Developer Section
+
+                settingsSection(title: "Developer", icon: "ladybug") {
+                    Button {
+                        showNetworkDebug = true
+                    } label: {
+                        HStack(spacing: 16) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color.red.opacity(0.15))
+                                    .frame(width: 36, height: 36)
+                                Image(systemName: "network")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.red)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Network Log")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(colors.textPrimary)
+                                Text("View all HTTP request history")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(colors.textSecondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(colors.textSecondary.opacity(0.5))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                }
+            #endif
         }
     }
 
@@ -353,6 +415,39 @@ private extension SettingsView {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    var disableStreamingRow: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.orange.opacity(0.15))
+                    .frame(width: 36, height: 36)
+                Image(systemName: "bolt.slash")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.orange)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Disable Streaming")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(colors.textPrimary)
+                Text("Receive complete responses at once")
+                    .font(.system(size: 12))
+                    .foregroundColor(colors.textSecondary)
+            }
+
+            Spacer()
+
+            Toggle("", isOn: Binding(
+                get: { preferences.disableStreaming },
+                set: { preferences.setDisableStreaming($0) }
+            ))
+            .labelsHidden()
+            .toggleStyle(.switch)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 
     #if os(macOS)

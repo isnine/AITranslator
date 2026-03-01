@@ -319,6 +319,11 @@ public final class HomeViewModel: ObservableObject {
         guard selectedAction != nil else {
             return false
         }
+        if models.isEmpty {
+            // Models not yet loaded; button stays enabled because
+            // performSelectedAction() queues via pendingAutoAction.
+            return true
+        }
         return !getEnabledModels().isEmpty
     }
 

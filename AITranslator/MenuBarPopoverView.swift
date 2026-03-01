@@ -158,9 +158,7 @@
 
         private func openMainWindow() {
             onClose()
-            if let appDelegate = NSApp.delegate as? AppDelegate {
-                appDelegate.openMainWindow()
-            }
+            AppDelegate.shared?.openMainWindow()
         }
 
         // MARK: - Header Section

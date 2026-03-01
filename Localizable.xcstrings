@@ -26,7 +26,6 @@
       }
     },
     "%lld" : {
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -90,6 +89,9 @@
     "Agree & Continue" : {
 
     },
+    "All Sources" : {
+
+    },
     "and" : {
       "localizations" : {
         "zh-Hans" : {
@@ -132,6 +134,9 @@
           }
         }
       }
+    },
+    "App" : {
+
     },
     "App Preferences" : {
       "localizations" : {
@@ -249,6 +254,9 @@
           }
         }
       }
+    },
+    "Clear All" : {
+
     },
     "Cmd+Return" : {
       "localizations" : {
@@ -633,6 +641,9 @@
         }
       }
     },
+    "Empty" : {
+
+    },
     "Enabled" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -721,6 +732,15 @@
           }
         }
       }
+    },
+    "EXT" : {
+
+    },
+    "Extension" : {
+
+    },
+    "Filter by URL or method" : {
+
     },
     "Free" : {
 
@@ -812,6 +832,16 @@
     "Keep Running in Menu Bar" : {
 
     },
+    "Disable Streaming" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "禁用流式输出"
+          }
+        }
+      }
+    },
     "Loading configuration..." : {
       "localizations" : {
         "zh-Hans" : {
@@ -881,6 +911,12 @@
         }
       }
     },
+    "Network Log" : {
+
+    },
+    "Network requests will appear here as they are made." : {
+
+    },
     "No Actions Yet" : {
       "localizations" : {
         "zh-Hans" : {
@@ -894,6 +930,9 @@
     "No active subscription found. Please check your account or subscribe." : {
 
     },
+    "No headers" : {
+
+    },
     "No models available" : {
       "localizations" : {
         "zh-Hans" : {
@@ -903,6 +942,9 @@
           }
         }
       }
+    },
+    "No Requests" : {
+
     },
     "No text available for speech." : {
       "comment" : "TTS empty input error",
@@ -959,6 +1001,9 @@
           }
         }
       }
+    },
+    "Overview" : {
+
     },
     "Paste image from clipboard" : {
 
@@ -1100,6 +1145,19 @@
         }
       }
     },
+    "Receive complete responses at once" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一次性接收完整响应"
+          }
+        }
+      }
+    },
+    "Reload from Extension" : {
+
+    },
     "Reorder" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1120,6 +1178,12 @@
         }
       }
     },
+    "Request Body" : {
+
+    },
+    "Request Detail" : {
+
+    },
     "Request Failed" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1129,6 +1193,9 @@
           }
         }
       }
+    },
+    "Request Headers" : {
+
     },
     "Requires iOS 17.4+ or macOS 14.4+" : {
       "comment" : "Apple Translation unavailable status"
@@ -1141,6 +1208,12 @@
     },
     "Reset to Default?" : {
       "comment" : "Reset configuration confirmation title"
+    },
+    "Response Body" : {
+
+    },
+    "Response Headers" : {
+
     },
     "Restore Failed" : {
 
@@ -1299,6 +1372,9 @@
         }
       }
     },
+    "Show All (%lld chars)" : {
+
+    },
     "Show changes" : {
 
     },
@@ -1318,6 +1394,9 @@
     "Show in iOS Extension when viewing text" : {
 
     },
+    "Show Less" : {
+
+    },
     "Show revised text with grammar explanations" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1327,6 +1406,9 @@
           }
         }
       }
+    },
+    "Source" : {
+
     },
     "Speak input text" : {
 
@@ -1544,6 +1626,9 @@
           }
         }
       }
+    },
+    "View all HTTP request history" : {
+
     },
     "Voice" : {
       "localizations" : {

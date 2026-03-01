@@ -28,7 +28,7 @@ public final class TTSPreviewService: ObservableObject {
     private let urlSession: URLSession
     private var audioPlayer: AVAudioPlayer?
 
-    public init(urlSession: URLSession = .shared) {
+    public init(urlSession: URLSession = NetworkSession.shared) {
         self.urlSession = urlSession
     }
 

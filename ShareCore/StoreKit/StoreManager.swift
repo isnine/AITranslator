@@ -30,17 +30,24 @@ public final class StoreManager: ObservableObject {
     // MARK: - Init
 
     private init() {
-        // Read cached premium status from App Group defaults
-        isPremium = AppPreferences.sharedDefaults.bool(forKey: Self.premiumKey)
+        #if DEBUG
+            // Auto-enable premium in development builds
+            isPremium = true
+            AppPreferences.sharedDefaults.set(true, forKey: Self.premiumKey)
+            Logger.debug("[StoreManager] DEBUG build – premium auto-enabled")
+        #else
+            // Read cached premium status from App Group defaults
+            isPremium = AppPreferences.sharedDefaults.bool(forKey: Self.premiumKey)
 
-        // Start listening for transaction updates
-        transactionListener = listenForTransactions()
+            // Start listening for transaction updates
+            transactionListener = listenForTransactions()
 
-        // Check current entitlements on launch
-        Task {
-            await checkSubscriptionStatus()
-            await loadProducts()
-        }
+            // Check current entitlements on launch
+            Task {
+                await checkSubscriptionStatus()
+                await loadProducts()
+            }
+        #endif
     }
 
     deinit {

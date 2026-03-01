@@ -6,8 +6,7 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		C470DB9E2F37431400517417 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C470DB9D2F37431400517417 /* StoreKit.framework */; };
+/* Begin PBXBuildFile section */		C470DB9E2F37431400517417 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C470DB9D2F37431400517417 /* StoreKit.framework */; };
 		CE2263882EB2509600BB7BEF /* ShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; };
 		CE22638F2EB250C100BB7BEF /* ShareCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CE23B5992EAA44B40033543C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CE23B5982EAA44B40033543C /* Localizable.xcstrings */; };
@@ -15,8 +14,7 @@
 		CE23B59B2EAA44B40033543C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = CE23B5982EAA44B40033543C /* Localizable.xcstrings */; };
 		CE3703402F3E000000000003 /* ShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; };
 		CE4EB10F2EA33CAD00DDDFA5 /* TLingoTranslation.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = CE4EB1082EA33CAD00DDDFA5 /* TLingoTranslation.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		CE4EB12B2EA4F4B000DDDFA5 /* ShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; };
-/* End PBXBuildFile section */
+		CE4EB12B2EA4F4B000DDDFA5 /* ShareCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE4EB11E2EA4F47400DDDFA5 /* ShareCore.framework */; };/* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		CE22638D2EB250B800BB7BEF /* PBXContainerItemProxy */ = {
@@ -81,9 +79,7 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
-/* Begin PBXFileReference section */
-		C470DB9D2F37431400517417 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
-		CE23B5982EAA44B40033543C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+/* Begin PBXFileReference section */		C470DB9D2F37431400517417 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };		CE23B5982EAA44B40033543C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		CE3703262F2E39700039FC39 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		CE3703402F3E000000000001 /* ShareCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShareCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE37034F2F3E000000000001 /* TLingoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TLingoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -93,14 +89,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		CE4EB1132EA33CAD00DDDFA5 /* Exceptions for "TranslationUI" folder in "TLingoTranslation" target */ = {
+		CE4EB1132EA33CAD00DDDFA5 = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = CE4EB1072EA33CAD00DDDFA5 /* TLingoTranslation */;
 		};
-		CE4EB13B2EA50B1300DDDFA5 /* Exceptions for "AITranslator" folder in "TLingo" target */ = {
+		CE4EB13B2EA50B1300DDDFA5 = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -110,37 +106,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		CE3703402F3E000000000002 /* ShareCoreTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ShareCoreTests;
-			sourceTree = "<group>";
-		};
-		CE37034F2F3E000000000002 /* TLingoUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TLingoUITests;
-			sourceTree = "<group>";
-		};
-		CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				CE4EB13B2EA50B1300DDDFA5 /* Exceptions for "AITranslator" folder in "TLingo" target */,
-			);
-			path = AITranslator;
-			sourceTree = "<group>";
-		};
-		CE4EB1092EA33CAD00DDDFA5 /* TranslationUI */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				CE4EB1132EA33CAD00DDDFA5 /* Exceptions for "TranslationUI" folder in "TLingoTranslation" target */,
-			);
-			path = TranslationUI;
-			sourceTree = "<group>";
-		};
-		CE4EB11F2EA4F47400DDDFA5 /* ShareCore */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = ShareCore;
-			sourceTree = "<group>";
-		};
+		CE3703402F3E000000000002 /* ShareCoreTests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = ShareCoreTests; sourceTree = "<group>"; };
+		CE37034F2F3E000000000002 /* TLingoUITests */ = {isa = PBXFileSystemSynchronizedRootGroup; path = TLingoUITests; sourceTree = "<group>"; };
+		CE4EB0DF2EA33ADD00DDDFA5 /* AITranslator */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (CE4EB13B2EA50B1300DDDFA5, ); path = AITranslator; sourceTree = "<group>"; };
+		CE4EB1092EA33CAD00DDDFA5 /* TranslationUI */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (CE4EB1132EA33CAD00DDDFA5, ); path = TranslationUI; sourceTree = "<group>"; };
+		CE4EB11F2EA4F47400DDDFA5 /* ShareCore */ = {isa = PBXFileSystemSynchronizedRootGroup; path = ShareCore; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -205,8 +175,7 @@
 				CE37034F2F3E000000000002 /* TLingoUITests */,
 				CE3703302F2E40000039FC39 /* Configuration */,
 				CE4EB12A2EA4F4B000DDDFA5 /* Frameworks */,
-				CE4EB0DE2EA33ADD00DDDFA5 /* Products */,
-			);
+				CE4EB0DE2EA33ADD00DDDFA5 /* Products */,				AE6C4DFDA26752AE78B17B5C /* NetworkRequestLogger.swift */,				CBC845BFBBE933B57FDFDE22 /* NetworkDebugView.swift */,			);
 			sourceTree = "<group>";
 		};
 		CE4EB0DE2EA33ADD00DDDFA5 /* Products */ = {
@@ -388,7 +357,7 @@
 					};
 				};
 			};
-			buildConfigurationList = CE4EB0D82EA33ADD00DDDFA5 /* Build configuration list for PBXProject "AITranslator" */;
+			buildConfigurationList = CE4EB0D82EA33ADD00DDDFA5 /* Build configuration list for PBXProject "TLingo" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -485,8 +454,7 @@
 		CE4EB11A2EA4F47400DDDFA5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (
-			);
+			files = (			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
@@ -1070,7 +1038,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		CE4EB0D82EA33ADD00DDDFA5 /* Build configuration list for PBXProject "AITranslator" */ = {
+		CE4EB0D82EA33ADD00DDDFA5 /* Build configuration list for PBXProject "TLingo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CE4EB0E62EA33ADF00DDDFA5 /* Debug */,

@@ -27,6 +27,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var selectedVoiceID: String
     @Published public private(set) var isPremium: Bool
     @Published public private(set) var hasAcceptedDataSharing: Bool
+    @Published public private(set) var disableStreaming: Bool
     #if os(macOS)
         @Published public private(set) var keepRunningWhenClosed: Bool
     #endif
@@ -46,6 +47,7 @@ public final class AppPreferences: ObservableObject {
         selectedVoiceID = defaults.string(forKey: StorageKeys.selectedVoiceID) ?? VoiceConfig.defaultVoiceID
         isPremium = defaults.bool(forKey: StorageKeys.isPremium)
         hasAcceptedDataSharing = defaults.bool(forKey: StorageKeys.hasAcceptedDataSharing)
+        disableStreaming = defaults.bool(forKey: StorageKeys.disableStreaming)
         #if os(macOS)
             // Default to true - keep app running in menu bar when window is closed
             keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
@@ -175,6 +177,15 @@ public final class AppPreferences: ObservableObject {
         defaults.set(accepted, forKey: StorageKeys.hasAcceptedDataSharing)
     }
 
+    // MARK: - Streaming
+
+    public func setDisableStreaming(_ disabled: Bool) {
+        guard disableStreaming != disabled else { return }
+
+        disableStreaming = disabled
+        defaults.set(disabled, forKey: StorageKeys.disableStreaming)
+    }
+
     /// Returns the iCloud Documents directory URL if available
     public static var iCloudDocumentsURL: URL? {
         FileManager.default.url(forUbiquityContainerIdentifier: nil)?
@@ -238,6 +249,11 @@ public final class AppPreferences: ObservableObject {
         let storedHasAcceptedDataSharing = defaults.bool(forKey: StorageKeys.hasAcceptedDataSharing)
         if hasAcceptedDataSharing != storedHasAcceptedDataSharing {
             hasAcceptedDataSharing = storedHasAcceptedDataSharing
+        }
+
+        let storedDisableStreaming = defaults.bool(forKey: StorageKeys.disableStreaming)
+        if disableStreaming != storedDisableStreaming {
+            disableStreaming = storedDisableStreaming
         }
     }
 
@@ -303,6 +319,8 @@ private enum StorageKeys {
     static let isPremium = "is_premium_subscriber"
     /// Key for data sharing consent
     static let hasAcceptedDataSharing = "has_accepted_data_sharing"
+    /// Key for disabling streaming responses
+    static let disableStreaming = "disable_streaming"
     #if os(macOS)
         static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif

@@ -40,18 +40,12 @@ struct AITranslatorApp: App {
     }
 
     var body: some Scene {
-        WindowGroup {
-            RootTabView()
-                #if os(macOS)
-                .onAppear {
-                    if Self.isSnapshotMode {
-                        // Delay to ensure window is created
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            Self.configureSnapshotWindow()
-                        }
-                    }
-                }
-                #endif
+        WindowGroup(id: "main") {
+            #if os(macOS)
+                MainWindowContent()
+            #else
+                RootTabView()
+            #endif
         }
         #if os(macOS)
         .windowStyle(.hiddenTitleBar)
@@ -79,15 +73,42 @@ struct AITranslatorApp: App {
 }
 
 #if os(macOS)
+    /// Wrapper view that captures the openWindow environment action and provides it to AppDelegate
+    struct MainWindowContent: View {
+        @Environment(\.openWindow) private var openWindow
+
+        var body: some View {
+            RootTabView()
+                .onAppear {
+                    AppDelegate.shared?.openWindowAction = openWindow
+
+                    if AITranslatorApp.isSnapshotMode {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            AITranslatorApp.configureSnapshotWindow()
+                        }
+                    }
+                }
+        }
+    }
+
     /// macOS app delegate for managing global hotkeys and Services
     final class AppDelegate: NSObject, NSApplicationDelegate {
         /// Shared instance for accessing the received text from Services
         static var shared: AppDelegate?
 
+        /// Stored SwiftUI openWindow action for creating new windows
+        var openWindowAction: OpenWindowAction?
+
         private var windowObservers: [NSObjectProtocol] = []
 
-        func applicationDidFinishLaunching(_: Notification) {
+        override init() {
+            super.init()
+            // Set shared early so SwiftUI views can access it during onAppear
+            // (which may fire before applicationDidFinishLaunching)
             AppDelegate.shared = self
+        }
+
+        func applicationDidFinishLaunching(_: Notification) {
 
             // In snapshot mode, skip menu bar/hotkey setup and force window creation
             if AITranslatorApp.isSnapshotMode {
@@ -99,9 +120,9 @@ struct AITranslatorApp: App {
                     // This triggers SwiftUI's WindowGroup to create a new window instance
                     NSApp.sendAction(#selector(NSWindow.makeKeyAndOrderFront(_:)), to: nil, from: nil)
 
-                    // Also try the newWindowForTab: selector which SwiftUI's WindowGroup responds to
+                    // Use stored openWindow action if no main window exists
                     if NSApp.windows.isEmpty || NSApp.windows.allSatisfy({ !$0.canBecomeMain }) {
-                        NSApp.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
+                        self.openWindowAction?(id: "main")
                     }
 
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -213,13 +234,45 @@ struct AITranslatorApp: App {
         /// Opens or brings the main window to front
         func openMainWindow() {
             activateRegularMode()
-            NSApp.activate(ignoringOtherApps: true)
-            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+
+            // Look for a usable main window (visible or minimized, not a stale closed window)
+            if let window = NSApp.windows.first(where: {
+                $0.canBecomeMain && ($0.isVisible || $0.isMiniaturized)
+            }) {
+                if window.isMiniaturized {
+                    window.deminiaturize(nil)
+                }
+                NSApp.activate(ignoringOtherApps: true)
                 window.makeKeyAndOrderFront(nil)
+            } else if let openWindow = openWindowAction {
+                openWindow(id: "main")
+                // Delay activation to let the window appear after policy switch
+                DispatchQueue.main.async {
+                    NSApp.activate(ignoringOtherApps: true)
+                    if let window = NSApp.windows.first(where: { $0.canBecomeMain && $0.isVisible }) {
+                        window.makeKeyAndOrderFront(nil)
+                    }
+                }
             } else {
-                // Window was destroyed by SwiftUI; ask WindowGroup to create a new one
-                NSApp.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
+                createMainWindowViaAppKit()
             }
+        }
+
+        /// Creates the main window directly via AppKit when SwiftUI's openWindow is unavailable
+        private func createMainWindowViaAppKit() {
+            let hostingController = NSHostingController(rootView: MainWindowContent())
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 1280, height: 800),
+                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+            window.contentViewController = hostingController
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            window.center()
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
         }
 
         /// Service handler for translating text from right-click menu
