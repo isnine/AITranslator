@@ -884,17 +884,29 @@ public struct HomeView: View {
     @ViewBuilder
     private func providerInfoButton(runID: String) -> some View {
         Button {
-            withAnimation {
-                if showingProviderInfo == runID {
-                    showingProviderInfo = nil
-                } else {
-                    showingProviderInfo = runID
+            #if DEBUG
+                // In Debug, the "info" button is used as a quick jump to the recorded request details.
+                // (Provider meta is still available via logs; this keeps the UI one-tap.)
+                viewModel.presentDebugRequestDetails(for: runID)
+            #else
+                withAnimation {
+                    if showingProviderInfo == runID {
+                        showingProviderInfo = nil
+                    } else {
+                        showingProviderInfo = runID
+                    }
                 }
-            }
+            #endif
         } label: {
-            Image(systemName: "info.circle")
-                .font(.system(size: 14))
-                .foregroundColor(colors.textSecondary)
+            #if DEBUG
+                Image(systemName: "exclamationmark.circle")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textSecondary)
+            #else
+                Image(systemName: "info.circle")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textSecondary)
+            #endif
         }
         .buttonStyle(.plain)
     }
