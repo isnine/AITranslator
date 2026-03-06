@@ -36,7 +36,6 @@ const ALLOWED_MODELS = [
   // Premium tier
   "gpt-4o",
   "gpt-4.1",
-  "gpt-4.5-preview",
   "gpt-5",
   "gpt-5-chat",
   "gpt-5.2-chat",
@@ -50,7 +49,6 @@ const ALLOWED_MODELS = [
 const PREMIUM_MODELS = new Set([
   "gpt-4o",
   "gpt-4.1",
-  "gpt-4.5-preview",
   "gpt-5",
   "gpt-5-chat",
   "gpt-5.2-chat",
@@ -76,7 +74,6 @@ const MODELS_LIST: ModelInfo[] = [
   // Premium tier models
   { id: "gpt-4o", displayName: "GPT-4o", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-4.1", displayName: "GPT-4.1", isDefault: false, isPremium: true, supportsVision: true },
-  { id: "gpt-4.5-preview", displayName: "GPT-4.5 Preview", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-5-chat", displayName: "GPT-5 Chat", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-5.2-chat", displayName: "GPT-5.2 Chat", isDefault: false, isPremium: true, supportsVision: true },
