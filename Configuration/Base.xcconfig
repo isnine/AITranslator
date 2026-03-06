@@ -8,7 +8,7 @@
 // MARK: - Default Values (will be overridden by Secrets.xcconfig if it exists)
 
 // Cloud API endpoint URL - default value
-AITRANSLATOR_CLOUD_ENDPOINT = https:/$()/translator-api.zanderwang.com
+AITRANSLATOR_CLOUD_ENDPOINT = https://translator-api.zanderwang.com
 
 // Built-in cloud HMAC secret - empty by default
 AITRANSLATOR_CLOUD_SECRET = 
