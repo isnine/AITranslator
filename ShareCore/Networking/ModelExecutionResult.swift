@@ -15,13 +15,21 @@ public struct ModelExecutionResult {
     public let supplementalTexts: [String]
     public let sentencePairs: [SentencePair]
 
+    // Optional network timing breakdown (best-effort; may be unavailable).
+    public let upstreamTTFB: TimeInterval?
+    public let clientToCloudflareLatency: TimeInterval?
+    public let networkMetrics: NetworkTimingMetrics?
+
     public init(
         modelID: String,
         duration: TimeInterval,
         response: Result<String, Error>,
         diffSource: String? = nil,
         supplementalTexts: [String] = [],
-        sentencePairs: [SentencePair] = []
+        sentencePairs: [SentencePair] = [],
+        upstreamTTFB: TimeInterval? = nil,
+        clientToCloudflareLatency: TimeInterval? = nil,
+        networkMetrics: NetworkTimingMetrics? = nil
     ) {
         self.modelID = modelID
         self.duration = duration
@@ -29,5 +37,8 @@ public struct ModelExecutionResult {
         self.diffSource = diffSource
         self.supplementalTexts = supplementalTexts
         self.sentencePairs = sentencePairs
+        self.upstreamTTFB = upstreamTTFB
+        self.clientToCloudflareLatency = clientToCloudflareLatency
+        self.networkMetrics = networkMetrics
     }
 }
