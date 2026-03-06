@@ -750,7 +750,7 @@ public struct HomeView: View {
                 liveTimer(start: start)
             }
 
-        case let .success(_, copyText, _, _, supplementalTexts, sentencePairs):
+        case let .success(_, copyText, _, _, supplementalTexts, sentencePairs, _):
             HStack(spacing: 12) {
                 // Status + Duration + Model Name + Info
                 HStack(spacing: 8) {
@@ -1016,7 +1016,7 @@ public struct HomeView: View {
                 }
             }
 
-        case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs):
+        case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs, _):
             let showDiff = run.showDiff
             let runID = run.id
             VStack(alignment: .leading, spacing: 12) {
