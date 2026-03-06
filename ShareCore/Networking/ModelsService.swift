@@ -23,15 +23,71 @@ public final class ModelsService: Sendable {
     private var inFlightTask: Task<[ModelConfig], Error>?
     private let lock = NSLock()
 
-    public init(urlSession: URLSession = NetworkSession.shared) {
-        self.urlSession = urlSession
+    // MARK: - Disk cache
+
+    private struct DiskCachePayload: Codable {
+        let fetchedAt: Date
+        let models: [ModelConfig]
     }
 
-    /// Returns the cached models list if available.
+    private var diskCacheURL: URL? {
+        do {
+            let dir = try FileManager.default.url(
+                for: .cachesDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            return dir.appendingPathComponent("models-cache.json")
+        } catch {
+            return nil
+        }
+    }
+
+    public init(urlSession: URLSession = NetworkSession.shared) {
+        self.urlSession = urlSession
+
+        // Best-effort: hydrate memory cache from disk so first launch can show something immediately.
+        loadDiskCacheIntoMemoryIfNeeded()
+    }
+
+    /// Returns the cached models list if available (memory-first, then disk).
     public func getCachedModels() -> [ModelConfig]? {
+        lock.lock()
+        let inMemory = cachedModels
+        lock.unlock()
+        if let inMemory, !inMemory.isEmpty {
+            return inMemory
+        }
+
+        loadDiskCacheIntoMemoryIfNeeded()
+
         lock.lock()
         defer { lock.unlock() }
         return cachedModels
+    }
+
+    private func loadDiskCacheIntoMemoryIfNeeded() {
+        lock.lock()
+        let alreadyLoaded = cachedModels != nil
+        lock.unlock()
+        guard !alreadyLoaded else { return }
+
+        guard let url = diskCacheURL else { return }
+        guard let data = try? Data(contentsOf: url) else { return }
+        guard let payload = try? JSONDecoder().decode(DiskCachePayload.self, from: data) else { return }
+
+        lock.lock()
+        cachedModels = payload.models
+        lastFetchDate = payload.fetchedAt
+        lock.unlock()
+    }
+
+    private func persistToDisk(models: [ModelConfig]) {
+        guard let url = diskCacheURL else { return }
+        let payload = DiskCachePayload(fetchedAt: Date(), models: models)
+        guard let data = try? JSONEncoder().encode(payload) else { return }
+        try? data.write(to: url, options: [.atomic])
     }
 
     /// Fetches models from the server, with optional cache usage.
@@ -95,6 +151,8 @@ public final class ModelsService: Sendable {
             self.cachedModels = modelsResponse.models
             self.lastFetchDate = Date()
             self.lock.unlock()
+
+            self.persistToDisk(models: modelsResponse.models)
 
             return modelsResponse.models
         }
