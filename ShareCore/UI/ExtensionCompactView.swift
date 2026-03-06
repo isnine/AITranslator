@@ -81,17 +81,16 @@
                 }
             }
             .task {
-                guard displayText.isEmpty else { return }
-
-                while !Task.isCancelled {
-                    await withCheckedContinuation { continuation in
-                        withObservationTracking {
-                            _ = context.inputText
-                        } onChange: {
-                            continuation.resume()
-                        }
+                // TranslationUIProviderContext doesn't always emit reliable SwiftUI/Observation
+                // change notifications for inputText. To ensure we always pick up the selected
+                // text from the host app, do a short best-effort poll on appear.
+                //
+                // We stop early once we have non-empty text.
+                for delayMs in [0, 150, 400, 800, 1500] {
+                    if Task.isCancelled { break }
+                    if delayMs > 0 {
+                        try? await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
                     }
-                    guard !Task.isCancelled else { break }
                     syncContextText()
                     if !displayText.isEmpty { break }
                 }
