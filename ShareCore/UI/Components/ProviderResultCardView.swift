@@ -71,7 +71,7 @@ public struct ProviderResultCardView: View {
                 isSpeaking: isSpeaking,
                 onSpeak: { viewModel.speakResult(copyText, runID: run.id) },
                 onStopSpeaking: { viewModel.stopSpeaking() },
-                onRetry: { viewModel.performSelectedAction() },
+                onRetry: { viewModel.retryRun(runID: run.id) },
                 onCopy: onCopy,
                 onReplace: onReplace,
                 onChat: onChat

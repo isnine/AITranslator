@@ -172,6 +172,10 @@ public final class HomeViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var currentRequestTask: Task<Void, Never>?
     private var activeRequestID: UUID?
+
+    // Per-run retry support (so tapping retry on one card doesn't re-run every model)
+    private var perRunTasks: [String: Task<Void, Never>] = [:]
+    private var perRunRequestIDs: [String: UUID] = [:]
     private var allActions: [ActionConfig]
     private var usageScene: ActionConfig.UsageScene
     public private(set) var currentRequestInputText: String = ""
@@ -504,6 +508,39 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
+    /// Retry a single model run (used by the per-result-card Retry button).
+    /// This should NOT cancel or restart other model runs.
+    public func retryRun(runID: String) {
+        guard let action = selectedAction else { return }
+        guard let index = modelRuns.firstIndex(where: { $0.id == runID }) else { return }
+
+        let text = currentRequestInputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty || !currentRequestImages.isEmpty else { return }
+
+        let model = modelRuns[index].model
+
+        // Cancel any in-flight retry for this run only
+        perRunTasks[runID]?.cancel()
+
+        let requestID = UUID()
+        perRunRequestIDs[runID] = requestID
+
+        // Reset UI state for this specific run
+        modelRuns[index].status = .running(start: Date())
+
+        let images = currentRequestImages
+        perRunTasks[runID] = Task { [weak self] in
+            await self?.executeSingleModelRequest(
+                runID: runID,
+                requestID: requestID,
+                text: text,
+                action: action,
+                model: model,
+                images: images
+            )
+        }
+    }
+
     /// Manually override the auto-detected target language and re-execute
     /// the current translation. Pass the user's preferred language to revert
     /// the automatic redirect.
@@ -689,6 +726,73 @@ public final class HomeViewModel: ObservableObject {
 
     deinit {
         currentRequestTask?.cancel()
+        perRunTasks.values.forEach { $0.cancel() }
+    }
+
+    private func executeSingleModelRequest(
+        runID: String,
+        requestID: UUID,
+        text: String,
+        action: ActionConfig,
+        model: ModelConfig,
+        images: [ImageAttachment] = []
+    ) async {
+        guard !Task.isCancelled else { return }
+
+        // Resolve target language (same logic as batch requests)
+        let preferred = AppPreferences.shared.targetLanguage
+        let resolvedTarget: TargetLanguageOption
+        if let override = targetLanguageOverride {
+            resolvedTarget = override
+            targetLanguageOverride = nil
+        } else {
+            resolvedTarget = SourceLanguageDetector.resolveTargetLanguage(
+                for: text,
+                preferred: preferred
+            )
+        }
+        let targetLanguageDescriptor = resolvedTarget.promptDescriptor
+
+        let _ = await llmService.perform(
+            text: text,
+            with: action,
+            models: [model],
+            images: images,
+            targetLanguageDescriptor: targetLanguageDescriptor,
+            partialHandler: { [weak self] modelID, update in
+                guard let self else { return }
+                guard self.perRunRequestIDs[runID] == requestID else { return }
+                guard modelID == runID else { return }
+                guard let index = self.modelRuns.firstIndex(where: { $0.id == runID }) else { return }
+
+                // Throttle streaming UI updates to ~15Hz (66ms)
+                let now = Date()
+                if let lastUpdate = self.lastStreamingUpdateTime[modelID],
+                   now.timeIntervalSince(lastUpdate) < 0.066
+                {
+                    return
+                }
+                self.lastStreamingUpdateTime[modelID] = now
+
+                let startDate = self.modelRuns[index].startDate ?? Date()
+                switch update {
+                case let .text(partialText):
+                    self.modelRuns[index].status = .streaming(text: partialText, start: startDate)
+                case let .sentencePairs(pairs):
+                    self.modelRuns[index].status = .streamingSentencePairs(pairs: pairs, start: startDate)
+                }
+            },
+            completionHandler: { [weak self] result in
+                guard let self else { return }
+                guard self.perRunRequestIDs[runID] == requestID else { return }
+                self.apply(result: result, allowDiff: self.currentActionShowsDiff)
+            }
+        )
+
+        // Clear task handle only if this is still the latest retry for this run
+        if perRunRequestIDs[runID] == requestID {
+            perRunTasks[runID] = nil
+        }
     }
 
     private func executeRequest(
