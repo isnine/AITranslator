@@ -237,6 +237,13 @@ public struct HomeView: View {
                 )
         }
         #endif
+        #if DEBUG
+        .sheet(item: $viewModel.selectedDebugNetworkRecord) { record in
+            NavigationStack {
+                NetworkRequestDetailView(record: record)
+            }
+        }
+        #endif
         #if os(macOS)
         .sheet(isPresented: $showDataConsent) {
             DataConsentView {

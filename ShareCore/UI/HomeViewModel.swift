@@ -6,6 +6,9 @@
 //
 import Combine
 import SwiftUI
+#if DEBUG
+import Foundation
+#endif
 #if canImport(UIKit)
     import UIKit
 #endif
@@ -15,6 +18,9 @@ import SwiftUI
 
 @MainActor
 public final class HomeViewModel: ObservableObject {
+    #if DEBUG
+        @Published public var selectedDebugNetworkRecord: NetworkRequestRecord?
+    #endif
     public struct ModelRunViewState: Identifiable {
         public enum Status {
             case idle
@@ -540,6 +546,30 @@ public final class HomeViewModel: ObservableObject {
             )
         }
     }
+
+    #if DEBUG
+        /// Present the debug request detail sheet for a specific model run.
+        public func presentDebugRequestDetails(for runID: String) {
+            // Pull latest cross-process logs (extension may have written to file)
+            NetworkRequestLogger.shared.reloadFromFile()
+
+            let path = "/\(runID)/chat/completions"
+
+            // Best-effort match: choose the most recent request that hit this model route.
+            if let record = NetworkRequestLogger.shared.records.first(where: { $0.urlPath == path }) {
+                selectedDebugNetworkRecord = record
+                return
+            }
+
+            // Fallback: contains match (handles query params / different host formatting)
+            if let record = NetworkRequestLogger.shared.records.first(where: { $0.url.contains(path) }) {
+                selectedDebugNetworkRecord = record
+                return
+            }
+
+            selectedDebugNetworkRecord = nil
+        }
+    #endif
 
     /// Manually override the auto-detected target language and re-execute
     /// the current translation. Pass the user's preferred language to revert

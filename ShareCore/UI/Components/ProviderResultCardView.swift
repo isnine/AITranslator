@@ -19,6 +19,7 @@ public struct ProviderResultCardView: View {
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
     let onChat: (() -> Void)?
+    let onInspectRequest: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -30,7 +31,8 @@ public struct ProviderResultCardView: View {
         viewModel: HomeViewModel,
         onCopy: @escaping (String) -> Void,
         onReplace: ((String) -> Void)? = nil,
-        onChat: (() -> Void)? = nil
+        onChat: (() -> Void)? = nil,
+        onInspectRequest: (() -> Void)? = nil
     ) {
         self.run = run
         self.showModelName = showModelName
@@ -38,6 +40,7 @@ public struct ProviderResultCardView: View {
         self.onCopy = onCopy
         self.onReplace = onReplace
         self.onChat = onChat
+        self.onInspectRequest = onInspectRequest
     }
 
     public var body: some View {
@@ -60,7 +63,8 @@ public struct ProviderResultCardView: View {
                 onStopSpeaking: { viewModel.stopSpeaking() },
                 onCopy: onCopy,
                 onReplace: onReplace,
-                onChat: onChat
+                onChat: onChat,
+                onInspectRequest: onInspectRequest
             )
             ResultBottomInfoBar(
                 run: run,
@@ -105,6 +109,7 @@ struct ResultContentView: View {
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
     let onChat: (() -> Void)?
+    let onInspectRequest: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -154,7 +159,9 @@ struct ResultContentView: View {
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(colors.error)
 
-                if responseBody != nil {
+                if let onInspectRequest {
+                    debugRequestDetailsButton(onInspectRequest: onInspectRequest)
+                } else if responseBody != nil {
                     errorDetailsButton(responseBody: responseBody!)
                 }
             }
@@ -163,6 +170,18 @@ struct ResultContentView: View {
                 .foregroundColor(colors.textSecondary)
                 .textSelection(.enabled)
         }
+    }
+
+    @ViewBuilder
+    private func debugRequestDetailsButton(onInspectRequest: @escaping () -> Void) -> some View {
+        Button {
+            onInspectRequest()
+        } label: {
+            Image(systemName: "exclamationmark.circle")
+                .font(.system(size: 12))
+                .foregroundColor(colors.error)
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

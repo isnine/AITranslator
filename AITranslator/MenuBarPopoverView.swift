@@ -55,6 +55,14 @@
                 viewModel.refreshConfiguration()
                 loadClipboardAndExecute()
             }
+            #if DEBUG
+            .sheet(item: $viewModel.selectedDebugNetworkRecord) { record in
+                NavigationStack {
+                    NetworkRequestDetailView(record: record)
+                }
+                .frame(minWidth: 520, minHeight: 520)
+            }
+            #endif
         }
 
         private var configurationLoadingOverlay: some View {
@@ -391,6 +399,14 @@
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(viewModel.modelRuns) { run in
+                        #if DEBUG
+                            let inspectRequest: (() -> Void)? = {
+                                viewModel.presentDebugRequestDetails(for: run.id)
+                            }
+                        #else
+                            let inspectRequest: (() -> Void)? = nil
+                        #endif
+
                         ProviderResultCardView(
                             run: run,
                             showModelName: showModelName,
@@ -402,7 +418,8 @@
                                 if let session = viewModel.createConversation(from: run) {
                                     activeConversationSession = session
                                 }
-                            }
+                            },
+                            onInspectRequest: inspectRequest
                         )
                     }
                 }
