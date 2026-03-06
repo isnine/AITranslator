@@ -805,9 +805,9 @@ public struct HomeView: View {
 
                 Spacer()
 
-                // Retry button
+                // Retry button (retry only this run)
                 Button {
-                    viewModel.performSelectedAction()
+                    viewModel.retryRun(runID: runID)
                 } label: {
                     Label("Retry", systemImage: "arrow.clockwise")
                         .font(.system(size: 13, weight: .medium))
