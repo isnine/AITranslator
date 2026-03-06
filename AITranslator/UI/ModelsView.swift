@@ -318,12 +318,19 @@ struct ModelsView: View {
     }
 
     private func loadModels() {
-        isLoading = true
         errorMessage = nil
+
+        // Show cached models immediately (if any), then refresh in the background.
+        if let cached = ModelsService.shared.getCachedModels(), !cached.isEmpty {
+            models = cached
+            isLoading = true
+        } else {
+            isLoading = true
+        }
 
         Task {
             do {
-                let fetchedModels = try await ModelsService.shared.fetchModels()
+                let fetchedModels = try await ModelsService.shared.fetchModels(forceRefresh: true)
                 await MainActor.run {
                     models = fetchedModels
                     isLoading = false
@@ -336,6 +343,7 @@ struct ModelsView: View {
                 }
             } catch {
                 await MainActor.run {
+                    // Keep showing cached models (if any) and surface the error.
                     errorMessage = error.localizedDescription
                     isLoading = false
                 }

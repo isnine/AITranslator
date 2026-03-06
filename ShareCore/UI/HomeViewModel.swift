@@ -27,7 +27,8 @@ public final class HomeViewModel: ObservableObject {
                 duration: TimeInterval,
                 diff: TextDiffBuilder.Presentation? = nil,
                 supplementalTexts: [String] = [],
-                sentencePairs: [SentencePair] = []
+                sentencePairs: [SentencePair] = [],
+                latencyBreakdown: LatencyBreakdown? = nil
             )
             case failure(message: String, duration: TimeInterval, responseBody: String? = nil)
 
@@ -35,10 +36,43 @@ public final class HomeViewModel: ObservableObject {
                 switch self {
                 case .idle, .running, .streaming, .streamingSentencePairs:
                     return nil
-                case let .success(_, _, duration, _, _, _),
+                case let .success(_, _, duration, _, _, _, _),
                      let .failure(_, duration, _):
                     return duration
                 }
+            }
+
+            public var latencyBreakdown: LatencyBreakdown? {
+                switch self {
+                case let .success(_, _, _, _, _, _, breakdown):
+                    return breakdown
+                default:
+                    return nil
+                }
+            }
+        }
+
+        public struct LatencyBreakdown {
+            /// CF Worker ↔ Azure (upstream TTFB)
+            public let upstreamTTFB: TimeInterval
+            /// Client ↔ CF Worker (estimated)
+            public let clientToCF: TimeInterval
+            /// Detailed network timing from URLSessionTaskMetrics
+            public let networkMetrics: NetworkTimingMetrics?
+
+            public var upstreamText: String {
+                formatLatency(upstreamTTFB)
+            }
+
+            public var clientToCFText: String {
+                formatLatency(clientToCF)
+            }
+
+            private func formatLatency(_ value: TimeInterval) -> String {
+                if value < 1 {
+                    return String(format: "%.0fms", value * 1000)
+                }
+                return String(format: "%.1fs", value)
             }
         }
 
@@ -347,10 +381,16 @@ public final class HomeViewModel: ObservableObject {
     }
 
     private func loadModels() {
+        // Display cached models immediately if available, then refresh in background.
+        if let cached = ModelsService.shared.getCachedModels(), !cached.isEmpty {
+            models = cached
+            updateEnabledModels()
+        }
+
         Task { [weak self] in
             guard let self else { return }
             do {
-                let fetchedModels = try await ModelsService.shared.fetchModels()
+                let fetchedModels = try await ModelsService.shared.fetchModels(forceRefresh: true)
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     self.models = fetchedModels
@@ -486,7 +526,7 @@ public final class HomeViewModel: ObservableObject {
             return false
         }
         switch run.status {
-        case let .success(_, _, _, diff, _, _):
+        case let .success(_, _, _, diff, _, _, _):
             return diff != nil
         default:
             return false
@@ -573,7 +613,7 @@ public final class HomeViewModel: ObservableObject {
         // Extract the assistant's response text from the success state
         let assistantText: String
         switch run.status {
-        case let .success(_, copyText, _, _, _, _):
+        case let .success(_, copyText, _, _, _, _, _):
             assistantText = copyText
         default:
             return nil
@@ -791,6 +831,13 @@ public final class HomeViewModel: ObservableObject {
             return
         }
 
+        let latencyBreakdown: ModelRunViewState.LatencyBreakdown?
+        if let upstream = result.upstreamTTFB, let clientCF = result.clientToCloudflareLatency {
+            latencyBreakdown = .init(upstreamTTFB: upstream, clientToCF: clientCF, networkMetrics: result.networkMetrics)
+        } else {
+            latencyBreakdown = nil
+        }
+
         switch result.response {
         case let .success(message):
             let diffTarget = result.diffSource ?? message
@@ -809,7 +856,8 @@ public final class HomeViewModel: ObservableObject {
                         duration: result.duration,
                         diff: diff,
                         supplementalTexts: result.supplementalTexts,
-                        sentencePairs: result.sentencePairs
+                        sentencePairs: result.sentencePairs,
+                        latencyBreakdown: latencyBreakdown
                     )
                 }
             } else {
@@ -819,7 +867,8 @@ public final class HomeViewModel: ObservableObject {
                     duration: result.duration,
                     diff: nil,
                     supplementalTexts: result.supplementalTexts,
-                    sentencePairs: result.sentencePairs
+                    sentencePairs: result.sentencePairs,
+                    latencyBreakdown: latencyBreakdown
                 )
             }
         case let .failure(error):
