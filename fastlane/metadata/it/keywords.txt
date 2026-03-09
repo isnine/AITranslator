@@ -1,1 +1,1 @@
-traduttore,traduzione,lingua,grammatica,scrittura,correzione,voce,dizionario,sistema,IA,GPT,testo
+traduzione,lingua,grammatica,scrittura,correzione,voce,dizionario,GPT,testo,Tinggo,inglese,aiuto
