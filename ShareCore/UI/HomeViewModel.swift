@@ -298,7 +298,7 @@ public final class HomeViewModel: ObservableObject {
 
         // Mock translation results (set after inputText to avoid being cleared)
         let translatedText = NSLocalizedString(
-            "敏捷的棕色狐狸跳过了懒惰的狗。这句话包含了字母表中的每个字母。",
+            "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet.",
             comment: "Snapshot mock translation result"
         )
         modelRuns = [
@@ -314,10 +314,10 @@ public final class HomeViewModel: ObservableObject {
                 model: claudeModel,
                 status: .success(
                     text: NSLocalizedString(
-                        "那只敏捷的棕色狐狸跃过了那条懒狗。这个句子包含了英文字母表里的每一个字母。",
+                        "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet.",
                         comment: "Snapshot mock translation result alt"
                     ),
-                    copyText: "那只敏捷的棕色狐狸跃过了那条懒狗。这个句子包含了英文字母表里的每一个字母。",
+                    copyText: "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet.",
                     duration: 1.5
                 )
             ),
@@ -363,17 +363,16 @@ public final class HomeViewModel: ObservableObject {
         guard selectedAction != nil else {
             return false
         }
-        if models.isEmpty {
-            // Models not yet loaded; button stays enabled because
-            // performSelectedAction() queues via pendingAutoAction.
-            return true
-        }
-        return !getEnabledModels().isEmpty
+        // Always allow sending — if models aren't loaded yet we queue via
+        // pendingAutoAction; if no models match we show an error to the user.
+        return true
     }
 
     private func getEnabledModels() -> [ModelConfig] {
         let enabledIDs = preferences.enabledModelIDs
-        let isPremium = preferences.isPremium
+        let isPremium = StoreManager.shared.isPremium
+
+        Logger.debug("[HomeViewModel] getEnabledModels: enabledIDs=\(enabledIDs), models.count=\(models.count), isPremium=\(isPremium)")
 
         var available: [ModelConfig]
         if enabledIDs.isEmpty {
@@ -382,19 +381,35 @@ public final class HomeViewModel: ObservableObject {
             available = models.filter { enabledIDs.contains($0.id) }
         }
 
-        // Filter out premium models if user is not subscribed
         if !isPremium {
             available = available.filter { !$0.isPremium }
         }
 
+        // Fallback: if all selected models were filtered out (e.g. user downgraded),
+        // use the default free model so the send button never silently fails.
+        if available.isEmpty && !models.isEmpty {
+            available = models.filter { $0.isDefault && !$0.isPremium }
+        }
+        if available.isEmpty && !models.isEmpty {
+            available = Array(models.filter { !$0.isPremium }.prefix(1))
+        }
+
+        Logger.debug("[HomeViewModel] getEnabledModels result: \(available.map(\.id))")
         return available
     }
+
+    private static let fallbackModels: [ModelConfig] = [
+        ModelConfig(id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true, isPremium: false),
+    ]
 
     private func loadModels() {
         // Display cached models immediately if available, then refresh in background.
         if let cached = ModelsService.shared.getCachedModels(), !cached.isEmpty {
             models = cached
+            Logger.debug("[HomeViewModel] loadModels: loaded \(cached.count) cached models")
             updateEnabledModels()
+        } else {
+            Logger.debug("[HomeViewModel] loadModels: no cached models, fetching from network")
         }
 
         Task { [weak self] in
@@ -404,6 +419,7 @@ public final class HomeViewModel: ObservableObject {
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     self.models = fetchedModels
+                    Logger.debug("[HomeViewModel] loadModels: fetched \(fetchedModels.count) models from network")
                     self.updateEnabledModels()
 
                     // If a request was attempted before models loaded, trigger it now.
@@ -414,6 +430,20 @@ public final class HomeViewModel: ObservableObject {
                 }
             } catch {
                 Logger.debug("[HomeViewModel] Failed to fetch models: \(error)")
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    // Use fallback models so the app is functional even offline
+                    if self.models.isEmpty {
+                        self.models = Self.fallbackModels
+                        Logger.debug("[HomeViewModel] Using fallback models for offline mode")
+                        self.updateEnabledModels()
+
+                        if self.pendingAutoAction {
+                            self.pendingAutoAction = false
+                            self.performSelectedAction()
+                        }
+                    }
+                }
             }
         }
     }
@@ -480,11 +510,24 @@ public final class HomeViewModel: ObservableObject {
         let modelsToUse = getEnabledModels()
 
         guard !modelsToUse.isEmpty else {
-            // Models may still be loading asynchronously. Mark as pending so we
-            // auto-trigger once models become available.
-            Logger.debug("[HomeViewModel] No enabled models yet; marking pending auto-action.")
-            pendingAutoAction = true
-            modelRuns = []
+            if models.isEmpty {
+                // Models still loading from network; queue for auto-trigger.
+                Logger.debug("[HomeViewModel] Models not loaded yet; marking pending auto-action.")
+                pendingAutoAction = true
+                modelRuns = []
+            } else {
+                // Models loaded but none available — show error to user.
+                Logger.debug("[HomeViewModel] No usable models found. models=\(models.map(\.id)), enabledIDs=\(preferences.enabledModelIDs)")
+                modelRuns = [
+                    ModelRunViewState(
+                        model: ModelConfig(id: "error", displayName: "Error"),
+                        status: .failure(
+                            message: "No models available. Please select a model in the Models tab.",
+                            duration: 0
+                        )
+                    ),
+                ]
+            }
             return
         }
 

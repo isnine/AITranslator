@@ -204,17 +204,25 @@ struct SettingsView: View {
 
     private var preferencesSection: some View {
         VStack(spacing: 32) {
+            // MARK: - Feedback Section
+
+            settingsSection(title: "Feedback", icon: "envelope") {
+                feedbackRow
+            }
+
             // MARK: - General Section
 
             settingsSection(title: "General", icon: "gearshape") {
                 VStack(spacing: 0) {
-                    voicePreferenceRow
-                    Divider()
-                        .padding(.leading, 52)
                     subscriptionRow
                     Divider()
                         .padding(.leading, 52)
-                    disableStreamingRow
+                    voicePreferenceRow
+                    #if DEBUG
+                        Divider()
+                            .padding(.leading, 52)
+                        disableStreamingRow
+                    #endif
                     #if os(macOS)
                         Divider()
                             .padding(.leading, 52)
@@ -448,6 +456,49 @@ private extension SettingsView {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+    }
+
+    var feedbackRow: some View {
+        Button {
+            let subject = storeManager.isPremium ? "TLingo%20Feedback%20%5BPremium%5D" : "TLingo%20Feedback"
+            if let url = URL(string: "mailto:xiaozwan@outlook.com?subject=\(subject)") {
+                #if os(iOS)
+                    UIApplication.shared.open(url)
+                #elseif os(macOS)
+                    NSWorkspace.shared.open(url)
+                #endif
+            }
+        } label: {
+            HStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(Color.cyan.opacity(0.15))
+                        .frame(width: 36, height: 36)
+                    Image(systemName: "envelope")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.cyan)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Feedback")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(colors.textPrimary)
+                    Text("Every email gets a reply")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary.opacity(0.5))
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     #if os(macOS)

@@ -1,7 +1,8 @@
-TLingo 2.0 — встречайте Чат-перевод!
+What's New in TLingo 2.3
 
-• НОВОЕ: Чат-перевод — продолжайте улучшать переводы в формате диалога. Задавайте уточняющие вопросы, меняйте тон и дорабатывайте текст до идеала.
-• Улучшена точность и производительность ИИ-перевода
-• Исправлены ошибки и повышена стабильность
-
-Установите TLingo переводчиком по умолчанию и почувствуйте разницу, которую даёт ИИ.
+• NEW: GPT-5.4 — The latest and most powerful AI model is now available for Premium subscribers.
+• NEW: Feedback — Reach us directly from Settings. Every email gets a reply.
+• NEW: Model sorting — Models are now organized with the newest first for easy access.
+• Improved: Free users can select up to 2 models; Premium unlocks unlimited model selection.
+• Universal subscription — One Premium subscription works on both iPhone and Mac.
+• Bug fixes and performance improvements.

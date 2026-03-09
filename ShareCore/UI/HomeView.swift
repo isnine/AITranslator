@@ -927,7 +927,27 @@ public struct HomeView: View {
                 .font(.system(size: 12))
                 .foregroundColor(colors.textSecondary)
             }
+            if let breakdown = run.status.latencyBreakdown {
+                Divider()
+                HStack(spacing: 4) {
+                    Text("Client → CF:")
+                        .font(.system(size: 11))
+                        .foregroundColor(colors.textSecondary)
+                    Text(breakdown.clientToCFText)
+                        .font(.system(size: 11, weight: .medium).monospacedDigit())
+                        .foregroundColor(colors.textPrimary)
+                }
+                HStack(spacing: 4) {
+                    Text("CF → Azure:")
+                        .font(.system(size: 11))
+                        .foregroundColor(colors.textSecondary)
+                    Text(breakdown.upstreamText)
+                        .font(.system(size: 11, weight: .medium).monospacedDigit())
+                        .foregroundColor(colors.textPrimary)
+                }
+            }
         }
+        .fixedSize()
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)

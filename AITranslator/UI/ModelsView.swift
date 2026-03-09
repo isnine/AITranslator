@@ -18,6 +18,17 @@ struct ModelsView: View {
     @State private var errorMessage: String?
     @State private var enabledModelIDs: Set<String> = []
     @State private var showPaywall = false
+    @State private var showLimitBanner = false
+
+    private let freeModelLimit = 2
+
+    private var hasReachedFreeLimit: Bool {
+        guard !storeManager.isPremium else { return false }
+        let freeModelIDs = Set(models.filter { !$0.isPremium }.map(\.id))
+        let activeFreeCount = enabledModelIDs.intersection(freeModelIDs).count
+        print("[ModelsView] enabledModelIDs=\(enabledModelIDs), freeModelIDs=\(freeModelIDs), activeFreeCount=\(activeFreeCount), isPremium=\(storeManager.isPremium)")
+        return activeFreeCount >= freeModelLimit
+    }
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -36,6 +47,9 @@ struct ModelsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     headerSection
+                    if showLimitBanner {
+                        freeModelLimitBanner
+                    }
                     modelsSection
                 }
                 .padding(.horizontal, 20)
@@ -49,6 +63,7 @@ struct ModelsView: View {
         #endif
             .onAppear {
                 enabledModelIDs = preferences.enabledModelIDs
+                print("[ModelsView] onAppear enabledModelIDs=\(enabledModelIDs)")
                 loadModels()
             }
             .onChange(of: preferences.enabledModelIDs) { _, newValue in
@@ -167,6 +182,7 @@ struct ModelsView: View {
     private func modelRow(model: ModelConfig) -> some View {
         let isEnabled = enabledModelIDs.contains(model.id)
         let isLocked = model.isPremium && !storeManager.isPremium
+        let isDisabledByLimit = hasReachedFreeLimit && !isEnabled && !isLocked
 
         return Button {
             if isLocked {
@@ -191,7 +207,7 @@ struct ModelsView: View {
                     HStack(spacing: 8) {
                         Text(model.displayName)
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(isLocked ? colors.textSecondary : colors.textPrimary)
+                            .foregroundColor(isLocked || isDisabledByLimit ? colors.textSecondary : colors.textPrimary)
 
                         if model.isDefault {
                             Text("Default")
@@ -220,6 +236,7 @@ struct ModelsView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 14)
             .contentShape(Rectangle())
+            .opacity(isDisabledByLimit ? 0.4 : 1.0)
         }
         .buttonStyle(.plain)
     }
@@ -306,11 +323,59 @@ struct ModelsView: View {
             )
     }
 
+    private var freeModelLimitBanner: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 18))
+                .foregroundColor(.orange)
+
+            Text("Free users can select up to \(freeModelLimit) models")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(colors.textPrimary)
+
+            Spacer()
+
+            Button {
+                withAnimation(.spring(duration: 0.3)) {
+                    showLimitBanner = false
+                }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.orange.opacity(0.1))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                )
+        )
+        .transition(.move(edge: .top).combined(with: .opacity))
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                withAnimation(.spring(duration: 0.3)) {
+                    showLimitBanner = false
+                }
+            }
+        }
+    }
+
     private func toggleModel(_ model: ModelConfig) {
         var newSet = enabledModelIDs
         if newSet.contains(model.id) {
             newSet.remove(model.id)
         } else {
+            if hasReachedFreeLimit {
+                withAnimation(.spring(duration: 0.3)) {
+                    showLimitBanner = true
+                }
+                return
+            }
             newSet.insert(model.id)
         }
         enabledModelIDs = newSet

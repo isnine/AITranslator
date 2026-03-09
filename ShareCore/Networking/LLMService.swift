@@ -22,6 +22,16 @@ public final class LLMService {
         self.urlSession = urlSession
     }
 
+    /// Extracts upstream TTFB and estimates client-to-CF latency from response headers.
+    private func extractLatency(from response: HTTPURLResponse, totalDuration: TimeInterval) -> (upstreamTTFB: TimeInterval, clientToCF: TimeInterval)? {
+        guard let ttfbString = response.value(forHTTPHeaderField: "X-Upstream-TTFB"),
+              let ttfbMs = Double(ttfbString)
+        else { return nil }
+        let upstream = ttfbMs / 1000.0
+        let clientCF = max(totalDuration - upstream, 0)
+        return (upstream, clientCF)
+    }
+
     // MARK: - HMAC Signing for Built-in Cloud Provider
 
     private func generateSignature(timestamp: String, path: String) -> String {
@@ -237,13 +247,17 @@ public final class LLMService {
                 )
                 let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
+                let duration = Date().timeIntervalSince(start)
+                let latency = extractLatency(from: httpResponse, totalDuration: duration)
                 return ModelExecutionResult(
                     modelID: model.id,
-                    duration: Date().timeIntervalSince(start),
+                    duration: duration,
                     response: .success(trimmed),
                     diffSource: parsed.diffSource?.trimmingCharacters(in: .whitespacesAndNewlines),
                     supplementalTexts: parsed.supplementalTexts,
-                    sentencePairs: parsed.sentencePairs
+                    sentencePairs: parsed.sentencePairs,
+                    upstreamTTFB: latency?.upstreamTTFB,
+                    clientToCloudflareLatency: latency?.clientToCF
                 )
             }
         } catch is CancellationError {
@@ -272,6 +286,8 @@ public final class LLMService {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
+
+        let upstreamTTFBMs = (httpResponse.value(forHTTPHeaderField: "X-Upstream-TTFB")).flatMap(Double.init)
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             var errorBytes: [UInt8] = []
@@ -328,32 +344,44 @@ public final class LLMService {
             if isSentencePairsMode {
                 let pairs = parseSentencePairsFromJSON(finalText)
                 let combinedText = pairs.map { "\($0.original)\n\($0.translation)" }.joined(separator: "\n\n")
+                let duration = Date().timeIntervalSince(start)
+                let upstream = upstreamTTFBMs.map { $0 / 1000.0 }
                 return ModelExecutionResult(
                     modelID: model.id,
-                    duration: Date().timeIntervalSince(start),
+                    duration: duration,
                     response: .success(combinedText.isEmpty ? finalText : combinedText),
-                    sentencePairs: pairs
+                    sentencePairs: pairs,
+                    upstreamTTFB: upstream,
+                    clientToCloudflareLatency: upstream.map { max(duration - $0, 0) }
                 )
             }
 
             if let config = structuredOutputConfig {
                 let parsed = parseStructuredOutputFromJSON(finalText, config: config)
                 if let parsed {
+                    let duration = Date().timeIntervalSince(start)
+                    let upstream = upstreamTTFBMs.map { $0 / 1000.0 }
                     return ModelExecutionResult(
                         modelID: model.id,
-                        duration: Date().timeIntervalSince(start),
+                        duration: duration,
                         response: .success(parsed.message),
                         diffSource: parsed.diffSource,
                         supplementalTexts: parsed.supplementalTexts,
-                        sentencePairs: []
+                        sentencePairs: [],
+                        upstreamTTFB: upstream,
+                        clientToCloudflareLatency: upstream.map { max(duration - $0, 0) }
                     )
                 }
             }
 
+            let duration = Date().timeIntervalSince(start)
+            let upstream = upstreamTTFBMs.map { $0 / 1000.0 }
             return ModelExecutionResult(
                 modelID: model.id,
-                duration: Date().timeIntervalSince(start),
-                response: .success(finalText)
+                duration: duration,
+                response: .success(finalText),
+                upstreamTTFB: upstream,
+                clientToCloudflareLatency: upstream.map { max(duration - $0, 0) }
             )
         } else {
             var responseBytes: [UInt8] = []
@@ -381,7 +409,9 @@ public final class LLMService {
                 modelID: model.id,
                 duration: Date().timeIntervalSince(start),
                 response: .success(trimmed),
-                sentencePairs: parsed.sentencePairs
+                sentencePairs: parsed.sentencePairs,
+                upstreamTTFB: upstreamTTFBMs.map { $0 / 1000.0 },
+                clientToCloudflareLatency: upstreamTTFBMs.map { max(Date().timeIntervalSince(start) - $0 / 1000.0, 0) }
             )
         }
     }

@@ -91,7 +91,7 @@ struct PaywallView: View {
             featureRow(
                 icon: "sparkles",
                 title: "Premium Models",
-                description: "GPT-4o, GPT-4.1, GPT-4.5, GPT-5, o3-mini, o4-mini"
+                description: "GPT-5.4, GPT-5, GPT-4.1, o3-mini, o4-mini"
             )
             featureRow(
                 icon: "bolt.fill",
@@ -99,9 +99,19 @@ struct PaywallView: View {
                 description: "More accurate and nuanced translations"
             )
             featureRow(
+                icon: "text.badge.checkmark",
+                title: "Unlimited Models",
+                description: "Select as many models as you need"
+            )
+            featureRow(
                 icon: "arrow.triangle.2.circlepath",
                 title: "Always Up-to-Date",
                 description: "Access to the latest models as they launch"
+            )
+            featureRow(
+                icon: "macbook.and.iphone",
+                title: "Works on iPhone & Mac",
+                description: "One subscription, all your Apple devices"
             )
         }
         .padding(20)

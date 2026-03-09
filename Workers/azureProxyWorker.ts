@@ -34,24 +34,26 @@ const ALLOWED_MODELS = [
   "gpt-5-nano",
   "gpt-5-mini",
   // Premium tier
-  "gpt-4o",
-  "gpt-4.1",
-  "gpt-5",
+  "gpt-5.4",
   "gpt-5.2-chat",
-  "o3-mini",
+  "gpt-5",
+  "gpt-4.1",
+  "gpt-4o",
   "o4-mini",
+  "o3-mini",
   // Hidden (allowed but not listed)
   "model-router",
 ];
 
 // Premium models require an active subscription
 const PREMIUM_MODELS = new Set([
-  "gpt-4o",
-  "gpt-4.1",
-  "gpt-5",
+  "gpt-5.4",
   "gpt-5.2-chat",
-  "o3-mini",
+  "gpt-5",
+  "gpt-4.1",
+  "gpt-4o",
   "o4-mini",
+  "o3-mini",
 ]);
 
 interface ModelInfo {
@@ -64,18 +66,19 @@ interface ModelInfo {
 
 const MODELS_LIST: ModelInfo[] = [
   // Free tier models
+  { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false, isPremium: false, supportsVision: true },
+  { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false, isPremium: false, supportsVision: true },
   { id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true, isPremium: false, supportsVision: true },
   { id: "gpt-4.1-mini", displayName: "GPT-4.1 Mini", isDefault: false, isPremium: false, supportsVision: true },
   { id: "gpt-4o-mini", displayName: "GPT-4o Mini", isDefault: false, isPremium: false, supportsVision: true },
-  { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false, isPremium: false, supportsVision: true },
-  { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false, isPremium: false, supportsVision: true },
   // Premium tier models
-  { id: "gpt-4o", displayName: "GPT-4o", isDefault: false, isPremium: true, supportsVision: true },
-  { id: "gpt-4.1", displayName: "GPT-4.1", isDefault: false, isPremium: true, supportsVision: true },
-  { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-5.4", displayName: "GPT-5.4", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-5.2-chat", displayName: "GPT-5.2 Chat", isDefault: false, isPremium: true, supportsVision: true },
-  { id: "o3-mini", displayName: "o3 Mini", isDefault: false, isPremium: true, supportsVision: false },
+  { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-4.1", displayName: "GPT-4.1", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-4o", displayName: "GPT-4o", isDefault: false, isPremium: true, supportsVision: true },
   { id: "o4-mini", displayName: "o4 Mini", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "o3-mini", displayName: "o3 Mini", isDefault: false, isPremium: true, supportsVision: false },
 ];
 
 const CORS_HEADERS: Record<string, string> = {
@@ -251,15 +254,18 @@ async function handleLLMRequest(request: Request, env: Env): Promise<Response> {
     forwardHeaders.set("api-key", env.AZURE_API_KEY);
     forwardHeaders.set("host", targetURL.host);
 
+    const upstreamStart = Date.now();
     const upstreamResponse = await fetch(targetURL.toString(), {
       method: request.method,
       headers: forwardHeaders,
       body: shouldHaveBody(request.method) ? request.body : null,
       redirect: "manual",
     });
+    const upstreamTTFB = Date.now() - upstreamStart;
 
     const responseHeaders = new Headers(upstreamResponse.headers);
     applyCors(responseHeaders);
+    responseHeaders.set("X-Upstream-TTFB", upstreamTTFB.toString());
 
     return new Response(upstreamResponse.body, {
       status: upstreamResponse.status,

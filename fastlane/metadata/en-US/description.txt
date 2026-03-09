@@ -2,7 +2,7 @@ TLingo is the AI-powered translation app that replaces Apple's built-in translat
 
 WHY CHOOSE TLINGO OVER FREE TRANSLATORS?
 
-Unlike basic translators, TLingo doesn't just translate — it understands context. Powered by advanced AI models (ChatGPT, Claude, and more), TLingo delivers translations that read naturally, not like a machine.
+Unlike basic translators, TLingo doesn't just translate — it understands context. Powered by the latest AI models including GPT-5.4, GPT-5, and more, TLingo delivers translations that read naturally, not like a machine.
 
 POWERFUL AI ACTIONS
 
@@ -17,15 +17,15 @@ SEAMLESS SYSTEM INTEGRATION
 
 • Set as Default Translator — Replace Apple Translate system-wide
 • Works everywhere you select text — no app switching needed
-• Available on iPhone, iPad, and Mac with a single purchase
+• Available on iPhone, iPad, and Mac — one subscription, all devices
 
 BUILT FOR QUALITY
 
 • Real-time streaming responses — see translations appear instantly
 • Smart diff display — highlights exactly what changed in your text
 • Text-to-speech — hear natural pronunciation of translations
-• Multiple AI providers — choose your preferred AI model
-• No subscriptions — pay once, use forever
+• Multiple AI models — choose from GPT-5.4, GPT-5, and more
+• Free tier included — upgrade to Premium for the latest models
 
 Whether you're writing emails, reading articles, checking grammar, or learning a new language, TLingo gives you AI-powered translation and writing tools right where you need them.
 
