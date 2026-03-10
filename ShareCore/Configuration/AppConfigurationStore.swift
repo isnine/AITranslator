@@ -12,6 +12,11 @@ import Foundation
 public final class AppConfigurationStore: ObservableObject {
     public static let shared = AppConfigurationStore()
 
+    /// Snapshot-only store: avoids file IO / observers so it can be rendered offscreen reliably.
+    public static func makeSnapshotStore() -> AppConfigurationStore {
+        AppConfigurationStore(snapshot: true)
+    }
+
     @Published public private(set) var actions: [ActionConfig]
     @Published public private(set) var currentConfigurationName: String?
 
@@ -39,17 +44,34 @@ public final class AppConfigurationStore: ObservableObject {
     }
 
     private init(
+        snapshot: Bool = false,
         preferences: AppPreferences = .shared,
         configFileManager: ConfigurationFileManager = .shared
     ) {
         self.preferences = preferences
         self.configFileManager = configFileManager
-        preferences.refreshFromDefaults()
 
         // Initialize with empty arrays first
         actions = []
         currentConfigurationName = nil
         lastValidationResult = nil
+
+        if snapshot {
+            // Minimal, deterministic data for screenshots. No file IO, no observers, no autosave.
+            preferences.refreshFromDefaults()
+            actions = [
+                ActionConfig(
+                    id: UUID(),
+                    name: "Translate",
+                    prompt: "Translate the input.",
+                    outputType: .plain
+                )
+            ]
+            currentConfigurationName = "Snapshot"
+            return
+        }
+
+        preferences.refreshFromDefaults()
 
         // Then load from persistence or defaults
         loadConfiguration()

@@ -10,7 +10,11 @@ import SwiftUI
 
 struct ActionsView: View {
     @Environment(\.colorScheme) private var colorScheme
-    @ObservedObject private var configurationStore = AppConfigurationStore.shared
+    @ObservedObject private var configurationStore: AppConfigurationStore
+
+    init(configurationStore: AppConfigurationStore = .shared) {
+        self.configurationStore = configurationStore
+    }
     @State private var isEditing = false
     @State private var isAddingNewAction = false
 

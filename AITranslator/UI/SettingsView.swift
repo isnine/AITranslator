@@ -16,7 +16,7 @@ import UniformTypeIdentifiers
 struct SettingsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var preferences: AppPreferences
-    @ObservedObject private var configStore = AppConfigurationStore.shared
+    @ObservedObject private var configStore: AppConfigurationStore
     @ObservedObject private var storeManager = StoreManager.shared
     @State private var isVoicePickerPresented = false
     @State private var showPaywall = false
@@ -50,8 +50,9 @@ struct SettingsView: View {
         AppColors.palette(for: colorScheme)
     }
 
-    init(preferences: AppPreferences = .shared) {
+    init(preferences: AppPreferences = .shared, configStore: AppConfigurationStore = .shared) {
         _preferences = ObservedObject(wrappedValue: preferences)
+        _configStore = ObservedObject(wrappedValue: configStore)
     }
 
     var body: some View {
@@ -932,7 +933,7 @@ private extension SettingsView {
 }
 
 #Preview {
-    SettingsView()
+    SettingsView(configStore: .makeSnapshotStore())
         .preferredColorScheme(.dark)
 }
 

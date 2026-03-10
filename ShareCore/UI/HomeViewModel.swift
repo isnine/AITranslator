@@ -283,7 +283,19 @@ public final class HomeViewModel: ObservableObject {
 
         allActions = [translateAction, grammarAction, polishAction]
         actions = [translateAction, grammarAction, polishAction]
-        selectedActionID = translateAction.id
+
+        // Allow selecting which action to showcase in screenshots.
+        // Args: -SNAPSHOT_ACTION translate|grammar|polish
+        let args = ProcessInfo.processInfo.arguments
+        if let idx = args.firstIndex(of: "-SNAPSHOT_ACTION"), idx + 1 < args.count {
+            switch args[idx + 1].lowercased() {
+            case "grammar": selectedActionID = grammarAction.id
+            case "polish": selectedActionID = polishAction.id
+            default: selectedActionID = translateAction.id
+            }
+        } else {
+            selectedActionID = translateAction.id
+        }
 
         // Set input text — this will trigger didSet which clears modelRuns,
         // so we set modelRuns AFTER setting inputText.
@@ -296,29 +308,37 @@ public final class HomeViewModel: ObservableObject {
         // reconstruct the full prompt messages for the conversation screen.
         currentRequestInputText = inputText
 
-        // Mock translation results (set after inputText to avoid being cleared)
+        // Mock results (set after inputText to avoid being cleared)
         let translatedText = NSLocalizedString(
             "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet.",
             comment: "Snapshot mock translation result"
         )
+
+        let polishedText = NSLocalizedString(
+            "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet.",
+            comment: "Snapshot mock polish result"
+        )
+
+        let wantsDiff = (selectedActionID == polishAction.id)
+        let diffPresentation = wantsDiff ? TextDiffBuilder.build(original: inputText, revised: polishedText) : nil
+
         modelRuns = [
             ModelRunViewState(
                 model: gpt4Model,
                 status: .success(
-                    text: translatedText,
-                    copyText: translatedText,
-                    duration: 1.2
+                    text: wantsDiff ? polishedText : translatedText,
+                    copyText: wantsDiff ? polishedText : translatedText,
+                    duration: 1.2,
+                    diff: diffPresentation
                 )
             ),
             ModelRunViewState(
                 model: claudeModel,
                 status: .success(
-                    text: NSLocalizedString(
-                        "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet.",
-                        comment: "Snapshot mock translation result alt"
-                    ),
-                    copyText: "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet.",
-                    duration: 1.5
+                    text: wantsDiff ? polishedText : polishedText,
+                    copyText: wantsDiff ? polishedText : polishedText,
+                    duration: 1.5,
+                    diff: wantsDiff ? diffPresentation : nil
                 )
             ),
         ]

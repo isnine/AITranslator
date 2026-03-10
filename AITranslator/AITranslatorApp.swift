@@ -32,6 +32,10 @@ struct AITranslatorApp: App {
                 let suffix = String(secret.suffix(4))
                 print("🔑 Secret preview: \(prefix)...\(suffix) (\(secret.count) chars)")
             }
+            // Also write args to /tmp (stdout is unreliable when launched via open)
+            let dbg = "/tmp/tlingo_launch_args.txt"
+            let args = ProcessInfo.processInfo.arguments.joined(separator: "\n") + "\n"
+            try? args.write(toFile: dbg, atomically: true, encoding: .utf8)
         #endif
     }
 
@@ -57,7 +61,7 @@ struct AITranslatorApp: App {
     #if os(macOS)
     /// Configure the main window for screenshot capture mode
     static func configureSnapshotWindow() {
-        if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+        if let window = NSApp.windows.first { // Catalyst windows may report canBecomeMain=false early
             let frame = NSRect(x: 50, y: 200, width: 1280, height: 800)
             window.setFrame(frame, display: true, animate: false)
             window.makeKeyAndOrderFront(nil)
@@ -86,12 +90,30 @@ struct AITranslatorApp: App {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                             AITranslatorApp.configureSnapshotWindow()
                         }
+
+                        // NOTE: Snapshot export is handled in AppDelegate.applicationDidFinishLaunching.
                     }
                 }
         }
     }
 
     /// macOS app delegate for managing global hotkeys and Services
+    // Simple helper to append trace lines without pulling in extra logging infra.
+    fileprivate extension String {
+        func appendLine(to path: String) throws {
+            let url = URL(fileURLWithPath: path)
+            let data = (self).data(using: .utf8)!
+            if FileManager.default.fileExists(atPath: path) {
+                let handle = try FileHandle(forWritingTo: url)
+                try handle.seekToEnd()
+                try handle.write(contentsOf: data)
+                try handle.close()
+            } else {
+                try data.write(to: url, options: [.atomic])
+            }
+        }
+    }
+
     final class AppDelegate: NSObject, NSApplicationDelegate {
         /// Shared instance for accessing the received text from Services
         static var shared: AppDelegate?
@@ -115,12 +137,88 @@ struct AITranslatorApp: App {
                 NSApp.setActivationPolicy(.regular)
                 NSApp.activate(ignoringOtherApps: true)
 
-                // Force SwiftUI to open a new window via the "New Window" menu action
+                // Debug marker: confirm we entered didFinish snapshot branch
+                try? "didFinish snapshot\n".write(toFile: "/tmp/tlingo_didfinish.txt", atomically: true, encoding: .utf8)
+
+                let args = ProcessInfo.processInfo.arguments
+                // Debug: capture didFinish args (launched via `open` hides stdout)
+                try? (args.joined(separator: "\n") + "\n").write(toFile: "/tmp/tlingo_didfinish_args.txt", atomically: true, encoding: .utf8)
+
+                let requestedExportPath: String? = {
+                    if let idx = args.firstIndex(of: "-MACOS_EXPORT_PATH"), idx + 1 < args.count {
+                        return args[idx + 1]
+                    }
+                    return nil
+                }()
+
+                // If we were asked to export, render offscreen and quit (no Screen Recording permission needed).
+                if let requestedExportPath {
+                    let trace = "/tmp/tlingo_export_trace.txt"
+                    func t(_ s: String) { try? (s + "\n").appendLine(to: trace) }
+
+                    do {
+                        t("ENTER didFinish export")
+                        let fm = FileManager.default
+
+                        // Debug build has App Sandbox disabled (ENABLE_APP_SANDBOX=NO), so we can write
+                        // directly to the requested path inside the repo.
+                        let outURL = URL(fileURLWithPath: requestedExportPath)
+                        t("OUT: \(outURL.path)")
+                        try fm.createDirectory(at: outURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+                        // Timeout watchdog so automation never hangs forever.
+                        var finished = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 20.0) {
+                            guard !finished else { return }
+                            finished = true
+                            let fail = "FAIL\nTIMEOUT\n" + outURL.path + "\n"
+                            try? fail.write(toFile: "/tmp/tlingo_export_status.txt", atomically: true, encoding: .utf8)
+                            NSApp.terminate(nil)
+                        }
+
+                        // Give SwiftUI/AppKit a moment to settle before offscreen rendering.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            guard !finished else { return }
+                            do {
+                                let args = ProcessInfo.processInfo.arguments
+                                let screen = MacSnapshotScreen.fromLaunchArguments(args)
+                                let view = macSnapshotView(for: screen)
+
+                                t("BEFORE export")
+                                try MacScreenshotExporter.exportOffscreenPNG(
+                                    view: view,
+                                    size: CGSize(width: 1600, height: 800),
+                                    to: outURL
+                                )
+                                t("AFTER export")
+
+                                finished = true
+                                let okText = "OK\n" + outURL.path + "\n"
+                                try? okText.write(toFile: "/tmp/tlingo_export_status.txt", atomically: true, encoding: .utf8)
+
+                                t("TERMINATE")
+                                NSApp.terminate(nil)
+                            } catch {
+                                finished = true
+                                t("CATCH(inner): \(String(describing: error))")
+                                let failText = "FAIL\n" + String(describing: error) + "\n"
+                                try? failText.write(toFile: "/tmp/tlingo_export_status.txt", atomically: true, encoding: .utf8)
+                                NSApp.terminate(nil)
+                            }
+                        }
+                    } catch {
+                        t("CATCH: \(String(describing: error))")
+                        let failText = "FAIL\n" + String(describing: error) + "\n"
+                        try? failText.write(toFile: "/tmp/tlingo_export_status.txt", atomically: true, encoding: .utf8)
+                        NSApp.terminate(nil)
+                    }
+                    return
+                }
+
+                // Otherwise (no export requested), keep previous behavior to show a window.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    // This triggers SwiftUI's WindowGroup to create a new window instance
                     NSApp.sendAction(#selector(NSWindow.makeKeyAndOrderFront(_:)), to: nil, from: nil)
 
-                    // Use stored openWindow action if no main window exists
                     if NSApp.windows.isEmpty || NSApp.windows.allSatisfy({ !$0.canBecomeMain }) {
                         self.openWindowAction?(id: "main")
                     }

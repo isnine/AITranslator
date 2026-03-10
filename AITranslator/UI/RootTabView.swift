@@ -11,7 +11,11 @@ import SwiftUI
 struct RootTabView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selection: TabItem = Self.initialTab
-    @ObservedObject private var configStore = AppConfigurationStore.shared
+    @ObservedObject private var configStore: AppConfigurationStore
+
+    init(configStore: AppConfigurationStore = .shared) {
+        self.configStore = configStore
+    }
 
     /// Reads `-SNAPSHOT_TAB <name>` from launch arguments to select a tab at startup.
     private static var initialTab: TabItem {
@@ -98,11 +102,11 @@ struct RootTabView: View {
         case .home:
             HomeView(context: nil)
         case .actions:
-            ActionsView()
+            ActionsView(configurationStore: configStore)
         case .models:
             ModelsView()
         case .settings:
-            SettingsView()
+            SettingsView(configStore: configStore)
         }
     }
 }

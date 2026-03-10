@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Debug-only entitlements for local automation.
+	     Intentionally disables App Sandbox so the app can export screenshots to the repo path. -->
+	<key>com.apple.developer.translation-app</key>
+	<true/>
+</dict>
+</plist>

@@ -4,6 +4,8 @@
 
 ## 快速定位
 
+- macOS 截图流水线（应用内导出 + 营销合成）：[`docs/macos-screenshots.md`](./macos-screenshots.md)
+
 | 需求                        | 关键文件                                                                   |
 | --------------------------- | -------------------------------------------------------------------------- |
 | 添加/修改动作               | `ShareCore/Configuration/ActionConfig.swift`, `DefaultConfiguration.json`  |
