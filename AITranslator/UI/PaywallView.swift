@@ -245,7 +245,8 @@ struct PaywallView: View {
 
     private var annualSavingsText: String? {
         guard let monthly = storeManager.monthlyProduct,
-              let annual = storeManager.annualProduct else {
+              let annual = storeManager.annualProduct
+        else {
             return nil
         }
         let annualized = monthly.price * 12
@@ -253,7 +254,7 @@ struct PaywallView: View {
         let savings = (annualized - annual.price) / annualized * 100
         let percent = Int(NSDecimalNumber(decimal: savings).doubleValue)
         guard percent > 0 else { return nil }
-        return "Save \(percent)%"
+        return String(localized: "Save \(percent)%")
     }
 
     // MARK: - Restore
@@ -308,10 +309,12 @@ struct PaywallView: View {
 
     private var legalFooter: some View {
         VStack(spacing: 8) {
-            Text("Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. Payment will be charged to your Apple ID account at confirmation of purchase.")
-                .font(.system(size: 11))
-                .foregroundColor(colors.textSecondary.opacity(0.6))
-                .multilineTextAlignment(.center)
+            Text(
+                "Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. Payment will be charged to your Apple ID account at confirmation of purchase."
+            )
+            .font(.system(size: 11))
+            .foregroundColor(colors.textSecondary.opacity(0.6))
+            .multilineTextAlignment(.center)
 
             HStack(spacing: 4) {
                 Link("Terms of Use (EULA)", destination: Self.termsOfUseURL)

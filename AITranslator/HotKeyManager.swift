@@ -41,7 +41,7 @@
 
         /// Returns the full shortcut display string
         var displayString: String {
-            if isEmpty { return "Click to set" }
+            if isEmpty { return String(localized: "Click to set") }
             return modifiersDisplayString + keyDisplayString
         }
     }
@@ -53,15 +53,15 @@
 
         var displayName: String {
             switch self {
-            case .mainApp: return "Main App"
-            case .quickTranslate: return "Quick Translate"
+            case .mainApp: return String(localized: "Main App")
+            case .quickTranslate: return String(localized: "Quick Translate")
             }
         }
 
         var description: String {
             switch self {
-            case .mainApp: return "Show/hide the main application window."
-            case .quickTranslate: return "Show/hide the menu bar quick translate popover."
+            case .mainApp: return String(localized: "Show/hide the main application window.")
+            case .quickTranslate: return String(localized: "Show/hide the menu bar quick translate popover.")
             }
         }
 

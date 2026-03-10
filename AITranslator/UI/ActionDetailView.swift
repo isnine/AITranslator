@@ -149,10 +149,10 @@ struct ActionDetailView: View {
 
     private var usageScenesSummary: String {
         var parts: [String] = []
-        if usageScenes.contains(.app) { parts.append("In App") }
-        if usageScenes.contains(.contextRead) { parts.append("Read-Only") }
-        if usageScenes.contains(.contextEdit) { parts.append("Editable") }
-        return parts.isEmpty ? "None" : parts.joined(separator: ", ")
+        if usageScenes.contains(.app) { parts.append(String(localized: "In App")) }
+        if usageScenes.contains(.contextRead) { parts.append(String(localized: "Read-Only")) }
+        if usageScenes.contains(.contextEdit) { parts.append(String(localized: "Editable")) }
+        return parts.isEmpty ? String(localized: "None") : parts.joined(separator: ", ")
     }
 
     private var usageSection: some View {
@@ -180,10 +180,10 @@ struct ActionDetailView: View {
 
     private var outputTypeSummary: String {
         switch outputType {
-        case .plain: return "Plain Text"
-        case .diff: return "Show Diff"
-        case .sentencePairs: return "Sentence Pairs"
-        case .grammarCheck: return "Grammar Check"
+        case .plain: return String(localized: "Plain Text")
+        case .diff: return String(localized: "Show Diff")
+        case .sentencePairs: return String(localized: "Sentence Pairs")
+        case .grammarCheck: return String(localized: "Grammar Check")
         }
     }
 

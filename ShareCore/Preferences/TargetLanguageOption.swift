@@ -49,7 +49,7 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
     public var primaryLabel: String {
         switch self {
         case .appLanguage:
-            return "Match App Language"
+            return String(localized: "Match App Language")
         default:
             return nativeName
         }

@@ -80,7 +80,7 @@ struct SettingsView: View {
             PaywallView()
         }
         #if DEBUG
-            .sheet(isPresented: $showNetworkDebug) {
+        .sheet(isPresented: $showNetworkDebug) {
                 NavigationStack {
                     NetworkDebugView()
                         .toolbar {
@@ -95,98 +95,98 @@ struct SettingsView: View {
                 #endif
             }
         #endif
-        .onAppear {
-            preferences.refreshFromDefaults()
-        }
-        .fileImporter(
-            isPresented: $isImportPresented,
-            allowedContentTypes: [.json],
-            allowsMultipleSelection: false
-        ) { result in
-            handleImport(result)
-        }
-        .fileExporter(
-            isPresented: $isExportPresented,
-            document: configurationDocument,
-            contentType: .json,
-            defaultFilename: exportFilename
-        ) { result in
-            handleExport(result)
-        }
-        .alert("Import Failed", isPresented: $showImportError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(importError ?? "Unknown error")
-        }
-        .alert("Export Successful", isPresented: $showExportSuccess) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Configuration exported successfully.")
-        }
-        .alert("Delete Configuration?", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {
-                configToDelete = nil
+            .onAppear {
+                preferences.refreshFromDefaults()
             }
-            Button("Delete", role: .destructive) {
-                if let config = configToDelete {
-                    deleteConfiguration(config)
+            .fileImporter(
+                isPresented: $isImportPresented,
+                allowedContentTypes: [.json],
+                allowsMultipleSelection: false
+            ) { result in
+                handleImport(result)
+            }
+            .fileExporter(
+                isPresented: $isExportPresented,
+                document: configurationDocument,
+                contentType: .json,
+                defaultFilename: exportFilename
+            ) { result in
+                handleExport(result)
+            }
+            .alert("Import Failed", isPresented: $showImportError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(importError ?? "Unknown error")
+            }
+            .alert("Export Successful", isPresented: $showExportSuccess) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Configuration exported successfully.")
+            }
+            .alert("Delete Configuration?", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {
                     configToDelete = nil
                 }
+                Button("Delete", role: .destructive) {
+                    if let config = configToDelete {
+                        deleteConfiguration(config)
+                        configToDelete = nil
+                    }
+                }
+            } message: {
+                if let config = configToDelete {
+                    Text(
+                        String(
+                            format: NSLocalizedString(
+                                "Are you sure you want to delete '%@'? This action cannot be undone.",
+                                comment: "Delete configuration confirmation"
+                            ),
+                            config.name
+                        )
+                    )
+                }
             }
-        } message: {
-            if let config = configToDelete {
+            .alert(
+                NSLocalizedString(
+                    "Reset to Default?",
+                    comment: "Reset configuration confirmation title"
+                ),
+                isPresented: $showResetToDefaultConfirmation
+            ) {
+                Button("Cancel", role: .cancel) {}
+                Button(
+                    NSLocalizedString("Reset", comment: "Reset configuration button"),
+                    role: .destructive
+                ) {
+                    configStore.resetToDefault()
+                }
+            } message: {
                 Text(
-                    String(
-                        format: NSLocalizedString(
-                            "Are you sure you want to delete '%@'? This action cannot be undone.",
-                            comment: "Delete configuration confirmation"
-                        ),
-                        config.name
+                    NSLocalizedString(
+                        "This will replace your current actions with the built-in defaults. Any custom changes will be lost.",
+                        comment: "Reset configuration confirmation message"
                     )
                 )
             }
-        }
-        .alert(
-            NSLocalizedString(
-                "Reset to Default?",
-                comment: "Reset configuration confirmation title"
-            ),
-            isPresented: $showResetToDefaultConfirmation
-        ) {
-            Button("Cancel", role: .cancel) {}
-            Button(
-                NSLocalizedString("Reset", comment: "Reset configuration button"),
-                role: .destructive
-            ) {
-                configStore.resetToDefault()
-            }
-        } message: {
-            Text(
-                NSLocalizedString(
-                    "This will replace your current actions with the built-in defaults. Any custom changes will be lost.",
-                    comment: "Reset configuration confirmation message"
+            .sheet(item: $configEditorItem) { item in
+                ConfigurationEditorView(
+                    configInfo: item.configInfo,
+                    initialText: item.text,
+                    colors: colors,
+                    onSave: { updatedText in
+                        saveEditedConfiguration(updatedText, for: item.configInfo)
+                    },
+                    onDismiss: {
+                        configEditorItem = nil
+                    }
                 )
-            )
-        }
-        .sheet(item: $configEditorItem) { item in
-            ConfigurationEditorView(
-                configInfo: item.configInfo,
-                initialText: item.text,
-                colors: colors,
-                onSave: { updatedText in
-                    saveEditedConfiguration(updatedText, for: item.configInfo)
-                },
-                onDismiss: {
-                    configEditorItem = nil
-                }
-            )
-        }
-        #if os(iOS)
-        .sheet(isPresented: $isShareSheetPresented) {
-            if let url = configFileToShare {
-                ShareSheet(activityItems: [url])
             }
-        }
+        #if os(iOS)
+            .sheet(isPresented: $isShareSheetPresented) {
+                if let url = configFileToShare {
+                    ShareSheet(activityItems: [url])
+                }
+            }
         #endif
     }
 
@@ -246,6 +246,7 @@ struct SettingsView: View {
             }
 
             #if DEBUG
+
                 // MARK: - Developer Section
 
                 settingsSection(title: "Developer", icon: "ladybug") {
@@ -289,7 +290,7 @@ struct SettingsView: View {
     // MARK: - Section Builder
 
     private func settingsSection<Content: View>(
-        title: String,
+        title: LocalizedStringKey,
         icon: String,
         @ViewBuilder content: () -> Content
     ) -> some View {
@@ -532,7 +533,7 @@ private extension SettingsView {
                         Button {
                             startRecordingHotKey(for: type)
                         } label: {
-                            Text(isRecording ? "Press keys..." : (config.isEmpty ? "Click to set" : config.displayString))
+                            Text(isRecording ? String(localized: "Press keys...") : config.displayString)
                                 .font(.system(size: 13, weight: .medium, design: config.isEmpty ? .default : .monospaced))
                                 .foregroundColor(
                                     isRecording ? colors

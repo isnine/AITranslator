@@ -103,11 +103,11 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         public var description: String {
             switch self {
             case .local:
-                return "Stored in app container"
+                return String(localized: "Stored in app container")
             case .iCloud:
-                return "Synced across devices"
+                return String(localized: "Synced across devices")
             case .custom:
-                return "Custom folder location"
+                return String(localized: "Custom folder location")
             }
         }
 
