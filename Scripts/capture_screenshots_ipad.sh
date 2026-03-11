@@ -84,6 +84,7 @@ log "Building UI tests (iPad derived data)..."
 xcodebuild build-for-testing \
   -project "$PROJECT" \
   -scheme "$SCHEME" \
+  -configuration Release \
   -destination "platform=iOS Simulator,id=$SIM_UDID" \
   -derivedDataPath "$PROJECT_DIR/build/SnapshotDerivedData-iPad" \
   -skipMacroValidation \
@@ -112,6 +113,7 @@ for lang in "${LANGUAGES[@]}"; do
   if xcodebuild test-without-building \
     -project "$PROJECT" \
     -scheme "$SCHEME" \
+    -configuration Release \
     -destination "platform=iOS Simulator,id=$SIM_UDID" \
     -derivedDataPath "$PROJECT_DIR/build/SnapshotDerivedData-iPad" \
     -skipMacroValidation \

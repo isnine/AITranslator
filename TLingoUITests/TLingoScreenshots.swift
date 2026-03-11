@@ -64,6 +64,15 @@ class TLingoScreenshots: XCTestCase {
         snapshot("05_Settings")
     }
 
+    func test06Polish() {
+        // Show the Home screen with Polish Writing action and diff highlights
+        setupSnapshot(app)
+        app.launchArguments.append(contentsOf: ["-SNAPSHOT_ACTION", "polish"])
+        app.launch()
+        sleep(4)
+        snapshot("06_Polish")
+    }
+
     // MARK: - Navigation Helpers
 
     /// Navigate to a tab using its accessibility identifier.

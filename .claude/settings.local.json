@@ -9,7 +9,12 @@
       "mcp__xcodebuildmcp__build_sim",
       "mcp__xcodebuildmcp__get_sim_app_path",
       "mcp__xcodebuildmcp__get_app_bundle_id",
-      "mcp__xcodebuildmcp__launch_app_sim"
+      "mcp__xcodebuildmcp__launch_app_sim",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:rubygems.org)",
+      "WebFetch(domain:www.google-analytics.com)",
+      "WebFetch(domain:registry.npmjs.org)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -79,3 +79,4 @@ Makefile
 xcodemake *.log
 
 vendor
+.bundle/

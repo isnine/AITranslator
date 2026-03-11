@@ -20,12 +20,13 @@ It has two stages:
 - `fastlane/macos_screenshots/<locale>/03_Actions.png`
 - `fastlane/macos_screenshots/<locale>/04_Models.png`
 - `fastlane/macos_screenshots/<locale>/05_Settings.png`
+- `fastlane/macos_screenshots/<locale>/06_Polish.png`
 
 Currently we primarily run **en-US** during iteration.
 
 ### Final (marketing composed) screenshots
 
-- `fastlane/macos_screenshots_marketing/<locale>/01_Home.png` … `05_Settings.png`
+- `fastlane/macos_screenshots_marketing/<locale>/01_Home.png` … `06_Polish.png`
 
 These are the **final deliverables** (same canvas size as required by Apple for macOS screenshots).
 
@@ -84,16 +85,18 @@ Takes the raw screenshots and composites:
 
 Text sources:
 
-- `fastlane/screenshots/en-US/keyword.strings`
-- `fastlane/screenshots/en-US/title.strings`
+- `fastlane/screenshots/<locale>/keyword.strings`
+- `fastlane/screenshots/<locale>/title.strings`
 
 ### Script
 
-Generate **marketing composed** macOS screenshots (en-US):
+Generate **marketing composed** macOS screenshots:
 
 ```bash
 cd ~/work/AITranslator
-bash Scripts/frame_macos_marketing_en.sh
+bash Scripts/frame_macos_marketing.sh              # all locales (auto-discover)
+bash Scripts/frame_macos_marketing.sh en-US         # single locale
+bash Scripts/frame_macos_marketing.sh en-US zh-Hans # multiple locales
 ```
 
 Outputs:
@@ -112,8 +115,29 @@ Outputs:
 ```bash
 cd ~/work/AITranslator
 bash Scripts/capture_macos_screenshots_self.sh en-US
-bash Scripts/frame_macos_marketing_en.sh
+bash Scripts/frame_macos_marketing.sh en-US
 open fastlane/macos_screenshots_marketing/en-US
+```
+
+## Fastlane integration
+
+macOS screenshots are fully integrated into fastlane via `platform :mac` lanes:
+
+```bash
+# Capture raw screenshots (builds macOS app, exports via offscreen render)
+fastlane mac macos_screenshots                # all locales
+fastlane mac macos_screenshots locale:en-US   # single locale
+
+# Compose marketing screenshots (gradient bg + text + shadow)
+fastlane mac macos_frames                     # all locales
+fastlane mac macos_frames locale:en-US        # single locale
+
+# Upload to App Store Connect (platform: osx)
+fastlane mac upload_macos_screenshots
+
+# Full pipeline: capture → frame → upload
+fastlane mac macos_full_pipeline
+fastlane mac macos_full_pipeline locale:en-US
 ```
 
 ---
@@ -137,7 +161,7 @@ Usually an alpha/mask composition issue. The composition script applies rounding
 Re-run:
 
 ```bash
-bash Scripts/frame_macos_marketing_en.sh
+bash Scripts/frame_macos_marketing.sh en-US
 ```
 
 ### Wrong layout / missing diff highlight

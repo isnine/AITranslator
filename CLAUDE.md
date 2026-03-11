@@ -4,73 +4,145 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AITranslator is a Swift/SwiftUI iOS/macOS translation app that integrates with the system translation framework. It supports multiple LLM providers (Azure OpenAI, custom OpenAI-compatible APIs) with concurrent requests and streaming responses.
+AITranslator (app name: **TLingo**) is a Swift/SwiftUI iOS/macOS translation app that integrates with the system translation framework. It supports multiple LLM providers (Azure OpenAI, custom OpenAI-compatible APIs) with concurrent requests and streaming responses.
+
+**Stack**: SwiftUI, Swift 5.0, iOS 18.4+ / macOS 15.4+, Combine, Xcode 16+
 
 ## Architecture
 
-The codebase follows a modular architecture:
+```
+TLingo (main app)
+  └─► ShareCore (shared framework)
+TLingoTranslation (system translation extension)
+  └─► ShareCore
+```
 
-- **AITranslator/**: Main app module with UI layer (MVVM pattern with Combine)
-- **ShareCore/**: Shared framework containing business logic, networking, and configuration
-- **TranslationUI/**: iOS System Translation Extension that integrates with system translation
-- **Workers/**: Cloudflare worker proxy (TypeScript) for built-in cloud service
+| Module | Purpose |
+|--------|---------|
+| **AITranslator/** | Main app — MVVM UI layer (tabs: Home/Actions/Models/Settings), macOS menu bar, global hotkey, clipboard monitor |
+| **ShareCore/** | Embedded framework — all shared business logic: networking (`LLMService`), configuration models, preferences, StoreKit, UI components. ~56 Swift files |
+| **TranslationUI/** | System translation extension (`TranslationProvider.swift`). Reuses ShareCore views |
+| **Workers/** | Cloudflare Worker proxy (TypeScript) for built-in cloud service |
 
-Key architectural patterns:
-- App Groups (`group.com.zanderwang.AITranslator`) for data sharing between app and extension
-- SSE streaming with JSON Schema structured output
-- LCS-based diff algorithm for showing translation changes
-- Configuration system with bundled defaults and user customization
+### Key Patterns
+
+- **MVVM + Combine**: `HomeViewModel` drives translation state via Published properties
+- **App Groups** (`group.com.zanderwang.AITranslator`): Config & preferences shared between app and extension via `UserDefaults` suite and shared container
+- **Singleton Services**: `AppConfigurationStore.shared`, `LLMService.shared`, `StoreManager.shared`, `AppPreferences.shared` — all `@MainActor`
+- **SSE Streaming**: `URLSession.bytes(for:)` with incremental JSON parsing (`StreamingSentencePairParser`, `StreamingStructuredOutputParser`)
+- **Structured Output**: `response_format: json_schema` for sentence-pair and grammar-check actions
+- **Multi-provider Concurrency**: `TaskGroup` sends to multiple providers in parallel, merges results
+- **Filesystem-synced groups**: New Swift files placed in the correct directory are auto-included. **Do NOT manually edit `project.pbxproj` to add file references**
 
 ## Essential Commands
 
 ### Building
+
+The app scheme is **TLingo** (not AITranslator):
+
 ```bash
 # Build for iOS Simulator
-xcodebuild -project AITranslator.xcodeproj -scheme AITranslator -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+xcodebuild -project AITranslator.xcodeproj -scheme TLingo \
+  -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
 
-# Build ShareCore framework
-xcodebuild -project AITranslator.xcodeproj -target ShareCore -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+# Build for macOS
+xcodebuild -project AITranslator.xcodeproj -scheme TLingo \
+  -destination 'platform=macOS' build
+```
 
-# Build TranslationUI extension
-xcodebuild -project AITranslator.xcodeproj -scheme TranslationUI -destination 'platform=iOS Simulator,name=iPhone 16 Pro' build
+### Make Targets
+
+```bash
+make gen               # Interactive .env setup wizard
+make secrets           # Generate Configuration/Secrets.xcconfig from .env
+make secrets-check     # Verify secret configuration
+make format            # Auto-format code (SwiftFormat)
+make lint              # Lint code (SwiftLint + SwiftFormat --lint)
 ```
 
 ### Testing
-No unit tests are currently configured. The project uses MCP-based UI automation for testing.
 
-### Code Quality
+Minimal unit tests in ShareCoreTests (migration/substitution tests). Primary testing uses MCP-based UI automation.
+
+### Fastlane (App Store Automation)
+
 ```bash
-# Format code (requires SwiftFormat)
-swiftformat .
+# iOS Screenshots
+fastlane ios screenshots              # Capture on all devices/languages
+fastlane ios frames                   # Add device frames & marketing text
+fastlane ios deliver_screenshots      # Capture → frame → upload
+fastlane ios full_pipeline            # Full pipeline
 
-# Lint code (requires SwiftLint)
-swiftlint
+# iOS Metadata
+fastlane ios download_metadata        # Download from App Store Connect
+fastlane ios upload_metadata          # Upload metadata to App Store
+
+# macOS Screenshots
+fastlane mac macos_screenshots        # Capture via in-app export
+fastlane mac macos_frames             # Compose marketing screenshots
+fastlane mac macos_full_pipeline      # Full pipeline
 ```
 
-## Key Technical Details
+## Configuration System
 
-1. **Multi-provider Architecture**: The app can send concurrent requests to multiple LLM providers and merge results
-2. **Streaming Responses**: Uses Server-Sent Events with JSON Schema validation for structured output
-3. **Configuration System**:
-   - Default config bundled in app (JSON format)
-   - Custom configs stored in App Group container
-   - Dynamic prompt updates based on target language
-4. **Authentication**:
-   - Azure OpenAI: Standard API key authentication
-   - Built-in cloud: HMAC-SHA256 with timestamp
-5. **System Integration**:
-   - iOS/macOS translation extension integration
-   - macOS menu bar support
-   - Global hotkey support
+- **Bundled defaults**: `ShareCore/Resources/DefaultConfiguration.json` (5 built-in actions)
+- **Custom configs**: Stored in App Group container, created by users via UI
+- **File watching**: `ConfigurationFileManager` detects changes and hot-reloads
+- **Prompt placeholders**: `{text}`/`{{text}}` and `{targetLanguage}`/`{{targetLanguage}}` — replaced at request time in `LLMService.swift`
 
-## Development Notes
+### Secrets & Build Config
 
-- The project uses XcodeBuildMCP for AI-assisted development
-- ShareCore is embedded as a framework target, not a Swift Package
-- Localization uses modern `.xcstrings` format
-- Minimum iOS deployment target: iOS 18.4
-- Architecture documentation: See `agent.md` (Chinese) for detailed implementation notes
+- **Base.xcconfig**: Unified Debug/Release config (default endpoint, fallback values)
+- **Secrets.xcconfig**: Git-ignored, generated by `make secrets` or `Scripts/inject-secrets.sh`
+- **Priority**: Local env vars → `.env` file → `Secrets.xcconfig` → `Base.xcconfig` defaults
+- **Xcode Cloud**: `ci_scripts/ci_post_clone.sh` injects `AITRANSLATOR_CLOUD_SECRET` env var → `Secrets.xcconfig`
+- Do NOT commit `.env`, `Secrets.xcconfig`, or `Local.xcconfig`
+
+## Where to Make Changes
+
+| Task | Key Files |
+|------|-----------|
+| Add/edit translation action | `ShareCore/Configuration/ActionConfig.swift`, `DefaultConfiguration.json` |
+| Add/edit LLM provider | `ShareCore/Configuration/ProviderConfig.swift`, `ProviderCategory.swift` |
+| Change LLM request logic | `ShareCore/Networking/LLMService.swift` |
+| Change UI state management | `ShareCore/UI/HomeViewModel.swift` |
+| Change config persistence | `ShareCore/Configuration/AppConfigurationStore.swift`, `ConfigurationFileManager.swift` |
+| Change extension behavior | `TranslationUI/TranslationProvider.swift` |
+| Change preferences | `ShareCore/Preferences/AppPreferences.swift` |
+| Change subscriptions/StoreKit | `ShareCore/StoreKit/StoreManager.swift` |
+| Text diff/comparison | `ShareCore/Utilities/TextDiffBuilder.swift` |
+| App colors & theming | `ShareCore/AppColors.swift` |
+| TTS functionality | `ShareCore/Networking/TTSPreviewService.swift` |
+
+## Code Style
+
+- **Style guide**: Airbnb Swift Style Guide (`docs/Swift Style Guide.md`)
+- **SwiftFormat** (`.swiftformat`): 4-space indent, LF line endings, `before-first` wrapping, 130 char max width
+- **SwiftLint** (`.swiftlint.yml`): Opt-in rules: `empty_count`, `empty_string`, `implicit_return`, `modifier_order`, `sorted_imports`. Line length warning at 130, error at 160
+- Run `make format && make lint` before committing
+
+## Localization
+
+- Format: Modern `.xcstrings` (not `Localizable.strings`)
+- File: `Localizable.xcstrings` at project root, shared across all targets
+- 16+ locales: en, ar, da, de, es, fr, id, it, ja, ko, nb, nl, pt-BR, sv, tr, zh-Hans, zh-Hant
 
 ## Version Management
 
-- When bumping the app version, only update `MARKETING_VERSION` in the Xcode project. Do **not** modify `CURRENT_PROJECT_VERSION` (build number) — it is managed automatically by Xcode Cloud.
+- **MARKETING_VERSION**: Update only this for version bumps
+- **CURRENT_PROJECT_VERSION**: Managed by Xcode Cloud — do not modify
+- The project uses XcodeBuildMCP for AI-assisted development
+
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on push to main and all PRs:
+1. SwiftFormat lint check
+2. SwiftLint
+3. Build for iOS Simulator
+
+## Additional Documentation
+
+- `docs/agent.md` — Detailed architecture & implementation notes (Chinese)
+- `docs/macos-screenshots.md` — macOS screenshot pipeline
+- `docs/Swift Style Guide.md` — Code style conventions
+- `docs/KEY_ROTATION_CHECKLIST.md` — Secret rotation procedures

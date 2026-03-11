@@ -347,9 +347,41 @@ public final class HomeViewModel: ObservableObject {
     /// Creates a pre-built ``ConversationSession`` for snapshot mode,
     /// so the conversation sheet can be presented immediately without
     /// needing to tap a UI button.
+    ///
+    /// Builds a 4-message conversation:
+    /// 1. User (locale language): "The quick brown fox..." pangram
+    /// 2. Assistant (English): English translation
+    /// 3. User (locale language): "Make it shorter"
+    /// 4. Assistant (English): Shortened version
     public func createSnapshotConversationSession() -> ConversationSession? {
-        guard let firstRun = modelRuns.first else { return nil }
-        return createConversation(from: firstRun)
+        guard let firstRun = modelRuns.first,
+              let action = selectedAction else { return nil }
+
+        let userText = NSLocalizedString(
+            "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet.",
+            comment: "Snapshot mock input text"
+        )
+        let assistantReply = "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet."
+
+        let followUp = NSLocalizedString(
+            "Make it shorter",
+            comment: "Snapshot conversation follow-up"
+        )
+        let shortReply = "A quick fox jumps over a lazy dog."
+
+        let messages: [ChatMessage] = [
+            ChatMessage(role: "user", content: userText),
+            ChatMessage(role: "assistant", content: assistantReply),
+            ChatMessage(role: "user", content: followUp),
+            ChatMessage(role: "assistant", content: shortReply),
+        ]
+
+        return ConversationSession(
+            model: firstRun.model,
+            action: action,
+            availableModels: models,
+            messages: messages
+        )
     }
 
     public var defaultAction: ActionConfig? {
