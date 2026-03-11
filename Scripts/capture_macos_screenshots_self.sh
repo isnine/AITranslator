@@ -55,6 +55,11 @@ kill_app() {
     pkill -9 -x "$APP_NAME" 2>/dev/null || true
     sleep 0.5
   fi
+  # Wait until the process is fully gone (avoids `open -a` reusing a dying process)
+  for _w in $(seq 1 10); do
+    pgrep -x "$APP_NAME" >/dev/null 2>&1 || break
+    sleep 0.3
+  done
 }
 
 build_and_find_app() {
@@ -114,6 +119,11 @@ capture_one() {
   # Remove any stale file so we don't mistake an old export as success
   rm -f "$out_path" 2>/dev/null || true
 
+  # Export to /tmp first to avoid macOS TCC file-access permission prompts,
+  # then move the file to the final destination.
+  local tmp_path="/tmp/tlingo_export_${name}.png"
+  rm -f "$tmp_path" 2>/dev/null || true
+
   # shell-split args string into array
   read -r -a LANG_ARGS <<< "$(apple_lang_args_for_locale "$locale")"
 
@@ -128,37 +138,42 @@ capture_one() {
   # Clear any stale status before launch
   rm -f /tmp/tlingo_export_status.txt 2>/dev/null || true
 
+  # Run the binary directly instead of `open -a` to avoid Launch Services
+  # reusing a dying process or swallowing arguments.
+  local bin_path="$app_path/Contents/MacOS/$APP_NAME"
+
   log "Exporting $locale/$name -> $out_path"
   if [ ${#extra[@]} -gt 0 ]; then
-    open -a "$app_path" --args \
+    "$bin_path" \
       -FASTLANE_SNAPSHOT \
-      -MACOS_EXPORT_PATH "$out_path" \
+      -MACOS_EXPORT_PATH "$tmp_path" \
       "${extra[@]}" \
-      "${LANG_ARGS[@]}"
+      "${LANG_ARGS[@]}" >/dev/null 2>&1 &
   else
-    open -a "$app_path" --args \
+    "$bin_path" \
       -FASTLANE_SNAPSHOT \
-      -MACOS_EXPORT_PATH "$out_path" \
-      "${LANG_ARGS[@]}"
+      -MACOS_EXPORT_PATH "$tmp_path" \
+      "${LANG_ARGS[@]}" >/dev/null 2>&1 &
   fi
 
-  # Debug build exports directly to out_path.
-
-  # Wait up to 25s for out_path
+  # Wait up to 25s for tmp_path
   for i in $(seq 1 50); do
-    if [ -f "$out_path" ]; then
+    if [ -f "$tmp_path" ]; then
       break
     fi
     sleep 0.5
   done
 
-  if [ ! -f "$out_path" ]; then
+  if [ ! -f "$tmp_path" ]; then
     log "ERROR: timeout waiting for export ($out_path)"
     if [ -f /tmp/tlingo_export_status.txt ]; then
       log "Status: $(tr '\n' ' ' < /tmp/tlingo_export_status.txt | head -c 200)"
     fi
     return 1
   fi
+
+  # Move from /tmp to final destination
+  mv -f "$tmp_path" "$out_path"
 
   # quick sanity check
   local w h
@@ -181,12 +196,14 @@ log "App: $APP_PATH"
 
 for locale in "${LOCALES[@]}"; do
   log "=== $locale ==="
-  # Home screenshot: showcase Polish (diff) capability
+  # Home screenshot: use polish action (translate hangs in offscreen render)
   capture_one "$APP_PATH" "$locale" "01_Home" -SNAPSHOT_ACTION polish || exit 1
   capture_one "$APP_PATH" "$locale" "02_Conversation" -SNAPSHOT_CONVERSATION || exit 1
   capture_one "$APP_PATH" "$locale" "03_Actions" -SNAPSHOT_TAB actions || exit 1
   capture_one "$APP_PATH" "$locale" "04_Models" -SNAPSHOT_TAB models || exit 1
   capture_one "$APP_PATH" "$locale" "05_Settings" -SNAPSHOT_TAB settings || exit 1
+  # Polish screenshot: same view as 01_Home, different marketing text
+  cp "$OUTPUT_BASE/$locale/01_Home.png" "$OUTPUT_BASE/$locale/06_Polish.png"
 
 done
 

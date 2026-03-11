@@ -1,10 +1,8 @@
 # Snapfile — Fastlane snapshot configuration for TLingo
 
-# Devices to capture screenshots on (must match frameit-supported screen sizes)
+# Devices to capture screenshots on
 devices([
-  "iPhone 14 Pro Max",                       # 6.7" display (1290x2796) — frameit supported
-  "iPhone 13 Pro Max",                       # 6.5" display (1284x2778) — frameit supported
-  "iPad Pro (12.9-inch) (4th generation)"    # 12.9" iPad (2048x2732) — frameit supported
+  "iPhone 16 Pro"                            # 6.3" display (6.1" class for App Store)
 ])
 
 # Languages to capture
@@ -15,6 +13,9 @@ languages([
   "ko",
   "de"
 ])
+
+# Pin to iOS 26 runtime
+ios_version("26.0")
 
 # Xcode scheme for UI tests
 scheme("TLingoUITests")

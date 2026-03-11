@@ -85,6 +85,51 @@ Full release: upload metadata + screenshots
 
 ----
 
+
+## Mac
+
+### mac macos_screenshots
+
+```sh
+[bundle exec] fastlane mac macos_screenshots
+```
+
+Capture raw macOS screenshots via in-app offscreen export
+
+Usage: fastlane mac macos_screenshots               # all locales
+
+       fastlane mac macos_screenshots locale:en-US   # single locale
+
+### mac macos_frames
+
+```sh
+[bundle exec] fastlane mac macos_frames
+```
+
+Compose marketing macOS screenshots (dark gradient + text + shadow)
+
+Usage: fastlane mac macos_frames                    # all locales
+
+       fastlane mac macos_frames locale:en-US       # single locale
+
+### mac upload_macos_screenshots
+
+```sh
+[bundle exec] fastlane mac upload_macos_screenshots
+```
+
+Upload macOS screenshots to App Store Connect
+
+### mac macos_full_pipeline
+
+```sh
+[bundle exec] fastlane mac macos_full_pipeline
+```
+
+Full macOS screenshot pipeline: capture → frame → upload
+
+----
+
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.
 
 More information about _fastlane_ can be found on [fastlane.tools](https://fastlane.tools).

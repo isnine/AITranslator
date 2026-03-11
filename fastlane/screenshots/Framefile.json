@@ -79,6 +79,12 @@
       "keyword": {
         "color": "#FFFFFF"
       }
+    },
+    {
+      "filter": "06_Polish",
+      "keyword": {
+        "color": "#FFFFFF"
+      }
     }
   ]
 }

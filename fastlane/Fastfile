@@ -73,7 +73,7 @@ platform :ios do
       overwrite_screenshots: true,
       screenshots_path: "./fastlane/screenshots",
       force: true,
-      app_version: "2.0",
+      app_version: "2.3",
       run_precheck_before_submit: false
     )
   end
@@ -124,6 +124,62 @@ platform :ios do
       force: true,
       run_precheck_before_submit: false
     )
+  end
+
+end
+
+platform :mac do
+
+  # ─── macOS Screenshots ─────────────────────────────────────
+
+  desc "Capture raw macOS screenshots via in-app offscreen export"
+  desc "Usage: fastlane mac macos_screenshots               # all locales"
+  desc "       fastlane mac macos_screenshots locale:en-US   # single locale"
+  lane :macos_screenshots do |options|
+    locale = options[:locale]
+    script = File.expand_path("../Scripts/capture_macos_screenshots_self.sh", __dir__)
+    if locale
+      sh("bash '#{script}' '#{locale}'")
+    else
+      sh("bash '#{script}'")
+    end
+  end
+
+  desc "Compose marketing macOS screenshots (dark gradient + text + shadow)"
+  desc "Usage: fastlane mac macos_frames                    # all locales"
+  desc "       fastlane mac macos_frames locale:en-US       # single locale"
+  lane :macos_frames do |options|
+    locale = options[:locale]
+    script = File.expand_path("../Scripts/frame_macos_marketing.sh", __dir__)
+    if locale
+      sh("bash '#{script}' '#{locale}'")
+    else
+      sh("bash '#{script}'")
+    end
+  end
+
+  desc "Upload macOS screenshots to App Store Connect"
+  lane :upload_macos_screenshots do
+    upload_to_app_store(
+      api_key: asc_api_key,
+      app_identifier: "com.zanderwang.AITranslator",
+      team_id: "JW2LR94V6G",
+      platform: "osx",
+      skip_binary_upload: true,
+      skip_metadata: true,
+      overwrite_screenshots: true,
+      screenshots_path: "./fastlane/macos_screenshots_marketing",
+      force: true,
+      run_precheck_before_submit: false
+    )
+  end
+
+  desc "Full macOS screenshot pipeline: capture → frame → upload"
+  lane :macos_full_pipeline do |options|
+    locale = options[:locale]
+    macos_screenshots(locale: locale)
+    macos_frames(locale: locale)
+    upload_macos_screenshots
   end
 
 end

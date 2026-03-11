@@ -3,3 +3,4 @@
 "03_Actions" = "Translate, polish, grammar check, and more";
 "04_Models" = "Support for multiple AI providers and models";
 "05_Settings" = "Set as your default system translator";
+"06_Polish" = "Polish and grammar check with smart diff highlighting";

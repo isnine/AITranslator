@@ -41,6 +41,8 @@ Dependencies/
 fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
+fastlane/macos_screenshots/**/*.png
+fastlane/macos_screenshots_marketing/**/*.png
 fastlane/test_output/
 fastlane/api_key.json
 
@@ -75,3 +77,5 @@ node_modules/
 # Build tools
 Makefile
 xcodemake *.log
+
+vendor
