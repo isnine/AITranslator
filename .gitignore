@@ -45,6 +45,11 @@ fastlane/macos_screenshots/**/*.png
 fastlane/macos_screenshots_marketing/**/*.png
 fastlane/test_output/
 fastlane/api_key.json
+fastlane/fonts/*.otf
+fastlane/fonts/*.ttf
+
+# App Store screenshot generator (Next.js project)
+appstore-screenshots/
 
 # Code coverage
 *.gcda
