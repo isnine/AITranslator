@@ -14,7 +14,10 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:rubygems.org)",
       "WebFetch(domain:www.google-analytics.com)",
-      "WebFetch(domain:registry.npmjs.org)"
+      "WebFetch(domain:registry.npmjs.org)",
+      "WebFetch(domain:formulae.brew.sh)",
+      "WebFetch(domain:eu-central-1-1.aws.cloud2.influxdata.com)",
+      "WebFetch(domain:github.com)"
     ]
   },
   "enableAllProjectMcpServers": true,

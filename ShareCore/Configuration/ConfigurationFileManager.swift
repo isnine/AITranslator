@@ -160,6 +160,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     /// Users who never customized configs (no `currentConfigName` set) skip migration entirely.
     /// Uses a manually constructed path to avoid triggering the permission dialog via `containerURL`.
     private func migrateFromAppGroupIfNeeded() {
+        #if os(macOS)
         let migrationKey = "hasCompletedAppGroupMigration"
         guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
 
@@ -202,6 +203,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
         UserDefaults.standard.set(true, forKey: migrationKey)
         Logger.debug("[ConfigFileManager] App Group migration completed")
+        #endif
     }
 
     // MARK: - Storage Location Management
