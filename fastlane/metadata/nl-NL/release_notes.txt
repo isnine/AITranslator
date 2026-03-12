@@ -1,0 +1,5 @@
+Nieuw in TLingo 2.4
+
+• Verbeterd: Volledige lokalisatie — Meer dan 40 eerder niet-vertaalde interface-elementen worden nu in uw taal weergegeven.
+• Verbeterd: Snellere cloudvertaling dankzij verbeterde serverinfrastructuur in Azië-Pacific.
+• Bugfixes en prestatieverbeteringen.

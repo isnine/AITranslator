@@ -1,8 +1,5 @@
-What's New in TLingo 2.3
+TLingo 2.4 の新機能
 
-• NEW: GPT-5.4 — The latest and most powerful AI model is now available for Premium subscribers.
-• NEW: Feedback — Reach us directly from Settings. Every email gets a reply.
-• NEW: Model sorting — Models are now organized with the newest first for easy access.
-• Improved: Free users can select up to 2 models; Premium unlocks unlimited model selection.
-• Universal subscription — One Premium subscription works on both iPhone and Mac.
-• Bug fixes and performance improvements.
+• 改善：完全ローカライズ — 未翻訳だった40以上のUI要素がお使いの言語で表示されるようになりました。
+• 改善：アジア太平洋地域のサーバーインフラを強化し、クラウド翻訳が高速化。
+• バグ修正とパフォーマンスの改善。

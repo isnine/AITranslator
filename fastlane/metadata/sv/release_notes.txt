@@ -1,0 +1,5 @@
+Nyheter i TLingo 2.4
+
+• Förbättrat: Fullständig lokalisering — Över 40 tidigare oöversatta gränssnittselement visas nu på ditt språk.
+• Förbättrat: Snabbare molnöversättning tack vare uppgraderad serverinfrastruktur i Asien-Stillahavsområdet.
+• Buggfixar och prestandaförbättringar.

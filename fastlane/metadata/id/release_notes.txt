@@ -1,0 +1,5 @@
+Yang Baru di TLingo 2.4
+
+• Ditingkatkan: Lokalisasi lengkap — 40+ elemen antarmuka yang sebelumnya belum diterjemahkan kini ditampilkan dalam bahasa Anda.
+• Ditingkatkan: Terjemahan cloud lebih cepat dengan infrastruktur server yang ditingkatkan di Asia-Pasifik.
+• Perbaikan bug dan peningkatan performa.

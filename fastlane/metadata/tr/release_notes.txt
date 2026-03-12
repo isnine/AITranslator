@@ -1,0 +1,5 @@
+TLingo 2.4'teki Yenilikler
+
+• İyileştirildi: Tam yerelleştirme — Daha önce çevrilmemiş 40'tan fazla arayüz öğesi artık dilinizde görüntüleniyor.
+• İyileştirildi: Asya-Pasifik'teki geliştirilmiş sunucu altyapısı sayesinde daha hızlı bulut çevirisi.
+• Hata düzeltmeleri ve performans iyileştirmeleri.
