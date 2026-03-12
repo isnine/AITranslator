@@ -81,6 +81,9 @@ node_modules/
 AzureFunction/dist/
 AzureFunction/local.settings.json
 
+# App Store Connect CLI
+.asc/
+
 # OpenCode
 .opencode/
 
