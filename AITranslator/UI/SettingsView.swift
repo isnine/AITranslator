@@ -696,23 +696,21 @@ private extension SettingsView {
     }
 
     var configurationActionsRow: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                configActionButton(
-                    icon: "square.and.arrow.down",
-                    title: "Import Configuration",
-                    isAccent: false
-                ) {
-                    isImportPresented = true
-                }
+        HStack(spacing: 12) {
+            configActionButton(
+                icon: "square.and.arrow.down",
+                title: "Import Configuration",
+                isAccent: false
+            ) {
+                isImportPresented = true
+            }
 
-                configActionButton(
-                    icon: "square.and.arrow.up",
-                    title: "Export Configuration",
-                    isAccent: true
-                ) {
-                    prepareAndExport()
-                }
+            configActionButton(
+                icon: "square.and.arrow.up",
+                title: "Export Configuration",
+                isAccent: false
+            ) {
+                prepareAndExport()
             }
 
             configActionButton(

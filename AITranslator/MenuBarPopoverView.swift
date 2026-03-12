@@ -10,7 +10,6 @@
     import Combine
     import ShareCore
     import SwiftUI
-    import UniformTypeIdentifiers
 
     /// A compact popover view for menu bar quick translation
     struct MenuBarPopoverView: View {
@@ -57,11 +56,11 @@
             }
             #if DEBUG
             .sheet(item: $viewModel.selectedDebugNetworkRecord) { record in
-                NavigationStack {
-                    NetworkRequestDetailView(record: record)
+                    NavigationStack {
+                        NetworkRequestDetailView(record: record)
+                    }
+                    .frame(minWidth: 520, minHeight: 520)
                 }
-                .frame(minWidth: 520, minHeight: 520)
-            }
             #endif
         }
 
@@ -124,33 +123,9 @@
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let hasRecentClipboard = ClipboardMonitor.shared.hasRecentContent(within: 5)
 
-            // Only auto-load clipboard images when the main app window is NOT visible.
-            // When both the popover and main window are shown, the user likely intended
-            // clipboard images for the main app — let explicit Cmd+V handle image paste
-            // based on which input field has focus.
-            let mainWindowVisible = NSApp.windows.contains { window in
-                window.isVisible && window.level == .normal
-                    && !(window is NSPanel)
-            }
-
-            var clipboardImages: [ImageAttachment] = []
-            if !mainWindowVisible {
-                let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png]
-                if let availableType = pb.availableType(from: imageTypes),
-                   let data = pb.data(forType: availableType),
-                   let nsImage = NSImage(data: data),
-                   let attachment = ImageAttachment.from(nsImage: nsImage)
-                {
-                    clipboardImages.append(attachment)
-                }
-            }
-
-            if hasRecentClipboard && (!clipboardContent.isEmpty || !clipboardImages.isEmpty) {
+            if hasRecentClipboard && !clipboardContent.isEmpty {
                 inputText = clipboardContent
                 viewModel.inputText = inputText
-                for img in clipboardImages {
-                    viewModel.addImage(img)
-                }
                 viewModel.performSelectedAction()
             } else if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 inputText = clipboardContent
@@ -159,7 +134,7 @@
 
         private func executeTranslation() {
             let trimmedText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmedText.isEmpty || !viewModel.attachedImages.isEmpty else { return }
+            guard !trimmedText.isEmpty else { return }
             viewModel.inputText = trimmedText
             viewModel.performSelectedAction()
         }
@@ -237,38 +212,12 @@
 
         private var inputSection: some View {
             VStack(spacing: 8) {
-                VStack(spacing: 0) {
-                    SelectableTextEditor(
-                        text: $inputText,
-                        textColor: colors.textPrimary,
-                    onImagePaste: { nsImages in
-                        Logger.debug("MenuBar onImagePaste called with \(nsImages.count) images", tag: "ImagePaste")
-                        for nsImage in nsImages {
-                            Logger.debug("MenuBar processing NSImage: \(nsImage.size)", tag: "ImagePaste")
-                            if let attachment = ImageAttachment.from(nsImage: nsImage) {
-                                Logger.debug("MenuBar created attachment: \(attachment.sizeMB)MB", tag: "ImagePaste")
-                                viewModel.addImage(attachment)
-                            } else {
-                                Logger.debug("MenuBar failed to create ImageAttachment from NSImage", tag: "ImagePaste")
-                            }
-                        }
-                    }
-                    )
-                    .font(.system(size: 13))
-                    .frame(height: viewModel.attachedImages.isEmpty ? 60 : 36)
-
-                    if !viewModel.attachedImages.isEmpty {
-                        ImageAttachmentPreview(
-                            images: viewModel.attachedImages,
-                            onRemove: { id in
-                                viewModel.removeImage(id: id)
-                            }
-                        )
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 4)
-                        .padding(.bottom, 2)
-                    }
-                }
+                SelectableTextEditor(
+                    text: $inputText,
+                    textColor: colors.textPrimary
+                )
+                .font(.system(size: 13))
+                .frame(height: 60)
                 .padding(8)
                 .background(inputSectionBackground)
 
@@ -331,16 +280,15 @@
                         .background(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .fill(
-                                    inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                                        .isEmpty && viewModel.attachedImages
-                                        .isEmpty ? colors.accent.opacity(0.5) : colors.accent
+                                    inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                        ? colors.accent.opacity(0.5) : colors.accent
                                 )
                         )
                     }
                     .buttonStyle(.plain)
                     .disabled(
                         inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                            .isEmpty && viewModel.attachedImages.isEmpty
+                            .isEmpty
                     )
                     .keyboardShortcut(.return, modifiers: .command)
                 }
@@ -455,18 +403,17 @@
     // MARK: - SelectableTextEditor
 
     /// A custom TextEditor wrapper that ensures selected text is always readable
-    /// by setting high-contrast selection colors. Supports image paste and drag & drop.
+    /// by setting high-contrast selection colors.
     private struct SelectableTextEditor: NSViewRepresentable {
         @Binding var text: String
         let textColor: Color
-        var onImagePaste: (([NSImage]) -> Void)?
 
         func makeCoordinator() -> Coordinator {
             Coordinator(parent: self)
         }
 
         func makeNSView(context: Context) -> NSScrollView {
-            let textView = SelectablePastingTextView()
+            let textView = NSTextView()
             textView.delegate = context.coordinator
             textView.isRichText = false
             textView.drawsBackground = false
@@ -478,15 +425,11 @@
             textView.isHorizontallyResizable = false
             textView.textContainer?.widthTracksTextView = true
             textView.string = text
-            textView.onImagePaste = onImagePaste
 
             textView.selectedTextAttributes = [
                 .backgroundColor: NSColor.controlAccentColor,
                 .foregroundColor: NSColor.white,
             ]
-
-            // Register for drag & drop of image files and image pasteboard types
-            textView.registerForDraggedTypes([.fileURL, .tiff, .png, NSPasteboard.PasteboardType("public.jpeg")])
 
             let scrollView = NSScrollView()
             scrollView.drawsBackground = false
@@ -501,50 +444,27 @@
                 textView.window?.makeFirstResponder(textView)
             }
 
-            // Store reference for the local event monitor in Coordinator
             context.coordinator.textView = textView
 
             return scrollView
         }
 
         func updateNSView(_ nsView: NSScrollView, context _: Context) {
-            guard let textView = nsView.documentView as? SelectablePastingTextView else { return }
+            guard let textView = nsView.documentView as? NSTextView else { return }
             if textView.string != text {
                 textView.string = text
             }
             textView.textColor = NSColor(textColor)
             textView.insertionPointColor = NSColor(textColor)
-            textView.onImagePaste = onImagePaste
         }
 
         final class Coordinator: NSObject, NSTextViewDelegate {
             private let parent: SelectableTextEditor
-            private var eventMonitor: Any?
-            weak var textView: SelectablePastingTextView?
+            weak var textView: NSTextView?
 
             init(parent: SelectableTextEditor) {
                 self.parent = parent
                 super.init()
-                // Install local event monitor to intercept Cmd+V before SwiftUI's
-                // NSHostingView routes it to the auto-generated Edit > Paste menu item.
-                eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                    guard let self, let textView = self.textView else { return event }
-                    if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-                       event.charactersIgnoringModifiers == "v",
-                       textView.window?.isKeyWindow == true,
-                       textView.window?.firstResponder === textView
-                    {
-                        textView.paste(nil)
-                        return nil // consume event
-                    }
-                    return event
-                }
-            }
-
-            deinit {
-                if let monitor = eventMonitor {
-                    NSEvent.removeMonitor(monitor)
-                }
             }
 
             func textDidChange(_ notification: Notification) {
@@ -554,91 +474,6 @@
                     parent.text = updated
                 }
             }
-        }
-    }
-
-    /// Custom NSTextView subclass for SelectableTextEditor that supports image paste and drag & drop.
-    private final class SelectablePastingTextView: NSTextView {
-        var onImagePaste: (([NSImage]) -> Void)?
-
-        override func paste(_ sender: Any?) {
-            // Only handle image paste when this text view has focus.
-            // When both the popover and main window are visible, this prevents
-            // images from appearing in the wrong input field.
-            guard window?.firstResponder === self else {
-                super.paste(sender)
-                return
-            }
-
-            let pb = NSPasteboard.general
-            let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
-
-            // Check for raw image data first
-            if let availableType = pb.availableType(from: imageTypes),
-               let data = pb.data(forType: availableType),
-               let image = NSImage(data: data)
-            {
-                Logger.debug("MenuBar Paste: image from raw data, size: \(image.size)", tag: "ImagePaste")
-                onImagePaste?([image])
-                return
-            }
-
-            // Check for image file URLs
-            if let urls = pb.readObjects(forClasses: [NSURL.self], options: [
-                .urlReadingContentsConformToTypes: [UTType.image.identifier],
-            ]) as? [URL], !urls.isEmpty {
-                let images = urls.compactMap { NSImage(contentsOf: $0) }
-                if !images.isEmpty {
-                    Logger.debug("MenuBar Paste: \(images.count) image(s) from file URLs", tag: "ImagePaste")
-                    onImagePaste?(images)
-                    return
-                }
-            }
-
-            // Fall through to text paste
-            super.paste(sender)
-        }
-
-        // MARK: - Drag & Drop
-
-        override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
-            let pb = sender.draggingPasteboard
-            if pb.canReadObject(forClasses: [NSURL.self], options: [
-                .urlReadingContentsConformToTypes: [UTType.image.identifier],
-            ]) {
-                return .copy
-            }
-            if pb.availableType(from: [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]) != nil {
-                return .copy
-            }
-            return super.draggingEntered(sender)
-        }
-
-        override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-            let pb = sender.draggingPasteboard
-
-            // Check for image file URLs
-            if let urls = pb.readObjects(forClasses: [NSURL.self], options: [
-                .urlReadingContentsConformToTypes: [UTType.image.identifier],
-            ]) as? [URL], !urls.isEmpty {
-                let images = urls.compactMap { NSImage(contentsOf: $0) }
-                if !images.isEmpty {
-                    onImagePaste?(images)
-                    return true
-                }
-            }
-
-            // Check for raw image data
-            let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
-            if let availableType = pb.availableType(from: imageTypes),
-               let data = pb.data(forType: availableType),
-               let image = NSImage(data: data)
-            {
-                onImagePaste?([image])
-                return true
-            }
-
-            return super.performDragOperation(sender)
         }
     }
 
@@ -693,15 +528,6 @@
                     isStreaming: viewModel.isStreaming,
                     canSend: viewModel.canSend,
                     availableModels: viewModel.availableModels,
-                    images: viewModel.attachedImages,
-                    onRemoveImage: { id in viewModel.removeImage(id: id) },
-                    onAddImages: { nsImages in
-                        for img in nsImages {
-                            if let attachment = ImageAttachment.from(nsImage: img) {
-                                viewModel.addImage(attachment)
-                            }
-                        }
-                    },
                     onSend: { viewModel.send() },
                     onStop: { viewModel.stopStreaming() }
                 )
