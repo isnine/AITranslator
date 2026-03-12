@@ -17,7 +17,7 @@ public struct ModelExecutionResult {
 
     // Optional network timing breakdown (best-effort; may be unavailable).
     public let upstreamTTFB: TimeInterval?
-    public let clientToCloudflareLatency: TimeInterval?
+    public let clientToAzureLatency: TimeInterval?
     public let networkMetrics: NetworkTimingMetrics?
 
     public init(
@@ -28,7 +28,7 @@ public struct ModelExecutionResult {
         supplementalTexts: [String] = [],
         sentencePairs: [SentencePair] = [],
         upstreamTTFB: TimeInterval? = nil,
-        clientToCloudflareLatency: TimeInterval? = nil,
+        clientToAzureLatency: TimeInterval? = nil,
         networkMetrics: NetworkTimingMetrics? = nil
     ) {
         self.modelID = modelID
@@ -38,7 +38,7 @@ public struct ModelExecutionResult {
         self.supplementalTexts = supplementalTexts
         self.sentencePairs = sentencePairs
         self.upstreamTTFB = upstreamTTFB
-        self.clientToCloudflareLatency = clientToCloudflareLatency
+        self.clientToAzureLatency = clientToAzureLatency
         self.networkMetrics = networkMetrics
     }
 }

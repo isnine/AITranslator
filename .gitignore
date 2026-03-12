@@ -4,6 +4,7 @@
 # Xcode
 build/
 DerivedData/
+.derivedData/
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -75,6 +76,10 @@ Configuration/Secrets.xcconfig
 
 # Node
 node_modules/
+
+# Azure Functions
+AzureFunction/dist/
+AzureFunction/local.settings.json
 
 # OpenCode
 .opencode/

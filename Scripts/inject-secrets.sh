@@ -79,7 +79,7 @@ load_env_file() {
 load_env_file
 
 # Set defaults
-DEFAULT_ENDPOINT="https://translator-api.zanderwang.com"
+DEFAULT_ENDPOINT="https://aitranslator-japaneast.azurewebsites.net/api"
 
 # Get values with fallbacks
 CLOUD_SECRET="${AITRANSLATOR_CLOUD_SECRET:-}"

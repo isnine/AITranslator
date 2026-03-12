@@ -242,6 +242,9 @@ public struct HomeView: View {
             NavigationStack {
                 NetworkRequestDetailView(record: record)
             }
+            #if os(macOS)
+            .frame(minWidth: 520, minHeight: 520)
+            #endif
         }
         #endif
         #if os(macOS)
@@ -930,15 +933,15 @@ public struct HomeView: View {
             if let breakdown = run.status.latencyBreakdown {
                 Divider()
                 HStack(spacing: 4) {
-                    Text("Client → CF:")
+                    Text("Client → Azure:")
                         .font(.system(size: 11))
                         .foregroundColor(colors.textSecondary)
-                    Text(breakdown.clientToCFText)
+                    Text(breakdown.clientToAzureText)
                         .font(.system(size: 11, weight: .medium).monospacedDigit())
                         .foregroundColor(colors.textPrimary)
                 }
                 HStack(spacing: 4) {
-                    Text("CF → Azure:")
+                    Text("Azure → Model:")
                         .font(.system(size: 11))
                         .foregroundColor(colors.textSecondary)
                     Text(breakdown.upstreamText)

@@ -41,15 +41,9 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     public let configDirectoryChangedPublisher = PassthroughSubject<Void, Never>()
 
     /// Directory where configuration files are stored
-    /// Priority: Custom Directory > iCloud > App Group > Application Support
+    /// Priority: iCloud > App Group > Application Support
     public var configurationsDirectory: URL {
-        // 1. Check for custom directory from preferences
-        if let customDir = AppPreferences.shared.customConfigDirectory {
-            ensureDirectoryExists(customDir)
-            return customDir
-        }
-
-        // 2. Check if iCloud is enabled and available
+        // 1. Check if iCloud is enabled and available
         if AppPreferences.shared.useICloudForConfig,
            let iCloudURL = AppPreferences.iCloudDocumentsURL
         {
@@ -58,7 +52,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
             return configDir
         }
 
-        // 3. Fallback to App Group shared container
+        // 2. Fallback to App Group shared container
         if let containerURL = fileManager.containerURL(
             forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
         ) {
@@ -67,7 +61,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
             return configDir
         }
 
-        // 4. Final fallback to application support
+        // 3. Final fallback to application support
         guard let appSupport = fileManager.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
@@ -85,9 +79,6 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
     /// Returns the current storage location type
     public var currentStorageLocation: StorageLocation {
-        if AppPreferences.shared.customConfigDirectory != nil {
-            return .custom
-        }
         if AppPreferences.shared.useICloudForConfig && AppPreferences.iCloudDocumentsURL != nil {
             return .iCloud
         }
@@ -98,7 +89,6 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     public enum StorageLocation: String, CaseIterable {
         case local = "Local"
         case iCloud = "iCloud Drive"
-        case custom = "Custom Folder"
 
         public var description: String {
             switch self {
@@ -106,8 +96,6 @@ public final class ConfigurationFileManager: @unchecked Sendable {
                 return String(localized: "Stored in app container")
             case .iCloud:
                 return String(localized: "Synced across devices")
-            case .custom:
-                return String(localized: "Custom folder location")
             }
         }
 
@@ -117,8 +105,6 @@ public final class ConfigurationFileManager: @unchecked Sendable {
                 return "folder.fill"
             case .iCloud:
                 return "icloud.fill"
-            case .custom:
-                return "folder.badge.gearshape"
             }
         }
     }
@@ -192,9 +178,6 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
         let oldDirectory = configurationsDirectory
 
-        // Clear custom directory first
-        AppPreferences.shared.setCustomConfigDirectory(nil)
-
         // Enable iCloud
         AppPreferences.shared.setUseICloudForConfig(true)
 
@@ -215,8 +198,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     public func switchToLocal(migrate: Bool = true) {
         let oldDirectory = configurationsDirectory
 
-        // Clear custom directory and disable iCloud
-        AppPreferences.shared.setCustomConfigDirectory(nil)
+        // Disable iCloud
         AppPreferences.shared.setUseICloudForConfig(false)
 
         let newDirectory = configurationsDirectory
@@ -228,28 +210,6 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
         Logger.debug("[ConfigFileManager] ✅ Switched to local storage")
-    }
-
-    /// Switch to a custom directory
-    /// - Parameters:
-    ///   - url: The custom directory URL
-    ///   - migrate: If true, migrate existing configurations
-    public func switchToCustomDirectory(_ url: URL, migrate: Bool = true) {
-        let oldDirectory = configurationsDirectory
-
-        // Disable iCloud and set custom directory
-        AppPreferences.shared.setUseICloudForConfig(false)
-        AppPreferences.shared.setCustomConfigDirectory(url)
-
-        let newDirectory = configurationsDirectory
-
-        if migrate, oldDirectory != newDirectory {
-            migrateConfigurations(from: oldDirectory, to: newDirectory)
-        }
-
-        ensuredDirectories.removeAll()
-        configDirectoryChangedPublisher.send()
-        Logger.debug("[ConfigFileManager] ✅ Switched to custom directory: \(url.path)")
     }
 
     /// Migrate configurations from one directory to another

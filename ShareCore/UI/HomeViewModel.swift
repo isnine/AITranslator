@@ -59,10 +59,10 @@ public final class HomeViewModel: ObservableObject {
         }
 
         public struct LatencyBreakdown {
-            /// CF Worker ↔ Azure (upstream TTFB)
+            /// Azure Functions ↔ Model (upstream TTFB)
             public let upstreamTTFB: TimeInterval
-            /// Client ↔ CF Worker (estimated)
-            public let clientToCF: TimeInterval
+            /// Client ↔ Azure Functions (estimated)
+            public let clientToAzure: TimeInterval
             /// Detailed network timing from URLSessionTaskMetrics
             public let networkMetrics: NetworkTimingMetrics?
 
@@ -70,8 +70,8 @@ public final class HomeViewModel: ObservableObject {
                 formatLatency(upstreamTTFB)
             }
 
-            public var clientToCFText: String {
-                formatLatency(clientToCF)
+            public var clientToAzureText: String {
+                formatLatency(clientToAzure)
             }
 
             private func formatLatency(_ value: TimeInterval) -> String {
@@ -1061,8 +1061,8 @@ public final class HomeViewModel: ObservableObject {
         }
 
         let latencyBreakdown: ModelRunViewState.LatencyBreakdown?
-        if let upstream = result.upstreamTTFB, let clientCF = result.clientToCloudflareLatency {
-            latencyBreakdown = .init(upstreamTTFB: upstream, clientToCF: clientCF, networkMetrics: result.networkMetrics)
+        if let upstream = result.upstreamTTFB, let clientAzure = result.clientToAzureLatency {
+            latencyBreakdown = .init(upstreamTTFB: upstream, clientToAzure: clientAzure, networkMetrics: result.networkMetrics)
         } else {
             latencyBreakdown = nil
         }

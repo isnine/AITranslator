@@ -22,14 +22,14 @@ public final class LLMService {
         self.urlSession = urlSession
     }
 
-    /// Extracts upstream TTFB and estimates client-to-CF latency from response headers.
-    private func extractLatency(from response: HTTPURLResponse, totalDuration: TimeInterval) -> (upstreamTTFB: TimeInterval, clientToCF: TimeInterval)? {
+    /// Extracts upstream TTFB and estimates client-to-Azure latency from response headers.
+    private func extractLatency(from response: HTTPURLResponse, totalDuration: TimeInterval) -> (upstreamTTFB: TimeInterval, clientToAzure: TimeInterval)? {
         guard let ttfbString = response.value(forHTTPHeaderField: "X-Upstream-TTFB"),
               let ttfbMs = Double(ttfbString)
         else { return nil }
         let upstream = ttfbMs / 1000.0
-        let clientCF = max(totalDuration - upstream, 0)
-        return (upstream, clientCF)
+        let clientAzure = max(totalDuration - upstream, 0)
+        return (upstream, clientAzure)
     }
 
     // MARK: - HMAC Signing for Built-in Cloud Provider
@@ -257,7 +257,7 @@ public final class LLMService {
                     supplementalTexts: parsed.supplementalTexts,
                     sentencePairs: parsed.sentencePairs,
                     upstreamTTFB: latency?.upstreamTTFB,
-                    clientToCloudflareLatency: latency?.clientToCF
+                    clientToAzureLatency: latency?.clientToAzure
                 )
             }
         } catch is CancellationError {
@@ -352,7 +352,7 @@ public final class LLMService {
                     response: .success(combinedText.isEmpty ? finalText : combinedText),
                     sentencePairs: pairs,
                     upstreamTTFB: upstream,
-                    clientToCloudflareLatency: upstream.map { max(duration - $0, 0) }
+                    clientToAzureLatency: upstream.map { max(duration - $0, 0) }
                 )
             }
 
@@ -369,7 +369,7 @@ public final class LLMService {
                         supplementalTexts: parsed.supplementalTexts,
                         sentencePairs: [],
                         upstreamTTFB: upstream,
-                        clientToCloudflareLatency: upstream.map { max(duration - $0, 0) }
+                        clientToAzureLatency: upstream.map { max(duration - $0, 0) }
                     )
                 }
             }
@@ -381,7 +381,7 @@ public final class LLMService {
                 duration: duration,
                 response: .success(finalText),
                 upstreamTTFB: upstream,
-                clientToCloudflareLatency: upstream.map { max(duration - $0, 0) }
+                clientToAzureLatency: upstream.map { max(duration - $0, 0) }
             )
         } else {
             var responseBytes: [UInt8] = []
@@ -411,7 +411,7 @@ public final class LLMService {
                 response: .success(trimmed),
                 sentencePairs: parsed.sentencePairs,
                 upstreamTTFB: upstreamTTFBMs.map { $0 / 1000.0 },
-                clientToCloudflareLatency: upstreamTTFBMs.map { max(Date().timeIntervalSince(start) - $0 / 1000.0, 0) }
+                clientToAzureLatency: upstreamTTFBMs.map { max(Date().timeIntervalSince(start) - $0 / 1000.0, 0) }
             )
         }
     }

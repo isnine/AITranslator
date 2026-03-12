@@ -58,7 +58,7 @@ public struct ModelsResponse: Codable, Sendable {
 // MARK: - Cloud Service Constants
 
 public enum CloudServiceConstants {
-    /// CloudFlare worker endpoint for the built-in cloud service
+    /// Azure Functions endpoint for the built-in cloud service
     public static var endpoint: URL {
         BuildEnvironment.cloudEndpoint
     }

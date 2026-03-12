@@ -343,7 +343,7 @@
       }
     },
     "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet." : {
-      "comment" : "Snapshot mock translation result alt",
+      "comment" : "Snapshot mock polish result",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -2362,7 +2362,7 @@
         }
       }
     },
-    "CF → Azure:" : {
+    "Azure → Model:" : {
 
     },
     "Clear All" : {
@@ -2591,7 +2591,7 @@
         }
       }
     },
-    "Client → CF:" : {
+    "Client → Azure:" : {
 
     },
     "Cmd+Return" : {
@@ -19337,6 +19337,9 @@
           }
         }
       }
+    },
+    "TLingo macOS Snapshot" : {
+
     },
     "TLingo sends your input text and images to **Microsoft Azure OpenAI Service** to generate translations." : {
       "localizations" : {

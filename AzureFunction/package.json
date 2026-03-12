@@ -1,0 +1,22 @@
+{
+  "name": "aitranslator-azure-function",
+  "version": "1.0.0",
+  "description": "AITranslator proxy on Azure Functions (mirrors Cloudflare Worker)",
+  "main": "dist/src/functions/proxy.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "clean": "rm -rf dist",
+    "prestart": "npm run clean && npm run build",
+    "start": "func start",
+    "deploy": "npm run build && func azure functionapp publish aitranslator-japaneast"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.0.0",
+    "cookie": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

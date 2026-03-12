@@ -20,7 +20,6 @@ public final class AppPreferences: ObservableObject {
 
     @Published public private(set) var targetLanguage: TargetLanguageOption
     @Published public private(set) var currentConfigName: String?
-    @Published public private(set) var customConfigDirectory: URL?
     @Published public private(set) var useICloudForConfig: Bool
     @Published public private(set) var defaultAppHintDismissed: Bool
     @Published public private(set) var enabledModelIDs: Set<String>
@@ -40,7 +39,6 @@ public final class AppPreferences: ObservableObject {
         self.defaults = defaults
         targetLanguage = AppPreferences.readTargetLanguage(from: defaults)
         currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
-        customConfigDirectory = AppPreferences.readCustomConfigDirectory(from: defaults)
         useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
         defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
         enabledModelIDs = AppPreferences.readEnabledModelIDs(from: defaults)
@@ -48,6 +46,10 @@ public final class AppPreferences: ObservableObject {
         isPremium = defaults.bool(forKey: StorageKeys.isPremium)
         hasAcceptedDataSharing = defaults.bool(forKey: StorageKeys.hasAcceptedDataSharing)
         disableStreaming = defaults.bool(forKey: StorageKeys.disableStreaming)
+
+        // Clean up stale custom directory bookmark data from previous versions
+        defaults.removeObject(forKey: "custom_config_directory")
+
         #if os(macOS)
             // Default to true - keep app running in menu bar when window is closed
             keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
@@ -101,29 +103,6 @@ public final class AppPreferences: ObservableObject {
             defaults.set(name, forKey: StorageKeys.currentConfigName)
         } else {
             defaults.removeObject(forKey: StorageKeys.currentConfigName)
-        }
-    }
-
-    public func setCustomConfigDirectory(_ url: URL?) {
-        guard customConfigDirectory != url else { return }
-
-        customConfigDirectory = url
-        if let url = url {
-            #if os(macOS)
-                // Store bookmark data for security-scoped access (macOS only)
-                if let bookmarkData = try? url.bookmarkData(
-                    options: .withSecurityScope,
-                    includingResourceValuesForKeys: nil,
-                    relativeTo: nil
-                ) {
-                    defaults.set(bookmarkData, forKey: StorageKeys.customConfigDirectory)
-                }
-            #else
-                // On iOS, just store the path directly (custom folders not supported)
-                defaults.set(url.path, forKey: StorageKeys.customConfigDirectory)
-            #endif
-        } else {
-            defaults.removeObject(forKey: StorageKeys.customConfigDirectory)
         }
     }
 
@@ -212,11 +191,6 @@ public final class AppPreferences: ObservableObject {
             currentConfigName = storedConfigName
         }
 
-        let storedCustomDir = AppPreferences.readCustomConfigDirectory(from: defaults)
-        if customConfigDirectory != storedCustomDir {
-            customConfigDirectory = storedCustomDir
-        }
-
         let storedUseICloud = defaults.bool(forKey: StorageKeys.useICloudForConfig)
         if useICloudForConfig != storedUseICloud {
             useICloudForConfig = storedUseICloud
@@ -257,32 +231,6 @@ public final class AppPreferences: ObservableObject {
         }
     }
 
-    private static func readCustomConfigDirectory(from defaults: UserDefaults) -> URL? {
-        #if os(macOS)
-            guard let bookmarkData = defaults.data(forKey: StorageKeys.customConfigDirectory) else {
-                return nil
-            }
-
-            var isStale = false
-            guard let url = try? URL(
-                resolvingBookmarkData: bookmarkData,
-                options: .withSecurityScope,
-                relativeTo: nil,
-                bookmarkDataIsStale: &isStale
-            ) else {
-                return nil
-            }
-
-            // Start accessing security-scoped resource
-            _ = url.startAccessingSecurityScopedResource()
-            return url
-        #else
-            // On iOS, custom directories are not fully supported
-            // Just return nil as we use iCloud or local storage
-            return nil
-        #endif
-    }
-
     private static func resolveSharedDefaults() -> UserDefaults {
         UserDefaults.standard.addSuite(named: appGroupSuiteName)
 
@@ -308,7 +256,6 @@ public final class AppPreferences: ObservableObject {
 
 private enum StorageKeys {
     static let currentConfigName = "current_config_name"
-    static let customConfigDirectory = "custom_config_directory"
     static let useICloudForConfig = "use_icloud_for_config"
     static let defaultAppHintDismissed = "default_app_hint_dismissed"
     /// Key for enabled model IDs (flat model architecture)

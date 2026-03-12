@@ -17,7 +17,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Default values
-DEFAULT_ENDPOINT="https://translator-api.zanderwang.com"
+DEFAULT_ENDPOINT="https://aitranslator-japaneast.azurewebsites.net/api"
 
 echo -e "${BLUE}"
 echo "╔════════════════════════════════════════════════════════════╗"

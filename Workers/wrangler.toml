@@ -9,6 +9,11 @@ routes = [
 
 # Default workers.dev subdomain: https://aitranslator.xiaozwan.workers.dev/
 
+# Smart Placement: run Worker close to Azure backend (US East) instead of
+# close to the end user, reducing Worker→Azure round-trip latency.
+[placement]
+mode = "smart"
+
 # Enable observability (logs and tracing)
 [observability]
 enabled = true
