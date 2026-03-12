@@ -165,6 +165,22 @@ public final class AppPreferences: ObservableObject {
         defaults.set(disabled, forKey: StorageKeys.disableStreaming)
     }
 
+    // MARK: - Active Configuration Data (for extension via UserDefaults XPC)
+
+    /// Write serialized AppConfiguration JSON to the App Group UserDefaults
+    public func setActiveConfigurationData(_ data: Data?) {
+        if let data {
+            defaults.set(data, forKey: StorageKeys.activeConfigurationData)
+        } else {
+            defaults.removeObject(forKey: StorageKeys.activeConfigurationData)
+        }
+    }
+
+    /// Read serialized AppConfiguration JSON from the App Group UserDefaults
+    public var activeConfigurationData: Data? {
+        defaults.data(forKey: StorageKeys.activeConfigurationData)
+    }
+
     /// Returns the iCloud Documents directory URL if available
     public static var iCloudDocumentsURL: URL? {
         FileManager.default.url(forUbiquityContainerIdentifier: nil)?
@@ -268,6 +284,8 @@ private enum StorageKeys {
     static let hasAcceptedDataSharing = "has_accepted_data_sharing"
     /// Key for disabling streaming responses
     static let disableStreaming = "disable_streaming"
+    /// Key for serialized active configuration data (shared with extension via UserDefaults XPC)
+    static let activeConfigurationData = "active_configuration_data"
     #if os(macOS)
         static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif

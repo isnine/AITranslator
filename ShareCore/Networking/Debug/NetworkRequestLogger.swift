@@ -10,7 +10,7 @@
 import Combine
 import Foundation
 
-/// Singleton logger that stores network request records in memory and to the App Group container.
+/// Singleton logger that stores network request records in memory and to the app caches directory.
 @MainActor
 public final class NetworkRequestLogger: ObservableObject {
     public static let shared = NetworkRequestLogger()
@@ -21,13 +21,8 @@ public final class NetworkRequestLogger: ObservableObject {
     private let fileURL: URL?
 
     private init() {
-        if let container = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AppPreferences.appGroupSuiteName
-        ) {
-            self.fileURL = container.appendingPathComponent("debug_network_log.jsonl")
-        } else {
-            self.fileURL = nil
-        }
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+        self.fileURL = caches?.appendingPathComponent("debug_network_log.jsonl")
     }
 
     // MARK: - Public API

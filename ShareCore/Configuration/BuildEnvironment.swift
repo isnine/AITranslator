@@ -121,21 +121,6 @@ public enum BuildEnvironment {
             return value
         }
 
-        // 4. Secrets.plist in App Group container
-        if let secretsKey = secretsPlistKey,
-           let containerURL = FileManager.default.containerURL(
-               forSecurityApplicationGroupIdentifier: AppPreferences.appGroupSuiteName
-           )
-        {
-            let appGroupPath = containerURL.appendingPathComponent("Secrets.plist").path
-            if let secrets = NSDictionary(contentsOfFile: appGroupPath),
-               let value = secrets[secretsKey] as? String,
-               !value.isEmpty
-            {
-                return value
-            }
-        }
-
         return nil
     }
 }

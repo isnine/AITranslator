@@ -11,7 +11,6 @@ import Foundation
 /// Secrets are loaded in order of priority:
 /// 1. Environment variables (for CI/CD and development)
 /// 2. Secrets.plist in the app bundle (for local development)
-/// 3. App Group container Secrets.plist (for shared access)
 ///
 /// **IMPORTANT:** Never commit real secrets to the repository.
 /// See README.md for configuration instructions.
@@ -69,19 +68,6 @@ public enum SecretsConfiguration {
            !value.isEmpty
         {
             return value
-        }
-
-        // 3. Try Secrets.plist in App Group container
-        if let containerURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AppPreferences.appGroupSuiteName
-        ) {
-            let appGroupPath = containerURL.appendingPathComponent("Secrets.plist").path
-            if let secrets = NSDictionary(contentsOfFile: appGroupPath),
-               let value = secrets[plistKey] as? String,
-               !value.isEmpty
-            {
-                return value
-            }
         }
 
         return nil

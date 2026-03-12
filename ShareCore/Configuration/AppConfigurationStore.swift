@@ -347,6 +347,9 @@ public final class AppConfigurationStore: ObservableObject {
             loadedActions,
             targetLanguage: preferences.targetLanguage
         )
+
+        // Push config snapshot to UserDefaults for the translation extension
+        pushConfigToSharedDefaults(config)
     }
 
     private func saveConfiguration(force: Bool = false) {
@@ -381,9 +384,60 @@ public final class AppConfigurationStore: ObservableObject {
 
             try configFileManager.saveConfiguration(config, name: configName)
             Logger.debug("[ConfigStore] ✅ Saved configuration to '\(configName).json'")
+
+            // Push config snapshot to UserDefaults for the translation extension
+            pushConfigToSharedDefaults(config)
         } catch {
             Logger.debug("[ConfigStore] ❌ Failed to save configuration: \(error)")
         }
+    }
+
+    /// Push serialized configuration to UserDefaults for the translation extension
+    private func pushConfigToSharedDefaults(_ config: AppConfiguration) {
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.sortedKeys]
+            let data = try encoder.encode(config)
+            preferences.setActiveConfigurationData(data)
+        } catch {
+            Logger.debug("[ConfigStore] Failed to push config to shared defaults: \(error)")
+        }
+    }
+
+    /// Load configuration from shared UserDefaults (for extension use — avoids filesystem I/O)
+    public func loadFromSharedDefaults() {
+        guard let data = preferences.activeConfigurationData,
+              let config = try? JSONDecoder().decode(AppConfiguration.self, from: data)
+        else {
+            loadBundledDefault()
+            return
+        }
+        applyLoadedConfiguration(config)
+        currentConfigurationName = preferences.currentConfigName
+    }
+
+    /// Load the bundled DefaultConfiguration.json as a fallback
+    public func loadBundledDefault() {
+        let bundles = [
+            Bundle(for: ConfigurationFileManager.self),
+            Bundle.main,
+        ]
+
+        for bundle in bundles {
+            if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json"),
+               let data = try? Data(contentsOf: url),
+               let config = try? JSONDecoder().decode(AppConfiguration.self, from: data)
+            {
+                applyLoadedConfiguration(config)
+                currentConfigurationName = nil
+                Logger.debug("[ConfigStore] Loaded bundled default configuration")
+                return
+            }
+        }
+
+        Logger.debug("[ConfigStore] ❌ Failed to load bundled default configuration")
+        actions = []
+        currentConfigurationName = nil
     }
 
     private func buildCurrentConfiguration() -> AppConfiguration {
