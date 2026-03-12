@@ -2,7 +2,17 @@
   "mcp": {
     "XcodeBuildMCP": {
       "type": "local",
-      "command": ["sh", "-c", "cd /tmp && npx -y xcodebuildmcp@latest"],
+      "command": [
+        "npx",
+        "-y",
+        "xcodebuildmcp@latest"
+      ],
+      "env": {
+        "XCODEBUILDMCP_PROJECT_PATH": "./AITranslator.xcodeproj",
+        "XCODEBUILDMCP_SCHEME": "TLingo",
+        "XCODEBUILDMCP_PLATFORM": "iOS",
+        "XCODEBUILDMCP_SIMULATOR_NAME": "iPhone 16 Pro"
+      },
       "enabled": true
     },
     "context7": {
@@ -12,12 +22,6 @@
         "CONTEXT7_API_KEY": "ctx7sk-2be5f141-66b4-406a-becb-889965a1e3ae"
       },
       "enabled": true
-    }
-  },
-  "mcpServers": {
-    "xcodebuildmcp": {
-      "command": "npx",
-      "args": ["-y", "xcodebuildmcp@latest"]
     }
   }
 }

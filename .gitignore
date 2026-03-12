@@ -87,6 +87,9 @@ AzureFunction/local.settings.json
 # OpenCode
 .opencode/
 
+# XcodeBuildMCP
+.xcodebuildmcp/
+
 # Build tools
 Makefile
 xcodemake *.log
