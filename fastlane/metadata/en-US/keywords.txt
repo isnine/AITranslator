@@ -1,1 +1,1 @@
-Tinggo,language,grammar,polish,text,voice,dictionary,translation,rewrite,correct,GPT,proofread
+ChatGPT,language,grammar,polish,text,voice,dictionary,rewrite,correct,proofread,sentence,spellcheck

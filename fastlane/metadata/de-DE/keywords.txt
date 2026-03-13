@@ -1,1 +1,1 @@
-Übersetzung,Sprache,Grammatik,Schreiben,Korrektur,Stimme,AI,GPT,Tinggo,Text,Hilfe,Englisch
+Übersetzung,Sprache,Grammatik,Schreiben,Korrektur,Stimme,ChatGPT,Text,Hilfe,Englisch,Wörterbuch

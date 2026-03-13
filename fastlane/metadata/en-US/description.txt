@@ -2,7 +2,7 @@ TLingo is the AI-powered translation app that replaces Apple's built-in translat
 
 WHY CHOOSE TLINGO OVER FREE TRANSLATORS?
 
-Unlike basic translators, TLingo doesn't just translate — it understands context. Powered by the latest AI models including GPT-5.4, GPT-5, and more, TLingo delivers translations that read naturally, not like a machine.
+Unlike basic translators, TLingo doesn't just translate — it understands context. Powered by the latest AI models including ChatGPT, Claude, and more, TLingo delivers translations that read naturally, not like a machine.
 
 POWERFUL AI ACTIONS
 
@@ -24,8 +24,8 @@ BUILT FOR QUALITY
 • Real-time streaming responses — see translations appear instantly
 • Smart diff display — highlights exactly what changed in your text
 • Text-to-speech — hear natural pronunciation of translations
-• Multiple AI models — choose from GPT-5.4, GPT-5, and more
-• Free tier included — upgrade to Premium for the latest models
+• Multiple AI models — choose from ChatGPT, Claude, and more
+• Free tier included — subscribe to Premium for the latest models
 
 Whether you're writing emails, reading articles, checking grammar, or learning a new language, TLingo gives you AI-powered translation and writing tools right where you need them.
 

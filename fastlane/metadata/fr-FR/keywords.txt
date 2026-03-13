@@ -1,1 +1,1 @@
-traduction,langue,grammaire,écriture,correction,voix,dictionnaire,GPT,Tinggo,texte,anglais,aide
+traduction,langue,grammaire,écriture,correction,voix,dictionnaire,ChatGPT,texte,anglais,aide
