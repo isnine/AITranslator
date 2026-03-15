@@ -61,6 +61,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     header
                     preferencesSection
+                    versionLabel
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 28)
@@ -286,6 +287,16 @@ struct SettingsView: View {
                 }
             #endif
         }
+    }
+
+    private var versionLabel: some View {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "–"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "–"
+        return Text("TLingo v\(version) (\(build))")
+            .font(.system(size: 12))
+            .foregroundColor(colors.textSecondary)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 4)
     }
 
     // MARK: - Section Builder
