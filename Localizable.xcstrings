@@ -116,6 +116,9 @@
         }
       }
     },
+    "· %@" : {
+
+    },
     "%lld Actions" : {
       "comment" : "Configuration actions count",
       "localizations" : {
@@ -341,6 +344,9 @@
           }
         }
       }
+    },
+    "%lld translations" : {
+
     },
     "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet." : {
       "comment" : "Snapshot mock polish result",
@@ -1124,6 +1130,118 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有來源"
+          }
+        }
+      }
+    },
+    "All history is stored locally on your device." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "جميع السجلات محفوظة محليًا على جهازك."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al historik gemmes lokalt på din enhed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der gesamte Verlauf wird lokal auf deinem Gerät gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All history is stored locally on your device."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo el historial se almacena localmente en tu dispositivo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout l'historique est stocké localement sur votre appareil."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Semua riwayat disimpan secara lokal di perangkat Anda."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tutta la cronologia è archiviata localmente sul tuo dispositivo."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての履歴はデバイスにのみ保存されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "모든 기록은 기기에만 저장됩니다."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All historikk lagres lokalt på enheten din."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle geschiedenis wordt lokaal op je apparaat opgeslagen."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todo o histórico é armazenado localmente no seu dispositivo."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All historik lagras lokalt på din enhet."
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tüm geçmiş yalnızca cihazınızda saklanır."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有记录仅保存在本设备上。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有記錄僅儲存在本裝置上。"
+          }
+        },
+        "zh-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所有記錄僅儲存在本裝置上。"
           }
         }
       }
@@ -2026,6 +2144,9 @@
         }
       }
     },
+    "Azure → Model:" : {
+
+    },
     "Back" : {
       "localizations" : {
         "ar" : {
@@ -2362,9 +2483,6 @@
         }
       }
     },
-    "Azure → Model:" : {
-
-    },
     "Clear All" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2477,6 +2595,9 @@
           }
         }
       }
+    },
+    "Clear All History" : {
+
     },
     "Click to set" : {
       "extractionState" : "manual",
@@ -3378,6 +3499,12 @@
         }
       }
     },
+    "Copy Result" : {
+
+    },
+    "Copy Source" : {
+
+    },
     "Custom folder location" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4162,6 +4289,9 @@
           }
         }
       }
+    },
+    "Delete All" : {
+
     },
     "Delete Configuration?" : {
       "localizations" : {
@@ -7534,6 +7664,9 @@
         }
       }
     },
+    "History" : {
+
+    },
     "Home" : {
       "localizations" : {
         "ar" : {
@@ -9894,6 +10027,9 @@
           }
         }
       }
+    },
+    "No history yet" : {
+
     },
     "No models available" : {
       "localizations" : {
@@ -18887,6 +19023,9 @@
         }
       }
     },
+    "This action cannot be undone." : {
+
+    },
     "This action is not supported by the selected provider" : {
       "comment" : "Unsupported action error",
       "localizations" : {
@@ -21471,6 +21610,9 @@
           }
         }
       }
+    },
+    "Your translations will appear here" : {
+
     }
   },
   "version" : "1.1"

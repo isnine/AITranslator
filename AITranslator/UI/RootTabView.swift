@@ -33,6 +33,7 @@ struct RootTabView: View {
     /// Used by both TabView (iPhone) and NavigationSplitView sidebar (iPad/macOS).
     enum TabItem: String, CaseIterable, Identifiable {
         case home
+        case history
         case actions
         case models
         case settings
@@ -43,6 +44,8 @@ struct RootTabView: View {
             switch self {
             case .home:
                 return "Home"
+            case .history:
+                return "History"
             case .actions:
                 return "Actions"
             case .models:
@@ -56,6 +59,8 @@ struct RootTabView: View {
             switch self {
             case .home:
                 return "house.fill"
+            case .history:
+                return "clock.arrow.circlepath"
             case .actions:
                 return "bolt.fill"
             case .models:
@@ -76,6 +81,10 @@ struct RootTabView: View {
                 tabContent(for: TabItem.home)
             }
             .accessibilityIdentifier("tab_home")
+            Tab(TabItem.history.title, systemImage: TabItem.history.systemImage, value: TabItem.history) {
+                tabContent(for: TabItem.history)
+            }
+            .accessibilityIdentifier("tab_history")
             Tab(TabItem.actions.title, systemImage: TabItem.actions.systemImage, value: TabItem.actions) {
                 tabContent(for: TabItem.actions)
             }
@@ -101,6 +110,8 @@ struct RootTabView: View {
         switch tab {
         case .home:
             HomeView(context: nil)
+        case .history:
+            HistoryView()
         case .actions:
             ActionsView(configurationStore: configStore)
         case .models:

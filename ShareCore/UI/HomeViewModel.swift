@@ -989,6 +989,21 @@ public final class HomeViewModel: ObservableObject {
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
                 self.apply(result: result, allowDiff: self.currentActionShowsDiff)
+
+                if case .success(let message) = result.response,
+                   let idx = self.modelRuns.firstIndex(where: { $0.id == result.modelID })
+                {
+                    TranslationHistoryService.shared.save(
+                        requestID: requestID,
+                        sourceText: self.currentRequestInputText,
+                        resultText: message,
+                        actionName: self.selectedAction?.name ?? "",
+                        targetLanguage: self.resolvedTargetLanguage?.englishName ?? "",
+                        modelID: result.modelID,
+                        modelDisplayName: self.modelRuns[idx].modelDisplayName,
+                        duration: result.duration
+                    )
+                }
             }
         )
 
@@ -1100,6 +1115,7 @@ public final class HomeViewModel: ObservableObject {
                     latencyBreakdown: latencyBreakdown
                 )
             }
+
         case let .failure(error):
             let responseBody: String?
             if let llmError = error as? LLMServiceError,

@@ -14,6 +14,7 @@ public final class ConversationViewModel: ObservableObject {
     public let action: ActionConfig
     public let availableModels: [ModelConfig]
 
+    private let sessionID = UUID()
     private let llmService: LLMService
     private var streamingTask: Task<Void, Never>?
     private var lastStreamingUpdateTime = Date.distantPast
@@ -79,6 +80,7 @@ public final class ConversationViewModel: ObservableObject {
         streamingTask = Task { [weak self] in
             guard let self else { return }
             self.lastStreamingUpdateTime = .distantPast
+            let startDate = Date()
             do {
                 // Build the full messages array for the API
                 let apiMessages = self.messages.map { msg in
@@ -105,6 +107,18 @@ public final class ConversationViewModel: ObservableObject {
                 self.messages.append(assistantMessage)
                 self.streamingText = ""
                 self.isStreaming = false
+
+                TranslationHistoryService.shared.save(
+                    requestID: self.sessionID,
+                    sourceText: text,
+                    resultText: finalText,
+                    actionName: self.action.name,
+                    targetLanguage: "",
+                    modelID: self.model.id,
+                    modelDisplayName: self.model.displayName,
+                    duration: Date().timeIntervalSince(startDate),
+                    isConversation: true
+                )
             } catch is CancellationError {
                 self.streamingText = ""
                 self.isStreaming = false
