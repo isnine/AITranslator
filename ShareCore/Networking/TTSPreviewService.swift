@@ -7,11 +7,10 @@
 
 import AVFoundation
 import Combine
-import CryptoKit
 import Foundation
 
 /// Service for playing TTS voice previews from the Worker API
-public final class TTSPreviewService: ObservableObject {
+public final class TTSPreviewService: NSObject, ObservableObject, AVAudioPlayerDelegate {
     public static let shared = TTSPreviewService()
 
     /// Fixed preview text for voice samples
@@ -27,9 +26,11 @@ public final class TTSPreviewService: ObservableObject {
 
     private let urlSession: URLSession
     private var audioPlayer: AVAudioPlayer?
+    private var playbackContinuation: CheckedContinuation<Void, Never>?
 
     public init(urlSession: URLSession = NetworkSession.shared) {
         self.urlSession = urlSession
+        super.init()
     }
 
     /// Speaks the given text using the user's selected voice
@@ -88,11 +89,20 @@ public final class TTSPreviewService: ObservableObject {
         isPlaying = false
         currentVoiceID = nil
         currentTextID = nil
+        playbackContinuation?.resume()
+        playbackContinuation = nil
     }
 
     /// Check if currently speaking a specific text ID
     public func isSpeaking(textID: String) -> Bool {
         isPlaying && currentTextID == textID
+    }
+
+    // MARK: - AVAudioPlayerDelegate
+
+    public func audioPlayerDidFinishPlaying(_: AVAudioPlayer, successfully _: Bool) {
+        playbackContinuation?.resume()
+        playbackContinuation = nil
     }
 
     // MARK: - Private Methods
@@ -104,11 +114,9 @@ public final class TTSPreviewService: ObservableObject {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
 
-        // Apply HMAC authentication
         let path = "/tts"
-        applyCloudAuth(to: &request, path: path)
+        CloudAuthHelper.applyAuth(to: &request, path: path)
 
-        // Build request body
         let body: [String: Any] = [
             "model": Self.ttsModel,
             "input": text,
@@ -136,36 +144,19 @@ public final class TTSPreviewService: ObservableObject {
     @MainActor
     private func playAudio(data: Data) async throws {
         #if os(iOS)
-            // Configure audio session for iOS
             let audioSession = AVAudioSession.sharedInstance()
             try audioSession.setCategory(.playback, mode: .default)
             try audioSession.setActive(true)
         #endif
 
         audioPlayer = try AVAudioPlayer(data: data)
+        audioPlayer?.delegate = self
         audioPlayer?.prepareToPlay()
         audioPlayer?.play()
 
-        // Wait for playback to complete
-        while audioPlayer?.isPlaying == true {
-            try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        await withCheckedContinuation { continuation in
+            playbackContinuation = continuation
         }
-    }
-
-    // MARK: - HMAC Authentication
-
-    private func generateSignature(timestamp: String, path: String) -> String {
-        let message = "\(timestamp):\(path)"
-        let key = SymmetricKey(data: Data(hexString: CloudServiceConstants.secret) ?? Data())
-        let signature = HMAC<SHA256>.authenticationCode(for: Data(message.utf8), using: key)
-        return Data(signature).hexEncodedString()
-    }
-
-    private func applyCloudAuth(to request: inout URLRequest, path: String) {
-        let timestamp = String(Int(Date().timeIntervalSince1970))
-        let signature = generateSignature(timestamp: timestamp, path: path)
-        request.setValue(timestamp, forHTTPHeaderField: "X-Timestamp")
-        request.setValue(signature, forHTTPHeaderField: "X-Signature")
     }
 }
 

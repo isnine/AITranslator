@@ -115,35 +115,41 @@ AITranslator/
 - 主 App UI/ 下的 RootTabView, SettingsView, ActionsView, ActionDetailView, ModelsView, PaywallView, VoicePickerView（含 #if 条件编译）
 - AITranslatorApp.swift（含 #if 条件编译）
 
-## 拆分建议
+## 重写方案（非拆分，而是从零重写）
 
-### HomeView.swift (1,686L) → 4-5 个文件
+**目标目录**: `/Users/zander/Work/AITranslator/TLingo/`（已有空 Xcode 26.4 项目）
+
+### HomeView → 按区域拆分重写
 1. **HomeView.swift** (~200L) — 骨架布局 + 组合子视图
 2. **HomeInputSection.swift** (~300L) — 输入框 + 图片附件 + 语言切换
 3. **HomeResultsSection.swift** (~400L) — 结果卡片列表 + 操作按钮
 4. **HomeToolbar.swift** (~150L) — 底部/顶部工具栏
-5. 平台差异通过 `#if` 就地处理或提取 modifier
 
-### HomeViewModel.swift (1,137L) → 2-3 个文件
+### HomeViewModel → 分离流式管理
 1. **HomeViewModel.swift** (~500L) — 核心状态 + 公开 API
 2. **TranslationStreamingManager.swift** (~400L) — 流式请求/取消/重试
-3. **TTSPlaybackManager.swift** (~200L) — TTS 控制（可选拆分）
 
-### SettingsView.swift (1,202L) → 4-5 个文件
-1. **SettingsView.swift** (~150L) — 设置页面骨架（List/Form）
-2. **GeneralSettingsSection.swift** — 通用设置（语言、外观）
+### SettingsView → 子页面模式
+1. **SettingsView.swift** (~150L) — 设置页面骨架
+2. **GeneralSettingsSection.swift** — 通用设置
 3. **ModelSettingsSection.swift** — 模型配置
 4. **VoiceSettingsSection.swift** — 语音配置
 5. **ConfigImportExportSection.swift** — 配置导入/导出
-6. **HotkeySettingsSection.swift** — macOS 快捷键配置
+6. **HotkeySettingsSection.swift** — macOS 快捷键
 
-### LLMService.swift (1,103L) → 3-4 个文件
+### LLMService → 职责分离
 1. **LLMService.swift** (~400L) — 核心 perform() 协调
 2. **LLMRequestBuilder.swift** (~300L) — 请求构建 + payload 组装
 3. **StreamingResponseParser.swift** (~300L) — SSE 流式解析
-4. **CloudServiceAuth.swift** (~100L) — HMAC 签名 + 云服务认证
+4. **CloudServiceAuth.swift** (~100L) — HMAC 签名
 
-### MenuBarPopoverView.swift (634L) → 2-3 个文件
+### MenuBarPopoverView → 提取嵌套
 1. **MenuBarPopoverView.swift** (~300L) — 主弹窗布局
-2. **InlineConversationContent.swift** (~200L) — 内联对话视图
-3. **SelectableTextEditor.swift** (~80L) — NSViewRepresentable 文本编辑器
+2. **InlineConversationContent.swift** (~200L) — 内联对话
+3. **SelectableTextEditor.swift** (~80L) — NSViewRepresentable
+
+### 关键配置
+- Bundle ID: `com.zanderwang.AITranslator`（沿用旧项目）
+- App Group: `group.com.zanderwang.AITranslator`
+- Deployment: iOS 26.0+ / macOS 26.0+
+- 后端: Azure Function（不变）

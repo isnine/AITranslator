@@ -4,7 +4,6 @@
 //
 //  Created by Codex on 2025/10/19.
 //
-import CryptoKit
 import Foundation
 
 /// Represents a streaming update that can be either plain text or sentence pairs.
@@ -23,35 +22,16 @@ public final class LLMService {
     }
 
     /// Extracts upstream TTFB and estimates client-to-Azure latency from response headers.
-    private func extractLatency(from response: HTTPURLResponse, totalDuration: TimeInterval) -> (upstreamTTFB: TimeInterval, clientToAzure: TimeInterval)? {
+    private func extractLatency(
+        from response: HTTPURLResponse,
+        totalDuration: TimeInterval
+    ) -> (upstreamTTFB: TimeInterval, clientToAzure: TimeInterval)? {
         guard let ttfbString = response.value(forHTTPHeaderField: "X-Upstream-TTFB"),
               let ttfbMs = Double(ttfbString)
         else { return nil }
         let upstream = ttfbMs / 1000.0
         let clientAzure = max(totalDuration - upstream, 0)
         return (upstream, clientAzure)
-    }
-
-    // MARK: - HMAC Signing for Built-in Cloud Provider
-
-    private func generateSignature(timestamp: String, path: String) -> String {
-        let message = "\(timestamp):\(path)"
-        let key = SymmetricKey(data: Data(hexString: CloudServiceConstants.secret) ?? Data())
-        let signature = HMAC<SHA256>.authenticationCode(for: Data(message.utf8), using: key)
-        return Data(signature).hexEncodedString()
-    }
-
-    /// Applies cloud service authentication headers to a request
-    private func applyCloudAuth(to request: inout URLRequest, path: String) {
-        let timestamp = String(Int(Date().timeIntervalSince1970))
-        let signature = generateSignature(timestamp: timestamp, path: path)
-        request.setValue(timestamp, forHTTPHeaderField: "X-Timestamp")
-        request.setValue(signature, forHTTPHeaderField: "X-Signature")
-
-        // Include premium header when user has active subscription
-        if AppPreferences.sharedDefaults.bool(forKey: "is_premium_subscriber") {
-            request.setValue("true", forHTTPHeaderField: "X-Premium")
-        }
     }
 
     public func perform(
@@ -70,7 +50,7 @@ public final class LLMService {
                     guard let self else { return nil }
 
                     // Skip models that don't support vision when images are attached
-                    if hasImages && !model.supportsVision {
+                    if hasImages, !model.supportsVision {
                         return ModelExecutionResult(
                             modelID: model.id,
                             duration: 0,
@@ -128,11 +108,15 @@ public final class LLMService {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let path = "/\(model.id)/chat/completions"
-        applyCloudAuth(to: &request, path: path)
+        CloudAuthHelper.applyAuth(to: &request, path: path)
+
+        if AppPreferences.shared.isPremium {
+            request.setValue("true", forHTTPHeaderField: "X-Premium")
+        }
 
         let structuredOutputConfig = action.structuredOutput
         let enableStreaming = partialHandler != nil
-            && !AppPreferences.sharedDefaults.bool(forKey: "disable_streaming")
+            && !AppPreferences.shared.disableStreaming
         if enableStreaming {
             request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
         }
@@ -430,7 +414,7 @@ public final class LLMService {
             .appendingPathComponent(model.id)
             .appendingPathComponent("chat/completions")
 
-        let enableStreaming = !AppPreferences.sharedDefaults.bool(forKey: "disable_streaming")
+        let enableStreaming = !AppPreferences.shared.disableStreaming
 
         var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
@@ -440,7 +424,11 @@ public final class LLMService {
         }
 
         let path = "/\(model.id)/chat/completions"
-        applyCloudAuth(to: &request, path: path)
+        CloudAuthHelper.applyAuth(to: &request, path: path)
+
+        if AppPreferences.shared.isPremium {
+            request.setValue("true", forHTTPHeaderField: "X-Premium")
+        }
 
         let payload = LLMRequestPayload(messages: messages, stream: enableStreaming)
         let encoder = JSONEncoder()
@@ -607,7 +595,7 @@ private final class StreamingStructuredOutputParser {
     init(config: ActionConfig.StructuredOutputConfig) {
         self.config = config
         let fieldPattern = "\"\(config.primaryField)\"\\s*:\\s*\""
-        self.fieldRegex = try? NSRegularExpression(pattern: fieldPattern, options: [])
+        fieldRegex = try? NSRegularExpression(pattern: fieldPattern, options: [])
     }
 
     /// Append new delta text and return the display text for UI.
@@ -691,7 +679,7 @@ private final class StreamingSentencePairParser {
     init() {
         let pattern =
             #"\{\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"(?:original|translation)"\s*:\s*"(?:[^"\\]|\\.)*"\s*\}"#
-        self.pairRegex = try? NSRegularExpression(pattern: pattern, options: [])
+        pairRegex = try? NSRegularExpression(pattern: pattern, options: [])
     }
 
     /// Append new delta text and return all completed pairs found so far.

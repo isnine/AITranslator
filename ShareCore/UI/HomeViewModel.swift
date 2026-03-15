@@ -7,7 +7,7 @@
 import Combine
 import SwiftUI
 #if DEBUG
-import Foundation
+    import Foundation
 #endif
 #if canImport(UIKit)
     import UIKit
@@ -22,12 +22,16 @@ public final class HomeViewModel: ObservableObject {
         @Published public var selectedDebugNetworkRecord: NetworkRequestRecord?
     #endif
     public struct ModelRunViewState: Identifiable {
-        public enum Status {
-            case idle
-            case running(start: Date)
-            case streaming(text: String, start: Date)
-            case streamingSentencePairs(pairs: [SentencePair], start: Date)
-            case success(
+        public struct SuccessResult {
+            public let text: String
+            public let copyText: String
+            public let duration: TimeInterval
+            public var diff: TextDiffBuilder.Presentation?
+            public var supplementalTexts: [String]
+            public var sentencePairs: [SentencePair]
+            public var latencyBreakdown: LatencyBreakdown?
+
+            public init(
                 text: String,
                 copyText: String,
                 duration: TimeInterval,
@@ -35,23 +39,40 @@ public final class HomeViewModel: ObservableObject {
                 supplementalTexts: [String] = [],
                 sentencePairs: [SentencePair] = [],
                 latencyBreakdown: LatencyBreakdown? = nil
-            )
+            ) {
+                self.text = text
+                self.copyText = copyText
+                self.duration = duration
+                self.diff = diff
+                self.supplementalTexts = supplementalTexts
+                self.sentencePairs = sentencePairs
+                self.latencyBreakdown = latencyBreakdown
+            }
+        }
+
+        public enum Status {
+            case idle
+            case running(start: Date)
+            case streaming(text: String, start: Date)
+            case streamingSentencePairs(pairs: [SentencePair], start: Date)
+            case success(SuccessResult)
             case failure(message: String, duration: TimeInterval, responseBody: String? = nil)
 
             public var duration: TimeInterval? {
                 switch self {
                 case .idle, .running, .streaming, .streamingSentencePairs:
                     return nil
-                case let .success(_, _, duration, _, _, _, _),
-                     let .failure(_, duration, _):
+                case let .success(result):
+                    return result.duration
+                case let .failure(_, duration, _):
                     return duration
                 }
             }
 
             public var latencyBreakdown: LatencyBreakdown? {
                 switch self {
-                case let .success(_, _, _, _, _, _, breakdown):
-                    return breakdown
+                case let .success(result):
+                    return result.latencyBreakdown
                 default:
                     return nil
                 }
@@ -117,14 +138,14 @@ public final class HomeViewModel: ObservableObject {
     @Published public var inputText: String = "" {
         didSet {
             guard inputText != oldValue else { return }
-            self.cancelActiveRequest(clearResults: true)
+            cancelActiveRequest(clearResults: true)
         }
     }
 
     @Published public var attachedImages: [ImageAttachment] = [] {
         didSet {
             guard attachedImages.count != oldValue.count else { return }
-            self.cancelActiveRequest(clearResults: true)
+            cancelActiveRequest(clearResults: true)
         }
     }
 
@@ -325,21 +346,21 @@ public final class HomeViewModel: ObservableObject {
         modelRuns = [
             ModelRunViewState(
                 model: gpt4Model,
-                status: .success(
+                status: .success(ModelRunViewState.SuccessResult(
                     text: wantsDiff ? polishedText : translatedText,
                     copyText: wantsDiff ? polishedText : translatedText,
                     duration: 1.2,
                     diff: diffPresentation
-                )
+                ))
             ),
             ModelRunViewState(
                 model: claudeModel,
-                status: .success(
+                status: .success(ModelRunViewState.SuccessResult(
                     text: wantsDiff ? polishedText : polishedText,
                     copyText: wantsDiff ? polishedText : polishedText,
                     duration: 1.5,
                     diff: wantsDiff ? diffPresentation : nil
-                )
+                ))
             ),
         ]
     }
@@ -424,7 +445,10 @@ public final class HomeViewModel: ObservableObject {
         let enabledIDs = preferences.enabledModelIDs
         let isPremium = StoreManager.shared.isPremium
 
-        Logger.debug("[HomeViewModel] getEnabledModels: enabledIDs=\(enabledIDs), models.count=\(models.count), isPremium=\(isPremium)")
+        Logger
+            .debug(
+                "[HomeViewModel] getEnabledModels: enabledIDs=\(enabledIDs), models.count=\(models.count), isPremium=\(isPremium)"
+            )
 
         var available: [ModelConfig]
         if enabledIDs.isEmpty {
@@ -534,10 +558,10 @@ public final class HomeViewModel: ObservableObject {
     public func performSelectedAction() {
         // Check data sharing consent before sending any data (macOS only)
         #if os(macOS)
-        if !AppPreferences.shared.hasAcceptedDataSharing {
-            showDataConsentRequest = true
-            return
-        }
+            if !AppPreferences.shared.hasAcceptedDataSharing {
+                showDataConsentRequest = true
+                return
+            }
         #endif
 
         cancelActiveRequest(clearResults: false)
@@ -569,7 +593,10 @@ public final class HomeViewModel: ObservableObject {
                 modelRuns = []
             } else {
                 // Models loaded but none available — show error to user.
-                Logger.debug("[HomeViewModel] No usable models found. models=\(models.map(\.id)), enabledIDs=\(preferences.enabledModelIDs)")
+                Logger
+                    .debug(
+                        "[HomeViewModel] No usable models found. models=\(models.map(\.id)), enabledIDs=\(preferences.enabledModelIDs)"
+                    )
                 modelRuns = [
                     ModelRunViewState(
                         model: ModelConfig(id: "error", displayName: "Error"),
@@ -688,8 +715,8 @@ public final class HomeViewModel: ObservableObject {
             return false
         }
         switch run.status {
-        case let .success(_, _, _, diff, _, _, _):
-            return diff != nil
+        case let .success(result):
+            return result.diff != nil
         default:
             return false
         }
@@ -775,8 +802,8 @@ public final class HomeViewModel: ObservableObject {
         // Extract the assistant's response text from the success state
         let assistantText: String
         switch run.status {
-        case let .success(_, copyText, _, _, _, _, _):
-            assistantText = copyText
+        case let .success(result):
+            assistantText = result.copyText
         default:
             return nil
         }
@@ -990,7 +1017,7 @@ public final class HomeViewModel: ObservableObject {
                 guard self.activeRequestID == requestID else { return }
                 self.apply(result: result, allowDiff: self.currentActionShowsDiff)
 
-                if case .success(let message) = result.response,
+                if case let .success(message) = result.response,
                    let idx = self.modelRuns.firstIndex(where: { $0.id == result.modelID })
                 {
                     TranslationHistoryService.shared.save(
@@ -1027,14 +1054,14 @@ public final class HomeViewModel: ObservableObject {
                     } else {
                         diff = nil
                     }
-                    runState = .success(
+                    runState = .success(ModelRunViewState.SuccessResult(
                         text: message,
                         copyText: diffTarget,
                         duration: result.duration,
                         diff: diff,
                         supplementalTexts: result.supplementalTexts,
                         sentencePairs: result.sentencePairs
-                    )
+                    ))
                 case let .failure(error):
                     let responseBody: String?
                     if let llmError = error as? LLMServiceError,
@@ -1065,7 +1092,7 @@ public final class HomeViewModel: ObservableObject {
         currentRequestTask = nil
         activeRequestID = nil
         if clearResults {
-            modelRuns = []
+            if !modelRuns.isEmpty { modelRuns = [] }
             targetLanguageOverride = nil
         }
     }
@@ -1094,7 +1121,7 @@ public final class HomeViewModel: ObservableObject {
                     }.value
                     guard self.modelRuns.indices.contains(index),
                           self.modelRuns[index].id == result.modelID else { return }
-                    self.modelRuns[index].status = .success(
+                    self.modelRuns[index].status = .success(ModelRunViewState.SuccessResult(
                         text: message,
                         copyText: diffTarget,
                         duration: result.duration,
@@ -1102,10 +1129,10 @@ public final class HomeViewModel: ObservableObject {
                         supplementalTexts: result.supplementalTexts,
                         sentencePairs: result.sentencePairs,
                         latencyBreakdown: latencyBreakdown
-                    )
+                    ))
                 }
             } else {
-                modelRuns[index].status = .success(
+                modelRuns[index].status = .success(ModelRunViewState.SuccessResult(
                     text: message,
                     copyText: diffTarget,
                     duration: result.duration,
@@ -1113,7 +1140,7 @@ public final class HomeViewModel: ObservableObject {
                     supplementalTexts: result.supplementalTexts,
                     sentencePairs: result.sentencePairs,
                     latencyBreakdown: latencyBreakdown
-                )
+                ))
             }
 
         case let .failure(error):

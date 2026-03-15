@@ -115,3 +115,22 @@ public enum AppColors {
 }
 
 public typealias AppColorPalette = AppColors.Palette
+
+// MARK: - Environment Key
+
+private struct AppColorsKey: EnvironmentKey {
+    static let defaultValue = AppColors.Palette(colorScheme: .light)
+}
+
+public extension EnvironmentValues {
+    var appColors: AppColorPalette {
+        get { self[AppColorsKey.self] }
+        set { self[AppColorsKey.self] = newValue }
+    }
+}
+
+public extension View {
+    func injectAppColors(for colorScheme: ColorScheme) -> some View {
+        environment(\.appColors, AppColors.palette(for: colorScheme))
+    }
+}

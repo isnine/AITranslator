@@ -38,17 +38,17 @@ public struct HomeView: View {
     @State private var activeConversationSession: ConversationSession?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     #if os(macOS)
-    @State private var showDataConsent = false
+        @State private var showDataConsent = false
     #endif
     @Namespace private var chipNamespace
 
     #if os(macOS)
-    private var conversationInspectorBinding: Binding<Bool> {
-        Binding(
-            get: { activeConversationSession != nil },
-            set: { if !$0 { activeConversationSession = nil } }
-        )
-    }
+        private var conversationInspectorBinding: Binding<Bool> {
+            Binding(
+                get: { activeConversationSession != nil },
+                set: { if !$0 { activeConversationSession = nil } }
+            )
+        }
     #endif
 
     var openFromExtension: Bool {
@@ -164,15 +164,15 @@ public struct HomeView: View {
                 // fully laid out before it will open. A short async delay ensures
                 // the window and splitter have finished first layout.
                 #if os(macOS)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                        if let session = viewModel.createSnapshotConversationSession() {
+                            activeConversationSession = session
+                        }
+                    }
+                #else
                     if let session = viewModel.createSnapshotConversationSession() {
                         activeConversationSession = session
                     }
-                }
-                #else
-                if let session = viewModel.createSnapshotConversationSession() {
-                    activeConversationSession = session
-                }
                 #endif
             }
 
@@ -228,24 +228,24 @@ public struct HomeView: View {
         }
         #else
         .sheet(item: $activeConversationSession) { session in
-            ConversationView(session: session)
-                .presentationDetents(
-                    HomeViewModel.isSnapshotConversationMode ? [.large] : [.medium, .large]
-                )
-                .presentationDragIndicator(
-                    HomeViewModel.isSnapshotConversationMode ? .hidden : .visible
-                )
-        }
+                    ConversationView(session: session)
+                        .presentationDetents(
+                            HomeViewModel.isSnapshotConversationMode ? [.large] : [.medium, .large]
+                        )
+                        .presentationDragIndicator(
+                            HomeViewModel.isSnapshotConversationMode ? .hidden : .visible
+                        )
+                }
         #endif
         #if DEBUG
         .sheet(item: $viewModel.selectedDebugNetworkRecord) { record in
-            NavigationStack {
-                NetworkRequestDetailView(record: record)
+                NavigationStack {
+                    NetworkRequestDetailView(record: record)
+                }
+                #if os(macOS)
+                .frame(minWidth: 520, minHeight: 520)
+                #endif
             }
-            #if os(macOS)
-            .frame(minWidth: 520, minHeight: 520)
-            #endif
-        }
         #endif
         #if os(macOS)
         .sheet(isPresented: $showDataConsent) {
@@ -509,7 +509,6 @@ public struct HomeView: View {
             }
         }
         .frame(maxWidth: .infinity)
-//        .frame(minHeight: isCollapsed ? 16 : 170)
         .animation(.easeInOut(duration: 0.2), value: isInputExpanded)
         .animation(.easeInOut(duration: 0.25), value: viewModel.resolvedTargetLanguage)
     }
@@ -591,10 +590,16 @@ public struct HomeView: View {
                             Logger.debug("onImagePaste callback: received \(nsImages.count) NSImage(s)", tag: "ImagePaste")
                             for nsImage in nsImages {
                                 if let attachment = ImageAttachment.from(nsImage: nsImage) {
-                                    Logger.debug("onImagePaste: attachment created, size: \(String(format: "%.2f", attachment.sizeMB))MB", tag: "ImagePaste")
+                                    Logger.debug(
+                                        "onImagePaste: attachment created, size: \(String(format: "%.2f", attachment.sizeMB))MB",
+                                        tag: "ImagePaste"
+                                    )
                                     viewModel.addImage(attachment)
                                 } else {
-                                    Logger.debug("onImagePaste: ImageAttachment.from(nsImage:) returned nil for image size \(nsImage.size)", tag: "ImagePaste")
+                                    Logger.debug(
+                                        "onImagePaste: ImageAttachment.from(nsImage:) returned nil for image size \(nsImage.size)",
+                                        tag: "ImagePaste"
+                                    )
                                 }
                             }
                         }
@@ -760,7 +765,7 @@ public struct HomeView: View {
                 liveTimer(start: start)
             }
 
-        case let .success(_, copyText, _, _, supplementalTexts, sentencePairs, _):
+        case let .success(result):
             HStack(spacing: 12) {
                 // Status + Duration + Model Name + Info
                 HStack(spacing: 8) {
@@ -786,8 +791,8 @@ public struct HomeView: View {
                 Spacer()
 
                 // Action buttons (only show here when no supplementalTexts, i.e., plain text mode)
-                if sentencePairs.isEmpty && supplementalTexts.isEmpty {
-                    actionButtons(copyText: copyText, runID: runID)
+                if result.sentencePairs.isEmpty && result.supplementalTexts.isEmpty {
+                    actionButtons(copyText: result.copyText, runID: runID)
                 }
             }
 
@@ -831,26 +836,6 @@ public struct HomeView: View {
     @ViewBuilder
     private func actionButtons(copyText: String, runID: String) -> some View {
         // Full action buttons for bottom bar (plain text mode)
-        diffToggleButton(for: runID)
-        compactCopyButton(for: copyText)
-        chatButton(for: runID)
-        #if canImport(TranslationUIProvider)
-            if let context, context.allowsReplacement {
-                Button {
-                    context.finish(translation: AttributedString(copyText))
-                } label: {
-                    Label("Replace", systemImage: "arrow.left.arrow.right")
-                        .font(.system(size: 13, weight: .medium))
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(colors.accent)
-            }
-        #endif
-    }
-
-    @ViewBuilder
-    private func contentActionButtons(copyText: String, runID: String) -> some View {
-        // Action buttons above divider (for grammarCheck/diff modes with supplementalTexts)
         diffToggleButton(for: runID)
         compactCopyButton(for: copyText)
         chatButton(for: runID)
@@ -1058,13 +1043,13 @@ public struct HomeView: View {
                 }
             }
 
-        case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs, _):
+        case let .success(result):
             let showDiff = run.showDiff
             let runID = run.id
             VStack(alignment: .leading, spacing: 12) {
-                if !sentencePairs.isEmpty {
+                if !result.sentencePairs.isEmpty {
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(sentencePairs.enumerated()), id: \.offset) { index, pair in
+                        ForEach(Array(result.sentencePairs.enumerated()), id: \.offset) { index, pair in
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(pair.original)
                                     .font(.system(size: 14))
@@ -1077,12 +1062,12 @@ public struct HomeView: View {
                             }
                             .padding(.vertical, 8)
 
-                            if index < sentencePairs.count - 1 {
+                            if index < result.sentencePairs.count - 1 {
                                 Divider()
                             }
                         }
                     }
-                } else if let diff, showDiff {
+                } else if let diff = result.diff, showDiff {
                     VStack(alignment: .leading, spacing: 8) {
                         if diff.hasRemovals {
                             let originalText = TextDiffBuilder.attributedString(
@@ -1107,7 +1092,7 @@ public struct HomeView: View {
                         }
                     }
                 } else {
-                    let mainText = !supplementalTexts.isEmpty ? copyText : text
+                    let mainText = !result.supplementalTexts.isEmpty ? result.copyText : result.text
                     Text(mainText)
                         .font(.system(size: 14))
                         .foregroundColor(colors.textPrimary)
@@ -1115,17 +1100,17 @@ public struct HomeView: View {
                 }
 
                 // Action buttons above divider (only when supplementalTexts exist)
-                if sentencePairs.isEmpty && !supplementalTexts.isEmpty {
+                if result.sentencePairs.isEmpty && !result.supplementalTexts.isEmpty {
                     HStack(spacing: 12) {
                         Spacer()
-                        contentActionButtons(copyText: copyText, runID: runID)
+                        actionButtons(copyText: result.copyText, runID: runID)
                     }
                 }
 
-                if !supplementalTexts.isEmpty {
+                if !result.supplementalTexts.isEmpty {
                     Divider()
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(Array(supplementalTexts.enumerated()), id: \.offset) { entry in
+                        ForEach(Array(result.supplementalTexts.enumerated()), id: \.offset) { entry in
                             Text(entry.element)
                                 .font(.system(size: 14))
                                 .foregroundColor(colors.textPrimary)
@@ -1224,323 +1209,6 @@ public struct HomeView: View {
         }
     }
 }
-
-#if os(macOS)
-    private struct AutoPasteTextEditor: NSViewRepresentable {
-        @Binding var text: String
-        let placeholder: String
-        let onPaste: (String) -> Void
-        var onImagePaste: (([NSImage]) -> Void)?
-
-        func makeCoordinator() -> Coordinator {
-            Coordinator(parent: self)
-        }
-
-        func makeNSView(context: Context) -> NSScrollView {
-            let textView = PastingTextView()
-            textView.delegate = context.coordinator
-            textView.isRichText = false
-            textView.drawsBackground = false
-            textView.textContainerInset = NSSize(width: 16, height: 12)
-            textView.textContainer?.lineFragmentPadding = 0
-            textView.minSize = NSSize(width: 0, height: 0)
-            textView.maxSize = NSSize(
-                width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude
-            )
-            textView.isHorizontallyResizable = false
-            textView.textContainer?.widthTracksTextView = true
-            textView.string = text
-            textView.onPaste = onPaste
-            textView.onImagePaste = onImagePaste
-            textView.placeholderAttributedString = makePlaceholderAttributedString()
-
-            // Register for drag & drop of image files and image pasteboard types
-            textView.registerForDraggedTypes([.fileURL, .tiff, .png, NSPasteboard.PasteboardType("public.jpeg")])
-
-            // Store reference for the local event monitor in Coordinator
-            context.coordinator.textView = textView
-
-            let scrollView = NSScrollView()
-            scrollView.drawsBackground = false
-            scrollView.hasVerticalScroller = true
-            scrollView.contentView.drawsBackground = false
-            scrollView.documentView = textView
-            return scrollView
-        }
-
-        func updateNSView(_ nsView: NSScrollView, context _: Context) {
-            guard let textView = nsView.documentView as? PastingTextView else {
-                return
-            }
-
-            if textView.string != text {
-                textView.string = text
-            }
-
-            textView.onPaste = onPaste
-            textView.onImagePaste = onImagePaste
-            if textView.placeholderAttributedString?.string != placeholder {
-                textView.placeholderAttributedString = makePlaceholderAttributedString()
-            }
-        }
-
-        final class Coordinator: NSObject, NSTextViewDelegate {
-            private let parent: AutoPasteTextEditor
-            private var eventMonitor: Any?
-            weak var textView: PastingTextView?
-
-            init(parent: AutoPasteTextEditor) {
-                self.parent = parent
-                super.init()
-                // Install local event monitor to intercept Cmd+V before SwiftUI's
-                // NSHostingView routes it to the auto-generated Edit > Paste menu item.
-                eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                    guard let self, let textView = self.textView else { return event }
-                    if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-                       event.charactersIgnoringModifiers == "v",
-                       textView.window?.isKeyWindow == true,
-                       textView.window?.firstResponder === textView
-                    {
-                        textView.paste(nil)
-                        return nil // consume event
-                    }
-                    return event
-                }
-            }
-
-            deinit {
-                if let monitor = eventMonitor {
-                    NSEvent.removeMonitor(monitor)
-                }
-            }
-
-            func textDidChange(_ notification: Notification) {
-                guard let textView = notification.object as? NSTextView else { return }
-                let updated = textView.string
-                if parent.text != updated {
-                    parent.text = updated
-                }
-            }
-        }
-
-        private func makePlaceholderAttributedString() -> NSAttributedString {
-            NSAttributedString(
-                string: placeholder,
-                attributes: [
-                    .foregroundColor: NSColor.secondaryLabelColor,
-                ]
-            )
-        }
-    }
-
-    private final class PastingTextView: NSTextView {
-        var onPaste: ((String) -> Void)?
-        var onImagePaste: (([NSImage]) -> Void)?
-        var placeholderAttributedString: NSAttributedString? {
-            didSet { needsDisplay = true }
-        }
-
-        override func paste(_ sender: Any?) {
-            // Only handle image paste when this text view has focus.
-            // When both the popover and main window are visible, this prevents
-            // images from appearing in the wrong input field.
-            guard window?.firstResponder === self else {
-                super.paste(sender)
-                return
-            }
-
-            let pb = NSPasteboard.general
-            let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
-
-            // Check for raw image data first
-            if let availableType = pb.availableType(from: imageTypes),
-               let data = pb.data(forType: availableType),
-               let image = NSImage(data: data)
-            {
-                Logger.debug("Paste: image from raw data (\(availableType.rawValue)), size: \(image.size)", tag: "ImagePaste")
-                onImagePaste?([image])
-                return
-            }
-
-            // Check for image file URLs
-            if let urls = pb.readObjects(forClasses: [NSURL.self], options: [
-                .urlReadingContentsConformToTypes: [UTType.image.identifier],
-            ]) as? [URL], !urls.isEmpty {
-                let images = urls.compactMap { NSImage(contentsOf: $0) }
-                if !images.isEmpty {
-                    Logger.debug("Paste: \(images.count) image(s) from file URLs", tag: "ImagePaste")
-                    onImagePaste?(images)
-                    return
-                }
-            }
-
-            // Fall through to text paste
-            super.paste(sender)
-            let current = string
-            let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return }
-            onPaste?(current)
-            needsDisplay = true
-        }
-
-        // MARK: - Drag & Drop
-
-        override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
-            let pb = sender.draggingPasteboard
-            if pb.canReadObject(forClasses: [NSURL.self], options: [
-                .urlReadingContentsConformToTypes: [UTType.image.identifier],
-            ]) {
-                return .copy
-            }
-            if pb.availableType(from: [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]) != nil {
-                return .copy
-            }
-            return super.draggingEntered(sender)
-        }
-
-        override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-            let pb = sender.draggingPasteboard
-
-            // Check for image file URLs
-            if let urls = pb.readObjects(forClasses: [NSURL.self], options: [
-                .urlReadingContentsConformToTypes: [UTType.image.identifier],
-            ]) as? [URL], !urls.isEmpty {
-                let images = urls.compactMap { NSImage(contentsOf: $0) }
-                if !images.isEmpty {
-                    onImagePaste?(images)
-                    return true
-                }
-            }
-
-            // Check for raw image data
-            let imageTypes: [NSPasteboard.PasteboardType] = [.tiff, .png, NSPasteboard.PasteboardType("public.jpeg")]
-            if let availableType = pb.availableType(from: imageTypes),
-               let data = pb.data(forType: availableType),
-               let image = NSImage(data: data)
-            {
-                onImagePaste?([image])
-                return true
-            }
-
-            return super.performDragOperation(sender)
-        }
-
-        override func draw(_ dirtyRect: NSRect) {
-            super.draw(dirtyRect)
-            guard string.isEmpty,
-                  window?.firstResponder !== self,
-                  let placeholder = placeholderAttributedString
-            else {
-                return
-            }
-
-            let inset = textContainerInset
-            let padding = textContainer?.lineFragmentPadding ?? 0
-            // Draw placeholder at top-left (text cursor position), not vertically centered
-            let origin = CGPoint(
-                x: inset.width + padding,
-                y: inset.height
-            )
-            placeholder.draw(at: origin)
-        }
-
-        override func becomeFirstResponder() -> Bool {
-            let result = super.becomeFirstResponder()
-            if result { needsDisplay = true }
-            return result
-        }
-
-        override func resignFirstResponder() -> Bool {
-            let result = super.resignFirstResponder()
-            if result { needsDisplay = true }
-            return result
-        }
-
-        override func didChangeText() {
-            super.didChangeText()
-            needsDisplay = true
-        }
-    }
-
-#elseif os(iOS)
-    private struct AutoPasteTextEditor: UIViewRepresentable {
-        @Binding var text: String
-        let placeholder: String
-        let onPaste: (String) -> Void
-        var onImagePaste: (([UIImage]) -> Void)?
-
-        func makeCoordinator() -> Coordinator {
-            Coordinator(parent: self)
-        }
-
-        func makeUIView(context: Context) -> PastingTextView {
-            let textView = PastingTextView()
-            textView.delegate = context.coordinator
-            textView.backgroundColor = .clear
-            textView.textContainerInset = UIEdgeInsets(top: 8, left: 4, bottom: 8, right: 4)
-            textView.text = text
-            textView.onPaste = onPaste
-            textView.onImagePaste = onImagePaste
-            textView.isScrollEnabled = true
-            textView.alwaysBounceVertical = true
-            textView.adjustsFontForContentSizeCategory = true
-            textView.font = UIFont.preferredFont(forTextStyle: .body)
-            textView.autocorrectionType = .default
-            textView.smartDashesType = .no
-            textView.smartQuotesType = .no
-            textView.accessibilityHint = placeholder
-            return textView
-        }
-
-        func updateUIView(_ uiView: PastingTextView, context _: Context) {
-            if uiView.text != text {
-                uiView.text = text
-            }
-            uiView.onPaste = onPaste
-            uiView.onImagePaste = onImagePaste
-        }
-
-        final class Coordinator: NSObject, UITextViewDelegate {
-            private let parent: AutoPasteTextEditor
-
-            init(parent: AutoPasteTextEditor) {
-                self.parent = parent
-            }
-
-            func textViewDidChange(_ textView: UITextView) {
-                let updated = textView.text ?? ""
-                if parent.text != updated {
-                    parent.text = updated
-                }
-            }
-        }
-    }
-
-    private final class PastingTextView: UITextView {
-        var onPaste: ((String) -> Void)?
-        var onImagePaste: (([UIImage]) -> Void)?
-
-        override func paste(_ sender: Any?) {
-            // Check for images on the pasteboard first
-            let pb = UIPasteboard.general
-            if pb.hasImages, let images = pb.images, !images.isEmpty {
-                onImagePaste?(images)
-                return
-            }
-
-            // Fall through to text paste
-            super.paste(sender)
-            DispatchQueue.main.async { [weak self] in
-                guard let self else { return }
-                let current = self.text ?? ""
-                let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return }
-                self.onPaste?(current)
-            }
-        }
-    }
-#endif
 
 // MARK: - Default App Guide Sheet
 

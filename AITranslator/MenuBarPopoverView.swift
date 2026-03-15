@@ -17,7 +17,6 @@
         @StateObject private var viewModel: HomeViewModel
         @ObservedObject private var hotKeyManager = HotKeyManager.shared
         @ObservedObject private var preferences = AppPreferences.shared
-        @State private var inputText: String = ""
         @State private var showHotkeyHint: Bool = true
         @State private var activeConversationSession: ConversationSession?
         // Focus is managed via AppKit's first responder, not SwiftUI's @FocusState,
@@ -107,14 +106,14 @@
         // MARK: - Inline Conversation View
 
         private func inlineConversationView(session: ConversationSession) -> some View {
-            InlineConversationContent(
+            ConversationContentView(
                 session: session,
-                colors: colors,
                 onBack: {
                     activeConversationSession = nil
                 },
-                onClose: onClose
+                onDismiss: onClose
             )
+            .frame(width: 360, height: 420)
         }
 
         private func loadClipboardAndExecute() {
@@ -124,16 +123,15 @@
             let hasRecentClipboard = ClipboardMonitor.shared.hasRecentContent(within: 5)
 
             if hasRecentClipboard && !clipboardContent.isEmpty {
-                inputText = clipboardContent
-                viewModel.inputText = inputText
+                viewModel.inputText = clipboardContent
                 viewModel.performSelectedAction()
-            } else if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                inputText = clipboardContent
+            } else if viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                viewModel.inputText = clipboardContent
             }
         }
 
         private func executeTranslation() {
-            let trimmedText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedText = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmedText.isEmpty else { return }
             viewModel.inputText = trimmedText
             viewModel.performSelectedAction()
@@ -213,7 +211,7 @@
         private var inputSection: some View {
             VStack(spacing: 8) {
                 SelectableTextEditor(
-                    text: $inputText,
+                    text: $viewModel.inputText,
                     textColor: colors.textPrimary
                 )
                 .font(.system(size: 13))
@@ -280,14 +278,14 @@
                         .background(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .fill(
-                                    inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                    viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                                         ? colors.accent.opacity(0.5) : colors.accent
                                 )
                         )
                     }
                     .buttonStyle(.plain)
                     .disabled(
-                        inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                             .isEmpty
                     )
                     .keyboardShortcut(.return, modifiers: .command)
@@ -297,12 +295,11 @@
 
         @ViewBuilder
         private var inputSpeakButton: some View {
-            let hasText = !inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let hasText = !viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             Button {
                 if viewModel.isSpeakingInputText {
                     viewModel.stopSpeaking()
                 } else {
-                    viewModel.inputText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                     viewModel.speakInputText()
                 }
             } label: {
@@ -333,7 +330,6 @@
                 verticalPadding: 8
             ) { action in
                 if viewModel.selectAction(action) {
-                    viewModel.inputText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                     viewModel.performSelectedAction()
                 }
             }
@@ -477,158 +473,4 @@
         }
     }
 
-    // MARK: - Inline Conversation Content
-
-    /// A compact conversation view designed to be embedded inline within the menu bar popover.
-    /// Replaces the translate content when a conversation session is active.
-    private struct InlineConversationContent: View {
-        @Environment(\.colorScheme) private var colorScheme
-        @StateObject private var viewModel: ConversationViewModel
-        let onBack: () -> Void
-        let onClose: () -> Void
-
-        private var colors: AppColorPalette {
-            AppColors.palette(for: colorScheme)
-        }
-
-        init(
-            session: ConversationSession,
-            colors _: AppColorPalette,
-            onBack: @escaping () -> Void,
-            onClose: @escaping () -> Void
-        ) {
-            _viewModel = StateObject(wrappedValue: ConversationViewModel(session: session))
-            self.onBack = onBack
-            self.onClose = onClose
-        }
-
-        var body: some View {
-            VStack(spacing: 0) {
-                // Header with back button
-                conversationHeader
-
-                Divider()
-                    .foregroundColor(colors.divider)
-
-                // Message list
-                messageList
-
-                // Error banner
-                if let error = viewModel.errorMessage {
-                    errorBanner(error)
-                }
-
-                Divider()
-                    .foregroundColor(colors.divider)
-
-                // Input bar
-                ConversationInputBar(
-                    text: $viewModel.inputText,
-                    selectedModel: $viewModel.model,
-                    isStreaming: viewModel.isStreaming,
-                    canSend: viewModel.canSend,
-                    availableModels: viewModel.availableModels,
-                    onSend: { viewModel.send() },
-                    onStop: { viewModel.stopStreaming() }
-                )
-            }
-            .frame(width: 360, height: 420)
-            .background(colors.background)
-            .onKeyPress(.tab) {
-                viewModel.cycleModel()
-                return .handled
-            }
-        }
-
-        private var conversationHeader: some View {
-            HStack(spacing: 8) {
-                Button {
-                    onBack()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(colors.accent)
-                }
-                .buttonStyle(.plain)
-
-                Text(viewModel.action.name)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(colors.textPrimary)
-                    .lineLimit(1)
-
-                Spacer()
-
-                Button {
-                    onClose()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(colors.textSecondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-        }
-
-        private var messageList: some View {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 12) {
-                        ForEach(viewModel.messages) { message in
-                            MessageBubbleView(message: message)
-                                .id(message.id)
-                        }
-
-                        if viewModel.isStreaming {
-                            StreamingBubbleView(text: viewModel.streamingText)
-                                .id("streaming")
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
-                }
-                .onChange(of: viewModel.messages.count) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-                .onChange(of: viewModel.streamingText) { _, _ in
-                    scrollToBottom(proxy: proxy)
-                }
-            }
-        }
-
-        private func scrollToBottom(proxy: ScrollViewProxy) {
-            withAnimation(.easeOut(duration: 0.2)) {
-                if viewModel.isStreaming {
-                    proxy.scrollTo("streaming", anchor: .bottom)
-                } else if let lastMessage = viewModel.messages.last {
-                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
-                }
-            }
-        }
-
-        private func errorBanner(_ message: String) -> some View {
-            HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(colors.error)
-                Text(message)
-                    .font(.system(size: 13))
-                    .foregroundColor(colors.error)
-                    .lineLimit(2)
-                Spacer()
-                Button {
-                    viewModel.errorMessage = nil
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(colors.textSecondary)
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(colors.error.opacity(0.1))
-        }
-    }
 #endif

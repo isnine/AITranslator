@@ -48,7 +48,7 @@ public struct ProviderResultCardView: View {
         let isShowingDiff = viewModel.isDiffShown(for: run.id)
         let isSpeaking = viewModel.isSpeaking(runID: run.id)
         let copyText: String = {
-            if case let .success(_, ct, _, _, _, _, _) = run.status { return ct }
+            if case let .success(result) = run.status { return result.copyText }
             return ""
         }()
 
@@ -137,13 +137,13 @@ struct ResultContentView: View {
                 SentencePairsView(pairs: pairs)
             }
 
-        case let .success(text, copyText, _, diff, supplementalTexts, sentencePairs, _):
+        case let .success(result):
             successContent(
-                text: text,
-                copyText: copyText,
-                diff: diff,
-                supplementalTexts: supplementalTexts,
-                sentencePairs: sentencePairs
+                text: result.text,
+                copyText: result.copyText,
+                diff: result.diff,
+                supplementalTexts: result.supplementalTexts,
+                sentencePairs: result.sentencePairs
             )
 
         case let .failure(message, _, responseBody):
@@ -303,8 +303,12 @@ struct ResultBottomInfoBar: View {
         case let .streamingSentencePairs(_, start):
             streamingBar(statusText: "Translating...", start: start)
 
-        case let .success(_, copyText, _, _, supplementalTexts, sentencePairs, _):
-            successBar(copyText: copyText, supplementalTexts: supplementalTexts, sentencePairs: sentencePairs)
+        case let .success(result):
+            successBar(
+                copyText: result.copyText,
+                supplementalTexts: result.supplementalTexts,
+                sentencePairs: result.sentencePairs
+            )
 
         case .failure:
             failureBar

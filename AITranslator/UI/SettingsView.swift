@@ -26,9 +26,7 @@ struct SettingsView: View {
     @State private var isExportPresented = false
     @State private var configurationDocument: ConfigurationDocument?
     @State private var importError: String?
-    @State private var showImportError = false
     @State private var showExportSuccess = false
-    @State private var showDeleteConfirmation = false
     @State private var configToDelete: ConfigurationFileInfo?
     @State private var configEditorItem: ConfigEditorItem?
     @State private var showResetToDefaultConfirmation = false
@@ -115,7 +113,13 @@ struct SettingsView: View {
             ) { result in
                 handleExport(result)
             }
-            .alert("Import Failed", isPresented: $showImportError) {
+            .alert(
+                "Import Failed",
+                isPresented: Binding(
+                    get: { importError != nil },
+                    set: { if !$0 { importError = nil } }
+                )
+            ) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(importError ?? "Unknown error")
@@ -125,7 +129,13 @@ struct SettingsView: View {
             } message: {
                 Text("Configuration exported successfully.")
             }
-            .alert("Delete Configuration?", isPresented: $showDeleteConfirmation) {
+            .alert(
+                "Delete Configuration?",
+                isPresented: Binding(
+                    get: { configToDelete != nil },
+                    set: { if !$0 { configToDelete = nil } }
+                )
+            ) {
                 Button("Cancel", role: .cancel) {
                     configToDelete = nil
                 }
@@ -256,14 +266,7 @@ struct SettingsView: View {
                         showNetworkDebug = true
                     } label: {
                         HStack(spacing: 16) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(Color.red.opacity(0.15))
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: "network")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.red)
-                            }
+                            SettingsIconBadge(icon: "network", color: .red)
 
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Network Log")
@@ -342,14 +345,7 @@ private extension SettingsView {
             isVoicePickerPresented = true
         } label: {
             HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.purple.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "waveform")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.purple)
-                }
+                SettingsIconBadge(icon: "waveform", color: .purple)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Voice")
@@ -389,14 +385,7 @@ private extension SettingsView {
             }
         } label: {
             HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.orange.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "crown.fill")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.orange)
-                }
+                SettingsIconBadge(icon: "crown.fill", color: .orange)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Subscription")
@@ -440,14 +429,7 @@ private extension SettingsView {
 
     var disableStreamingRow: some View {
         HStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.orange.opacity(0.15))
-                    .frame(width: 36, height: 36)
-                Image(systemName: "bolt.slash")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.orange)
-            }
+            SettingsIconBadge(icon: "bolt.slash", color: .orange)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Disable Streaming")
@@ -483,14 +465,7 @@ private extension SettingsView {
             }
         } label: {
             HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.cyan.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "envelope")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.cyan)
-                }
+                SettingsIconBadge(icon: "envelope", color: .cyan)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Feedback")
@@ -522,14 +497,10 @@ private extension SettingsView {
                     let isRecording = recordingHotKeyType == type
 
                     HStack(spacing: 16) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .fill(type == .mainApp ? Color.purple.opacity(0.15) : Color.orange.opacity(0.15))
-                                .frame(width: 36, height: 36)
-                            Image(systemName: type == .mainApp ? "macwindow" : "bolt.fill")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(type == .mainApp ? .purple : .orange)
-                        }
+                        SettingsIconBadge(
+                            icon: type == .mainApp ? "macwindow" : "bolt.fill",
+                            color: type == .mainApp ? .purple : .orange
+                        )
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(type.displayName)
@@ -625,14 +596,7 @@ private extension SettingsView {
 
         var keepRunningRow: some View {
             HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(Color.cyan.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "menubar.rectangle")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.cyan)
-                }
+                SettingsIconBadge(icon: "menubar.rectangle", color: .cyan)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Keep Running in Menu Bar")
@@ -664,14 +628,7 @@ private extension SettingsView {
             openCurrentConfigurationInEditor()
         } label: {
             HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(colors.accent.opacity(0.15))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: "doc.text.fill")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(colors.accent)
-                }
+                SettingsIconBadge(icon: "doc.text.fill", color: colors.accent)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(configStore.currentConfigurationName ?? "Configuration")
@@ -779,7 +736,6 @@ private extension SettingsView {
             }
         } catch {
             importError = "Failed to read configuration: \(error.localizedDescription)"
-            showImportError = true
         }
     }
 
@@ -797,7 +753,6 @@ private extension SettingsView {
             configEditorItem = nil
         } catch {
             importError = "Failed to save configuration: \(error.localizedDescription)"
-            showImportError = true
             // Don't close editor on save failure
         }
     }
@@ -817,7 +772,6 @@ private extension SettingsView {
         } catch {
             Logger.debug("[SettingsView] ❌ Failed to load configuration: \(error)")
             importError = error.localizedDescription
-            showImportError = true
         }
     }
 
@@ -834,7 +788,6 @@ private extension SettingsView {
             try ConfigurationFileManager.shared.deleteConfiguration(at: config.url)
         } catch {
             importError = error.localizedDescription
-            showImportError = true
         }
     }
 
@@ -874,7 +827,6 @@ private extension SettingsView {
             isExportPresented = true
         } catch {
             importError = error.localizedDescription
-            showImportError = true
         }
     }
 
@@ -885,7 +837,6 @@ private extension SettingsView {
 
             guard url.startAccessingSecurityScopedResource() else {
                 importError = "Unable to access the selected file."
-                showImportError = true
                 return
             }
             defer { url.stopAccessingSecurityScopedResource() }
@@ -907,16 +858,13 @@ private extension SettingsView {
                     )
                 case let .failure(error):
                     importError = error.localizedDescription
-                    showImportError = true
                 }
             } catch {
                 importError = error.localizedDescription
-                showImportError = true
             }
 
         case let .failure(error):
             importError = error.localizedDescription
-            showImportError = true
         }
     }
 
@@ -936,7 +884,6 @@ private extension SettingsView {
             showExportSuccess = true
         case let .failure(error):
             importError = error.localizedDescription
-            showImportError = true
         }
     }
 }
@@ -1211,3 +1158,21 @@ struct ConfigEditorItem: Identifiable {
         func updateUIViewController(_: UIActivityViewController, context _: Context) {}
     }
 #endif
+
+// MARK: - Settings Icon Badge
+
+private struct SettingsIconBadge: View {
+    let icon: String
+    let color: Color
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(color.opacity(0.15))
+                .frame(width: 36, height: 36)
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(color)
+        }
+    }
+}
