@@ -17,8 +17,56 @@ public final class LLMService {
 
     private let urlSession: URLSession
 
+    /// Instruction appended to every action prompt, asking the model to suggest follow-up actions.
+    private static let suggestionSuffix =
+        "\n\nAfter your response, on a NEW line, add exactly: [SUGGESTIONS: action1 | action2 | action3] " +
+        "where each action is a short follow-up the user might want (max 5 words each, e.g. \"Make it more formal\"). " +
+        "Always provide exactly 3 suggestions or omit the line entirely."
+
     public init(urlSession: URLSession = NetworkSession.shared) {
         self.urlSession = urlSession
+    }
+
+    /// Extracts suggested actions from response text and returns (cleanedText, suggestions).
+    /// Looks for pattern: [SUGGESTIONS: action1 | action2 | action3]
+    static func extractSuggestedActions(from text: String) -> (String, [String]) {
+        let pattern = #"\[SUGGESTIONS:\s*(.+?)\]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return (text, [])
+        }
+        let nsText = text as NSString
+        let range = NSRange(location: 0, length: nsText.length)
+        guard let match = regex.firstMatch(in: text, options: [], range: range) else {
+            return (text, [])
+        }
+
+        let actionsString = nsText.substring(with: match.range(at: 1))
+        let actions = actionsString
+            .components(separatedBy: "|")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        // Only accept exactly 3 suggestions
+        guard actions.count == 3 else {
+            // Strip the line anyway to keep the display clean
+            let cleaned = nsText.replacingCharacters(in: match.range, with: "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return (cleaned, [])
+        }
+
+        // Truncate each action to max 5 words, capitalize first letter
+        let truncated = actions.map { action -> String in
+            let words = action.split(separator: " ", maxSplits: 5, omittingEmptySubsequences: true)
+            var result = words.prefix(5).joined(separator: " ")
+            if let first = result.first {
+                result = first.uppercased() + result.dropFirst()
+            }
+            return result
+        }
+
+        let cleaned = nsText.replacingCharacters(in: match.range, with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (cleaned, truncated)
     }
 
     /// Extracts upstream TTFB and estimates client-to-Azure latency from response headers.
@@ -126,7 +174,11 @@ public final class LLMService {
 
         if action.prompt.isEmpty {
             messages = [
-                .init(role: "user", text: text, imageDataURLs: imageDataURLs),
+                .init(
+                    role: "user",
+                    text: text + Self.suggestionSuffix,
+                    imageDataURLs: imageDataURLs
+                ),
             ]
         } else {
             let processedPrompt = PromptSubstitution.substitute(
@@ -139,11 +191,15 @@ public final class LLMService {
 
             if promptContainsTextPlaceholder {
                 messages = [
-                    .init(role: "user", text: processedPrompt, imageDataURLs: imageDataURLs),
+                    .init(
+                        role: "user",
+                        text: processedPrompt + Self.suggestionSuffix,
+                        imageDataURLs: imageDataURLs
+                    ),
                 ]
             } else {
                 messages = [
-                    .init(role: "system", content: processedPrompt),
+                    .init(role: "system", content: processedPrompt + Self.suggestionSuffix),
                     .init(role: "user", text: text, imageDataURLs: imageDataURLs),
                 ]
             }
@@ -231,15 +287,17 @@ public final class LLMService {
                 )
                 let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
+                let (cleanedText, suggestions) = Self.extractSuggestedActions(from: trimmed)
                 let duration = Date().timeIntervalSince(start)
                 let latency = extractLatency(from: httpResponse, totalDuration: duration)
                 return ModelExecutionResult(
                     modelID: model.id,
                     duration: duration,
-                    response: .success(trimmed),
+                    response: .success(cleanedText),
                     diffSource: parsed.diffSource?.trimmingCharacters(in: .whitespacesAndNewlines),
                     supplementalTexts: parsed.supplementalTexts,
                     sentencePairs: parsed.sentencePairs,
+                    suggestedActions: suggestions,
                     upstreamTTFB: latency?.upstreamTTFB,
                     clientToAzureLatency: latency?.clientToAzure
                 )
@@ -328,13 +386,17 @@ public final class LLMService {
             if isSentencePairsMode {
                 let pairs = parseSentencePairsFromJSON(finalText)
                 let combinedText = pairs.map { "\($0.original)\n\($0.translation)" }.joined(separator: "\n\n")
+                let (cleanedText, suggestions) = Self.extractSuggestedActions(
+                    from: combinedText.isEmpty ? finalText : combinedText
+                )
                 let duration = Date().timeIntervalSince(start)
                 let upstream = upstreamTTFBMs.map { $0 / 1000.0 }
                 return ModelExecutionResult(
                     modelID: model.id,
                     duration: duration,
-                    response: .success(combinedText.isEmpty ? finalText : combinedText),
+                    response: .success(cleanedText),
                     sentencePairs: pairs,
+                    suggestedActions: suggestions,
                     upstreamTTFB: upstream,
                     clientToAzureLatency: upstream.map { max(duration - $0, 0) }
                 )
@@ -343,27 +405,31 @@ public final class LLMService {
             if let config = structuredOutputConfig {
                 let parsed = parseStructuredOutputFromJSON(finalText, config: config)
                 if let parsed {
+                    let (cleanedMessage, suggestions) = Self.extractSuggestedActions(from: parsed.message)
                     let duration = Date().timeIntervalSince(start)
                     let upstream = upstreamTTFBMs.map { $0 / 1000.0 }
                     return ModelExecutionResult(
                         modelID: model.id,
                         duration: duration,
-                        response: .success(parsed.message),
+                        response: .success(cleanedMessage),
                         diffSource: parsed.diffSource,
                         supplementalTexts: parsed.supplementalTexts,
                         sentencePairs: [],
+                        suggestedActions: suggestions,
                         upstreamTTFB: upstream,
                         clientToAzureLatency: upstream.map { max(duration - $0, 0) }
                     )
                 }
             }
 
+            let (cleanedFinalText, suggestions) = Self.extractSuggestedActions(from: finalText)
             let duration = Date().timeIntervalSince(start)
             let upstream = upstreamTTFBMs.map { $0 / 1000.0 }
             return ModelExecutionResult(
                 modelID: model.id,
                 duration: duration,
-                response: .success(finalText),
+                response: .success(cleanedFinalText),
+                suggestedActions: suggestions,
                 upstreamTTFB: upstream,
                 clientToAzureLatency: upstream.map { max(duration - $0, 0) }
             )
@@ -383,17 +449,20 @@ public final class LLMService {
             try Task.checkCancellation()
             guard !trimmed.isEmpty else { throw LLMServiceError.emptyContent }
 
+            let (cleanedText, suggestions) = Self.extractSuggestedActions(from: trimmed)
+
             if !parsed.sentencePairs.isEmpty {
                 await partialHandler(model.id, .sentencePairs(parsed.sentencePairs))
             } else {
-                await partialHandler(model.id, .text(trimmed))
+                await partialHandler(model.id, .text(cleanedText))
             }
 
             return ModelExecutionResult(
                 modelID: model.id,
                 duration: Date().timeIntervalSince(start),
-                response: .success(trimmed),
+                response: .success(cleanedText),
                 sentencePairs: parsed.sentencePairs,
+                suggestedActions: suggestions,
                 upstreamTTFB: upstreamTTFBMs.map { $0 / 1000.0 },
                 clientToAzureLatency: upstreamTTFBMs.map { max(Date().timeIntervalSince(start) - $0 / 1000.0, 0) }
             )

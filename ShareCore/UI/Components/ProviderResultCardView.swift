@@ -19,6 +19,7 @@ public struct ProviderResultCardView: View {
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
     let onChat: (() -> Void)?
+    let onSuggestedAction: ((String) -> Void)?
     let onInspectRequest: (() -> Void)?
 
     private var colors: AppColorPalette {
@@ -32,6 +33,7 @@ public struct ProviderResultCardView: View {
         onCopy: @escaping (String) -> Void,
         onReplace: ((String) -> Void)? = nil,
         onChat: (() -> Void)? = nil,
+        onSuggestedAction: ((String) -> Void)? = nil,
         onInspectRequest: (() -> Void)? = nil
     ) {
         self.run = run
@@ -40,6 +42,7 @@ public struct ProviderResultCardView: View {
         self.onCopy = onCopy
         self.onReplace = onReplace
         self.onChat = onChat
+        self.onSuggestedAction = onSuggestedAction
         self.onInspectRequest = onInspectRequest
     }
 
@@ -64,6 +67,7 @@ public struct ProviderResultCardView: View {
                 onCopy: onCopy,
                 onReplace: onReplace,
                 onChat: onChat,
+                onSuggestedAction: onSuggestedAction,
                 onInspectRequest: onInspectRequest
             )
             ResultBottomInfoBar(
@@ -109,6 +113,7 @@ struct ResultContentView: View {
     let onCopy: (String) -> Void
     let onReplace: ((String) -> Void)?
     let onChat: (() -> Void)?
+    let onSuggestedAction: ((String) -> Void)?
     let onInspectRequest: (() -> Void)?
 
     private var colors: AppColorPalette {
@@ -143,7 +148,8 @@ struct ResultContentView: View {
                 copyText: result.copyText,
                 diff: result.diff,
                 supplementalTexts: result.supplementalTexts,
-                sentencePairs: result.sentencePairs
+                sentencePairs: result.sentencePairs,
+                suggestedActions: result.suggestedActions
             )
 
         case let .failure(message, _, responseBody):
@@ -219,7 +225,8 @@ struct ResultContentView: View {
         copyText: String,
         diff: TextDiffBuilder.Presentation?,
         supplementalTexts: [String],
-        sentencePairs: [SentencePair]
+        sentencePairs: [SentencePair],
+        suggestedActions: [String]
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             if !sentencePairs.isEmpty {
@@ -232,6 +239,11 @@ struct ResultContentView: View {
                     .font(.system(size: 13))
                     .foregroundColor(colors.textPrimary)
                     .textSelection(.enabled)
+            }
+
+            // Suggested action chips
+            if !suggestedActions.isEmpty, let onSuggestedAction {
+                SuggestedActionChips(actions: suggestedActions, onTap: onSuggestedAction)
             }
 
             // Action buttons above divider (only when supplementalTexts exist)
@@ -626,6 +638,47 @@ struct SkeletonPlaceholder: View {
                     .fill(colors.skeleton)
                     .frame(height: 8)
                     .frame(maxWidth: index == 1 ? 120 : .infinity)
+            }
+        }
+    }
+}
+
+/// Horizontal row of suggested follow-up action chips
+struct SuggestedActionChips: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let actions: [String]
+    let onTap: (String) -> Void
+
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(actions, id: \.self) { action in
+                    Button {
+                        onTap(action)
+                    } label: {
+                        Text(action)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(colors.accent)
+                            .lineLimit(1)
+                            .fixedSize()
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(
+                                Capsule()
+                                    .fill(colors.accent.opacity(0.1))
+                            )
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(colors.accent.opacity(0.2), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
     }

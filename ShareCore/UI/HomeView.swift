@@ -1003,6 +1003,17 @@ public struct HomeView: View {
     }
 
     @ViewBuilder
+    private func suggestedActionChips(actions: [String], runID: String) -> some View {
+        SuggestedActionChips(actions: actions) { action in
+            if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
+               let session = viewModel.createConversationWithFollowUp(from: run, followUp: action)
+            {
+                activeConversationSession = session
+            }
+        }
+    }
+
+    @ViewBuilder
     private func content(for run: HomeViewModel.ModelRunViewState) -> some View {
         switch run.status {
         case .idle, .running:
@@ -1097,6 +1108,11 @@ public struct HomeView: View {
                         .font(.system(size: 14))
                         .foregroundColor(colors.textPrimary)
                         .textSelection(.enabled)
+                }
+
+                // Suggested action chips
+                if !result.suggestedActions.isEmpty {
+                    suggestedActionChips(actions: result.suggestedActions, runID: runID)
                 }
 
                 // Action buttons above divider (only when supplementalTexts exist)

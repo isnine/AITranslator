@@ -30,6 +30,7 @@ public final class HomeViewModel: ObservableObject {
             public var supplementalTexts: [String]
             public var sentencePairs: [SentencePair]
             public var latencyBreakdown: LatencyBreakdown?
+            public var suggestedActions: [String]
 
             public init(
                 text: String,
@@ -38,7 +39,8 @@ public final class HomeViewModel: ObservableObject {
                 diff: TextDiffBuilder.Presentation? = nil,
                 supplementalTexts: [String] = [],
                 sentencePairs: [SentencePair] = [],
-                latencyBreakdown: LatencyBreakdown? = nil
+                latencyBreakdown: LatencyBreakdown? = nil,
+                suggestedActions: [String] = []
             ) {
                 self.text = text
                 self.copyText = copyText
@@ -47,6 +49,7 @@ public final class HomeViewModel: ObservableObject {
                 self.supplementalTexts = supplementalTexts
                 self.sentencePairs = sentencePairs
                 self.latencyBreakdown = latencyBreakdown
+                self.suggestedActions = suggestedActions
             }
         }
 
@@ -851,6 +854,14 @@ public final class HomeViewModel: ObservableObject {
         )
     }
 
+    /// Creates a conversation from a completed run with a pre-filled follow-up message.
+    /// Used when the user taps a suggested action chip.
+    public func createConversationWithFollowUp(from run: ModelRunViewState, followUp: String) -> ConversationSession? {
+        guard var session = createConversation(from: run) else { return nil }
+        session.pendingInput = followUp
+        return session
+    }
+
     /// Creates a conversation session with the selected text as context,
     /// without any prior translation results. Used by the extension's Chat button.
     public func createContextConversation(contextText: String) -> ConversationSession? {
@@ -1060,7 +1071,8 @@ public final class HomeViewModel: ObservableObject {
                         duration: result.duration,
                         diff: diff,
                         supplementalTexts: result.supplementalTexts,
-                        sentencePairs: result.sentencePairs
+                        sentencePairs: result.sentencePairs,
+                        suggestedActions: result.suggestedActions
                     ))
                 case let .failure(error):
                     let responseBody: String?
@@ -1128,7 +1140,8 @@ public final class HomeViewModel: ObservableObject {
                         diff: diff,
                         supplementalTexts: result.supplementalTexts,
                         sentencePairs: result.sentencePairs,
-                        latencyBreakdown: latencyBreakdown
+                        latencyBreakdown: latencyBreakdown,
+                        suggestedActions: result.suggestedActions
                     ))
                 }
             } else {
@@ -1139,7 +1152,8 @@ public final class HomeViewModel: ObservableObject {
                     diff: nil,
                     supplementalTexts: result.supplementalTexts,
                     sentencePairs: result.sentencePairs,
-                    latencyBreakdown: latencyBreakdown
+                    latencyBreakdown: latencyBreakdown,
+                    suggestedActions: result.suggestedActions
                 ))
             }
 

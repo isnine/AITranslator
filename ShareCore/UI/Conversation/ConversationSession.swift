@@ -8,6 +8,8 @@ public struct ConversationSession: Identifiable {
     public var messages: [ChatMessage]
     public var isStreaming: Bool
     public var streamingText: String
+    /// Pre-filled user input to send immediately when the conversation opens.
+    public var pendingInput: String?
 
     public init(
         id: UUID = UUID(),
@@ -16,7 +18,8 @@ public struct ConversationSession: Identifiable {
         availableModels: [ModelConfig] = [],
         messages: [ChatMessage],
         isStreaming: Bool = false,
-        streamingText: String = ""
+        streamingText: String = "",
+        pendingInput: String? = nil
     ) {
         self.id = id
         self.model = model
@@ -25,5 +28,6 @@ public struct ConversationSession: Identifiable {
         self.messages = messages
         self.isStreaming = isStreaming
         self.streamingText = streamingText
+        self.pendingInput = pendingInput
     }
 }

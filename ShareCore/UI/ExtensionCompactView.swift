@@ -261,6 +261,11 @@
                                     activeConversationSession = session
                                 }
                             },
+                            onSuggestedAction: { action in
+                                if let session = viewModel.createConversationWithFollowUp(from: run, followUp: action) {
+                                    activeConversationSession = session
+                                }
+                            },
                             onInspectRequest: inspectRequest
                         )
                     }

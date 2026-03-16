@@ -25,6 +25,14 @@ public final class ConversationViewModel: ObservableObject {
         self.action = session.action
         self.availableModels = session.availableModels
         self.llmService = llmService
+
+        // If the session has a pending follow-up, pre-fill input and auto-send
+        if let pending = session.pendingInput, !pending.isEmpty {
+            self.inputText = pending
+            Task { @MainActor [weak self] in
+                self?.send()
+            }
+        }
     }
 
     deinit {
