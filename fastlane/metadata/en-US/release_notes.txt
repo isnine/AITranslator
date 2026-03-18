@@ -1,5 +1,6 @@
 What's New in TLingo 2.4
 
+• New: Smart Suggestions — After each translation, TLingo suggests follow-up actions like "Make it shorter" or "More formal". Tap a chip to instantly continue refining in a conversation.
 • Improved: Full localization — 40+ previously untranslated UI elements now display in your language.
 • Improved: Faster cloud translation with upgraded server infrastructure in Asia-Pacific.
 • Bug fixes and performance improvements.

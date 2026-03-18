@@ -1,5 +1,6 @@
 TLingo 2.4'teki Yenilikler
 
+• Yeni: Akıllı Öneriler — Her çeviriden sonra TLingo, "Daha kısa yap" veya "Daha resmi" gibi takip eylemleri önerir. Bir öneriye dokunarak sohbette iyileştirmeye devam edin.
 • İyileştirildi: Tam yerelleştirme — Daha önce çevrilmemiş 40'tan fazla arayüz öğesi artık dilinizde görüntüleniyor.
 • İyileştirildi: Asya-Pasifik'teki geliştirilmiş sunucu altyapısı sayesinde daha hızlı bulut çevirisi.
 • Hata düzeltmeleri ve performans iyileştirmeleri.

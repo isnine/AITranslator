@@ -1,5 +1,6 @@
 Nieuw in TLingo 2.4
 
+• Nieuw: Slimme suggesties — Na elke vertaling stelt TLingo vervolgacties voor zoals "Maak het korter" of "Meer formeel". Tik op een suggestie om direct verder te verfijnen in een gesprek.
 • Verbeterd: Volledige lokalisatie — Meer dan 40 eerder niet-vertaalde interface-elementen worden nu in uw taal weergegeven.
 • Verbeterd: Snellere cloudvertaling dankzij verbeterde serverinfrastructuur in Azië-Pacific.
 • Bugfixes en prestatieverbeteringen.

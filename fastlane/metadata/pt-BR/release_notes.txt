@@ -1,5 +1,6 @@
 Novidades no TLingo 2.4
 
+• Novo: Sugestões inteligentes — Após cada tradução, o TLingo sugere ações de acompanhamento como "Encurtar" ou "Mais formal". Toque em uma sugestão para continuar refinando em uma conversa.
 • Melhorado: Localização completa — Mais de 40 elementos da interface não traduzidos agora são exibidos no seu idioma.
 • Melhorado: Tradução na nuvem mais rápida com infraestrutura de servidores aprimorada na Ásia-Pacífico.
 • Correções de bugs e melhorias de desempenho.

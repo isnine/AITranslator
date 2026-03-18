@@ -1,5 +1,6 @@
 Neu in TLingo 2.4
 
+• Neu: Smarte Vorschläge — Nach jeder Übersetzung schlägt TLingo Folgeaktionen vor, z. B. „Kürzer machen" oder „Formeller". Tippen Sie auf einen Vorschlag, um die Übersetzung im Gespräch weiter zu verfeinern.
 • Verbessert: Vollständige Lokalisierung — Über 40 zuvor nicht übersetzte UI-Elemente werden jetzt in Ihrer Sprache angezeigt.
 • Verbessert: Schnellere Cloud-Übersetzung dank verbesserter Serverinfrastruktur im asiatisch-pazifischen Raum.
 • Fehlerbehebungen und Leistungsverbesserungen.

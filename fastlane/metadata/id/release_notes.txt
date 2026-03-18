@@ -1,5 +1,6 @@
 Yang Baru di TLingo 2.4
 
+• Baru: Saran Cerdas — Setelah setiap terjemahan, TLingo menyarankan tindakan lanjutan seperti "Buat lebih pendek" atau "Lebih formal". Ketuk saran untuk terus menyempurnakan dalam percakapan.
 • Ditingkatkan: Lokalisasi lengkap — 40+ elemen antarmuka yang sebelumnya belum diterjemahkan kini ditampilkan dalam bahasa Anda.
 • Ditingkatkan: Terjemahan cloud lebih cepat dengan infrastruktur server yang ditingkatkan di Asia-Pasifik.
 • Perbaikan bug dan peningkatan performa.

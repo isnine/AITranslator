@@ -74,6 +74,9 @@ Configuration/Local.xcconfig
 Configuration/Secrets.xcconfig
 .env
 
+# Cloudflare Wrangler
+.wrangler/
+
 # Node
 node_modules/
 
