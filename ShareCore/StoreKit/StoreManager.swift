@@ -27,6 +27,20 @@ public final class StoreManager: ObservableObject {
     private var transactionListener: Task<Void, Never>?
     private static let premiumKey = "is_premium_subscriber"
 
+    /// `true` when running via TestFlight (receipt is sandboxReceipt in a non-DEBUG build).
+    public static var isTestFlight: Bool {
+        #if DEBUG
+            return false
+        #else
+            return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        #endif
+    }
+
+    /// Whether TestFlight premium override is currently active.
+    @Published public private(set) var isTestFlightOverride: Bool = false
+
+    private static let testFlightOverrideKey = "testflight_premium_override"
+
     // MARK: - Init
 
     private init() {
@@ -38,6 +52,18 @@ public final class StoreManager: ObservableObject {
         #else
             // Read cached premium status from App Group defaults
             isPremium = AppPreferences.sharedDefaults.bool(forKey: Self.premiumKey)
+
+            // Restore TestFlight override if previously enabled
+            if Self.isTestFlight {
+                isTestFlightOverride = AppPreferences.sharedDefaults.bool(forKey: Self.testFlightOverrideKey)
+                if isTestFlightOverride {
+                    isPremium = true
+                    Logger.debug("[StoreManager] TestFlight override restored – premium enabled")
+                }
+            } else {
+                // Clean up any stale TF override from a previous TestFlight install
+                AppPreferences.sharedDefaults.removeObject(forKey: Self.testFlightOverrideKey)
+            }
 
             // Start listening for transaction updates
             transactionListener = listenForTransactions()
@@ -135,6 +161,12 @@ public final class StoreManager: ObservableObject {
     // MARK: - Check Subscription Status
 
     public func checkSubscriptionStatus() async {
+        // TestFlight override takes precedence
+        if isTestFlightOverride {
+            updatePremiumStatus(true)
+            return
+        }
+
         var hasActiveSubscription = false
 
         for await result in Transaction.currentEntitlements {
@@ -148,6 +180,30 @@ public final class StoreManager: ObservableObject {
         }
 
         updatePremiumStatus(hasActiveSubscription)
+    }
+
+    // MARK: - TestFlight Premium Toggle
+
+    /// Toggle TestFlight premium override. Returns the new override state.
+    @discardableResult
+    public func toggleTestFlightPremium() -> Bool {
+        guard Self.isTestFlight else { return false }
+        let newValue = !isTestFlightOverride
+        isTestFlightOverride = newValue
+        AppPreferences.sharedDefaults.set(newValue, forKey: Self.testFlightOverrideKey)
+
+        if newValue {
+            updatePremiumStatus(true)
+        } else {
+            // Immediately clear premium, then let async check correct upward if real subscription exists
+            updatePremiumStatus(false)
+            Task {
+                await checkSubscriptionStatus()
+            }
+        }
+
+        Logger.debug("[StoreManager] TestFlight override toggled: \(newValue)")
+        return newValue
     }
 
     // MARK: - Transaction Listener

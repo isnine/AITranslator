@@ -34,6 +34,9 @@ struct SettingsView: View {
     @State private var isShareSheetPresented = false
     @State private var configFileToShare: URL?
 
+    @State private var showTestFlightAlert = false
+    @State private var testFlightAlertMessage = ""
+
     #if DEBUG
         @State private var showNetworkDebug = false
     #endif
@@ -128,6 +131,11 @@ struct SettingsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("Configuration exported successfully.")
+            }
+            .alert("TestFlight", isPresented: $showTestFlightAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(testFlightAlertMessage)
             }
             .alert(
                 "Delete Configuration?",
@@ -300,6 +308,14 @@ struct SettingsView: View {
             .foregroundColor(colors.textSecondary)
             .frame(maxWidth: .infinity)
             .padding(.top, 4)
+            .onTapGesture(count: 2) {
+                guard StoreManager.isTestFlight else { return }
+                let enabled = storeManager.toggleTestFlightPremium()
+                testFlightAlertMessage = enabled
+                    ? "Premium activated (TestFlight)"
+                    : "Premium deactivated (TestFlight)"
+                showTestFlightAlert = true
+            }
     }
 
     // MARK: - Section Builder
