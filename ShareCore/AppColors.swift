@@ -37,7 +37,7 @@ public enum AccentTheme: String, CaseIterable, Identifiable, Sendable {
     public var color: Color {
         switch self {
         case .orange: return Color(red: 232 / 255, green: 98 / 255, blue: 40 / 255)
-        case .blue: return Color(red: 52 / 255, green: 120 / 255, blue: 247 / 255)
+        case .blue: return Color(red: 82 / 255, green: 121 / 255, blue: 248 / 255)
         case .purple: return Color(red: 149 / 255, green: 97 / 255, blue: 226 / 255)
         case .pink: return Color(red: 226 / 255, green: 79 / 255, blue: 120 / 255)
         case .green: return Color(red: 52 / 255, green: 168 / 255, blue: 83 / 255)
@@ -47,7 +47,7 @@ public enum AccentTheme: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    public static let `default`: AccentTheme = .orange
+    public static let `default`: AccentTheme = .blue
 }
 
 public enum AppColors {

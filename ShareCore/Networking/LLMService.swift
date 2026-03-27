@@ -21,6 +21,7 @@ public final class LLMService {
     private static let suggestionSuffix =
         "\n\nAfter your response, on a NEW line, add exactly: [SUGGESTIONS: action1 | action2 | action3] " +
         "where each action is a short follow-up the user might want (max 5 words each, e.g. \"Make it more formal\"). " +
+        "Write suggestions in the SAME language as your response. " +
         "Always provide exactly 3 suggestions or omit the line entirely."
 
     public init(urlSession: URLSession = NetworkSession.shared) {

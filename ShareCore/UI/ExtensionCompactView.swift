@@ -13,6 +13,7 @@
     public struct ExtensionCompactView: View {
         @Environment(\.colorScheme) private var colorScheme
         @StateObject private var viewModel: HomeViewModel
+        @ObservedObject private var preferences = AppPreferences.shared
         @State private var hasTriggeredAutoRequest = false
         @State private var activeConversationSession: ConversationSession?
         @State private var displayText: String = ""
@@ -98,6 +99,11 @@
             .onChange(of: context.allowsReplacement) {
                 viewModel.updateUsageScene(usageScene)
             }
+            .onChange(of: preferences.targetLanguage) {
+                // Re-trigger translation when the user manually changes the target language
+                guard hasTriggeredAutoRequest, !displayText.isEmpty else { return }
+                viewModel.overrideTargetLanguage(preferences.targetLanguage)
+            }
             #if DEBUG
             .sheet(item: $viewModel.selectedDebugNetworkRecord) { record in
                 NavigationStack {
@@ -139,11 +145,15 @@
 
         private var headerBar: some View {
             HStack(spacing: 8) {
+                Text("Translate to", comment: "Label before the target language picker in the extension")
+                    .font(.system(size: 13))
+                    .foregroundColor(colors.textSecondary)
+
                 LanguageSwitcherView(
                     globeFont: .system(size: 12),
                     textFont: .system(size: 13, weight: .medium),
                     chevronFont: .system(size: 8),
-                    foregroundColor: colors.textSecondary
+                    foregroundColor: colors.accent
                 )
 
                 if let resolved = viewModel.resolvedTargetLanguage {

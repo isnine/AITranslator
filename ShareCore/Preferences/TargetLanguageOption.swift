@@ -70,7 +70,13 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
     }
 
     public static var appLanguageIdentifier: String {
-        if let preferred = Bundle.main.preferredLocalizations.first, !preferred.isEmpty {
+        // In an extension context Bundle.main refers to the extension's own
+        // bundle whose preferredLocalizations may differ from the host app
+        // (often returning "en" regardless of the user's language settings).
+        // Use Bundle.main only when running inside the main app target.
+        if Bundle.main.bundleURL.pathExtension != "appex",
+           let preferred = Bundle.main.preferredLocalizations.first, !preferred.isEmpty
+        {
             return preferred
         }
         if let systemPreferred = Locale.preferredLanguages.first, !systemPreferred.isEmpty {
