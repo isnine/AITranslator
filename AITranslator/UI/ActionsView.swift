@@ -153,17 +153,16 @@ struct ActionsView: View {
     @ViewBuilder
     private var actionsCardBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .fill(colors.cardBackground)
     }
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Actions")
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: 32, weight: .bold))
                 .foregroundColor(colors.textPrimary)
             Text("Configure your translation actions")
-                .font(.system(size: 15))
+                .font(.system(size: 16))
                 .foregroundColor(colors.textSecondary)
         }
     }
@@ -193,8 +192,7 @@ struct ActionsView: View {
     @ViewBuilder
     private var emptyStateCardBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .fill(colors.cardBackground)
     }
 
     struct ModelInfo {

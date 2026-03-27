@@ -119,9 +119,6 @@
     "· %@" : {
 
     },
-    "%lld" : {
-
-    },
     "%lld Actions" : {
       "comment" : "Configuration actions count",
       "localizations" : {
@@ -6769,9 +6766,6 @@
         }
       }
     },
-    "Filter by URL or method" : {
-
-    },
     "Free" : {
       "localizations" : {
         "ar" : {
@@ -10260,9 +10254,6 @@
           }
         }
       }
-    },
-    "No Requests" : {
-
     },
     "None" : {
       "extractionState" : "manual",
@@ -18919,6 +18910,9 @@
         }
       }
     },
+    "TestFlight" : {
+
+    },
     "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet." : {
       "comment" : "Snapshot mock input text\nSnapshot mock translation result",
       "localizations" : {
@@ -19031,6 +19025,9 @@
           }
         }
       }
+    },
+    "Theme Color" : {
+
     },
     "This action cannot be undone." : {
 
@@ -21293,6 +21290,9 @@
           }
         }
       }
+    },
+    "Your AI translator" : {
+
     },
     "Your data is encrypted in transit and not stored after processing." : {
       "localizations" : {

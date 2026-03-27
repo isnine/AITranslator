@@ -27,6 +27,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var isPremium: Bool
     @Published public private(set) var hasAcceptedDataSharing: Bool
     @Published public private(set) var disableStreaming: Bool
+    @Published public private(set) var accentTheme: AccentTheme
     #if os(macOS)
         @Published public private(set) var keepRunningWhenClosed: Bool
     #endif
@@ -46,6 +47,7 @@ public final class AppPreferences: ObservableObject {
         isPremium = defaults.bool(forKey: StorageKeys.isPremium)
         hasAcceptedDataSharing = defaults.bool(forKey: StorageKeys.hasAcceptedDataSharing)
         disableStreaming = defaults.bool(forKey: StorageKeys.disableStreaming)
+        accentTheme = AppPreferences.readAccentTheme(from: defaults)
 
         // Clean up stale custom directory bookmark data from previous versions
         defaults.removeObject(forKey: "custom_config_directory")
@@ -165,6 +167,15 @@ public final class AppPreferences: ObservableObject {
         defaults.set(disabled, forKey: StorageKeys.disableStreaming)
     }
 
+    // MARK: - Accent Theme
+
+    public func setAccentTheme(_ theme: AccentTheme) {
+        guard accentTheme != theme else { return }
+
+        accentTheme = theme
+        defaults.set(theme.rawValue, forKey: StorageKeys.accentTheme)
+    }
+
     // MARK: - Active Configuration Data (for extension via UserDefaults XPC)
 
     /// Write serialized AppConfiguration JSON to the App Group UserDefaults
@@ -245,6 +256,11 @@ public final class AppPreferences: ObservableObject {
         if disableStreaming != storedDisableStreaming {
             disableStreaming = storedDisableStreaming
         }
+
+        let storedAccentTheme = AppPreferences.readAccentTheme(from: defaults)
+        if accentTheme != storedAccentTheme {
+            accentTheme = storedAccentTheme
+        }
     }
 
     private static func resolveSharedDefaults() -> UserDefaults {
@@ -260,6 +276,10 @@ public final class AppPreferences: ObservableObject {
     private static func readTargetLanguage(from defaults: UserDefaults) -> TargetLanguageOption {
         let stored = defaults.string(forKey: TargetLanguageOption.storageKey)
         return TargetLanguageOption(rawValue: stored ?? "") ?? .appLanguage
+    }
+
+    private static func readAccentTheme(from defaults: UserDefaults) -> AccentTheme {
+        AccentTheme(rawValue: defaults.string(forKey: StorageKeys.accentTheme) ?? "") ?? .default
     }
 
     private static func readEnabledModelIDs(from defaults: UserDefaults) -> Set<String> {
@@ -284,6 +304,8 @@ private enum StorageKeys {
     static let hasAcceptedDataSharing = "has_accepted_data_sharing"
     /// Key for disabling streaming responses
     static let disableStreaming = "disable_streaming"
+    /// Key for accent theme preference
+    static let accentTheme = "accent_theme"
     /// Key for serialized active configuration data (shared with extension via UserDefaults XPC)
     static let activeConfigurationData = "active_configuration_data"
     #if os(macOS)

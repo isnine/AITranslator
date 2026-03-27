@@ -7,22 +7,65 @@
 
 import SwiftUI
 
+// MARK: - Accent Theme
+
+public enum AccentTheme: String, CaseIterable, Identifiable, Sendable {
+    case orange
+    case blue
+    case purple
+    case pink
+    case green
+    case red
+    case teal
+    case indigo
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .orange: return "Sunset"
+        case .blue: return "Ocean"
+        case .purple: return "Lavender"
+        case .pink: return "Rose"
+        case .green: return "Forest"
+        case .red: return "Ruby"
+        case .teal: return "Teal"
+        case .indigo: return "Indigo"
+        }
+    }
+
+    public var color: Color {
+        switch self {
+        case .orange: return Color(red: 232 / 255, green: 98 / 255, blue: 40 / 255)
+        case .blue: return Color(red: 52 / 255, green: 120 / 255, blue: 247 / 255)
+        case .purple: return Color(red: 149 / 255, green: 97 / 255, blue: 226 / 255)
+        case .pink: return Color(red: 226 / 255, green: 79 / 255, blue: 120 / 255)
+        case .green: return Color(red: 52 / 255, green: 168 / 255, blue: 83 / 255)
+        case .red: return Color(red: 211 / 255, green: 61 / 255, blue: 61 / 255)
+        case .teal: return Color(red: 38 / 255, green: 166 / 255, blue: 154 / 255)
+        case .indigo: return Color(red: 83 / 255, green: 82 / 255, blue: 196 / 255)
+        }
+    }
+
+    public static let `default`: AccentTheme = .orange
+}
+
 public enum AppColors {
     private static let background = AdaptiveColor(
         light: Color(red: 246 / 255, green: 246 / 255, blue: 250 / 255),
-        dark: Color(red: 18 / 255, green: 18 / 255, blue: 22 / 255)
+        dark: Color(red: 17 / 255, green: 17 / 255, blue: 24 / 255)
     )
     private static let cardBackground = AdaptiveColor(
         light: Color.white,
-        dark: Color(red: 30 / 255, green: 30 / 255, blue: 36 / 255)
+        dark: Color(red: 24 / 255, green: 24 / 255, blue: 31 / 255)
     )
     private static let inputBackground = AdaptiveColor(
         light: Color.white,
         dark: Color(red: 38 / 255, green: 38 / 255, blue: 44 / 255)
     )
     private static let accent = AdaptiveColor(
-        light: Color(red: 82 / 255, green: 121 / 255, blue: 248 / 255),
-        dark: Color(red: 90 / 255, green: 132 / 255, blue: 255 / 255)
+        light: Color(red: 232 / 255, green: 98 / 255, blue: 40 / 255),
+        dark: Color(red: 232 / 255, green: 98 / 255, blue: 40 / 255)
     )
     private static let textPrimary = AdaptiveColor(
         light: Color(red: 28 / 255, green: 28 / 255, blue: 34 / 255),
@@ -33,8 +76,8 @@ public enum AppColors {
         dark: Color.white.opacity(0.65)
     )
     private static let chipPrimaryBackground = AdaptiveColor(
-        light: Color(red: 82 / 255, green: 121 / 255, blue: 248 / 255),
-        dark: Color(red: 76 / 255, green: 118 / 255, blue: 255 / 255)
+        light: Color(red: 232 / 255, green: 98 / 255, blue: 40 / 255),
+        dark: Color(red: 232 / 255, green: 98 / 255, blue: 40 / 255)
     )
     private static let chipSecondaryBackground = AdaptiveColor(
         light: Color.black.opacity(0.05),
@@ -66,23 +109,25 @@ public enum AppColors {
     )
 
     public static func palette(for colorScheme: ColorScheme) -> Palette {
-        Palette(colorScheme: colorScheme)
+        Palette(colorScheme: colorScheme, accentTheme: AppPreferences.shared.accentTheme)
     }
 
     public struct Palette {
         private let colorScheme: ColorScheme
+        private let accentTheme: AccentTheme
 
-        public init(colorScheme: ColorScheme) {
+        public init(colorScheme: ColorScheme, accentTheme: AccentTheme = .default) {
             self.colorScheme = colorScheme
+            self.accentTheme = accentTheme
         }
 
         public var background: Color { AppColors.background.resolve(colorScheme) }
         public var cardBackground: Color { AppColors.cardBackground.resolve(colorScheme) }
         public var inputBackground: Color { AppColors.inputBackground.resolve(colorScheme) }
-        public var accent: Color { AppColors.accent.resolve(colorScheme) }
+        public var accent: Color { accentTheme.color }
         public var textPrimary: Color { AppColors.textPrimary.resolve(colorScheme) }
         public var textSecondary: Color { AppColors.textSecondary.resolve(colorScheme) }
-        public var chipPrimaryBackground: Color { AppColors.chipPrimaryBackground.resolve(colorScheme) }
+        public var chipPrimaryBackground: Color { accentTheme.color }
         public var chipSecondaryBackground: Color { AppColors.chipSecondaryBackground.resolve(colorScheme) }
         public var chipPrimaryText: Color { AppColors.chipPrimaryText.resolve(colorScheme) }
         public var chipSecondaryText: Color { AppColors.chipSecondaryText.resolve(colorScheme) }

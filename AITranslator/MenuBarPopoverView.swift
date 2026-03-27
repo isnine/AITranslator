@@ -384,8 +384,7 @@
         @ViewBuilder
         private var inputSectionBackground: some View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.clear)
-                .glassEffect(.regular, in: .rect(cornerRadius: 8))
+                .fill(colors.cardBackground)
         }
 
         @ViewBuilder
@@ -395,8 +394,7 @@
                     .fill(colors.accent)
             } else {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(.clear)
-                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 8))
+                    .fill(colors.cardBackground)
             }
         }
     }

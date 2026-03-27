@@ -9,8 +9,6 @@ import ShareCore
 import SwiftUI
 
 struct RootTabView: View {
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var selection: TabItem = Self.initialTab
     @ObservedObject private var configStore: AppConfigurationStore
 
     init(configStore: AppConfigurationStore = .shared) {
@@ -18,7 +16,7 @@ struct RootTabView: View {
     }
 
     /// Reads `-SNAPSHOT_TAB <name>` from launch arguments to select a tab at startup.
-    private static var initialTab: TabItem {
+    static var initialTab: TabItem {
         let args = ProcessInfo.processInfo.arguments
         if let idx = args.firstIndex(of: "-SNAPSHOT_TAB"),
            idx + 1 < args.count,
@@ -30,7 +28,7 @@ struct RootTabView: View {
     }
 
     /// TabItem enum defining all navigation tabs.
-    /// Used by both TabView (iPhone) and NavigationSplitView sidebar (iPad/macOS).
+    /// Used by both TabView (iPhone) and custom sidebar (iPad/macOS).
     enum TabItem: String, CaseIterable, Identifiable {
         case home
         case history
@@ -71,53 +69,92 @@ struct RootTabView: View {
         }
     }
 
-    private var colors: AppColorPalette {
-        AppColors.palette(for: colorScheme)
-    }
-
     var body: some View {
-        TabView(selection: $selection) {
-            Tab(TabItem.home.title, systemImage: TabItem.home.systemImage, value: TabItem.home) {
-                tabContent(for: TabItem.home)
-            }
-            .accessibilityIdentifier("tab_home")
-            Tab(TabItem.history.title, systemImage: TabItem.history.systemImage, value: TabItem.history) {
-                tabContent(for: TabItem.history)
-            }
-            .accessibilityIdentifier("tab_history")
-            Tab(TabItem.actions.title, systemImage: TabItem.actions.systemImage, value: TabItem.actions) {
-                tabContent(for: TabItem.actions)
-            }
-            .accessibilityIdentifier("tab_actions")
-            Tab(TabItem.models.title, systemImage: TabItem.models.systemImage, value: TabItem.models) {
-                tabContent(for: TabItem.models)
-            }
-            .accessibilityIdentifier("tab_models")
-            Tab(TabItem.settings.title, systemImage: TabItem.settings.systemImage, value: TabItem.settings) {
-                tabContent(for: TabItem.settings)
-            }
-            .accessibilityIdentifier("tab_settings")
-        }
-        .tabViewStyle(.sidebarAdaptable)
-        #if !os(macOS)
-            .tabBarMinimizeBehavior(.onScrollDown)
+        #if os(macOS)
+            SidebarLayoutView(initialTab: Self.initialTab, configStore: configStore)
+        #else
+            AdaptiveNavigationView(initialTab: Self.initialTab, configStore: configStore)
         #endif
-            .tint(colors.accent)
-    }
-
-    @ViewBuilder
-    private func tabContent(for tab: TabItem) -> some View {
-        switch tab {
-        case .home:
-            HomeView(context: nil)
-        case .history:
-            HistoryView()
-        case .actions:
-            ActionsView(configurationStore: configStore)
-        case .models:
-            ModelsView()
-        case .settings:
-            SettingsView(configStore: configStore)
-        }
     }
 }
+
+// MARK: - iOS Adaptive Navigation
+
+#if !os(macOS)
+    private struct AdaptiveNavigationView: View {
+        @Environment(\.horizontalSizeClass) private var sizeClass
+        let initialTab: RootTabView.TabItem
+        @ObservedObject var configStore: AppConfigurationStore
+
+        var body: some View {
+            if sizeClass == .regular {
+                SidebarLayoutView(initialTab: initialTab, configStore: configStore)
+            } else {
+                TabBarView(initialTab: initialTab, configStore: configStore)
+            }
+        }
+    }
+
+    private struct TabBarView: View {
+        @Environment(\.colorScheme) private var colorScheme
+        @State private var selection: RootTabView.TabItem
+        @ObservedObject var configStore: AppConfigurationStore
+        @ObservedObject private var preferences = AppPreferences.shared
+
+        init(initialTab: RootTabView.TabItem, configStore: AppConfigurationStore) {
+            _selection = State(initialValue: initialTab)
+            self.configStore = configStore
+        }
+
+        private var colors: AppColorPalette {
+            AppColors.Palette(colorScheme: colorScheme, accentTheme: preferences.accentTheme)
+        }
+
+        var body: some View {
+            TabView(selection: $selection) {
+                Tab(
+                    RootTabView.TabItem.home.title,
+                    systemImage: RootTabView.TabItem.home.systemImage,
+                    value: RootTabView.TabItem.home
+                ) {
+                    HomeView(context: nil)
+                }
+                .accessibilityIdentifier("tab_home")
+                Tab(
+                    RootTabView.TabItem.history.title,
+                    systemImage: RootTabView.TabItem.history.systemImage,
+                    value: RootTabView.TabItem.history
+                ) {
+                    HistoryView()
+                }
+                .accessibilityIdentifier("tab_history")
+                Tab(
+                    RootTabView.TabItem.actions.title,
+                    systemImage: RootTabView.TabItem.actions.systemImage,
+                    value: RootTabView.TabItem.actions
+                ) {
+                    ActionsView(configurationStore: configStore)
+                }
+                .accessibilityIdentifier("tab_actions")
+                Tab(
+                    RootTabView.TabItem.models.title,
+                    systemImage: RootTabView.TabItem.models.systemImage,
+                    value: RootTabView.TabItem.models
+                ) {
+                    ModelsView()
+                }
+                .accessibilityIdentifier("tab_models")
+                Tab(
+                    RootTabView.TabItem.settings.title,
+                    systemImage: RootTabView.TabItem.settings.systemImage,
+                    value: RootTabView.TabItem.settings
+                ) {
+                    SettingsView(configStore: configStore)
+                }
+                .accessibilityIdentifier("tab_settings")
+            }
+            .tabBarMinimizeBehavior(.onScrollDown)
+            .tint(colors.accent)
+        }
+    }
+#endif

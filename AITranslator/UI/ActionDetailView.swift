@@ -254,11 +254,7 @@ struct ActionDetailView: View {
     @ViewBuilder
     private func selectionRowBackground(isSelected: Bool) -> some View {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(.clear)
-            .glassEffect(
-                isSelected ? .regular : .regular.interactive(),
-                in: .rect(cornerRadius: 18)
-            )
+            .fill(colors.cardBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(isSelected ? colors.accent : .clear, lineWidth: 2)
@@ -412,8 +408,7 @@ struct ActionDetailView: View {
     @ViewBuilder
     private var usageSceneRowBackground: some View {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 18))
+            .fill(colors.cardBackground)
     }
 
     private func toggleScene(_ scene: ActionConfig.UsageScene) {

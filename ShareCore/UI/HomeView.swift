@@ -332,15 +332,13 @@ public struct HomeView: View {
     @ViewBuilder
     private var defaultAppCardBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .fill(colors.cardBackground)
     }
 
     @ViewBuilder
     private var inputComposerBackground: some View {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular, in: .rect(cornerRadius: 16))
+            .fill(colors.cardBackground)
     }
 
     private var inputComposer: some View {
@@ -687,8 +685,7 @@ public struct HomeView: View {
     @ViewBuilder
     private var providerResultCardBackground: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .fill(colors.cardBackground)
     }
 
     private var providerResultsSection: some View {

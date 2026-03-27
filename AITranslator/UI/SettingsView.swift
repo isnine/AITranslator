@@ -48,7 +48,7 @@ struct SettingsView: View {
     #endif
 
     private var colors: AppColorPalette {
-        AppColors.palette(for: colorScheme)
+        AppColors.Palette(colorScheme: colorScheme, accentTheme: preferences.accentTheme)
     }
 
     init(preferences: AppPreferences = .shared, configStore: AppConfigurationStore = .shared) {
@@ -213,11 +213,11 @@ struct SettingsView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Settings")
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: 32, weight: .bold))
                 .foregroundColor(colors.textPrimary)
 
             Text("App Preferences")
-                .font(.system(size: 15))
+                .font(.system(size: 16))
                 .foregroundColor(colors.textSecondary)
         }
     }
@@ -235,6 +235,9 @@ struct SettingsView: View {
             settingsSection(title: "General", icon: "gearshape") {
                 VStack(spacing: 0) {
                     subscriptionRow
+                    Divider()
+                        .padding(.leading, 52)
+                    accentThemeRow
                     Divider()
                         .padding(.leading, 52)
                     voicePreferenceRow
@@ -348,8 +351,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var sectionCardBackground: some View {
         RoundedRectangle(cornerRadius: 16, style: .continuous)
-            .fill(.clear)
-            .glassEffect(.regular, in: .rect(cornerRadius: 16))
+            .fill(colors.cardBackground)
     }
 }
 
@@ -441,6 +443,67 @@ private extension SettingsView {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    var accentThemeRow: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 16) {
+                SettingsIconBadge(icon: "paintpalette.fill", color: preferences.accentTheme.color)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Theme Color")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(colors.textPrimary)
+                    Text(storeManager.isPremium ? preferences.accentTheme.displayName : "Premium Feature")
+                        .font(.system(size: 13))
+                        .foregroundColor(storeManager.isPremium ? colors.textSecondary : colors.accent)
+                }
+
+                Spacer()
+
+                if !storeManager.isPremium {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary.opacity(0.5))
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+
+            // Color swatches
+            HStack(spacing: 10) {
+                ForEach(AccentTheme.allCases) { theme in
+                    Button {
+                        if storeManager.isPremium {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                preferences.setAccentTheme(theme)
+                            }
+                        } else {
+                            showPaywall = true
+                        }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(theme.color)
+                                .frame(width: 28, height: 28)
+
+                            if preferences.accentTheme == theme {
+                                Circle()
+                                    .strokeBorder(.white, lineWidth: 2.5)
+                                    .frame(width: 28, height: 28)
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .opacity(storeManager.isPremium || theme == .default ? 1 : 0.4)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 14)
+        }
     }
 
     var disableStreamingRow: some View {
