@@ -7,6 +7,9 @@ import AVFoundation
 import Combine
 import Foundation
 import Speech
+#if canImport(UIKit)
+    import UIKit
+#endif
 
 public enum SpeechRecognitionError: Error, LocalizedError {
     case notAvailable
@@ -46,7 +49,7 @@ public final class SpeechRecognitionService: NSObject, ObservableObject {
     private let speechRecognizer: SFSpeechRecognizer?
     private var backgroundTime: Date?
 
-    public override init() {
+    override public init() {
         speechRecognizer = SFSpeechRecognizer()
         super.init()
         registerForAppLifecycle()

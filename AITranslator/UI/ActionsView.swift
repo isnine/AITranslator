@@ -15,6 +15,7 @@ struct ActionsView: View {
     init(configurationStore: AppConfigurationStore = .shared) {
         self.configurationStore = configurationStore
     }
+
     @State private var isEditing = false
     @State private var isAddingNewAction = false
     @State private var isVoiceRecording = false
@@ -89,13 +90,13 @@ struct ActionsView: View {
             }
         }
         #if os(iOS)
-            .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .navigationBar)
         #endif
-            .alert("Validation Failed", isPresented: $showValidationError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(validationErrorMessage)
-            }
+        .alert("Validation Failed", isPresented: $showValidationError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(validationErrorMessage)
+        }
     }
 
     // MARK: - Actions Section

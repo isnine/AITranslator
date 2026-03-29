@@ -40,7 +40,7 @@ public final class VoiceActionService: Sendable {
         public let actionConfig: ActionConfig
 
         public init(title: String, description: String, actionConfig: ActionConfig) {
-            self.id = UUID()
+            id = UUID()
             self.title = title
             self.description = description
             self.actionConfig = actionConfig

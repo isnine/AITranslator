@@ -66,10 +66,14 @@ struct VoiceRecordingView: View {
             }
         }
         .alert("Permission Required", isPresented: $showPermissionAlert) {
-            Button("Open Settings", comment: "Open system settings for permissions") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
+            Button {
+                #if os(iOS)
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                #endif
+            } label: {
+                Text("Open Settings", comment: "Open system settings for permissions")
             }
             Button("Cancel", role: .cancel) {
                 onCancel()
