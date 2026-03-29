@@ -2,12 +2,27 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.zanderwang.AITranslator</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>tlingo</string>
+			</array>
+		</dict>
+	</array>
 	<key>AITranslatorCloudEndpoint</key>
 	<string>$(AITRANSLATOR_CLOUD_ENDPOINT)</string>
 	<key>AITranslatorCloudSecret</key>
 	<string>$(AITRANSLATOR_CLOUD_SECRET)</string>
 	<key>com.apple.developer.translation-ui-provider.network-access</key>
 	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>TLingo needs microphone access to record your voice for creating actions.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>TLingo uses speech recognition to create translation actions from your voice.</string>
 	<key>NSServices</key>
 	<array>
 		<dict>
