@@ -17,6 +17,9 @@ struct ActionsView: View {
     }
     @State private var isEditing = false
     @State private var isAddingNewAction = false
+    @State private var isVoiceRecording = false
+    @State private var voiceTranscript: String?
+    @State private var aiGeneratedAction: ActionConfig?
 
     // Validation error state
     @State private var showValidationError = false
@@ -49,8 +52,42 @@ struct ActionsView: View {
                     configurationStore: configurationStore
                 )
             }
+            .navigationDestination(item: $aiGeneratedAction) { config in
+                ActionDetailView(
+                    action: config,
+                    configurationStore: configurationStore,
+                    isAIGenerated: true
+                )
+            }
         }
         .tint(colors.accent)
+        .sheet(isPresented: $isVoiceRecording) {
+            if let transcript = voiceTranscript {
+                VoiceIntentConfirmationView(
+                    transcript: transcript,
+                    onActionSelected: { config in
+                        aiGeneratedAction = config
+                        voiceTranscript = nil
+                        isVoiceRecording = false
+                    },
+                    onCancel: {
+                        voiceTranscript = nil
+                        isVoiceRecording = false
+                    }
+                )
+                .presentationDetents([.large])
+            } else {
+                VoiceRecordingView(
+                    onComplete: { text in
+                        voiceTranscript = text
+                    },
+                    onCancel: {
+                        isVoiceRecording = false
+                    }
+                )
+                .presentationDetents([.medium, .large])
+            }
+        }
         #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
         #endif
@@ -88,6 +125,25 @@ struct ActionsView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                Button {
+                    isVoiceRecording = true
+                } label: {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 28, height: 28)
+                        .background(
+                            Circle().fill(
+                                LinearGradient(
+                                    colors: [colors.accent, colors.accent.opacity(0.7)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        )
+                }
+                .buttonStyle(.plain)
 
                 Button {
                     isAddingNewAction = true
