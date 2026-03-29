@@ -117,6 +117,11 @@ export default {
       return handleTTSRequest(request, env);
     }
 
+    // Route: /voice-to-action - Generate ActionConfig from voice transcript
+    if (path === "/voice-to-action") {
+      return handleVoiceToActionRequest(request, env);
+    }
+
     // Route: /{model}/chat/completions - LLM Chat
     return handleLLMRequest(request, env);
   },
@@ -275,6 +280,152 @@ async function handleLLMRequest(request: Request, env: Env): Promise<Response> {
     const message = error instanceof Error ? error.message : "Unknown error";
     return buildResponse(
       JSON.stringify({ error: "Upstream request failed", message }),
+      502,
+      "application/json"
+    );
+  }
+}
+
+// MARK: - Voice-to-Action Handler
+
+async function handleVoiceToActionRequest(request: Request, env: Env): Promise<Response> {
+  const clientIP = request.headers.get("CF-Connecting-IP") || "unknown";
+  console.log(`Voice-to-Action Request - IP: ${clientIP}`);
+
+  try {
+    if (request.method !== "POST") {
+      return buildResponse(
+        JSON.stringify({ error: "Method not allowed" }),
+        405,
+        "application/json"
+      );
+    }
+
+    const body = (await request.json()) as { transcript?: string; locale?: string };
+    if (!body.transcript || body.transcript.trim().length === 0) {
+      return buildResponse(
+        JSON.stringify({ error: "transcript is required" }),
+        400,
+        "application/json"
+      );
+    }
+
+    const transcript = body.transcript.trim();
+    const locale = body.locale || "en";
+
+    // Build Azure OpenAI request
+    const azureURL = new URL(env.AZURE_ENDPOINT);
+    const basePath = azureURL.pathname.replace(/\/+$/, "");
+    azureURL.pathname = `${basePath}/gpt-4o-mini/chat/completions`;
+    const searchParams = new URLSearchParams(azureURL.search);
+    if (!searchParams.has("api-version")) {
+      searchParams.set("api-version", "2025-01-01-preview");
+    }
+    azureURL.search = searchParams.toString();
+
+    const systemPrompt = `You are an assistant that generates translation action configurations for a translation app called TLingo.
+
+The user will describe a translation action they want in natural language. Generate 2-3 options as structured JSON.
+
+Each option must have:
+- title: Short name for the action (in the user's language: ${locale})
+- description: One-line description (in the user's language)
+- action_config: Object with:
+  - name: Display name for the action
+  - prompt: The prompt template. MUST include {text} placeholder. May include {targetLanguage} if relevant.
+  - output_type: One of "plain", "diff", "sentencePairs", "grammarCheck"
+  - usage_scenes: Array from ["app", "contextRead", "contextEdit"]. Default to all three.
+
+Generate options that vary in specificity or approach. For example, one literal and one more creative interpretation.
+
+Return ONLY valid JSON matching this schema:
+{
+  "options": [{ "title": "...", "description": "...", "action_config": { "name": "...", "prompt": "...", "output_type": "...", "usage_scenes": [...] } }],
+  "allow_custom_input": true
+}`;
+
+    const llmPayload = {
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: transcript },
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
+      response_format: { type: "json_object" },
+    };
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const llmResponse = await fetch(azureURL.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "api-key": env.AZURE_API_KEY,
+      },
+      body: JSON.stringify(llmPayload),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!llmResponse.ok) {
+      const errorBody = await llmResponse.text();
+      console.error(`Azure OpenAI error: ${llmResponse.status} - ${errorBody}`);
+      return buildResponse(
+        JSON.stringify({ error: "Failed to generate options", detail: `Azure OpenAI returned ${llmResponse.status}` }),
+        500,
+        "application/json"
+      );
+    }
+
+    const llmResult = (await llmResponse.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = llmResult.choices?.[0]?.message?.content;
+
+    if (!content) {
+      return buildResponse(
+        JSON.stringify({ error: "Failed to generate options", detail: "Empty response from model" }),
+        500,
+        "application/json"
+      );
+    }
+
+    // Parse and validate the JSON response
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      return buildResponse(
+        JSON.stringify({ error: "Failed to parse model response", detail: "Invalid JSON" }),
+        500,
+        "application/json"
+      );
+    }
+
+    // Ensure options array exists
+    if (!Array.isArray(parsed.options)) {
+      parsed = { options: [], allow_custom_input: true };
+    }
+
+    const responseHeaders = new Headers();
+    applyCors(responseHeaders);
+    responseHeaders.set("Content-Type", "application/json");
+
+    return new Response(JSON.stringify(parsed), {
+      status: 200,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      return buildResponse(
+        JSON.stringify({ error: "Request timed out" }),
+        504,
+        "application/json"
+      );
+    }
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return buildResponse(
+      JSON.stringify({ error: "Voice-to-action request failed", message }),
       502,
       "application/json"
     );
