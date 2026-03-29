@@ -19721,6 +19721,9 @@
         }
       }
     },
+    "Translate to" : {
+      "comment" : "Label before the target language picker in the extension"
+    },
     "Translating..." : {
       "localizations" : {
         "ar" : {

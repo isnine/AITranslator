@@ -157,13 +157,35 @@
                 )
 
                 if let resolved = viewModel.resolvedTargetLanguage {
-                    HStack(spacing: 3) {
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 9, weight: .semibold))
-                        Text(resolved.primaryLabel)
-                            .font(.system(size: 13, weight: .medium))
+                    Menu {
+                        let preferred = AppPreferences.shared.targetLanguage
+                        if resolved != preferred {
+                            Button {
+                                viewModel.overrideTargetLanguage(preferred)
+                            } label: {
+                                Label(preferred.primaryLabel, systemImage: "arrow.uturn.backward")
+                            }
+                            Divider()
+                        }
+                        ForEach(TargetLanguageOption.selectionOptions.filter { $0 != resolved }) { option in
+                            Button(option.primaryLabel) {
+                                viewModel.overrideTargetLanguage(option)
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 9, weight: .semibold))
+                            Text(resolved.primaryLabel)
+                                .font(.system(size: 12, weight: .medium))
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 7))
+                                .opacity(0.6)
+                        }
+                        .foregroundColor(colors.textSecondary)
                     }
-                    .foregroundColor(colors.textSecondary)
+                    .fixedSize()
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
                 }
 
                 Spacer(minLength: 0)
