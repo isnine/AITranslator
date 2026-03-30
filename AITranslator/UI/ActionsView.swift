@@ -31,10 +31,11 @@ struct ActionsView: View {
     // Configuration import/export state
     @State private var isImportPresented = false
     @State private var isExportPresented = false
+    @State private var isExporting = false
     @State private var configurationDocument: ConfigurationDocument?
     @State private var importError: String?
     @State private var showExportSuccess = false
-    @State private var showResetToDefaultConfirmation = false
+    @State private var configEditorItem: ConfigEditorItem?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -141,27 +142,29 @@ struct ActionsView: View {
         } message: {
             Text("Configuration exported successfully.")
         }
-        .alert(
-            NSLocalizedString(
-                "Reset to Default?",
-                comment: "Reset configuration confirmation title"
-            ),
-            isPresented: $showResetToDefaultConfirmation
-        ) {
-            Button("Cancel", role: .cancel) {}
-            Button(
-                NSLocalizedString("Reset", comment: "Reset configuration button"),
-                role: .destructive
-            ) {
-                configurationStore.resetToDefault()
-            }
-        } message: {
-            Text(
-                NSLocalizedString(
-                    "This will replace your current actions with the built-in defaults. Any custom changes will be lost.",
-                    comment: "Reset configuration confirmation message"
-                )
+        .sheet(item: $configEditorItem) { item in
+            ConfigurationEditorView(
+                configInfo: item.configInfo,
+                initialText: item.text,
+                colors: colors,
+                onSave: { text in
+                    saveEditedConfiguration(text)
+                    configEditorItem = nil
+                },
+                onDismiss: {
+                    configEditorItem = nil
+                }
             )
+        }
+        .overlay {
+            if isExporting {
+                LoadingOverlay(
+                    backgroundColor: colors.background.opacity(0.85),
+                    messageFont: .system(size: 13),
+                    textColor: colors.textSecondary,
+                    accentColor: colors.accent
+                )
+            }
         }
     }
 
@@ -299,6 +302,14 @@ struct ActionsView: View {
     private var configMenu: some View {
         Menu {
             Button {
+                openConfigEditor()
+            } label: {
+                Label("Edit Configuration", systemImage: "doc.text")
+            }
+
+            Divider()
+
+            Button {
                 isImportPresented = true
             } label: {
                 Label("Import Configuration", systemImage: "square.and.arrow.down")
@@ -308,14 +319,6 @@ struct ActionsView: View {
                 prepareAndExport()
             } label: {
                 Label("Export Configuration", systemImage: "square.and.arrow.up")
-            }
-
-            Divider()
-
-            Button(role: .destructive) {
-                showResetToDefaultConfirmation = true
-            } label: {
-                Label("Reset to Default", systemImage: "arrow.counterclockwise")
             }
         } label: {
             Image(systemName: "ellipsis.circle")
@@ -437,17 +440,26 @@ struct ActionsView: View {
     }
 
     private func prepareAndExport() {
-        let config = ConfigurationService.shared.exportConfiguration(
-            from: configurationStore,
-            preferences: preferences
-        )
-        guard let data = config else { return }
+        isExporting = true
+        Task {
+            let config = ConfigurationService.shared.exportConfiguration(
+                from: configurationStore,
+                preferences: preferences
+            )
+            guard let data = config else {
+                isExporting = false
+                return
+            }
 
-        do {
-            configurationDocument = try ConfigurationDocument(data: data)
-            isExportPresented = true
-        } catch {
-            importError = error.localizedDescription
+            do {
+                let doc = try ConfigurationDocument(data: data)
+                configurationDocument = doc
+                isExporting = false
+                isExportPresented = true
+            } catch {
+                isExporting = false
+                importError = error.localizedDescription
+            }
         }
     }
 
@@ -506,6 +518,38 @@ struct ActionsView: View {
             counter += 1
         }
         return candidate
+    }
+
+    private func openConfigEditor() {
+        guard let jsonString = ConfigurationService.shared.exportConfigurationString(
+            from: configurationStore,
+            preferences: preferences
+        ) else { return }
+
+        let name = configurationStore.currentConfigurationName ?? "Configuration"
+        let info = ConfigurationFileInfo(
+            name: name,
+            url: URL(fileURLWithPath: "/"),
+            modifiedDate: Date()
+        )
+        configEditorItem = ConfigEditorItem(configInfo: info, text: jsonString)
+    }
+
+    private func saveEditedConfiguration(_ jsonString: String) {
+        let result = ConfigurationService.shared.importConfiguration(from: jsonString)
+        switch result {
+        case let .success(config):
+            let name = configurationStore.currentConfigurationName ?? "Default"
+            try? ConfigurationFileManager.shared.saveConfiguration(config, name: name)
+            ConfigurationService.shared.applyConfiguration(
+                config,
+                to: configurationStore,
+                preferences: preferences,
+                configurationName: name
+            )
+        case let .failure(error):
+            importError = error.localizedDescription
+        }
     }
 
     private func reorderAction(from sourceID: UUID, to destinationID: UUID) {

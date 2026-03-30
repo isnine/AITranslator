@@ -620,6 +620,7 @@ struct ConfigurationEditorView: View {
     @State private var editableText: String
     @State private var hasChanges = false
     @State private var showDiscardAlert = false
+    @State private var showResetConfirmation = false
     @State private var showValidationError = false
     @State private var validationErrorMessage = ""
     @Environment(\.dismiss) private var dismiss
@@ -664,6 +665,15 @@ struct ConfigurationEditorView: View {
                     Spacer()
 
                     HStack(spacing: 12) {
+                        Button {
+                            showResetConfirmation = true
+                        } label: {
+                            Label("Reset to Default", systemImage: "arrow.counterclockwise")
+                                .font(.system(size: 13))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundColor(colors.textSecondary)
+
                         Button("Cancel") {
                             handleCancel()
                         }
@@ -717,6 +727,14 @@ struct ConfigurationEditorView: View {
             } message: {
                 Text("You have unsaved changes. Are you sure you want to discard them?")
             }
+            .alert("Reset to Default?", isPresented: $showResetConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    resetToDefaultText()
+                }
+            } message: {
+                Text("This will replace the editor content with the built-in default configuration. Save to apply.")
+            }
             .alert("Validation Failed", isPresented: $showValidationError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -741,6 +759,18 @@ struct ConfigurationEditorView: View {
                                 handleCancel()
                             }
                         }
+                        ToolbarItem(placement: .principal) {
+                            Menu {
+                                Button(role: .destructive) {
+                                    showResetConfirmation = true
+                                } label: {
+                                    Label("Reset to Default", systemImage: "arrow.counterclockwise")
+                                }
+                            } label: {
+                                Text(configInfo.name)
+                                    .font(.headline)
+                            }
+                        }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Save") {
                                 validateAndSave()
@@ -761,6 +791,14 @@ struct ConfigurationEditorView: View {
             } message: {
                 Text("You have unsaved changes. Are you sure you want to discard them?")
             }
+            .alert("Reset to Default?", isPresented: $showResetConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    resetToDefaultText()
+                }
+            } message: {
+                Text("This will replace the editor content with the built-in default configuration. Save to apply.")
+            }
             .alert("Validation Failed", isPresented: $showValidationError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -774,6 +812,34 @@ struct ConfigurationEditorView: View {
             showDiscardAlert = true
         } else {
             onDismiss()
+        }
+    }
+
+    private func resetToDefaultText() {
+        let bundles = [
+            Bundle(for: ConfigurationFileManager.self),
+            Bundle.main,
+        ]
+        for bundle in bundles {
+            if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json"),
+               let data = try? Data(contentsOf: url)
+            {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                // Re-encode to get consistent pretty-printed output
+                if let config = try? JSONDecoder().decode(AppConfiguration.self, from: data),
+                   let formatted = try? encoder.encode(config),
+                   let text = String(data: formatted, encoding: .utf8)
+                {
+                    editableText = text
+                    return
+                }
+                // Fall back to raw file content
+                if let text = String(data: data, encoding: .utf8) {
+                    editableText = text
+                    return
+                }
+            }
         }
     }
 
