@@ -15,13 +15,13 @@ import SwiftUI
 #if canImport(PhotosUI)
     import PhotosUI
 #endif
-#if os(iOS)
+#if os(iOS) && !targetEnvironment(macCatalyst)
     import TranslationUIProvider
 #endif
 import UniformTypeIdentifiers
 import WebKit
 
-#if os(iOS)
+#if os(iOS) && !targetEnvironment(macCatalyst)
     public typealias AppTranslationContext = TranslationUIProviderContext
 #else
     public typealias AppTranslationContext = Never

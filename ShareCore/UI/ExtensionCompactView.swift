@@ -5,7 +5,7 @@
 //  Created by AI Assistant on 2026/01/04.
 //
 
-#if os(iOS)
+#if os(iOS) && !targetEnvironment(macCatalyst)
     import SwiftUI
     import TranslationUIProvider
 
