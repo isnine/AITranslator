@@ -441,24 +441,28 @@ struct ActionsView: View {
 
     private func prepareAndExport() {
         isExporting = true
-        Task {
-            let config = ConfigurationService.shared.exportConfiguration(
-                from: configurationStore,
-                preferences: preferences
-            )
-            guard let data = config else {
-                isExporting = false
+        let actions = configurationStore.actions
+        Task.detached {
+            let entries = actions.map { AppConfiguration.ActionEntry.from($0) }
+            let appConfig = AppConfiguration(actions: entries)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            guard let data = try? encoder.encode(appConfig) else {
+                await MainActor.run { isExporting = false }
                 return
             }
-
             do {
                 let doc = try ConfigurationDocument(data: data)
-                configurationDocument = doc
-                isExporting = false
-                isExportPresented = true
+                await MainActor.run {
+                    configurationDocument = doc
+                    isExporting = false
+                    isExportPresented = true
+                }
             } catch {
-                isExporting = false
-                importError = error.localizedDescription
+                await MainActor.run {
+                    isExporting = false
+                    importError = error.localizedDescription
+                }
             }
         }
     }
@@ -521,18 +525,30 @@ struct ActionsView: View {
     }
 
     private func openConfigEditor() {
-        guard let jsonString = ConfigurationService.shared.exportConfigurationString(
-            from: configurationStore,
-            preferences: preferences
-        ) else { return }
-
+        isExporting = true
+        let actions = configurationStore.actions
         let name = configurationStore.currentConfigurationName ?? "Configuration"
-        let info = ConfigurationFileInfo(
-            name: name,
-            url: URL(fileURLWithPath: "/"),
-            modifiedDate: Date()
-        )
-        configEditorItem = ConfigEditorItem(configInfo: info, text: jsonString)
+        Task.detached {
+            let entries = actions.map { AppConfiguration.ActionEntry.from($0) }
+            let appConfig = AppConfiguration(actions: entries)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            guard let data = try? encoder.encode(appConfig),
+                  let jsonString = String(data: data, encoding: .utf8)
+            else {
+                await MainActor.run { isExporting = false }
+                return
+            }
+            await MainActor.run {
+                isExporting = false
+                let info = ConfigurationFileInfo(
+                    name: name,
+                    url: URL(fileURLWithPath: "/"),
+                    modifiedDate: Date()
+                )
+                configEditorItem = ConfigEditorItem(configInfo: info, text: jsonString)
+            }
+        }
     }
 
     private func saveEditedConfiguration(_ jsonString: String) {
