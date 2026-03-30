@@ -147,7 +147,7 @@ public enum ConfigurationMigrator {
     // MARK: - Version comparison helpers
 
     /// Simple semver "less-than" check (major.minor.patch).
-    private static func versionCompare(
+    static func versionCompare(
         _ lhs: String,
         isLessThan rhs: String
     ) -> Bool {
@@ -158,7 +158,7 @@ public enum ConfigurationMigrator {
         return l.patch < r.patch
     }
 
-    private static func parseVersion(
+    static func parseVersion(
         _ version: String
     ) -> (major: Int, minor: Int, patch: Int) {
         let parts = version.split(separator: ".").compactMap { Int($0) }

@@ -284,7 +284,7 @@
                             showModelName: showModelName,
                             viewModel: viewModel,
                             onCopy: { text in
-                                UIPasteboard.general.string = text
+                                PasteboardHelper.copy(text)
                             },
                             onReplace: context.allowsReplacement ? { text in
                                 context.finish(translation: AttributedString(text))

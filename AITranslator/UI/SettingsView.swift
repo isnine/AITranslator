@@ -816,30 +816,23 @@ struct ConfigurationEditorView: View {
     }
 
     private func resetToDefaultText() {
-        let bundles = [
-            Bundle(for: ConfigurationFileManager.self),
-            Bundle.main,
-        ]
-        for bundle in bundles {
-            if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json"),
-               let data = try? Data(contentsOf: url)
-            {
-                let encoder = JSONEncoder()
-                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-                // Re-encode to get consistent pretty-printed output
-                if let config = try? JSONDecoder().decode(AppConfiguration.self, from: data),
-                   let formatted = try? encoder.encode(config),
-                   let text = String(data: formatted, encoding: .utf8)
-                {
-                    editableText = text
-                    return
-                }
-                // Fall back to raw file content
-                if let text = String(data: data, encoding: .utf8) {
-                    editableText = text
-                    return
-                }
-            }
+        guard let url = ConfigurationFileManager.bundledDefaultConfigURL(),
+              let data = try? Data(contentsOf: url)
+        else { return }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        // Re-encode to get consistent pretty-printed output
+        if let config = try? JSONDecoder().decode(AppConfiguration.self, from: data),
+           let formatted = try? encoder.encode(config),
+           let text = String(data: formatted, encoding: .utf8)
+        {
+            editableText = text
+            return
+        }
+        // Fall back to raw file content
+        if let text = String(data: data, encoding: .utf8) {
+            editableText = text
         }
     }
 

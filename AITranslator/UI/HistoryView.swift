@@ -17,6 +17,7 @@ struct HistoryView: View {
     @State private var records: [TranslationRecord] = []
     @State private var expandedRecordIDs: Set<UUID> = []
     @State private var showDeleteAllConfirmation = false
+    @State private var isVisible = false
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -44,14 +45,20 @@ struct HistoryView: View {
             .toolbar(.hidden, for: .navigationBar)
         #endif
             .onAppear {
+                isVisible = true
                 refreshRecords()
+            }
+            .onDisappear {
+                isVisible = false
             }
             #if os(iOS)
             .onReceive(NotificationCenter.default.publisher(for: UIScene.didActivateNotification)) { _ in
+                guard isVisible else { return }
                 refreshRecords()
             }
             #else
             .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                guard isVisible else { return }
                 refreshRecords()
             }
             #endif

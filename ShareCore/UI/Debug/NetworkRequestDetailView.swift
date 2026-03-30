@@ -186,12 +186,7 @@
 
         var body: some View {
             Button {
-                #if os(iOS)
-                    UIPasteboard.general.string = text
-                #elseif os(macOS)
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(text, forType: .string)
-                #endif
+                PasteboardHelper.copy(text)
                 copied = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                     copied = false

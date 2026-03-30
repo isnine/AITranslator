@@ -423,20 +423,12 @@ struct ActionsView: View {
 
     private var exportFilename: String {
         let baseName = configurationStore.currentConfigurationName ?? "Configuration"
-        let sanitized = sanitizeExportFilename(baseName)
-        if sanitized.lowercased().hasSuffix(".json") {
-            return sanitized
+        let sanitized = ConfigurationFileManager.sanitizeFilename(baseName)
+        let result = sanitized.isEmpty ? "Configuration" : sanitized
+        if result.lowercased().hasSuffix(".json") {
+            return result
         }
-        return "\(sanitized).json"
-    }
-
-    private func sanitizeExportFilename(_ name: String) -> String {
-        let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>:")
-        let sanitized = name
-            .components(separatedBy: invalidCharacters)
-            .joined()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return sanitized.isEmpty ? "Configuration" : sanitized
+        return "\(result).json"
     }
 
     private func prepareAndExport() {

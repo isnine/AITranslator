@@ -24,6 +24,8 @@ public struct ImageAttachment: Identifiable, Sendable {
     public let imageData: Data
     /// Original image dimensions before compression
     public let originalSize: CGSize
+    /// Pre-computed data URL suitable for OpenAI vision API: `data:image/jpeg;base64,...`
+    public let base64DataURL: String
 
     /// Maximum dimension (width or height) for resizing before sending to LLM
     public static let maxDimension: CGFloat = 2048
@@ -34,11 +36,7 @@ public struct ImageAttachment: Identifiable, Sendable {
         self.id = id
         self.imageData = imageData
         self.originalSize = originalSize
-    }
-
-    /// Data URL suitable for OpenAI vision API: `data:image/jpeg;base64,...`
-    public var base64DataURL: String {
-        "data:image/jpeg;base64,\(imageData.base64EncodedString())"
+        self.base64DataURL = "data:image/jpeg;base64,\(imageData.base64EncodedString())"
     }
 
     /// Estimated size in megabytes

@@ -927,6 +927,18 @@ public final class HomeViewModel: ObservableObject {
         perRunTasks.values.forEach { $0.cancel() }
     }
 
+    /// Consumes `targetLanguageOverride` if set, otherwise auto-detects from `text`.
+    private func consumeResolvedTarget(for text: String) -> TargetLanguageOption {
+        if let override = targetLanguageOverride {
+            targetLanguageOverride = nil
+            return override
+        }
+        return SourceLanguageDetector.resolveTargetLanguage(
+            for: text,
+            preferred: AppPreferences.shared.targetLanguage
+        )
+    }
+
     private func executeSingleModelRequest(
         runID: String,
         requestID: UUID,
@@ -937,18 +949,7 @@ public final class HomeViewModel: ObservableObject {
     ) async {
         guard !Task.isCancelled else { return }
 
-        // Resolve target language (same logic as batch requests)
-        let preferred = AppPreferences.shared.targetLanguage
-        let resolvedTarget: TargetLanguageOption
-        if let override = targetLanguageOverride {
-            resolvedTarget = override
-            targetLanguageOverride = nil
-        } else {
-            resolvedTarget = SourceLanguageDetector.resolveTargetLanguage(
-                for: text,
-                preferred: preferred
-            )
-        }
+        let resolvedTarget = consumeResolvedTarget(for: text)
         let targetLanguageDescriptor = resolvedTarget.promptDescriptor
 
         let _ = await llmService.perform(
@@ -1002,23 +1003,11 @@ public final class HomeViewModel: ObservableObject {
     ) async {
         guard !Task.isCancelled else { return }
 
-        // Resolve target language: use manual override if set,
-        // otherwise detect source and auto-switch if source == target
-        let preferred = AppPreferences.shared.targetLanguage
-        let resolvedTarget: TargetLanguageOption
-        if let override = targetLanguageOverride {
-            resolvedTarget = override
-            targetLanguageOverride = nil
-        } else {
-            resolvedTarget = SourceLanguageDetector.resolveTargetLanguage(
-                for: text,
-                preferred: preferred
-            )
-        }
+        let resolvedTarget = consumeResolvedTarget(for: text)
         let targetLanguageDescriptor = resolvedTarget.promptDescriptor
 
         // Surface the resolved language in the UI only when it differs from the preference
-        if resolvedTarget != preferred {
+        if resolvedTarget != AppPreferences.shared.targetLanguage {
             resolvedTargetLanguage = resolvedTarget
         }
 

@@ -28,13 +28,15 @@ public final class LLMService {
         self.urlSession = urlSession
     }
 
+    private static let suggestionsRegex = try! NSRegularExpression(
+        pattern: #"\[SUGGESTIONS:\s*(.+?)\]"#,
+        options: [.caseInsensitive]
+    )
+
     /// Extracts suggested actions from response text and returns (cleanedText, suggestions).
     /// Looks for pattern: [SUGGESTIONS: action1 | action2 | action3]
     static func extractSuggestedActions(from text: String) -> (String, [String]) {
-        let pattern = #"\[SUGGESTIONS:\s*(.+?)\]"#
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
-            return (text, [])
-        }
+        let regex = suggestionsRegex
         let nsText = text as NSString
         let range = NSRange(location: 0, length: nsText.length)
         guard let match = regex.firstMatch(in: text, options: [], range: range) else {
@@ -215,18 +217,7 @@ public final class LLMService {
                let responseFormat = structuredOutputConfig.responseFormatPayload()
             {
                 // For structured output, we must use JSONSerialization to include response_format.
-                // Build message dicts manually, supporting multimodal content.
-                let messageDicts: [[String: Any]] = messages.map { msg in
-                    // Encode the message to JSON data first, then deserialize to dict
-                    // This leverages the custom Encodable to handle both text and parts
-                    if let data = try? JSONEncoder().encode(msg),
-                       let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-                    {
-                        return dict
-                    }
-                    // Fallback: text-only
-                    return ["role": msg.role, "content": msg.textContent]
-                }
+                let messageDicts: [[String: Any]] = messages.map { $0.toDictionary() }
 
                 var body: [String: Any] = [
                     "messages": messageDicts,

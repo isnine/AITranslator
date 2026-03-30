@@ -105,6 +105,25 @@ public struct LLMRequestPayload: Encodable {
                 let url: String
             }
         }
+
+        /// Builds a `[String: Any]` dictionary for use with JSONSerialization (e.g. structured output).
+        /// Avoids the round-trip of JSONEncoder → JSONSerialization.jsonObject.
+        func toDictionary() -> [String: Any] {
+            switch contentValue {
+            case .text(let str):
+                return ["role": role, "content": str]
+            case .parts(let parts):
+                let partsArray: [[String: Any]] = parts.map { part in
+                    switch part {
+                    case .text(let text):
+                        return ["type": "text", "text": text]
+                    case .imageURL(let url):
+                        return ["type": "image_url", "image_url": ["url": url]]
+                    }
+                }
+                return ["role": role, "content": partsArray]
+            }
+        }
     }
 
     public let messages: [Message]

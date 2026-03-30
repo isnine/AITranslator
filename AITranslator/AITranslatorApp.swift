@@ -40,7 +40,7 @@ struct AITranslatorApp: App {
     }
 
     static var isSnapshotMode: Bool {
-        ProcessInfo.processInfo.arguments.contains("-FASTLANE_SNAPSHOT")
+        HomeViewModel.isSnapshotMode
     }
 
     var body: some Scene {

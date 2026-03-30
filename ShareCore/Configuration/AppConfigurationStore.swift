@@ -254,20 +254,8 @@ public final class AppConfigurationStore: ObservableObject {
 
     /// Check if a configuration version is compatible (>= 1.1.0)
     private func isVersionCompatible(_ version: String) -> Bool {
-        let components = version.split(separator: ".").compactMap { Int($0) }
-        let minComponents = Self.minimumVersion.split(separator: ".").compactMap { Int($0) }
-
-        guard components.count >= 2 && minComponents.count >= 2 else {
-            return false
-        }
-
-        // Compare major version
-        if components[0] > minComponents[0] { return true }
-        if components[0] < minComponents[0] { return false }
-
-        // Compare minor version
-        if components[1] >= minComponents[1] { return true }
-        return false
+        // version >= minimumVersion  ⟺  !(version < minimumVersion)
+        !ConfigurationMigrator.versionCompare(version, isLessThan: Self.minimumVersion)
     }
 
     private func tryLoadConfiguration(named name: String) -> Bool {
@@ -418,26 +406,18 @@ public final class AppConfigurationStore: ObservableObject {
 
     /// Load the bundled DefaultConfiguration.json as a fallback
     public func loadBundledDefault() {
-        let bundles = [
-            Bundle(for: ConfigurationFileManager.self),
-            Bundle.main,
-        ]
-
-        for bundle in bundles {
-            if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json"),
-               let data = try? Data(contentsOf: url),
-               let config = try? JSONDecoder().decode(AppConfiguration.self, from: data)
-            {
-                applyLoadedConfiguration(config)
-                currentConfigurationName = nil
-                Logger.debug("[ConfigStore] Loaded bundled default configuration")
-                return
-            }
+        guard let url = ConfigurationFileManager.bundledDefaultConfigURL(),
+              let data = try? Data(contentsOf: url),
+              let config = try? JSONDecoder().decode(AppConfiguration.self, from: data)
+        else {
+            Logger.debug("[ConfigStore] ❌ Failed to load bundled default configuration")
+            actions = []
+            currentConfigurationName = nil
+            return
         }
-
-        Logger.debug("[ConfigStore] ❌ Failed to load bundled default configuration")
-        actions = []
+        applyLoadedConfiguration(config)
         currentConfigurationName = nil
+        Logger.debug("[ConfigStore] Loaded bundled default configuration")
     }
 
     private func buildCurrentConfiguration() -> AppConfiguration {

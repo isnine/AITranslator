@@ -109,6 +109,20 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         ensuredDirectories.insert(path)
     }
 
+    /// Locates the bundled DefaultConfiguration.json, searching ShareCore's bundle first then main.
+    public static func bundledDefaultConfigURL() -> URL? {
+        let bundles = [
+            Bundle(for: ConfigurationFileManager.self),
+            Bundle.main,
+        ]
+        for bundle in bundles {
+            if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json") {
+                return url
+            }
+        }
+        return nil
+    }
+
     /// Copy the bundled default configuration to the configurations directory if it doesn't exist
     /// - Parameter name: The name for the configuration file (without .json extension)
     /// - Returns: true if configuration already exists or was successfully copied
@@ -118,25 +132,12 @@ public final class ConfigurationFileManager: @unchecked Sendable {
             return true
         }
 
-        let bundles = [
-            Bundle(for: ConfigurationFileManager.self),
-            Bundle.main,
-        ]
-
-        var bundledURL: URL?
-        for bundle in bundles {
-            if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json") {
-                bundledURL = url
-                break
-            }
-        }
-
-        guard let bundledURL else {
+        guard let bundledURL = Self.bundledDefaultConfigURL() else {
             Logger.debug("[ConfigFileManager] ❌ Bundled default config not found in any bundle")
             return false
         }
 
-        let sanitizedName = sanitizeFilename(name)
+        let sanitizedName = Self.sanitizeFilename(name)
         let targetURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
 
         do {
@@ -308,7 +309,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         _ config: AppConfiguration,
         name: String
     ) throws {
-        let sanitizedName = sanitizeFilename(name)
+        let sanitizedName = Self.sanitizeFilename(name)
         let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
 
         let encoder = JSONEncoder()
@@ -326,7 +327,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
     /// Load a configuration by name
     public func loadConfiguration(named name: String) throws -> AppConfiguration {
-        let sanitizedName = sanitizeFilename(name)
+        let sanitizedName = Self.sanitizeFilename(name)
         let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
         return try loadConfiguration(from: fileURL)
     }
@@ -338,7 +339,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
     /// Delete a configuration by name
     public func deleteConfiguration(named name: String) throws {
-        let sanitizedName = sanitizeFilename(name)
+        let sanitizedName = Self.sanitizeFilename(name)
         let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
         try fileManager.removeItem(at: fileURL)
     }
@@ -360,7 +361,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         let name = generateUniqueName(base: "Default Template")
         try saveConfiguration(config, name: name)
 
-        return configurationsDirectory.appendingPathComponent("\(sanitizeFilename(name)).json")
+        return configurationsDirectory.appendingPathComponent("\(Self.sanitizeFilename(name)).json")
     }
 
     /// Duplicate an existing configuration with a new name
@@ -369,27 +370,12 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         let sourceName = sourceURL.deletingPathExtension().lastPathComponent
         let newName = generateUniqueName(base: "\(sourceName) Copy")
         try saveConfiguration(sourceConfig, name: newName)
-        return configurationsDirectory.appendingPathComponent("\(sanitizeFilename(newName)).json")
+        return configurationsDirectory.appendingPathComponent("\(Self.sanitizeFilename(newName)).json")
     }
 
     /// Create a new configuration from the bundled default template
     public func createFromDefaultTemplate() throws -> URL {
-        // Find bundled default configuration
-        // Use ShareCore's bundle first, then fallback to main bundle
-        let shareCoreBundles = [
-            Bundle(for: ConfigurationFileManager.self), // ShareCore framework bundle
-            Bundle.main, // Fallback to main bundle for main app
-        ]
-
-        var bundleURL: URL?
-        for bundle in shareCoreBundles {
-            if let url = bundle.url(forResource: "DefaultConfiguration", withExtension: "json") {
-                bundleURL = url
-                break
-            }
-        }
-
-        guard let bundleURL else {
+        guard let bundleURL = Self.bundledDefaultConfigURL() else {
             throw ConfigurationError.bundledConfigNotFound
         }
 
@@ -400,7 +386,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         let name = generateUniqueName(base: "New Configuration")
         try saveConfiguration(bundledConfig, name: name)
 
-        return configurationsDirectory.appendingPathComponent("\(sanitizeFilename(name)).json")
+        return configurationsDirectory.appendingPathComponent("\(Self.sanitizeFilename(name)).json")
     }
 
     /// Generate a unique name if the base name already exists
@@ -422,7 +408,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     }
 
     /// Sanitize a filename to remove invalid characters
-    private func sanitizeFilename(_ name: String) -> String {
+    public static func sanitizeFilename(_ name: String) -> String {
         let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>:")
         return name
             .components(separatedBy: invalidCharacters)
@@ -485,7 +471,7 @@ public struct ConfigurationFileChangeEvent: Sendable {
 public extension ConfigurationFileManager {
     /// Start monitoring a configuration file for external changes
     func startMonitoring(configurationNamed name: String) {
-        let sanitizedName = sanitizeFilename(name)
+        let sanitizedName = Self.sanitizeFilename(name)
         let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
         startMonitoring(url: fileURL)
     }
@@ -566,7 +552,7 @@ public extension ConfigurationFileManager {
 
     /// Stop monitoring a configuration by name
     func stopMonitoring(configurationNamed name: String) {
-        let sanitizedName = sanitizeFilename(name)
+        let sanitizedName = Self.sanitizeFilename(name)
         let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
         stopMonitoring(url: fileURL)
     }
@@ -593,7 +579,7 @@ public extension ConfigurationFileManager {
 
     /// Get the file URL for a configuration name
     func configurationURL(forName name: String) -> URL {
-        let sanitizedName = sanitizeFilename(name)
+        let sanitizedName = Self.sanitizeFilename(name)
         return configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
     }
 
