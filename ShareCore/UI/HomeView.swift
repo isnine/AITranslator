@@ -15,13 +15,13 @@ import SwiftUI
 #if canImport(PhotosUI)
     import PhotosUI
 #endif
-#if canImport(TranslationUIProvider)
+#if os(iOS)
     import TranslationUIProvider
 #endif
 import UniformTypeIdentifiers
 import WebKit
 
-#if canImport(TranslationUIProvider)
+#if os(iOS)
     public typealias AppTranslationContext = TranslationUIProviderContext
 #else
     public typealias AppTranslationContext = Never
@@ -52,7 +52,7 @@ public struct HomeView: View {
     #endif
 
     var openFromExtension: Bool {
-        #if canImport(TranslationUIProvider)
+        #if os(iOS)
             return context != nil
         #else
             return false
@@ -73,7 +73,7 @@ public struct HomeView: View {
     }
 
     private var usageScene: ActionConfig.UsageScene {
-        #if canImport(TranslationUIProvider)
+        #if os(iOS)
             guard let context else { return .app }
             return context.allowsReplacement ? .contextEdit : .contextRead
         #else
@@ -90,7 +90,7 @@ public struct HomeView: View {
     }
 
     private var initialContextInput: String? {
-        #if canImport(TranslationUIProvider)
+        #if os(iOS)
             guard let inputText = context?.inputText else { return nil }
             return String(inputText.characters)
         #else
@@ -101,7 +101,7 @@ public struct HomeView: View {
     public init(context: AppTranslationContext? = nil) {
         self.context = context
         let initialScene: ActionConfig.UsageScene
-        #if canImport(TranslationUIProvider)
+        #if os(iOS)
             if let context {
                 initialScene = context.allowsReplacement ? .contextEdit : .contextRead
             } else {
@@ -111,7 +111,7 @@ public struct HomeView: View {
             initialScene = .app
         #endif
         _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
-        #if canImport(TranslationUIProvider)
+        #if os(iOS)
             _isInputExpanded = State(initialValue: context == nil)
         #else
             _isInputExpanded = State(initialValue: true)
@@ -176,7 +176,7 @@ public struct HomeView: View {
                 #endif
             }
 
-            #if canImport(TranslationUIProvider)
+            #if os(iOS)
                 // For extension context: refresh configuration first, then execute
                 if openFromExtension, !hasTriggeredAutoRequest {
                     viewModel.refreshConfiguration()
@@ -215,7 +215,7 @@ public struct HomeView: View {
         .onChange(of: openFromExtension) {
             viewModel.updateUsageScene(usageScene)
         }
-        #if canImport(TranslationUIProvider)
+        #if os(iOS)
         .onChange(of: context?.allowsReplacement ?? false) {
             viewModel.updateUsageScene(usageScene)
         }
@@ -847,7 +847,7 @@ public struct HomeView: View {
         diffToggleButton(for: runID)
         compactCopyButton(for: copyText)
         chatButton(for: runID)
-        #if canImport(TranslationUIProvider)
+        #if os(iOS)
             if let context, context.allowsReplacement {
                 Button {
                     context.finish(translation: AttributedString(copyText))

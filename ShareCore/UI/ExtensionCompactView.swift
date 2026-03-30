@@ -5,7 +5,7 @@
 //  Created by AI Assistant on 2026/01/04.
 //
 
-#if canImport(UIKit) && canImport(TranslationUIProvider)
+#if os(iOS)
     import SwiftUI
     import TranslationUIProvider
 
