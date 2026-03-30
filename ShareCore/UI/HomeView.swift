@@ -731,7 +731,7 @@ public struct HomeView: View {
         for run: HomeViewModel.ModelRunViewState
     ) -> some View {
         let runID = run.id
-        let showModelName = viewModel.modelRuns.count > 1
+        let showModelName = true
 
         switch run.status {
         case .idle, .running:

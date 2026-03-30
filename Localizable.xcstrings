@@ -5236,6 +5236,9 @@
     "e.g. \"Translate to formal Japanese and show side-by-side comparison\"" : {
       "comment" : "Voice recording example"
     },
+    "Edit Configuration" : {
+
+    },
     "Edit JSON configuration" : {
       "localizations" : {
         "ar" : {
@@ -19242,8 +19245,12 @@
         }
       }
     },
+    "This will replace the editor content with the built-in default configuration. Save to apply." : {
+
+    },
     "This will replace your current actions with the built-in defaults. Any custom changes will be lost." : {
       "comment" : "Reset configuration confirmation message",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

@@ -267,7 +267,7 @@
 
         @ViewBuilder
         private var resultSection: some View {
-            let showModelName = viewModel.modelRuns.count > 1
+            let showModelName = true
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(viewModel.modelRuns) { run in
