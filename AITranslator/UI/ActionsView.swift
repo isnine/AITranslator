@@ -441,9 +441,10 @@ struct ActionsView: View {
 
     private func prepareAndExport() {
         isExporting = true
-        let actions = configurationStore.actions
+        // Convert to Sendable entries on main thread (lightweight)
+        let entries = configurationStore.actions.map { AppConfiguration.ActionEntry.from($0) }
+        // Heavy JSON encoding runs off main thread
         Task.detached {
-            let entries = actions.map { AppConfiguration.ActionEntry.from($0) }
             let appConfig = AppConfiguration(actions: entries)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -526,10 +527,11 @@ struct ActionsView: View {
 
     private func openConfigEditor() {
         isExporting = true
-        let actions = configurationStore.actions
+        // Convert to Sendable entries on main thread (lightweight)
+        let entries = configurationStore.actions.map { AppConfiguration.ActionEntry.from($0) }
         let name = configurationStore.currentConfigurationName ?? "Configuration"
+        // Heavy JSON encoding runs off main thread
         Task.detached {
-            let entries = actions.map { AppConfiguration.ActionEntry.from($0) }
             let appConfig = AppConfiguration(actions: entries)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
