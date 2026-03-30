@@ -6,27 +6,23 @@
 import AVFoundation
 import Combine
 import Foundation
-import Speech
 #if canImport(UIKit)
     import UIKit
 #endif
 
 public enum SpeechRecognitionError: Error, LocalizedError {
-    case notAvailable
     case permissionDenied
     case audioEngineError(String)
-    case recognitionFailed(String)
+    case transcriptionFailed(String)
 
     public var errorDescription: String? {
         switch self {
-        case .notAvailable:
-            return "Speech recognition is not available on this device"
         case .permissionDenied:
-            return "Speech recognition or microphone permission was denied"
+            return "Microphone permission was denied"
         case let .audioEngineError(detail):
             return "Audio engine error: \(detail)"
-        case let .recognitionFailed(detail):
-            return "Recognition failed: \(detail)"
+        case let .transcriptionFailed(detail):
+            return "Transcription failed: \(detail)"
         }
     }
 }
@@ -34,6 +30,7 @@ public enum SpeechRecognitionError: Error, LocalizedError {
 public final class SpeechRecognitionService: NSObject, ObservableObject {
     public enum State: Equatable {
         case idle
+        case preparing
         case recording
         case paused
         case processing
@@ -42,15 +39,16 @@ public final class SpeechRecognitionService: NSObject, ObservableObject {
     @Published public private(set) var transcript: String = ""
     @Published public private(set) var state: State = .idle
     @Published public private(set) var error: SpeechRecognitionError?
+    @Published public private(set) var recordingDuration: TimeInterval = 0
 
     private let audioEngine = AVAudioEngine()
-    private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
-    private var recognitionTask: SFSpeechRecognitionTask?
-    private let speechRecognizer: SFSpeechRecognizer?
+    private var audioFile: AVAudioFile?
+    private var audioFileURL: URL?
     private var backgroundTime: Date?
+    private var recordingStartTime: Date?
+    private var durationTimer: Timer?
 
     override public init() {
-        speechRecognizer = SFSpeechRecognizer()
         super.init()
         registerForAppLifecycle()
     }
@@ -63,16 +61,6 @@ public final class SpeechRecognitionService: NSObject, ObservableObject {
 
     @MainActor
     public func requestAuthorization() async -> Bool {
-        let speechStatus = await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
-                continuation.resume(returning: status)
-            }
-        }
-        guard speechStatus == .authorized else {
-            error = .permissionDenied
-            return false
-        }
-
         #if os(iOS)
             let micStatus = await AVAudioApplication.requestRecordPermission()
             guard micStatus else {
@@ -80,98 +68,135 @@ public final class SpeechRecognitionService: NSObject, ObservableObject {
                 return false
             }
         #endif
-
-        guard speechRecognizer?.isAvailable == true else {
-            error = .notAvailable
-            return false
-        }
-
         return true
     }
 
     // MARK: - Recording
 
     @MainActor
-    public func startRecording() throws {
+    public func startRecording() async {
         guard state == .idle else { return }
-        guard let speechRecognizer, speechRecognizer.isAvailable else {
-            throw SpeechRecognitionError.notAvailable
-        }
 
-        // Reset
+        state = .preparing
         transcript = ""
         error = nil
+        recordingDuration = 0
 
-        let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        recognitionRequest.shouldReportPartialResults = true
-        self.recognitionRequest = recognitionRequest
+        do {
+            // Yield so SwiftUI can render the preparing state
+            await Task.yield()
 
-        let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension("m4a")
+            audioFileURL = tempURL
 
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            self?.recognitionRequest?.append(buffer)
-        }
+            #if os(iOS)
+                let audioSession = AVAudioSession.sharedInstance()
+                try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+                try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            #endif
 
-        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, taskError in
-            guard let self else { return }
-            if let result {
-                Task { @MainActor in
-                    self.transcript = result.bestTranscription.formattedString
-                }
+            let inputNode = audioEngine.inputNode
+            let recordingFormat = inputNode.outputFormat(forBus: 0)
+
+            let outputSettings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey: recordingFormat.sampleRate,
+                AVNumberOfChannelsKey: Int(recordingFormat.channelCount),
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue,
+            ]
+
+            audioFile = try AVAudioFile(forWriting: tempURL, settings: outputSettings)
+
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+                try? self?.audioFile?.write(from: buffer)
             }
-            if taskError != nil || (result?.isFinal ?? false) {
-                Task { @MainActor in
-                    if self.state == .recording {
-                        self.finishRecording()
-                    }
-                }
-            }
+
+            audioEngine.prepare()
+            try audioEngine.start()
+            state = .recording
+            recordingStartTime = Date()
+            startDurationTimer()
+        } catch {
+            self.error = .audioEngineError(error.localizedDescription)
+            state = .idle
+            cleanupAudioFile()
         }
-
-        #if os(iOS)
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        #endif
-
-        audioEngine.prepare()
-        try audioEngine.start()
-        state = .recording
     }
 
     @MainActor
     public func stopRecording() {
         guard state == .recording || state == .paused else { return }
         state = .processing
+        stopDurationTimer()
         finishRecording()
+
+        guard let audioFileURL else {
+            state = .idle
+            return
+        }
+
+        Task {
+            do {
+                let text = try await WhisperService.shared.transcribe(audioFileURL: audioFileURL)
+                await MainActor.run {
+                    self.transcript = text
+                }
+            } catch {
+                await MainActor.run {
+                    self.error = .transcriptionFailed(error.localizedDescription)
+                    self.state = .idle
+                }
+                return
+            }
+            cleanupAudioFile()
+        }
     }
 
     @MainActor
     public func cancelRecording() {
+        stopDurationTimer()
+        if state == .recording || state == .paused {
+            finishRecording()
+        }
         state = .idle
-        finishRecording()
         transcript = ""
+        cleanupAudioFile()
     }
+
+    // MARK: - Private
 
     @MainActor
     private func finishRecording() {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-        recognitionRequest = nil
-        recognitionTask = nil
+        audioFile = nil
 
         #if os(iOS)
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         #endif
+    }
 
-        if state == .processing, transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            state = .idle
-        } else if state == .processing {
-            // Keep .processing — caller reads transcript
+    private func cleanupAudioFile() {
+        guard let url = audioFileURL else { return }
+        try? FileManager.default.removeItem(at: url)
+        audioFileURL = nil
+    }
+
+    private func startDurationTimer() {
+        durationTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            guard let self, let start = self.recordingStartTime else { return }
+            Task { @MainActor in
+                self.recordingDuration = Date().timeIntervalSince(start)
+            }
         }
+    }
+
+    private func stopDurationTimer() {
+        durationTimer?.invalidate()
+        durationTimer = nil
+        recordingStartTime = nil
     }
 
     // MARK: - App Lifecycle

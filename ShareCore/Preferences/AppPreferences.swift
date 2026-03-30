@@ -22,11 +22,11 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var currentConfigName: String?
     @Published public private(set) var useICloudForConfig: Bool
     @Published public private(set) var defaultAppHintDismissed: Bool
+    @Published public private(set) var voiceActionHintDismissed: Bool
     @Published public private(set) var enabledModelIDs: Set<String>
     @Published public private(set) var selectedVoiceID: String
     @Published public private(set) var isPremium: Bool
     @Published public private(set) var hasAcceptedDataSharing: Bool
-    @Published public private(set) var disableStreaming: Bool
     @Published public private(set) var accentTheme: AccentTheme
     #if os(macOS)
         @Published public private(set) var keepRunningWhenClosed: Bool
@@ -42,11 +42,11 @@ public final class AppPreferences: ObservableObject {
         currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
         useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
         defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
+        voiceActionHintDismissed = defaults.bool(forKey: StorageKeys.voiceActionHintDismissed)
         enabledModelIDs = AppPreferences.readEnabledModelIDs(from: defaults)
         selectedVoiceID = defaults.string(forKey: StorageKeys.selectedVoiceID) ?? VoiceConfig.defaultVoiceID
         isPremium = defaults.bool(forKey: StorageKeys.isPremium)
         hasAcceptedDataSharing = defaults.bool(forKey: StorageKeys.hasAcceptedDataSharing)
-        disableStreaming = defaults.bool(forKey: StorageKeys.disableStreaming)
         accentTheme = AppPreferences.readAccentTheme(from: defaults)
 
         // Clean up stale custom directory bookmark data from previous versions
@@ -122,6 +122,13 @@ public final class AppPreferences: ObservableObject {
         defaults.set(dismissed, forKey: StorageKeys.defaultAppHintDismissed)
     }
 
+    public func setVoiceActionHintDismissed(_ dismissed: Bool) {
+        guard voiceActionHintDismissed != dismissed else { return }
+
+        voiceActionHintDismissed = dismissed
+        defaults.set(dismissed, forKey: StorageKeys.voiceActionHintDismissed)
+    }
+
     #if os(macOS)
         public func setKeepRunningWhenClosed(_ keepRunning: Bool) {
             guard keepRunningWhenClosed != keepRunning else { return }
@@ -156,15 +163,6 @@ public final class AppPreferences: ObservableObject {
 
         hasAcceptedDataSharing = accepted
         defaults.set(accepted, forKey: StorageKeys.hasAcceptedDataSharing)
-    }
-
-    // MARK: - Streaming
-
-    public func setDisableStreaming(_ disabled: Bool) {
-        guard disableStreaming != disabled else { return }
-
-        disableStreaming = disabled
-        defaults.set(disabled, forKey: StorageKeys.disableStreaming)
     }
 
     // MARK: - Accent Theme
@@ -252,14 +250,14 @@ public final class AppPreferences: ObservableObject {
             hasAcceptedDataSharing = storedHasAcceptedDataSharing
         }
 
-        let storedDisableStreaming = defaults.bool(forKey: StorageKeys.disableStreaming)
-        if disableStreaming != storedDisableStreaming {
-            disableStreaming = storedDisableStreaming
-        }
-
         let storedAccentTheme = AppPreferences.readAccentTheme(from: defaults)
         if accentTheme != storedAccentTheme {
             accentTheme = storedAccentTheme
+        }
+
+        let storedVoiceActionHint = defaults.bool(forKey: StorageKeys.voiceActionHintDismissed)
+        if voiceActionHintDismissed != storedVoiceActionHint {
+            voiceActionHintDismissed = storedVoiceActionHint
         }
     }
 
@@ -294,6 +292,7 @@ private enum StorageKeys {
     static let currentConfigName = "current_config_name"
     static let useICloudForConfig = "use_icloud_for_config"
     static let defaultAppHintDismissed = "default_app_hint_dismissed"
+    static let voiceActionHintDismissed = "voice_action_hint_dismissed"
     /// Key for enabled model IDs (flat model architecture)
     static let enabledModels = "enabled_models"
     /// Key for selected TTS voice ID
@@ -302,8 +301,6 @@ private enum StorageKeys {
     static let isPremium = "is_premium_subscriber"
     /// Key for data sharing consent
     static let hasAcceptedDataSharing = "has_accepted_data_sharing"
-    /// Key for disabling streaming responses
-    static let disableStreaming = "disable_streaming"
     /// Key for accent theme preference
     static let accentTheme = "accent_theme"
     /// Key for serialized active configuration data (shared with extension via UserDefaults XPC)

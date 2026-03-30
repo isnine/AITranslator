@@ -12,6 +12,7 @@
     /// A compact view for iOS Translation Extension, mirroring the Mac MenuBarPopoverView style
     public struct ExtensionCompactView: View {
         @Environment(\.colorScheme) private var colorScheme
+        @Environment(\.openURL) private var openURL
         @StateObject private var viewModel: HomeViewModel
         @ObservedObject private var preferences = AppPreferences.shared
         @State private var hasTriggeredAutoRequest = false
@@ -301,8 +302,40 @@
                             onInspectRequest: inspectRequest
                         )
                     }
+
+                    openInAppBar
                 }
             }
+        }
+
+        private var openInAppBar: some View {
+            Button {
+                openInMainApp()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.up.forward.app")
+                        .font(.system(size: 14, weight: .medium))
+                    Text("Open in TLingo", comment: "Button in extension to open selected text in the main app")
+                        .font(.system(size: 14, weight: .medium))
+                }
+                .foregroundColor(colors.accent)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(colors.accent.opacity(0.12))
+                )
+            }
+            .buttonStyle(.plain)
+        }
+
+        private func openInMainApp() {
+            guard let url = DeepLink.translateURL(
+                text: displayText,
+                actionName: viewModel.selectedAction?.name,
+                configName: AppConfigurationStore.shared.currentConfigurationName
+            ) else { return }
+            openURL(url)
         }
 
         // MARK: - Loading Overlay

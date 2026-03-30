@@ -9,6 +9,7 @@ public enum VoiceActionError: Error, LocalizedError {
     case invalidResponse
     case httpError(statusCode: Int, body: String?)
     case emptyTranscript
+    case noModelAvailable
 
     public var errorDescription: String? {
         switch self {
@@ -18,6 +19,8 @@ public enum VoiceActionError: Error, LocalizedError {
             return "Server error (\(statusCode)): \(body ?? "Unknown")"
         case .emptyTranscript:
             return "Transcript is empty"
+        case .noModelAvailable:
+            return "No model is enabled. Please enable at least one model in Settings."
         }
     }
 }
@@ -59,14 +62,37 @@ public final class VoiceActionService: Sendable {
             throw VoiceActionError.emptyTranscript
         }
 
-        let url = CloudServiceConstants.endpoint.appendingPathComponent("voice-to-action")
-        var request = URLRequest(url: url)
+        let modelID = AppPreferences.shared.enabledModelIDs.min()
+        guard let modelID else {
+            throw VoiceActionError.noModelAvailable
+        }
+
+        let requestURL = CloudServiceConstants.endpoint
+            .appendingPathComponent(modelID)
+            .appendingPathComponent("chat/completions")
+
+        var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        CloudAuthHelper.applyAuth(to: &request, path: "/voice-to-action")
 
-        let body: [String: String] = ["transcript": transcript, "locale": locale]
-        request.httpBody = try JSONEncoder().encode(body)
+        let path = "/\(modelID)/chat/completions"
+        CloudAuthHelper.applyAuth(to: &request, path: path)
+
+        if AppPreferences.shared.isPremium {
+            request.setValue("true", forHTTPHeaderField: "X-Premium")
+        }
+
+        let systemPrompt = Self.buildSystemPrompt(locale: locale)
+        let body: [String: Any] = [
+            "messages": [
+                ["role": "system", "content": systemPrompt],
+                ["role": "user", "content": transcript],
+            ],
+            "response_format": ["type": "json_object"],
+            "temperature": 0.7,
+            "max_tokens": 1000,
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
 
         let (data, response) = try await urlSession.data(for: request)
 
@@ -79,11 +105,54 @@ public final class VoiceActionService: Sendable {
             throw VoiceActionError.httpError(statusCode: httpResponse.statusCode, body: body)
         }
 
-        let apiResponse = try JSONDecoder().decode(APIResponse.self, from: data)
+        let chatResponse = try JSONDecoder().decode(ChatCompletionsResponse.self, from: data)
+        guard let content = chatResponse.choices.first?.message.content,
+              let contentData = content.data(using: .utf8)
+        else {
+            throw VoiceActionError.invalidResponse
+        }
+
+        let apiResponse = try JSONDecoder().decode(APIResponse.self, from: contentData)
         return mapResponse(apiResponse, transcript: transcript)
     }
 
-    // MARK: - Private
+    // MARK: - System Prompt
+
+    private static func buildSystemPrompt(locale: String) -> String {
+        """
+        You are an assistant that generates translation action configurations for a translation app called TLingo.
+        The user will describe a translation action they want in natural language. Generate 2-3 options as structured JSON.
+
+        Each option must have:
+        - title: Short name for the action (in the user's language: \(locale))
+        - description: One-line description (in the user's language)
+        - action_config: Object with:
+          - name: Display name for the action
+          - prompt: The prompt template. MUST include {text} placeholder. May include {targetLanguage} if relevant.
+          - output_type: One of "plain", "diff", "sentencePairs", "grammarCheck"
+          - usage_scenes: Array from ["app", "contextRead", "contextEdit"]. Default to all three.
+
+        Respond with a JSON object containing:
+        {
+          "options": [ { "title": "...", "description": "...", "action_config": { "name": "...", "prompt": "...", "output_type": "...", "usage_scenes": [...] } } ],
+          "allow_custom_input": true
+        }
+        """
+    }
+
+    // MARK: - Response Types
+
+    private struct ChatCompletionsResponse: Decodable {
+        struct Choice: Decodable {
+            let message: ChatMessage
+        }
+
+        struct ChatMessage: Decodable {
+            let content: String?
+        }
+
+        let choices: [Choice]
+    }
 
     private struct APIResponse: Decodable {
         let options: [APIOption]

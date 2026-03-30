@@ -72,9 +72,36 @@ struct RootTabView: View {
     var body: some View {
         #if os(macOS)
             SidebarLayoutView(initialTab: Self.initialTab, configStore: configStore)
+                .modifier(DeepLinkHandler())
         #else
             AdaptiveNavigationView(initialTab: Self.initialTab, configStore: configStore)
+                .modifier(DeepLinkHandler())
         #endif
+    }
+}
+
+// MARK: - Deep Link Handling
+
+extension RootTabView {
+    struct DeepLinkHandler: ViewModifier {
+        func body(content: Content) -> some View {
+            content
+                .onOpenURL { url in
+                    guard let parsed = DeepLink.parse(url) else { return }
+                    var userInfo: [String: Any] = [DeepLink.NotificationKey.text: parsed.text]
+                    if let actionName = parsed.actionName {
+                        userInfo[DeepLink.NotificationKey.actionName] = actionName
+                    }
+                    if let configName = parsed.configName {
+                        userInfo[DeepLink.NotificationKey.configName] = configName
+                    }
+                    NotificationCenter.default.post(
+                        name: .deepLinkTextReceived,
+                        object: nil,
+                        userInfo: userInfo
+                    )
+                }
+        }
     }
 }
 

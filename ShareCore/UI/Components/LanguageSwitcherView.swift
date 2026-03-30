@@ -61,6 +61,8 @@ public struct LanguageSwitcherView: View {
                 Text(targetDisplayName)
                     .font(textFont)
                     .foregroundColor(resolvedColor)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             .buttonStyle(.plain)
 

@@ -202,6 +202,16 @@ public struct HomeView: View {
             }
         }
         #endif
+        .onReceive(NotificationCenter.default.publisher(for: .deepLinkTextReceived)) { notification in
+            if let text = notification.userInfo?[DeepLink.NotificationKey.text] as? String {
+                let configName = notification.userInfo?[DeepLink.NotificationKey.configName] as? String
+                let actionName = notification.userInfo?[DeepLink.NotificationKey.actionName] as? String
+
+                // Switch configuration if needed before looking up the action
+                viewModel.applyDeepLink(text: text, actionName: actionName, configName: configName)
+                isInputExpanded = true
+            }
+        }
         .onChange(of: openFromExtension) {
             viewModel.updateUsageScene(usageScene)
         }
@@ -211,10 +221,12 @@ public struct HomeView: View {
         }
         #endif
         .sheet(isPresented: $showDefaultAppGuide) {
-            DefaultAppGuideSheet(colors: colors) {
+            DefaultAppGuideSheet(colors: colors, onOpenSettings: {
+                viewModel.openAppSettings()
+            }, onDismiss: {
                 showDefaultAppGuide = false
-            }
-            .presentationDetents([.medium])
+            })
+            .presentationDetents([.height(520)])
             .presentationDragIndicator(.visible)
         }
         #if os(macOS)
@@ -296,10 +308,9 @@ public struct HomeView: View {
 
             Button(action: {
                 AppPreferences.shared.setDefaultAppHintDismissed(true)
-                viewModel.openAppSettings()
                 showDefaultAppGuide = true
             }) {
-                Text("Open Settings")
+                Text("How to Set Up")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(colors.chipPrimaryText)
                     .padding(.horizontal, 12)
@@ -1225,54 +1236,68 @@ public struct HomeView: View {
 
 // MARK: - Default App Guide Sheet
 
-private struct DefaultAppGuideSheet: View {
+public struct DefaultAppGuideSheet: View {
     let colors: AppColorPalette
+    let onOpenSettings: () -> Void
     let onDismiss: () -> Void
 
-    var body: some View {
+    public init(colors: AppColorPalette, onOpenSettings: @escaping () -> Void, onDismiss: @escaping () -> Void) {
+        self.colors = colors
+        self.onOpenSettings = onOpenSettings
+        self.onDismiss = onDismiss
+    }
+
+    public var body: some View {
         VStack(spacing: 24) {
             // Header
             VStack(spacing: 12) {
                 Image(systemName: "translate")
                     .font(.system(size: 44))
                     .foregroundColor(colors.accent)
-                Text("How to Use TLingo")
+                Text("Set as System Translator")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(colors.textPrimary)
             }
-            .padding(.top, 24)
+            .padding(.top, 32)
 
             // Steps
             VStack(alignment: .leading, spacing: 20) {
                 guideStep(
                     number: 1,
-                    icon: "checkmark.circle.fill",
+                    icon: "gearshape.fill",
                     title: "Set as Default",
-                    description: "Ensure TLingo is set as your default translation app in Settings → Apps → TLingo"
+                    description: "Tap \"Open Settings\" below, then select TLingo as your default translation app"
                 )
 
                 guideStep(
                     number: 2,
                     icon: "text.cursor",
                     title: "Select Text",
-                    description: "In any app, select the text you want to translate"
+                    description: "In any app, long press to select the text you want to translate"
                 )
 
                 guideStep(
                     number: 3,
                     icon: "hand.tap.fill",
                     title: "Tap Translate",
-                    description: "Swipe the context menu and tap \"Translate\" to use TLingo"
+                    description: "In the context menu, swipe left and tap \"Translate\" — TLingo will handle the rest"
                 )
             }
             .padding(.horizontal, 24)
 
             Spacer()
 
-            // Button
-            Button(action: onDismiss) {
-                Text("Got it")
-                    .font(.system(size: 17, weight: .semibold))
+            // Buttons
+            VStack(spacing: 12) {
+                Button {
+                    onOpenSettings()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "gear")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Open Settings")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
@@ -1280,8 +1305,18 @@ private struct DefaultAppGuideSheet: View {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(colors.accent)
                     )
+                }
+                .buttonStyle(.plain)
+
+                Button(action: onDismiss) {
+                    Text("Got it")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(colors.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
         }
@@ -1365,3 +1400,8 @@ private extension View {
         static let serviceTextReceived = Notification.Name("serviceTextReceived")
     }
 #endif
+
+public extension Notification.Name {
+    /// Notification posted when text is received via deep link (tlingo://translate?text=...)
+    static let deepLinkTextReceived = Notification.Name("deepLinkTextReceived")
+}

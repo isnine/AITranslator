@@ -165,6 +165,15 @@ interface UpstreamResponse {
   body: Buffer;
 }
 
+function collectResponseHeaders(res: import("http").IncomingMessage): Record<string, string> {
+  const respHeaders: Record<string, string> = {};
+  for (const [key, value] of Object.entries(res.headers)) {
+    if (typeof value === "string") respHeaders[key] = value;
+    else if (Array.isArray(value)) respHeaders[key] = value.join(", ");
+  }
+  return respHeaders;
+}
+
 function httpsRequest(
   targetURL: URL,
   method: string,
@@ -182,11 +191,7 @@ function httpsRequest(
       },
       (res) => {
         const chunks: Buffer[] = [];
-        const respHeaders: Record<string, string> = {};
-        for (const [key, value] of Object.entries(res.headers)) {
-          if (typeof value === "string") respHeaders[key] = value;
-          else if (Array.isArray(value)) respHeaders[key] = value.join(", ");
-        }
+        const respHeaders = collectResponseHeaders(res);
 
         res.on("data", (chunk: Buffer) => chunks.push(chunk));
         res.on("end", () => {
@@ -210,7 +215,78 @@ function httpsRequest(
   });
 }
 
+// Streaming variant: returns a ReadableStream that transparently forwards the
+// upstream SSE byte stream to the client, enabling real-time token delivery.
+
+interface UpstreamStreamingResponse {
+  statusCode: number;
+  headers: Record<string, string>;
+  body: ReadableStream<Uint8Array>;
+}
+
+function httpsRequestStreaming(
+  targetURL: URL,
+  method: string,
+  headers: Record<string, string>,
+  body?: Buffer
+): Promise<UpstreamStreamingResponse> {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        hostname: targetURL.hostname,
+        port: targetURL.port || 443,
+        path: targetURL.pathname + targetURL.search,
+        method,
+        headers,
+      },
+      (res) => {
+        const respHeaders = collectResponseHeaders(res);
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            res.on("data", (chunk: Buffer) => {
+              controller.enqueue(new Uint8Array(chunk));
+            });
+            res.on("end", () => {
+              controller.close();
+            });
+            res.on("error", (err) => {
+              controller.error(err);
+            });
+          },
+          cancel() {
+            res.destroy();
+          },
+        });
+
+        resolve({
+          statusCode: res.statusCode || 500,
+          headers: respHeaders,
+          body: stream,
+        });
+      }
+    );
+
+    req.on("error", reject);
+    req.setTimeout(120000, () => {
+      req.destroy(new Error("Request timeout"));
+    });
+
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
 // ---- Handlers ----
+
+/** Strip hop-by-hop headers that conflict with Azure Functions response handling. */
+function cleanProxyHeaders(upstream: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = { ...upstream };
+  delete headers["transfer-encoding"];
+  delete headers["connection"];
+  delete headers["content-length"];
+  Object.assign(headers, CORS_HEADERS);
+  return headers;
+}
 
 function handleModels(request: HttpRequest): HttpResponseInit {
   const url = new URL(request.url);
@@ -245,17 +321,49 @@ async function handleTTS(request: HttpRequest, context: InvocationContext): Prom
 
     const upstream = await httpsRequest(ttsURL, request.method, headers, body);
 
-    const respHeaders: Record<string, string> = { ...upstream.headers };
-    delete respHeaders["transfer-encoding"];
-    delete respHeaders["connection"];
-    delete respHeaders["content-length"];
-    Object.assign(respHeaders, CORS_HEADERS);
+    const respHeaders = cleanProxyHeaders(upstream.headers);
 
     return { status: upstream.statusCode, headers: respHeaders, body: upstream.body };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return buildResponse(
       JSON.stringify({ error: "TTS request failed", message }),
+      502, "application/json"
+    );
+  }
+}
+
+async function handleWhisper(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
+  const clientIP = request.headers.get("x-forwarded-for") || "unknown";
+  context.log(`Whisper Request - IP: ${clientIP}`);
+
+  const whisperEndpoint = getEnvOptional("WHISPER_ENDPOINT");
+  if (!whisperEndpoint) {
+    return buildResponse(
+      JSON.stringify({ error: "Configuration error", message: "WHISPER_ENDPOINT not configured" }),
+      500, "application/json"
+    );
+  }
+
+  try {
+    const whisperURL = new URL(whisperEndpoint);
+    const headers = cloneRequestHeaders(request);
+    headers["api-key"] = getEnv("AZURE_API_KEY");
+    headers["host"] = whisperURL.host;
+
+    const body = request.method !== "GET" && request.method !== "HEAD"
+      ? Buffer.from(await request.arrayBuffer())
+      : undefined;
+
+    const upstream = await httpsRequest(whisperURL, request.method, headers, body);
+
+    const respHeaders = cleanProxyHeaders(upstream.headers);
+
+    return { status: upstream.statusCode, headers: respHeaders, body: upstream.body };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return buildResponse(
+      JSON.stringify({ error: "Whisper request failed", message }),
       502, "application/json"
     );
   }
@@ -314,16 +422,29 @@ async function handleLLM(
       ? Buffer.from(await request.arrayBuffer())
       : undefined;
 
+    const isStreamingRequest = request.headers.get("accept")?.includes("text/event-stream");
     const upstreamStart = Date.now();
+
+    if (isStreamingRequest) {
+      // SSE streaming: transparently forward the upstream byte stream
+      const upstream = await httpsRequestStreaming(targetURL, request.method, headers, reqBody);
+      const upstreamTTFB = Date.now() - upstreamStart;
+
+      const respHeaders = cleanProxyHeaders(upstream.headers);
+      respHeaders["X-Upstream-TTFB"] = upstreamTTFB.toString();
+      // Ensure Content-Type is set for SSE
+      if (!respHeaders["content-type"]) {
+        respHeaders["content-type"] = "text/event-stream";
+      }
+
+      return { status: upstream.statusCode, headers: respHeaders, body: upstream.body };
+    }
+
+    // Non-streaming: buffer the full response
     const upstream = await httpsRequest(targetURL, request.method, headers, reqBody);
     const upstreamTTFB = Date.now() - upstreamStart;
 
-    const respHeaders: Record<string, string> = { ...upstream.headers };
-    // Remove headers that could conflict with Azure Functions response handling
-    delete respHeaders["transfer-encoding"];
-    delete respHeaders["connection"];
-    delete respHeaders["content-length"]; // let Azure Functions compute it
-    Object.assign(respHeaders, CORS_HEADERS);
+    const respHeaders = cleanProxyHeaders(upstream.headers);
     respHeaders["X-Upstream-TTFB"] = upstreamTTFB.toString();
 
     return { status: upstream.statusCode, headers: respHeaders, body: upstream.body };
@@ -370,6 +491,11 @@ app.http("proxy", {
     // /tts
     if (path === "/tts") {
       return handleTTS(request, context);
+    }
+
+    // /whisper
+    if (path === "/whisper") {
+      return handleWhisper(request, context);
     }
 
     // /{model}/chat/completions

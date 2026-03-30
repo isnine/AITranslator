@@ -21,8 +21,6 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>TLingo needs microphone access to record your voice for creating actions.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>TLingo uses speech recognition to create translation actions from your voice.</string>
 	<key>NSServices</key>
 	<array>
 		<dict>

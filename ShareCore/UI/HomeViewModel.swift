@@ -170,6 +170,9 @@ public final class HomeViewModel: ObservableObject {
     @Published public private(set) var modelRuns: [ModelRunViewState] = []
     @Published public private(set) var isLoadingConfiguration: Bool = true
 
+    /// When set, `refreshConfiguration()` will select this action after loading.
+    public internal(set) var pendingDeepLinkActionName: String?
+
     /// Non-nil when smart detection auto-switched the target language
     /// (i.e. the resolved target differs from the user's preference),
     /// or when the user manually overrode the target language.
@@ -428,11 +431,43 @@ public final class HomeViewModel: ObservableObject {
         refreshActions()
         loadModels()
 
-        if let firstAction = actions.first {
+        // Apply pending deep link action, or fall back to first action
+        if let pendingName = pendingDeepLinkActionName,
+           let action = actions.first(where: { $0.name == pendingName })
+        {
+            selectedActionID = action.id
+            pendingDeepLinkActionName = nil
+        } else if let firstAction = actions.first {
             selectedActionID = firstAction.id
         }
 
         isLoadingConfiguration = false
+    }
+
+    /// Handles a deep link from the extension: switches config if needed, selects action, and runs.
+    public func applyDeepLink(text: String, actionName: String?, configName: String?) {
+        inputText = text
+
+        // Switch configuration if the deep link specifies a different one
+        if let configName,
+           configurationStore.currentConfigurationName != configName
+        {
+            configurationStore.setCurrentConfigurationName(configName)
+        }
+
+        // Reload to pick up the (possibly switched) configuration
+        refreshConfiguration()
+
+        // Try to select the action by name now; also store as pending for cold launch
+        pendingDeepLinkActionName = actionName
+        if let actionName,
+           let action = actions.first(where: { $0.name == actionName })
+        {
+            _ = selectAction(action)
+            pendingDeepLinkActionName = nil
+        }
+
+        performSelectedAction()
     }
 
     public var canSend: Bool {

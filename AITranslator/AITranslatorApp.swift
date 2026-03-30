@@ -56,6 +56,7 @@ struct AITranslatorApp: App {
         .defaultSize(width: 1280, height: 800)
         .defaultLaunchBehavior(.presented)
         #endif
+        .handlesExternalEvents(matching: ["tlingo"])
     }
 
     #if os(macOS)

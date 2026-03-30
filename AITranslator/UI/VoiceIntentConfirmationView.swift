@@ -42,6 +42,7 @@ struct VoiceIntentConfirmationView: View {
         }
         .padding(20)
         .background(colors.background.ignoresSafeArea())
+        .presentationBackground(colors.background)
         .task {
             await fetchOptions()
         }

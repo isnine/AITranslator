@@ -21,21 +21,9 @@ struct SettingsView: View {
     @State private var isVoicePickerPresented = false
     @State private var showPaywall = false
 
-    // Configuration import/export state
-    @State private var isImportPresented = false
-    @State private var isExportPresented = false
-    @State private var configurationDocument: ConfigurationDocument?
-    @State private var importError: String?
-    @State private var showExportSuccess = false
-    @State private var configToDelete: ConfigurationFileInfo?
-    @State private var configEditorItem: ConfigEditorItem?
-    @State private var showResetToDefaultConfirmation = false
-
-    @State private var isShareSheetPresented = false
-    @State private var configFileToShare: URL?
-
     @State private var showTestFlightAlert = false
     @State private var testFlightAlertMessage = ""
+    @State private var showDefaultAppGuide = false
 
     #if DEBUG
         @State private var showNetworkDebug = false
@@ -82,6 +70,17 @@ struct SettingsView: View {
         .sheet(isPresented: $showPaywall) {
             PaywallView()
         }
+        #if os(iOS)
+        .sheet(isPresented: $showDefaultAppGuide) {
+            DefaultAppGuideSheet(colors: colors, onOpenSettings: {
+                openSystemSettings()
+            }, onDismiss: {
+                showDefaultAppGuide = false
+            })
+            .presentationDetents([.height(520)])
+            .presentationDragIndicator(.visible)
+        }
+        #endif
         #if DEBUG
         .sheet(isPresented: $showNetworkDebug) {
                 NavigationStack {
@@ -101,113 +100,11 @@ struct SettingsView: View {
             .onAppear {
                 preferences.refreshFromDefaults()
             }
-            .fileImporter(
-                isPresented: $isImportPresented,
-                allowedContentTypes: [.json],
-                allowsMultipleSelection: false
-            ) { result in
-                handleImport(result)
-            }
-            .fileExporter(
-                isPresented: $isExportPresented,
-                document: configurationDocument,
-                contentType: .json,
-                defaultFilename: exportFilename
-            ) { result in
-                handleExport(result)
-            }
-            .alert(
-                "Import Failed",
-                isPresented: Binding(
-                    get: { importError != nil },
-                    set: { if !$0 { importError = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(importError ?? "Unknown error")
-            }
-            .alert("Export Successful", isPresented: $showExportSuccess) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text("Configuration exported successfully.")
-            }
             .alert("TestFlight", isPresented: $showTestFlightAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(testFlightAlertMessage)
             }
-            .alert(
-                "Delete Configuration?",
-                isPresented: Binding(
-                    get: { configToDelete != nil },
-                    set: { if !$0 { configToDelete = nil } }
-                )
-            ) {
-                Button("Cancel", role: .cancel) {
-                    configToDelete = nil
-                }
-                Button("Delete", role: .destructive) {
-                    if let config = configToDelete {
-                        deleteConfiguration(config)
-                        configToDelete = nil
-                    }
-                }
-            } message: {
-                if let config = configToDelete {
-                    Text(
-                        String(
-                            format: NSLocalizedString(
-                                "Are you sure you want to delete '%@'? This action cannot be undone.",
-                                comment: "Delete configuration confirmation"
-                            ),
-                            config.name
-                        )
-                    )
-                }
-            }
-            .alert(
-                NSLocalizedString(
-                    "Reset to Default?",
-                    comment: "Reset configuration confirmation title"
-                ),
-                isPresented: $showResetToDefaultConfirmation
-            ) {
-                Button("Cancel", role: .cancel) {}
-                Button(
-                    NSLocalizedString("Reset", comment: "Reset configuration button"),
-                    role: .destructive
-                ) {
-                    configStore.resetToDefault()
-                }
-            } message: {
-                Text(
-                    NSLocalizedString(
-                        "This will replace your current actions with the built-in defaults. Any custom changes will be lost.",
-                        comment: "Reset configuration confirmation message"
-                    )
-                )
-            }
-            .sheet(item: $configEditorItem) { item in
-                ConfigurationEditorView(
-                    configInfo: item.configInfo,
-                    initialText: item.text,
-                    colors: colors,
-                    onSave: { updatedText in
-                        saveEditedConfiguration(updatedText, for: item.configInfo)
-                    },
-                    onDismiss: {
-                        configEditorItem = nil
-                    }
-                )
-            }
-        #if os(iOS)
-            .sheet(isPresented: $isShareSheetPresented) {
-                if let url = configFileToShare {
-                    ShareSheet(activityItems: [url])
-                }
-            }
-        #endif
     }
 
     private var header: some View {
@@ -222,6 +119,33 @@ struct SettingsView: View {
         }
     }
 
+    private var generalSectionContent: some View {
+        VStack(spacing: 0) {
+            subscriptionRow
+            Divider()
+                .padding(.leading, 52)
+            accentThemeRow
+            #if os(iOS)
+                if preferences.defaultAppHintDismissed {
+                    Divider()
+                        .padding(.leading, 52)
+                    defaultTranslationAppRow
+                }
+            #endif
+            Divider()
+                .padding(.leading, 52)
+            voicePreferenceRow
+            #if os(macOS)
+                Divider()
+                    .padding(.leading, 52)
+                hotKeyPreferenceRow
+                Divider()
+                    .padding(.leading, 52)
+                keepRunningRow
+            #endif
+        }
+    }
+
     private var preferencesSection: some View {
         VStack(spacing: 32) {
             // MARK: - Feedback Section
@@ -233,39 +157,7 @@ struct SettingsView: View {
             // MARK: - General Section
 
             settingsSection(title: "General", icon: "gearshape") {
-                VStack(spacing: 0) {
-                    subscriptionRow
-                    Divider()
-                        .padding(.leading, 52)
-                    accentThemeRow
-                    Divider()
-                        .padding(.leading, 52)
-                    voicePreferenceRow
-                    #if DEBUG
-                        Divider()
-                            .padding(.leading, 52)
-                        disableStreamingRow
-                    #endif
-                    #if os(macOS)
-                        Divider()
-                            .padding(.leading, 52)
-                        hotKeyPreferenceRow
-                        Divider()
-                            .padding(.leading, 52)
-                        keepRunningRow
-                    #endif
-                }
-            }
-
-            // MARK: - Configuration Section
-
-            settingsSection(title: "Configuration", icon: "doc.text") {
-                VStack(spacing: 0) {
-                    configurationStatusRow
-                    Divider()
-                        .padding(.leading, 52)
-                    configurationActionsRow
-                }
+                generalSectionContent
             }
 
             #if DEBUG
@@ -506,32 +398,6 @@ private extension SettingsView {
         }
     }
 
-    var disableStreamingRow: some View {
-        HStack(spacing: 16) {
-            SettingsIconBadge(icon: "bolt.slash", color: .orange)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Disable Streaming")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(colors.textPrimary)
-                Text("Receive complete responses at once")
-                    .font(.system(size: 12))
-                    .foregroundColor(colors.textSecondary)
-            }
-
-            Spacer()
-
-            Toggle("", isOn: Binding(
-                get: { preferences.disableStreaming },
-                set: { preferences.setDisableStreaming($0) }
-            ))
-            .labelsHidden()
-            .toggleStyle(.switch)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-    }
-
     var feedbackRow: some View {
         Button {
             let subject = storeManager.isPremium ? "TLingo%20Feedback%20%5BPremium%5D" : "TLingo%20Feedback"
@@ -567,6 +433,42 @@ private extension SettingsView {
         }
         .buttonStyle(.plain)
     }
+
+    #if os(iOS)
+        var defaultTranslationAppRow: some View {
+            Button {
+                showDefaultAppGuide = true
+            } label: {
+                HStack(spacing: 16) {
+                    SettingsIconBadge(icon: "translate", color: .blue)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Default Translation App")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(colors.textPrimary)
+                        Text("Set TLingo as the system translator")
+                            .font(.system(size: 12))
+                            .foregroundColor(colors.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary.opacity(0.5))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+
+        private func openSystemSettings() {
+            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+            UIApplication.shared.open(url)
+        }
+    #endif
 
     #if os(macOS)
         var hotKeyPreferenceRow: some View {
@@ -699,272 +601,6 @@ private extension SettingsView {
             .padding(.vertical, 14)
         }
     #endif
-
-    // MARK: - Configuration Rows
-
-    var configurationStatusRow: some View {
-        Button {
-            openCurrentConfigurationInEditor()
-        } label: {
-            HStack(spacing: 16) {
-                SettingsIconBadge(icon: "doc.text.fill", color: colors.accent)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(configStore.currentConfigurationName ?? "Configuration")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(colors.textPrimary)
-
-                    HStack(spacing: 6) {
-                        Text(
-                            String(
-                                format: NSLocalizedString(
-                                    "%lld Actions",
-                                    comment: "Configuration actions count"
-                                ),
-                                Int64(configStore.actions.count)
-                            )
-                        )
-                    }
-                    .font(.system(size: 12))
-                    .foregroundColor(colors.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(colors.textSecondary.opacity(0.5))
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    var configurationActionsRow: some View {
-        HStack(spacing: 12) {
-            configActionButton(
-                icon: "square.and.arrow.down",
-                title: "Import Configuration",
-                isAccent: false
-            ) {
-                isImportPresented = true
-            }
-
-            configActionButton(
-                icon: "square.and.arrow.up",
-                title: "Export Configuration",
-                isAccent: false
-            ) {
-                prepareAndExport()
-            }
-
-            configActionButton(
-                icon: "arrow.counterclockwise",
-                title: NSLocalizedString(
-                    "Reset to Default",
-                    comment: "Button to reset configuration to bundled default"
-                ),
-                isAccent: false
-            ) {
-                showResetToDefaultConfirmation = true
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-    }
-
-    private var exportFilename: String {
-        let baseName = configStore.currentConfigurationName ?? "Configuration"
-        let sanitized = sanitizeExportFilename(baseName)
-        if sanitized.lowercased().hasSuffix(".json") {
-            return sanitized
-        }
-        return "\(sanitized).json"
-    }
-
-    private func sanitizeExportFilename(_ name: String) -> String {
-        let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>:")
-        let sanitized = name
-            .components(separatedBy: invalidCharacters)
-            .joined()
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return sanitized.isEmpty ? "Configuration" : sanitized
-    }
-
-    private func openCurrentConfigurationInEditor() {
-        guard let configName = configStore.currentConfigurationName else { return }
-        let configURL = ConfigurationFileManager.shared.configurationURL(forName: configName)
-
-        #if os(macOS)
-            NSWorkspace.shared.open(configURL)
-        #else
-            configFileToShare = configURL
-            isShareSheetPresented = true
-        #endif
-    }
-
-    // MARK: - Configuration Helper Functions
-
-    func openConfigEditor(_ config: ConfigurationFileInfo) {
-        do {
-            let data = try Data(contentsOf: config.url)
-            if let jsonString = String(data: data, encoding: .utf8) {
-                configEditorItem = ConfigEditorItem(configInfo: config, text: jsonString)
-            }
-        } catch {
-            importError = "Failed to read configuration: \(error.localizedDescription)"
-        }
-    }
-
-    func saveEditedConfiguration(_ text: String, for config: ConfigurationFileInfo) {
-        // At this point, validation has already passed in ConfigurationEditorView
-        guard let data = text.data(using: .utf8) else {
-            return
-        }
-
-        do {
-            // Write back to file
-            try data.write(to: config.url)
-
-            // Close editor only on success
-            configEditorItem = nil
-        } catch {
-            importError = "Failed to save configuration: \(error.localizedDescription)"
-            // Don't close editor on save failure
-        }
-    }
-
-    func loadConfiguration(_ config: ConfigurationFileInfo) {
-        Logger.debug("[SettingsView] 📂 Loading configuration: '\(config.name)'...")
-        do {
-            let appConfig = try ConfigurationFileManager.shared.loadConfiguration(from: config.url)
-            Logger.debug("[SettingsView]   - Parsed config with \(appConfig.actions.count) actions")
-            ConfigurationService.shared.applyConfiguration(
-                appConfig,
-                to: configStore,
-                preferences: preferences,
-                configurationName: config.name
-            )
-            Logger.debug("[SettingsView] ✅ Configuration loaded: '\(config.name)'")
-        } catch {
-            Logger.debug("[SettingsView] ❌ Failed to load configuration: \(error)")
-            importError = error.localizedDescription
-        }
-    }
-
-    func deleteConfiguration(_ config: ConfigurationFileInfo) {
-        // Check if we're deleting the currently active configuration
-        let isDeletingCurrentConfig = configStore.currentConfigurationName == config.name
-
-        do {
-            // If deleting the active configuration, switch to default first
-            if isDeletingCurrentConfig {
-                configStore.resetToDefault()
-            }
-
-            try ConfigurationFileManager.shared.deleteConfiguration(at: config.url)
-        } catch {
-            importError = error.localizedDescription
-        }
-    }
-
-    func configActionButton(
-        icon: String,
-        title: String,
-        isAccent: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
-                Text(title)
-                    .font(.system(size: 14, weight: .medium))
-            }
-            .foregroundColor(isAccent ? colors.accent : colors.textPrimary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(isAccent ? colors.accent.opacity(0.12) : colors.inputBackground)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-
-    func prepareAndExport() {
-        let config = ConfigurationService.shared.exportConfiguration(
-            from: configStore,
-            preferences: preferences
-        )
-        guard let data = config else { return }
-
-        do {
-            configurationDocument = try ConfigurationDocument(data: data)
-            isExportPresented = true
-        } catch {
-            importError = error.localizedDescription
-        }
-    }
-
-    func handleImport(_ result: Result<[URL], Error>) {
-        switch result {
-        case let .success(urls):
-            guard let url = urls.first else { return }
-
-            guard url.startAccessingSecurityScopedResource() else {
-                importError = "Unable to access the selected file."
-                return
-            }
-            defer { url.stopAccessingSecurityScopedResource() }
-
-            do {
-                let data = try Data(contentsOf: url)
-                let importResult = ConfigurationService.shared.importConfiguration(from: data)
-
-                switch importResult {
-                case let .success(config):
-                    let baseName = url.deletingPathExtension().lastPathComponent
-                    let uniqueName = uniqueConfigurationName(from: baseName)
-                    try ConfigurationFileManager.shared.saveConfiguration(config, name: uniqueName)
-                    ConfigurationService.shared.applyConfiguration(
-                        config,
-                        to: configStore,
-                        preferences: preferences,
-                        configurationName: uniqueName
-                    )
-                case let .failure(error):
-                    importError = error.localizedDescription
-                }
-            } catch {
-                importError = error.localizedDescription
-            }
-
-        case let .failure(error):
-            importError = error.localizedDescription
-        }
-    }
-
-    private func uniqueConfigurationName(from baseName: String) -> String {
-        var candidate = baseName
-        var counter = 2
-        while ConfigurationFileManager.shared.configurationExists(named: candidate) {
-            candidate = "\(baseName) \(counter)"
-            counter += 1
-        }
-        return candidate
-    }
-
-    func handleExport(_ result: Result<URL, Error>) {
-        switch result {
-        case .success:
-            showExportSuccess = true
-        case let .failure(error):
-            importError = error.localizedDescription
-        }
-    }
 }
 
 #Preview {

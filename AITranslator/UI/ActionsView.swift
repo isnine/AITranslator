@@ -7,10 +7,12 @@
 
 import ShareCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ActionsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var configurationStore: AppConfigurationStore
+    @ObservedObject private var preferences = AppPreferences.shared
 
     init(configurationStore: AppConfigurationStore = .shared) {
         self.configurationStore = configurationStore
@@ -26,6 +28,14 @@ struct ActionsView: View {
     @State private var showValidationError = false
     @State private var validationErrorMessage = ""
 
+    // Configuration import/export state
+    @State private var isImportPresented = false
+    @State private var isExportPresented = false
+    @State private var configurationDocument: ConfigurationDocument?
+    @State private var importError: String?
+    @State private var showExportSuccess = false
+    @State private var showResetToDefaultConfirmation = false
+
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
@@ -35,6 +45,9 @@ struct ActionsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     headerSection
+                    if !preferences.voiceActionHintDismissed {
+                        voiceActionHintCard
+                    }
                     actionsSection
                 }
                 .padding(.horizontal, 20)
@@ -96,6 +109,59 @@ struct ActionsView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(validationErrorMessage)
+        }
+        .fileImporter(
+            isPresented: $isImportPresented,
+            allowedContentTypes: [.json],
+            allowsMultipleSelection: false
+        ) { result in
+            handleImport(result)
+        }
+        .fileExporter(
+            isPresented: $isExportPresented,
+            document: configurationDocument,
+            contentType: .json,
+            defaultFilename: exportFilename
+        ) { result in
+            handleExport(result)
+        }
+        .alert(
+            "Import Failed",
+            isPresented: Binding(
+                get: { importError != nil },
+                set: { if !$0 { importError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(importError ?? "Unknown error")
+        }
+        .alert("Export Successful", isPresented: $showExportSuccess) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Configuration exported successfully.")
+        }
+        .alert(
+            NSLocalizedString(
+                "Reset to Default?",
+                comment: "Reset configuration confirmation title"
+            ),
+            isPresented: $showResetToDefaultConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {}
+            Button(
+                NSLocalizedString("Reset", comment: "Reset configuration button"),
+                role: .destructive
+            ) {
+                configurationStore.resetToDefault()
+            }
+        } message: {
+            Text(
+                NSLocalizedString(
+                    "This will replace your current actions with the built-in defaults. Any custom changes will be lost.",
+                    comment: "Reset configuration confirmation message"
+                )
+            )
         }
     }
 
@@ -214,14 +280,99 @@ struct ActionsView: View {
     }
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Actions")
-                .font(.system(size: 32, weight: .bold))
-                .foregroundColor(colors.textPrimary)
-            Text("Configure your translation actions")
-                .font(.system(size: 16))
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Actions")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(colors.textPrimary)
+                Text("Configure your translation actions")
+                    .font(.system(size: 16))
+                    .foregroundColor(colors.textSecondary)
+            }
+
+            Spacer()
+
+            configMenu
+        }
+    }
+
+    private var configMenu: some View {
+        Menu {
+            Button {
+                isImportPresented = true
+            } label: {
+                Label("Import Configuration", systemImage: "square.and.arrow.down")
+            }
+
+            Button {
+                prepareAndExport()
+            } label: {
+                Label("Export Configuration", systemImage: "square.and.arrow.up")
+            }
+
+            Divider()
+
+            Button(role: .destructive) {
+                showResetToDefaultConfirmation = true
+            } label: {
+                Label("Reset to Default", systemImage: "arrow.counterclockwise")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: 22, weight: .regular))
                 .foregroundColor(colors.textSecondary)
         }
+        .padding(.top, 6)
+    }
+
+    private var voiceActionHintCard: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "mic.badge.plus")
+                .foregroundColor(colors.accent)
+                .font(.system(size: 18))
+
+            Text("Try creating actions with your voice — just describe what you need!", comment: "Voice action hint")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer()
+
+            Button {
+                preferences.setVoiceActionHintDismissed(true)
+                isVoiceRecording = true
+            } label: {
+                Text("Try It", comment: "Voice action hint CTA")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.chipPrimaryText)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .fill(colors.accent)
+                    )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                preferences.setVoiceActionHintDismissed(true)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+                    .padding(5)
+                    .background(
+                        Circle()
+                            .fill(colors.inputBackground)
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(colors.cardBackground)
+        )
     }
 
     private var emptyStateView: some View {
@@ -263,6 +414,98 @@ struct ActionsView: View {
             modelCount: enabledModelIDs.count,
             modelNames: Array(enabledModelIDs)
         )
+    }
+
+    // MARK: - Configuration Import/Export
+
+    private var exportFilename: String {
+        let baseName = configurationStore.currentConfigurationName ?? "Configuration"
+        let sanitized = sanitizeExportFilename(baseName)
+        if sanitized.lowercased().hasSuffix(".json") {
+            return sanitized
+        }
+        return "\(sanitized).json"
+    }
+
+    private func sanitizeExportFilename(_ name: String) -> String {
+        let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>:")
+        let sanitized = name
+            .components(separatedBy: invalidCharacters)
+            .joined()
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return sanitized.isEmpty ? "Configuration" : sanitized
+    }
+
+    private func prepareAndExport() {
+        let config = ConfigurationService.shared.exportConfiguration(
+            from: configurationStore,
+            preferences: preferences
+        )
+        guard let data = config else { return }
+
+        do {
+            configurationDocument = try ConfigurationDocument(data: data)
+            isExportPresented = true
+        } catch {
+            importError = error.localizedDescription
+        }
+    }
+
+    private func handleImport(_ result: Result<[URL], Error>) {
+        switch result {
+        case let .success(urls):
+            guard let url = urls.first else { return }
+
+            guard url.startAccessingSecurityScopedResource() else {
+                importError = "Unable to access the selected file."
+                return
+            }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            do {
+                let data = try Data(contentsOf: url)
+                let importResult = ConfigurationService.shared.importConfiguration(from: data)
+
+                switch importResult {
+                case let .success(config):
+                    let baseName = url.deletingPathExtension().lastPathComponent
+                    let uniqueName = uniqueConfigurationName(from: baseName)
+                    try ConfigurationFileManager.shared.saveConfiguration(config, name: uniqueName)
+                    ConfigurationService.shared.applyConfiguration(
+                        config,
+                        to: configurationStore,
+                        preferences: preferences,
+                        configurationName: uniqueName
+                    )
+                case let .failure(error):
+                    importError = error.localizedDescription
+                }
+            } catch {
+                importError = error.localizedDescription
+            }
+
+        case let .failure(error):
+            importError = error.localizedDescription
+        }
+    }
+
+    private func handleExport(_ result: Result<URL, Error>) {
+        switch result {
+        case .success:
+            showExportSuccess = true
+        case let .failure(error):
+            importError = error.localizedDescription
+        }
+    }
+
+    private func uniqueConfigurationName(from baseName: String) -> String {
+        var candidate = baseName
+        var counter = 2
+        while ConfigurationFileManager.shared.configurationExists(named: candidate) {
+            candidate = "\(baseName) \(counter)"
+            counter += 1
+        }
+        return candidate
     }
 
     private func reorderAction(from sourceID: UUID, to destinationID: UUID) {
