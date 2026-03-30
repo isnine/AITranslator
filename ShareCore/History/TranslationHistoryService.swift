@@ -12,7 +12,7 @@ import SwiftData
 public final class TranslationHistoryService {
     public static let shared = TranslationHistoryService()
 
-    private static let appGroupIdentifier = "group.com.zanderwang.AITranslator"
+    private static let appGroupIdentifier = AppPreferences.appGroupSuiteName
     private static let tag = "HistoryService"
 
     private let modelContainer: ModelContainer?

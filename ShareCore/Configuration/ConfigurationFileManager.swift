@@ -26,7 +26,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     private var ensuredDirectories: Set<String> = []
 
     /// App Group identifier for shared container
-    private static let appGroupIdentifier = "group.com.zanderwang.AITranslator"
+    private static let appGroupIdentifier = AppPreferences.appGroupSuiteName
 
     /// File monitoring sources keyed by file URL
     private var fileSources: [URL: DispatchSourceFileSystemObject] = [:]
