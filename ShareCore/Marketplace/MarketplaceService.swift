@@ -5,7 +5,6 @@
 //  Created by Claude on 2026/03/31.
 //
 
-import CloudKit
 import Combine
 import Foundation
 
@@ -23,17 +22,23 @@ public final class MarketplaceService: ObservableObject {
 
     // MARK: - Private
 
-    private let container: CKContainer
-    private let publicDB: CKDatabase
-    private var queryCursor: CKQueryOperation.Cursor?
-    private var currentUserRecordName: String?
+    private let session: URLSession
+    private var currentPage = 1
     private var fetchNonce: UUID?
-    private static let containerIdentifier = "iCloud.com.zanderwang.AITranslator"
     private static let pageSize = 20
 
-    private init() {
-        container = CKContainer(identifier: Self.containerIdentifier)
-        publicDB = container.publicCloudDatabase
+    private var lastSearchText = ""
+    private var lastCategory: MarketplaceCategory?
+    private var lastSortBy: MarketplaceSortOption = .newest
+
+    private static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return decoder
+    }()
+
+    private init(session: URLSession = NetworkSession.shared) {
+        self.session = session
     }
 
     // MARK: - Public API
@@ -47,25 +52,24 @@ public final class MarketplaceService: ObservableObject {
         fetchNonce = nonce
         isLoading = true
         error = nil
-        queryCursor = nil
+        currentPage = 1
         actions = []
         hasMoreResults = true
 
-        do {
-            let query = buildQuery(searchText: searchText, category: category, sortBy: sortBy)
-            let (results, cursor) = try await publicDB.records(
-                matching: query,
-                resultsLimit: Self.pageSize
-            )
-            // Discard results if a newer fetch was started
-            guard fetchNonce == nonce else { return }
-            let fetched = results.compactMap { _, result in
-                try? result.get()
-            }.compactMap { MarketplaceAction(record: $0) }
+        lastSearchText = searchText
+        lastCategory = category
+        lastSortBy = sortBy
 
-            actions = fetched
-            queryCursor = cursor
-            hasMoreResults = cursor != nil
+        do {
+            let response = try await performFetch(
+                searchText: searchText,
+                category: category,
+                sortBy: sortBy,
+                page: currentPage
+            )
+            guard fetchNonce == nonce else { return }
+            actions = response.actions
+            hasMoreResults = response.hasMore
         } catch {
             guard fetchNonce == nonce else { return }
             self.error = error.localizedDescription
@@ -75,21 +79,19 @@ public final class MarketplaceService: ObservableObject {
     }
 
     public func fetchNextPage() async {
-        guard let cursor = queryCursor, !isLoading else { return }
+        guard !isLoading, hasMoreResults else { return }
         isLoading = true
+        currentPage += 1
 
         do {
-            let (results, newCursor) = try await publicDB.records(
-                continuingMatchFrom: cursor,
-                resultsLimit: Self.pageSize
+            let response = try await performFetch(
+                searchText: lastSearchText,
+                category: lastCategory,
+                sortBy: lastSortBy,
+                page: currentPage
             )
-            let fetched = results.compactMap { _, result in
-                try? result.get()
-            }.compactMap { MarketplaceAction(record: $0) }
-
-            actions.append(contentsOf: fetched)
-            queryCursor = newCursor
-            hasMoreResults = newCursor != nil
+            actions.append(contentsOf: response.actions)
+            hasMoreResults = response.hasMore
         } catch {
             self.error = error.localizedDescription
         }
@@ -106,46 +108,52 @@ public final class MarketplaceService: ObservableObject {
         isPublishing = true
         defer { isPublishing = false }
 
-        let record = CKRecord(recordType: MarketplaceAction.recordType)
-        record[MarketplaceAction.FieldKey.name] = action.name
-        record[MarketplaceAction.FieldKey.prompt] = action.prompt
-        record[MarketplaceAction.FieldKey.actionDescription] = description
-        record[MarketplaceAction.FieldKey.outputType] = action.outputType.rawValue
-        record[MarketplaceAction.FieldKey.usageScenes] = Int64(action.usageScenes.rawValue)
-        record[MarketplaceAction.FieldKey.category] = category.rawValue
-        record[MarketplaceAction.FieldKey.authorName] = authorName.isEmpty ? "Anonymous" : authorName
-        record[MarketplaceAction.FieldKey.downloadCount] = Int64(0)
+        let body = CreateActionRequest(
+            name: action.name,
+            prompt: action.prompt,
+            actionDescription: description,
+            outputType: action.outputType.rawValue,
+            usageScenes: action.usageScenes.rawValue,
+            category: category.rawValue,
+            authorName: authorName.isEmpty ? "Anonymous" : authorName
+        )
 
-        let savedRecord = try await publicDB.save(record)
+        var request = buildRequest(path: "/marketplace/actions", method: "POST")
+        request.httpBody = try JSONEncoder().encode(body)
 
-        guard let marketplaceAction = MarketplaceAction(record: savedRecord) else {
-            throw MarketplaceError.invalidRecord
-        }
+        let (data, response) = try await session.data(for: request)
+        try validateHTTPResponse(response)
 
-        actions.insert(marketplaceAction, at: 0)
-        return marketplaceAction
+        let createResponse = try Self.decoder.decode(CreateResponse.self, from: data)
+        actions.insert(createResponse.action, at: 0)
+        return createResponse.action
     }
 
     public func delete(_ action: MarketplaceAction) async throws {
-        let recordID = CKRecord.ID(recordName: action.id)
-        try await publicDB.deleteRecord(withID: recordID)
+        var request = buildRequest(
+            path: "/marketplace/actions/\(action.id)",
+            method: "DELETE"
+        )
+        request.setValue(AnonymousUserID.current, forHTTPHeaderField: "X-User-ID")
+
+        let (_, response) = try await session.data(for: request)
+        try validateHTTPResponse(response)
+
         actions.removeAll { $0.id == action.id }
     }
 
     public func incrementDownloadCount(for action: MarketplaceAction) {
         Task {
             do {
-                let recordID = CKRecord.ID(recordName: action.id)
-                let record = try await publicDB.record(for: recordID)
-                let current = record[MarketplaceAction.FieldKey.downloadCount] as? Int64 ?? 0
-                record[MarketplaceAction.FieldKey.downloadCount] = current + 1
-                _ = try await publicDB.save(record)
+                let request = buildRequest(
+                    path: "/marketplace/actions/\(action.id)/download",
+                    method: "POST"
+                )
+                let (data, _) = try await session.data(for: request)
+                let result = try Self.decoder.decode(DownloadResponse.self, from: data)
 
                 if let index = actions.firstIndex(where: { $0.id == action.id }) {
-                    let updated = MarketplaceAction(record: record)
-                    if let updated {
-                        actions[index] = updated
-                    }
+                    actions[index].downloadCount = result.downloadCount
                 }
             } catch {
                 // Download count increment is best-effort
@@ -154,68 +162,122 @@ public final class MarketplaceService: ObservableObject {
     }
 
     public func isOwnedByCurrentUser(_ action: MarketplaceAction) -> Bool {
-        guard let currentUser = currentUserRecordName,
-              let creator = action.creatorUserRecordName
-        else {
-            return false
-        }
-        return currentUser == creator
+        guard let creatorId = action.creatorId else { return false }
+        return creatorId == AnonymousUserID.current
     }
 
     public func ensureUserRecordFetched() async {
-        guard currentUserRecordName == nil else { return }
-        do {
-            let recordID = try await container.userRecordID()
-            currentUserRecordName = recordID.recordName
-        } catch {
-            // Not signed in or iCloud unavailable
-        }
+        // No-op: anonymous user ID is available synchronously via AnonymousUserID.current
     }
 
     // MARK: - Private
 
-    private func buildQuery(
+    private func performFetch(
         searchText: String,
         category: MarketplaceCategory?,
-        sortBy: MarketplaceSortOption
-    ) -> CKQuery {
-        var predicates: [NSPredicate] = []
+        sortBy: MarketplaceSortOption,
+        page: Int
+    ) async throws -> ListResponse {
+        var components = URLComponents(
+            url: CloudServiceConstants.endpoint.appendingPathComponent("marketplace/actions"),
+            resolvingAgainstBaseURL: false
+        )!
+
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "limit", value: String(Self.pageSize))
+        ]
 
         if !searchText.isEmpty {
-            predicates.append(NSPredicate(
-                format: "self contains %@",
-                searchText
-            ))
+            queryItems.append(URLQueryItem(name: "q", value: searchText))
         }
-
         if let category {
-            predicates.append(NSPredicate(
-                format: "%K == %@",
-                MarketplaceAction.FieldKey.category,
-                category.rawValue
-            ))
+            queryItems.append(URLQueryItem(name: "category", value: category.rawValue))
         }
 
-        let predicate: NSPredicate
-        if predicates.isEmpty {
-            predicate = NSPredicate(value: true)
-        } else {
-            predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
+        let sortValue = sortBy == .popular ? "popular" : "newest"
+        queryItems.append(URLQueryItem(name: "sort", value: sortValue))
+
+        components.queryItems = queryItems
+
+        var request = URLRequest(url: components.url!)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let path = "/marketplace/actions"
+        CloudAuthHelper.applyAuth(to: &request, path: path)
+        request.setValue(AnonymousUserID.current, forHTTPHeaderField: "X-User-ID")
+
+        let (data, response) = try await session.data(for: request)
+        try validateHTTPResponse(response)
+
+        return try Self.decoder.decode(ListResponse.self, from: data)
+    }
+
+    private func buildRequest(path: String, method: String) -> URLRequest {
+        let url = CloudServiceConstants.endpoint.appendingPathComponent(
+            path.hasPrefix("/") ? String(path.dropFirst()) : path
+        )
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        CloudAuthHelper.applyAuth(to: &request, path: path)
+        request.setValue(AnonymousUserID.current, forHTTPHeaderField: "X-User-ID")
+
+        return request
+    }
+
+    private func validateHTTPResponse(_ response: URLResponse) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw MarketplaceError.invalidResponse
         }
-
-        let query = CKQuery(recordType: MarketplaceAction.recordType, predicate: predicate)
-
-        switch sortBy {
-        case .newest:
-            query.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-        case .popular:
-            query.sortDescriptors = [NSSortDescriptor(
-                key: MarketplaceAction.FieldKey.downloadCount,
-                ascending: false
-            )]
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            throw MarketplaceError.httpError(statusCode: httpResponse.statusCode)
         }
+    }
+}
 
-        return query
+// MARK: - Response DTOs
+
+private struct ListResponse: Codable {
+    let actions: [MarketplaceAction]
+    let hasMore: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case actions
+        case hasMore = "has_more"
+    }
+}
+
+private struct CreateResponse: Codable {
+    let action: MarketplaceAction
+}
+
+private struct DownloadResponse: Codable {
+    let downloadCount: Int64
+
+    enum CodingKeys: String, CodingKey {
+        case downloadCount = "download_count"
+    }
+}
+
+private struct CreateActionRequest: Codable {
+    let name: String
+    let prompt: String
+    let actionDescription: String
+    let outputType: String
+    let usageScenes: Int
+    let category: String
+    let authorName: String
+
+    enum CodingKeys: String, CodingKey {
+        case name, prompt, category
+        case actionDescription = "action_description"
+        case outputType = "output_type"
+        case usageScenes = "usage_scenes"
+        case authorName = "author_name"
     }
 }
 
@@ -223,11 +285,17 @@ public final class MarketplaceService: ObservableObject {
 
 public enum MarketplaceError: LocalizedError {
     case invalidRecord
+    case invalidResponse
+    case httpError(statusCode: Int)
 
     public var errorDescription: String? {
         switch self {
         case .invalidRecord:
             return String(localized: "Failed to process marketplace action.", comment: "Marketplace error")
+        case .invalidResponse:
+            return String(localized: "Invalid server response.", comment: "Marketplace error")
+        case let .httpError(statusCode):
+            return String(localized: "Server error (\(statusCode)).", comment: "Marketplace error")
         }
     }
 }

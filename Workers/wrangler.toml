@@ -24,6 +24,13 @@ enabled = true
 # - AZURE_API_KEY: Azure OpenAI API key
 # - AZURE_ENDPOINT: Azure OpenAI endpoint URL
 
+# D1 Database for marketplace actions
+[[d1_databases]]
+binding = "MARKETPLACE_DB"
+database_name = "aitranslator-marketplace"
+database_id = "TODO"
+migrations_dir = "migrations"
+
 # ---- Dev environment ----
 # Deployed as: https://aitranslator-dev.xiaozwan.workers.dev/
 # Deploy with:  npx wrangler deploy --env dev

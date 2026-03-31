@@ -5,13 +5,12 @@
 //  Created by Claude on 2026/03/31.
 //
 
-import CloudKit
 import Foundation
 
 // MARK: - Marketplace Action Model
 
-public struct MarketplaceAction: Identifiable, Hashable, Sendable {
-    public let id: String // CKRecord.recordName
+public struct MarketplaceAction: Identifiable, Hashable, Sendable, Codable {
+    public let id: String
     public let name: String
     public let prompt: String
     public let actionDescription: String
@@ -19,9 +18,20 @@ public struct MarketplaceAction: Identifiable, Hashable, Sendable {
     public let usageScenes: ActionConfig.UsageScene
     public let category: MarketplaceCategory
     public let authorName: String
-    public let downloadCount: Int64
+    public var downloadCount: Int64
     public let createdAt: Date
-    public let creatorUserRecordName: String?
+    public let creatorId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, prompt, category
+        case actionDescription = "action_description"
+        case outputType = "output_type"
+        case usageScenes = "usage_scenes"
+        case authorName = "author_name"
+        case downloadCount = "download_count"
+        case createdAt = "created_at"
+        case creatorId = "creator_id"
+    }
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
@@ -47,7 +57,7 @@ public extension MarketplaceAction {
 
 // MARK: - Category
 
-public enum MarketplaceCategory: String, CaseIterable, Sendable, Identifiable {
+public enum MarketplaceCategory: String, CaseIterable, Sendable, Identifiable, Codable {
     case translation
     case writing
     case analysis
@@ -84,63 +94,6 @@ public enum MarketplaceSortOption: String, CaseIterable, Sendable {
         switch self {
         case .newest: return String(localized: "Newest", comment: "Marketplace sort option")
         case .popular: return String(localized: "Popular", comment: "Marketplace sort option")
-        }
-    }
-}
-
-// MARK: - CKRecord Conversion
-
-extension MarketplaceAction {
-    static let recordType = "MarketplaceAction"
-
-    enum FieldKey {
-        static let name = "name"
-        static let prompt = "prompt"
-        static let actionDescription = "actionDescription"
-        static let outputType = "outputType"
-        static let usageScenes = "usageScenes"
-        static let category = "category"
-        static let authorName = "authorName"
-        static let downloadCount = "downloadCount"
-    }
-
-    init?(record: CKRecord) {
-        guard record.recordType == Self.recordType,
-              let name = record[FieldKey.name] as? String,
-              let prompt = record[FieldKey.prompt] as? String
-        else {
-            return nil
-        }
-
-        id = record.recordID.recordName
-        self.name = name
-        self.prompt = prompt
-        actionDescription = record[FieldKey.actionDescription] as? String ?? ""
-        authorName = record[FieldKey.authorName] as? String ?? "Anonymous"
-        downloadCount = record[FieldKey.downloadCount] as? Int64 ?? 0
-        createdAt = record.creationDate ?? Date()
-        creatorUserRecordName = record.creatorUserRecordID?.recordName
-
-        if let outputTypeRaw = record[FieldKey.outputType] as? String,
-           let outputType = OutputType(rawValue: outputTypeRaw)
-        {
-            self.outputType = outputType
-        } else {
-            outputType = .plain
-        }
-
-        if let scenesRaw = record[FieldKey.usageScenes] as? Int64 {
-            usageScenes = ActionConfig.UsageScene(rawValue: Int(scenesRaw))
-        } else {
-            usageScenes = .all
-        }
-
-        if let categoryRaw = record[FieldKey.category] as? String,
-           let category = MarketplaceCategory(rawValue: categoryRaw)
-        {
-            self.category = category
-        } else {
-            category = .other
         }
     }
 }

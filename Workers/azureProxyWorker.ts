@@ -16,6 +16,7 @@ interface Env {
   AZURE_ENDPOINT: string;
   AZURE_API_KEY: string;
   TTS_ENDPOINT: string;
+  MARKETPLACE_DB: D1Database;
 }
 
 interface AuthResult {
@@ -84,7 +85,7 @@ const MODELS_LIST: ModelInfo[] = [
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "Content-Type, api-key, Authorization, Accept, Accept-Language, X-Timestamp, X-Signature, X-Premium",
+    "Content-Type, api-key, Authorization, Accept, Accept-Language, X-Timestamp, X-Signature, X-Premium, X-User-ID",
   "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,DELETE,OPTIONS",
 };
 
@@ -120,6 +121,28 @@ export default {
     // Route: /voice-to-action - Generate ActionConfig from voice transcript
     if (path === "/voice-to-action") {
       return handleVoiceToActionRequest(request, env);
+    }
+
+    // Route: /marketplace/actions - List or create marketplace actions
+    if (path === "/marketplace/actions") {
+      if (request.method === "GET") {
+        return handleListActions(request, env);
+      }
+      if (request.method === "POST") {
+        return handleCreateAction(request, env);
+      }
+    }
+
+    // Route: /marketplace/actions/:id/download - Increment download count
+    const downloadMatch = path.match(/^\/marketplace\/actions\/([^/]+)\/download$/);
+    if (downloadMatch && request.method === "POST") {
+      return handleIncrementDownload(env, downloadMatch[1]);
+    }
+
+    // Route: /marketplace/actions/:id - Delete a marketplace action
+    const actionIdMatch = path.match(/^\/marketplace\/actions\/([^/]+)$/);
+    if (actionIdMatch && request.method === "DELETE") {
+      return handleDeleteAction(request, env, actionIdMatch[1]);
     }
 
     // Route: /{model}/chat/completions - LLM Chat
@@ -427,6 +450,208 @@ Return ONLY valid JSON matching this schema:
     return buildResponse(
       JSON.stringify({ error: "Voice-to-action request failed", message }),
       502,
+      "application/json"
+    );
+  }
+}
+
+// MARK: - Marketplace Handlers
+
+const VALID_CATEGORIES = new Set(["translation", "writing", "analysis", "other"]);
+const VALID_OUTPUT_TYPES = new Set(["plain", "diff", "sentencePairs", "grammarCheck"]);
+
+async function handleListActions(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const q = url.searchParams.get("q") || "";
+  const category = url.searchParams.get("category");
+  const sort = url.searchParams.get("sort") || "newest";
+  const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "20", 10) || 20));
+  const offset = (page - 1) * limit;
+
+  const conditions: string[] = [];
+  const bindings: unknown[] = [];
+
+  if (q) {
+    conditions.push("(name LIKE ?1 OR action_description LIKE ?1 OR author_name LIKE ?1)");
+    bindings.push(`%${q}%`);
+  }
+
+  if (category && VALID_CATEGORIES.has(category)) {
+    bindings.push(category);
+    conditions.push(`category = ?${bindings.length}`);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const orderBy = sort === "popular" ? "download_count DESC" : "created_at DESC";
+
+  try {
+    const countResult = await env.MARKETPLACE_DB
+      .prepare(`SELECT COUNT(*) as total FROM marketplace_actions ${where}`)
+      .bind(...bindings)
+      .first<{ total: number }>();
+
+    const totalCount = countResult?.total ?? 0;
+    const totalPages = Math.ceil(totalCount / limit) || 1;
+
+    const rows = await env.MARKETPLACE_DB
+      .prepare(`SELECT * FROM marketplace_actions ${where} ORDER BY ${orderBy} LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}`)
+      .bind(...bindings, limit, offset)
+      .all();
+
+    return buildResponse(
+      JSON.stringify({
+        actions: rows.results,
+        page,
+        total_pages: totalPages,
+        total_count: totalCount,
+        has_more: page < totalPages,
+      }),
+      200,
+      "application/json"
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return buildResponse(
+      JSON.stringify({ error: "Database query failed", message }),
+      500,
+      "application/json"
+    );
+  }
+}
+
+async function handleCreateAction(request: Request, env: Env): Promise<Response> {
+  try {
+    const body = (await request.json()) as Record<string, unknown>;
+
+    const name = body.name as string;
+    const prompt = body.prompt as string;
+    if (!name || !prompt) {
+      return buildResponse(
+        JSON.stringify({ error: "name and prompt are required" }),
+        400,
+        "application/json"
+      );
+    }
+
+    const actionDescription = (body.action_description as string) || "";
+    const outputType = VALID_OUTPUT_TYPES.has(body.output_type as string) ? (body.output_type as string) : "plain";
+    const usageScenes = typeof body.usage_scenes === "number" ? body.usage_scenes : 7;
+    const category = VALID_CATEGORIES.has(body.category as string) ? (body.category as string) : "other";
+    const authorName = (body.author_name as string) || "Anonymous";
+    const creatorId = request.headers.get("X-User-ID") || null;
+
+    const result = await env.MARKETPLACE_DB
+      .prepare(
+        `INSERT INTO marketplace_actions (name, prompt, action_description, output_type, usage_scenes, category, author_name, creator_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+         RETURNING *`
+      )
+      .bind(name, prompt, actionDescription, outputType, usageScenes, category, authorName, creatorId)
+      .first();
+
+    if (!result) {
+      return buildResponse(
+        JSON.stringify({ error: "Failed to create action" }),
+        500,
+        "application/json"
+      );
+    }
+
+    return buildResponse(
+      JSON.stringify({ action: result }),
+      201,
+      "application/json"
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return buildResponse(
+      JSON.stringify({ error: "Failed to create action", message }),
+      500,
+      "application/json"
+    );
+  }
+}
+
+async function handleDeleteAction(request: Request, env: Env, actionId: string): Promise<Response> {
+  const userId = request.headers.get("X-User-ID");
+  if (!userId) {
+    return buildResponse(
+      JSON.stringify({ error: "X-User-ID header required" }),
+      400,
+      "application/json"
+    );
+  }
+
+  try {
+    const row = await env.MARKETPLACE_DB
+      .prepare("SELECT creator_id FROM marketplace_actions WHERE id = ?1")
+      .bind(actionId)
+      .first<{ creator_id: string | null }>();
+
+    if (!row) {
+      return buildResponse(
+        JSON.stringify({ error: "Action not found" }),
+        404,
+        "application/json"
+      );
+    }
+
+    if (row.creator_id !== userId) {
+      return buildResponse(
+        JSON.stringify({ error: "Not the owner of this action" }),
+        403,
+        "application/json"
+      );
+    }
+
+    await env.MARKETPLACE_DB
+      .prepare("DELETE FROM marketplace_actions WHERE id = ?1")
+      .bind(actionId)
+      .run();
+
+    return buildResponse(
+      JSON.stringify({ deleted: true }),
+      200,
+      "application/json"
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return buildResponse(
+      JSON.stringify({ error: "Failed to delete action", message }),
+      500,
+      "application/json"
+    );
+  }
+}
+
+async function handleIncrementDownload(env: Env, actionId: string): Promise<Response> {
+  try {
+    const result = await env.MARKETPLACE_DB
+      .prepare(
+        "UPDATE marketplace_actions SET download_count = download_count + 1 WHERE id = ?1 RETURNING download_count"
+      )
+      .bind(actionId)
+      .first<{ download_count: number }>();
+
+    if (!result) {
+      return buildResponse(
+        JSON.stringify({ error: "Action not found" }),
+        404,
+        "application/json"
+      );
+    }
+
+    return buildResponse(
+      JSON.stringify({ download_count: result.download_count }),
+      200,
+      "application/json"
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return buildResponse(
+      JSON.stringify({ error: "Failed to increment download count", message }),
+      500,
       "application/json"
     );
   }
