@@ -346,9 +346,6 @@
         }
       }
     },
-    "%lld translations" : {
-
-    },
     "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet." : {
       "comment" : "Snapshot mock polish result",
       "localizations" : {

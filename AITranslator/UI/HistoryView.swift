@@ -24,27 +24,42 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 28) {
+                #if os(macOS)
                     headerSection
-                    if records.isEmpty {
-                        emptyState
-                    } else {
-                        recordsList
-                    }
-                    privacyFooter
+                #endif
+                if records.isEmpty {
+                    emptyState
+                } else {
+                    recordsList
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 28)
+                privacyFooter
             }
-            .background(colors.background.ignoresSafeArea())
+            .padding(.horizontal, 20)
+            .padding(.vertical, 28)
         }
+        .background(colors.background.ignoresSafeArea())
         .tint(colors.accent)
         #if os(iOS)
-            .toolbar(.hidden, for: .navigationBar)
+        .navigationTitle("History")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                if !records.isEmpty {
+                    Button {
+                        showDeleteAllConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16))
+                            .foregroundColor(colors.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
         #endif
-            .onAppear {
+        .onAppear {
                 isVisible = true
                 refreshRecords()
             }
@@ -79,31 +94,33 @@ struct HistoryView: View {
             }
     }
 
-    // MARK: - Header
+    // MARK: - Header (macOS)
 
-    private var headerSection: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("History")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(colors.textPrimary)
-                Text("\(records.count) translations")
-                    .font(.system(size: 16))
-                    .foregroundColor(colors.textSecondary)
-            }
-            Spacer()
-            if !records.isEmpty {
-                Button {
-                    showDeleteAllConfirmation = true
-                } label: {
-                    Image(systemName: "trash")
+    #if os(macOS)
+        private var headerSection: some View {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("History")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(colors.textPrimary)
+                    Text("\(records.count) translations")
                         .font(.system(size: 16))
                         .foregroundColor(colors.textSecondary)
                 }
-                .buttonStyle(.plain)
+                Spacer()
+                if !records.isEmpty {
+                    Button {
+                        showDeleteAllConfirmation = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16))
+                            .foregroundColor(colors.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
-    }
+    #endif
 
     // MARK: - Empty State
 

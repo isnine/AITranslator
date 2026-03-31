@@ -10,6 +10,7 @@ import SwiftUI
 
 struct CustomSidebarView: View {
     @Binding var selection: RootTabView.TabItem
+    @Binding var showHistory: Bool
     let colors: AppColorPalette
     @ObservedObject private var storeManager = StoreManager.shared
     @State private var showPaywall = false
@@ -35,6 +36,16 @@ struct CustomSidebarView: View {
             VStack(spacing: 2) {
                 ForEach(RootTabView.TabItem.allCases) { item in
                     sidebarNavItem(item)
+                    if item == .home {
+                        sidebarButton(
+                            icon: "clock.arrow.circlepath",
+                            title: "History",
+                            isSelected: showHistory,
+                            accessibilityID: "sidebar_history"
+                        ) {
+                            showHistory = true
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 16)
@@ -57,15 +68,30 @@ struct CustomSidebarView: View {
     // MARK: - Nav Item
 
     private func sidebarNavItem(_ item: RootTabView.TabItem) -> some View {
-        let isSelected = selection == item
-        return Button {
+        sidebarButton(
+            icon: item.systemImage,
+            title: item.title,
+            isSelected: selection == item && !showHistory,
+            accessibilityID: "sidebar_\(item.rawValue)"
+        ) {
+            showHistory = false
             selection = item
-        } label: {
+        }
+    }
+
+    private func sidebarButton(
+        icon: String,
+        title: String,
+        isSelected: Bool,
+        accessibilityID: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: item.systemImage)
+                Image(systemName: icon)
                     .font(.system(size: 14))
                     .frame(width: 20)
-                Text(item.title)
+                Text(title)
                     .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
                 Spacer()
             }
@@ -78,7 +104,7 @@ struct CustomSidebarView: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("sidebar_\(item.rawValue)")
+        .accessibilityIdentifier(accessibilityID)
     }
 
     // MARK: - Premium Button

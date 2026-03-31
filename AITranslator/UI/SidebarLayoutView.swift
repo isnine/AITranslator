@@ -11,6 +11,7 @@ import SwiftUI
 struct SidebarLayoutView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var selection: RootTabView.TabItem
+    @State private var showHistory = false
     @ObservedObject private var configStore: AppConfigurationStore
     @ObservedObject private var preferences = AppPreferences.shared
 
@@ -25,12 +26,21 @@ struct SidebarLayoutView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            CustomSidebarView(selection: $selection, colors: colors)
+            CustomSidebarView(
+                selection: $selection,
+                showHistory: $showHistory,
+                colors: colors
+            )
 
             Divider()
 
-            contentView(for: selection)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if showHistory {
+                HistoryView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                contentView(for: selection)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
     }
 
@@ -39,8 +49,6 @@ struct SidebarLayoutView: View {
         switch tab {
         case .home:
             HomeView(context: nil)
-        case .history:
-            HistoryView()
         case .actions:
             ActionsView(configurationStore: configStore)
         case .models:

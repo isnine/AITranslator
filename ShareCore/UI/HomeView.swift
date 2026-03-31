@@ -60,6 +60,7 @@ public struct HomeView: View {
     }
 
     private let context: AppTranslationContext?
+    private let onHistoryTap: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -98,8 +99,9 @@ public struct HomeView: View {
         #endif
     }
 
-    public init(context: AppTranslationContext? = nil) {
+    public init(context: AppTranslationContext? = nil, onHistoryTap: (() -> Void)? = nil) {
         self.context = context
+        self.onHistoryTap = onHistoryTap
         let initialScene: ActionConfig.UsageScene
         #if os(iOS)
             if let context {
@@ -123,9 +125,7 @@ public struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if !openFromExtension {
-                        #if !os(macOS)
-                            header
-                        #endif
+                        header
                         if shouldShowDefaultAppCard {
                             defaultAppCard
                         }
@@ -154,6 +154,9 @@ public struct HomeView: View {
                 configurationLoadingOverlay
             }
         }
+        #if os(iOS)
+        .toolbar(.hidden, for: .navigationBar)
+        #endif
         .onAppear {
             AppPreferences.shared.refreshFromDefaults()
 
@@ -288,9 +291,23 @@ public struct HomeView: View {
     }
 
     private var header: some View {
-        Text("TLingo")
-            .font(.system(size: 28, weight: .semibold))
-            .foregroundColor(colors.textPrimary)
+        HStack {
+            Text("TLingo")
+                .font(.system(size: 28, weight: .semibold))
+                .foregroundColor(colors.textPrimary)
+            Spacer()
+            #if !os(macOS)
+                if let onHistoryTap {
+                    Button(action: onHistoryTap) {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 20))
+                            .foregroundColor(colors.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("home_history_button")
+                }
+            #endif
+        }
     }
 
     private var defaultAppCard: some View {

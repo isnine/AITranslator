@@ -31,7 +31,6 @@ struct RootTabView: View {
     /// Used by both TabView (iPhone) and custom sidebar (iPad/macOS).
     enum TabItem: String, CaseIterable, Identifiable {
         case home
-        case history
         case actions
         case models
         case settings
@@ -42,8 +41,6 @@ struct RootTabView: View {
             switch self {
             case .home:
                 return "Home"
-            case .history:
-                return "History"
             case .actions:
                 return "Actions"
             case .models:
@@ -57,8 +54,6 @@ struct RootTabView: View {
             switch self {
             case .home:
                 return "house.fill"
-            case .history:
-                return "clock.arrow.circlepath"
             case .actions:
                 return "bolt.fill"
             case .models:
@@ -125,6 +120,7 @@ extension RootTabView {
     private struct TabBarView: View {
         @Environment(\.colorScheme) private var colorScheme
         @State private var selection: RootTabView.TabItem
+        @State private var showHistory = false
         @ObservedObject var configStore: AppConfigurationStore
         @ObservedObject private var preferences = AppPreferences.shared
 
@@ -144,17 +140,16 @@ extension RootTabView {
                     systemImage: RootTabView.TabItem.home.systemImage,
                     value: RootTabView.TabItem.home
                 ) {
-                    HomeView(context: nil)
+                    NavigationStack {
+                        HomeView(context: nil, onHistoryTap: {
+                            showHistory = true
+                        })
+                        .navigationDestination(isPresented: $showHistory) {
+                            HistoryView()
+                        }
+                    }
                 }
                 .accessibilityIdentifier("tab_home")
-                Tab(
-                    RootTabView.TabItem.history.title,
-                    systemImage: RootTabView.TabItem.history.systemImage,
-                    value: RootTabView.TabItem.history
-                ) {
-                    HistoryView()
-                }
-                .accessibilityIdentifier("tab_history")
                 Tab(
                     RootTabView.TabItem.actions.title,
                     systemImage: RootTabView.TabItem.actions.systemImage,
