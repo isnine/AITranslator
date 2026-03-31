@@ -13,7 +13,6 @@ struct MarketplaceView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var marketplace = MarketplaceService.shared
     @ObservedObject private var configStore: AppConfigurationStore
-    @ObservedObject private var preferences = AppPreferences.shared
 
     @State private var searchText = ""
     @State private var selectedCategory: MarketplaceCategory?
@@ -57,6 +56,9 @@ struct MarketplaceView: View {
         .task {
             await marketplace.ensureUserRecordFetched()
             await marketplace.fetchActions(sortBy: sortOption)
+        }
+        .onDisappear {
+            searchTask?.cancel()
         }
     }
 
@@ -335,7 +337,7 @@ private struct MarketplaceActionRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: actionIcon)
+            Image(systemName: action.outputType.systemImageName)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(colors.accent)
                 .frame(width: 28, height: 28)
@@ -377,18 +379,5 @@ private struct MarketplaceActionRow: View {
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-    }
-
-    private var actionIcon: String {
-        switch action.outputType {
-        case .plain:
-            return "doc.text"
-        case .diff:
-            return "arrow.left.arrow.right"
-        case .sentencePairs:
-            return "text.alignleft"
-        case .grammarCheck:
-            return "checkmark.seal"
-        }
     }
 }

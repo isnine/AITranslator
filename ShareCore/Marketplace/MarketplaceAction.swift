@@ -143,17 +143,4 @@ extension MarketplaceAction {
             category = .other
         }
     }
-
-    func toCKRecord() -> CKRecord {
-        let record = CKRecord(recordType: Self.recordType)
-        record[FieldKey.name] = name
-        record[FieldKey.prompt] = prompt
-        record[FieldKey.actionDescription] = actionDescription
-        record[FieldKey.outputType] = outputType.rawValue
-        record[FieldKey.usageScenes] = Int64(usageScenes.rawValue)
-        record[FieldKey.category] = category.rawValue
-        record[FieldKey.authorName] = authorName
-        record[FieldKey.downloadCount] = downloadCount
-        return record
-    }
 }

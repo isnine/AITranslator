@@ -52,6 +52,34 @@ public enum OutputType: String, Codable, CaseIterable, Sendable {
             return nil
         }
     }
+
+    /// SF Symbol name for this output type
+    public var systemImageName: String {
+        switch self {
+        case .plain:
+            return "doc.text"
+        case .diff:
+            return "arrow.left.arrow.right"
+        case .sentencePairs:
+            return "text.alignleft"
+        case .grammarCheck:
+            return "checkmark.seal"
+        }
+    }
+
+    /// Localized display name for this output type
+    public var displayName: String {
+        switch self {
+        case .plain:
+            return String(localized: "Plain Text", comment: "Output type name")
+        case .diff:
+            return String(localized: "Show Diff", comment: "Output type name")
+        case .sentencePairs:
+            return String(localized: "Sentence Pairs", comment: "Output type name")
+        case .grammarCheck:
+            return String(localized: "Grammar Check", comment: "Output type name")
+        }
+    }
 }
 
 // MARK: - Built-in Structured Output Templates

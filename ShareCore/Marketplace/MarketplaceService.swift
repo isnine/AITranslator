@@ -27,10 +27,12 @@ public final class MarketplaceService: ObservableObject {
     private let publicDB: CKDatabase
     private var queryCursor: CKQueryOperation.Cursor?
     private var currentUserRecordName: String?
+    private var fetchNonce: UUID?
+    private static let containerIdentifier = "iCloud.com.zanderwang.AITranslator"
     private static let pageSize = 20
 
     private init() {
-        container = CKContainer(identifier: "iCloud.com.zanderwang.AITranslator")
+        container = CKContainer(identifier: Self.containerIdentifier)
         publicDB = container.publicCloudDatabase
     }
 
@@ -41,6 +43,8 @@ public final class MarketplaceService: ObservableObject {
         category: MarketplaceCategory? = nil,
         sortBy: MarketplaceSortOption = .newest
     ) async {
+        let nonce = UUID()
+        fetchNonce = nonce
         isLoading = true
         error = nil
         queryCursor = nil
@@ -53,6 +57,8 @@ public final class MarketplaceService: ObservableObject {
                 matching: query,
                 resultsLimit: Self.pageSize
             )
+            // Discard results if a newer fetch was started
+            guard fetchNonce == nonce else { return }
             let fetched = results.compactMap { _, result in
                 try? result.get()
             }.compactMap { MarketplaceAction(record: $0) }
@@ -61,6 +67,7 @@ public final class MarketplaceService: ObservableObject {
             queryCursor = cursor
             hasMoreResults = cursor != nil
         } catch {
+            guard fetchNonce == nonce else { return }
             self.error = error.localizedDescription
         }
 
@@ -216,14 +223,11 @@ public final class MarketplaceService: ObservableObject {
 
 public enum MarketplaceError: LocalizedError {
     case invalidRecord
-    case notSignedIn
 
     public var errorDescription: String? {
         switch self {
         case .invalidRecord:
             return String(localized: "Failed to process marketplace action.", comment: "Marketplace error")
-        case .notSignedIn:
-            return String(localized: "Please sign in to iCloud to publish or delete actions.", comment: "Marketplace error")
         }
     }
 }

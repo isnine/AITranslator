@@ -644,7 +644,7 @@ private extension ActionsView {
                         .frame(width: 24)
                 }
 
-                Image(systemName: actionIcon)
+                Image(systemName: action.outputType.systemImageName)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(colors.accent)
                     .frame(width: 28, height: 28)
@@ -685,19 +685,6 @@ private extension ActionsView {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-        }
-
-        private var actionIcon: String {
-            switch action.outputType {
-            case .plain:
-                return "doc.text"
-            case .diff:
-                return "arrow.left.arrow.right"
-            case .sentencePairs:
-                return "text.alignleft"
-            case .grammarCheck:
-                return "checkmark.seal"
-            }
         }
     }
 }

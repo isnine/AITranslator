@@ -94,7 +94,7 @@ struct PublishActionView: View {
 
     private var actionPickerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("ACTION", icon: "bolt.fill")
+            sectionHeader("ACTION", icon: "bolt.fill")
             VStack(spacing: 0) {
                 ForEach(Array(configStore.actions.enumerated()), id: \.element.id) { index, action in
                     Button {
@@ -145,7 +145,7 @@ struct PublishActionView: View {
 
     private var descriptionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("DESCRIPTION", icon: "text.alignleft")
+            sectionHeader("DESCRIPTION", icon: "text.alignleft")
             TextEditor(text: $description)
                 .font(.system(size: 15))
                 .foregroundColor(colors.textPrimary)
@@ -173,7 +173,7 @@ struct PublishActionView: View {
 
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("CATEGORY", icon: "tag")
+            sectionHeader("CATEGORY", icon: "tag")
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(MarketplaceCategory.allCases) { cat in
@@ -206,7 +206,7 @@ struct PublishActionView: View {
 
     private var authorSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            sectionLabel("AUTHOR NAME", icon: "person")
+            sectionHeader("AUTHOR NAME", icon: "person")
             TextField(
                 String(localized: "Your name (optional)", comment: "Publish author placeholder"),
                 text: $authorName
@@ -250,7 +250,7 @@ struct PublishActionView: View {
         selectedAction != nil && !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private func sectionLabel(_ title: String, icon: String) -> some View {
+    private func sectionHeader(_ title: String, icon: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 11, weight: .semibold))

@@ -13,7 +13,6 @@ struct MarketplaceActionDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var marketplace = MarketplaceService.shared
     @ObservedObject private var configStore: AppConfigurationStore
-    @ObservedObject private var preferences = AppPreferences.shared
 
     let action: MarketplaceAction
 
@@ -172,7 +171,7 @@ struct MarketplaceActionDetailView: View {
             VStack(spacing: 0) {
                 detailRow(
                     label: String(localized: "Output Type", comment: "Marketplace detail label"),
-                    value: outputTypeName
+                    value: action.outputType.displayName
                 )
                 Divider().padding(.leading, 16)
                 detailRow(
@@ -263,39 +262,44 @@ struct MarketplaceActionDetailView: View {
         .padding(.leading, 4)
     }
 
-    private var outputTypeName: String {
-        switch action.outputType {
-        case .plain: return "Plain Text"
-        case .diff: return "Show Diff"
-        case .sentencePairs: return "Sentence Pairs"
-        case .grammarCheck: return "Grammar Check"
-        }
-    }
-
     private var usageScenesDescription: String {
         var scenes: [String] = []
         if action.usageScenes.contains(.app) {
-            scenes.append("In App")
+            scenes.append(String(localized: "In App", comment: "Usage scene"))
         }
         if action.usageScenes.contains(.contextRead) {
-            scenes.append("Read-Only")
+            scenes.append(String(localized: "Read-Only", comment: "Usage scene"))
         }
         if action.usageScenes.contains(.contextEdit) {
-            scenes.append("Editable")
+            scenes.append(String(localized: "Editable", comment: "Usage scene"))
         }
-        return scenes.isEmpty ? "All" : scenes.joined(separator: ", ")
+        return scenes.isEmpty
+            ? String(localized: "All", comment: "Usage scene all")
+            : scenes.joined(separator: ", ")
     }
 
     private func downloadAction() {
         let newAction = action.toActionConfig()
         var actions = configStore.actions
+        // Prevent duplicate downloads
+        if actions.contains(where: { $0.name == newAction.name && $0.prompt == newAction.prompt }) {
+            errorMessage = String(
+                localized: "This action already exists in your local actions.",
+                comment: "Marketplace duplicate error"
+            )
+            return
+        }
         actions.append(newAction)
-        _ = configStore.updateActions(actions)
+        if let result = configStore.updateActions(actions), result.hasErrors {
+            errorMessage = result.errors.map(\.message).joined(separator: "\n")
+            return
+        }
         marketplace.incrementDownloadCount(for: action)
         showDownloadSuccess = true
     }
 
     private func performDelete() {
+        guard !isDeleting else { return }
         isDeleting = true
         Task {
             do {
@@ -303,8 +307,8 @@ struct MarketplaceActionDetailView: View {
                 dismiss()
             } catch {
                 errorMessage = error.localizedDescription
+                isDeleting = false
             }
-            isDeleting = false
         }
     }
 }
