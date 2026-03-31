@@ -28,7 +28,7 @@ enabled = true
 [[d1_databases]]
 binding = "MARKETPLACE_DB"
 database_name = "aitranslator-marketplace"
-database_id = "TODO"
+database_id = "7f192cb7-8165-43e5-9ac6-035c7bf194e7"
 migrations_dir = "migrations"
 
 # ---- Dev environment ----
