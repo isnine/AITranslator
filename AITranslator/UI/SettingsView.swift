@@ -203,6 +203,7 @@ struct SettingsView: View {
             .foregroundColor(colors.textSecondary)
             .frame(maxWidth: .infinity)
             .padding(.top, 4)
+            .contentShape(Rectangle())
             .onTapGesture(count: 2) {
                 guard StoreManager.isTestFlight else { return }
                 let enabled = storeManager.toggleTestFlightPremium()
