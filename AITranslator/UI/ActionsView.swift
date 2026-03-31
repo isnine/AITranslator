@@ -20,6 +20,7 @@ struct ActionsView: View {
 
     @State private var isEditing = false
     @State private var isAddingNewAction = false
+    @State private var showMarketplace = false
     @State private var isVoiceRecording = false
     @State private var voiceTranscript: String?
     @State private var aiGeneratedAction: ActionConfig?
@@ -49,6 +50,7 @@ struct ActionsView: View {
                     if !preferences.voiceActionHintDismissed {
                         voiceActionHintCard
                     }
+                    marketplaceCard
                     actionsSection
                 }
                 .padding(.horizontal, 20)
@@ -73,6 +75,9 @@ struct ActionsView: View {
                     configurationStore: configurationStore,
                     isAIGenerated: true
                 )
+            }
+            .navigationDestination(isPresented: $showMarketplace) {
+                MarketplaceView(configurationStore: configurationStore)
             }
         }
         .tint(colors.accent)
@@ -376,6 +381,50 @@ struct ActionsView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(colors.cardBackground)
         )
+    }
+
+    private var marketplaceCard: some View {
+        Button {
+            showMarketplace = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "storefront")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(
+                                LinearGradient(
+                                    colors: [colors.accent, colors.accent.opacity(0.7)],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                    )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Marketplace", comment: "Marketplace card title")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(colors.textPrimary)
+                    Text("Browse community actions", comment: "Marketplace card subtitle")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(colors.textSecondary.opacity(0.5))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(colors.cardBackground)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private var emptyStateView: some View {
