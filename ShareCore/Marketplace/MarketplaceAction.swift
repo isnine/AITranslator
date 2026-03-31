@@ -20,7 +20,7 @@ public struct MarketplaceAction: Identifiable, Hashable, Sendable, Codable {
     public let authorName: String
     public var downloadCount: Int64
     public let createdAt: Date
-    public let creatorId: String?
+    public var creatorId: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name, prompt, category

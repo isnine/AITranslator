@@ -499,9 +499,12 @@ async function handleListActions(request: Request, env: Env): Promise<Response> 
       .bind(...bindings, limit, offset)
       .all();
 
+    // Strip creator_id from public responses to prevent impersonation
+    const sanitizedActions = rows.results.map(({ creator_id, ...rest }) => rest);
+
     return buildResponse(
       JSON.stringify({
-        actions: rows.results,
+        actions: sanitizedActions,
         page,
         total_pages: totalPages,
         total_count: totalCount,
@@ -558,8 +561,11 @@ async function handleCreateAction(request: Request, env: Env): Promise<Response>
       );
     }
 
+    // Strip creator_id from response
+    const { creator_id, ...publicAction } = result as Record<string, unknown>;
+
     return buildResponse(
-      JSON.stringify({ action: result }),
+      JSON.stringify({ action: publicAction }),
       201,
       "application/json"
     );

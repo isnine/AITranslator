@@ -93,6 +93,7 @@ public final class MarketplaceService: ObservableObject {
             actions.append(contentsOf: response.actions)
             hasMoreResults = response.hasMore
         } catch {
+            currentPage -= 1
             self.error = error.localizedDescription
         }
 
@@ -125,8 +126,10 @@ public final class MarketplaceService: ObservableObject {
         try validateHTTPResponse(response)
 
         let createResponse = try Self.decoder.decode(CreateResponse.self, from: data)
-        actions.insert(createResponse.action, at: 0)
-        return createResponse.action
+        var newAction = createResponse.action
+        newAction.creatorId = AnonymousUserID.current
+        actions.insert(newAction, at: 0)
+        return newAction
     }
 
     public func delete(_ action: MarketplaceAction) async throws {
