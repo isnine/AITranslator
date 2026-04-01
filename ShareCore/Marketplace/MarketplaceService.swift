@@ -182,7 +182,7 @@ public final class MarketplaceService: ObservableObject {
         page: Int
     ) async throws -> ListResponse {
         var components = URLComponents(
-            url: CloudServiceConstants.endpoint.appendingPathComponent("marketplace/actions"),
+            url: CloudServiceConstants.marketplaceEndpoint.appendingPathComponent("marketplace/actions"),
             resolvingAgainstBaseURL: false
         )!
 
@@ -218,7 +218,7 @@ public final class MarketplaceService: ObservableObject {
     }
 
     private func buildRequest(path: String, method: String) -> URLRequest {
-        let url = CloudServiceConstants.endpoint.appendingPathComponent(
+        let url = CloudServiceConstants.marketplaceEndpoint.appendingPathComponent(
             path.hasPrefix("/") ? String(path.dropFirst()) : path
         )
         var request = URLRequest(url: url)

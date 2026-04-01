@@ -9,6 +9,10 @@ import ShareCore
 import SwiftUI
 import UniformTypeIdentifiers
 
+private enum ActionsDestination: Hashable {
+    case marketplace
+}
+
 struct ActionsView: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var configurationStore: AppConfigurationStore
@@ -18,9 +22,9 @@ struct ActionsView: View {
         self.configurationStore = configurationStore
     }
 
+    @State private var navigationPath = NavigationPath()
     @State private var isEditing = false
     @State private var isAddingNewAction = false
-    @State private var showMarketplace = false
     @State private var isVoiceRecording = false
     @State private var voiceTranscript: String?
     @State private var aiGeneratedAction: ActionConfig?
@@ -43,7 +47,7 @@ struct ActionsView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     headerSection
@@ -76,8 +80,17 @@ struct ActionsView: View {
                     isAIGenerated: true
                 )
             }
-            .navigationDestination(isPresented: $showMarketplace) {
-                MarketplaceView(configurationStore: configurationStore)
+            .navigationDestination(for: ActionsDestination.self) { destination in
+                switch destination {
+                case .marketplace:
+                    MarketplaceView(configurationStore: configurationStore)
+                }
+            }
+            .navigationDestination(for: MarketplaceAction.self) { action in
+                MarketplaceActionDetailView(
+                    action: action,
+                    configurationStore: configurationStore
+                )
             }
         }
         .tint(colors.accent)
@@ -385,7 +398,7 @@ struct ActionsView: View {
 
     private var marketplaceCard: some View {
         Button {
-            showMarketplace = true
+            navigationPath.append(ActionsDestination.marketplace)
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "storefront")

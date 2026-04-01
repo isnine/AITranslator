@@ -24,16 +24,20 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
     /// Whether this model supports vision (image input)
     public let supportsVision: Bool
 
+    /// Optional tags from server (e.g., "latest")
+    public let tags: [String]
+
     private enum CodingKeys: String, CodingKey {
-        case id, displayName, isDefault, isPremium, supportsVision
+        case id, displayName, isDefault, isPremium, supportsVision, tags
     }
 
-    public init(id: String, displayName: String, isDefault: Bool = false, isPremium: Bool = false, supportsVision: Bool = true) {
+    public init(id: String, displayName: String, isDefault: Bool = false, isPremium: Bool = false, supportsVision: Bool = true, tags: [String] = []) {
         self.id = id
         self.displayName = displayName
         self.isDefault = isDefault
         self.isPremium = isPremium
         self.supportsVision = supportsVision
+        self.tags = tags
     }
 
     public init(from decoder: Decoder) throws {
@@ -43,6 +47,7 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
         isDefault = try container.decode(Bool.self, forKey: .isDefault)
         isPremium = try container.decode(Bool.self, forKey: .isPremium)
         supportsVision = try container.decodeIfPresent(Bool.self, forKey: .supportsVision) ?? true
+        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
     }
 }
 
@@ -62,6 +67,9 @@ public enum CloudServiceConstants {
     public static var endpoint: URL {
         BuildEnvironment.cloudEndpoint
     }
+
+    /// Cloudflare Worker endpoint for marketplace API
+    public static let marketplaceEndpoint = URL(string: "https://translator-api.zanderwang.com")!
 
     /// Shared secret for HMAC signing
     public static var secret: String {

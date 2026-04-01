@@ -28,6 +28,14 @@ struct MarketplaceView: View {
         AppColors.palette(for: colorScheme)
     }
 
+    private func refreshActions() async {
+        await marketplace.fetchActions(
+            searchText: searchText,
+            category: selectedCategory,
+            sortBy: sortOption
+        )
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -41,12 +49,6 @@ struct MarketplaceView: View {
             .padding(.vertical, 28)
         }
         .background(colors.background.ignoresSafeArea())
-        .navigationDestination(for: MarketplaceAction.self) { action in
-            MarketplaceActionDetailView(
-                action: action,
-                configurationStore: configStore
-            )
-        }
         .sheet(isPresented: $showPublishSheet) {
             PublishActionView(configurationStore: configStore)
         }
@@ -55,7 +57,7 @@ struct MarketplaceView: View {
         #endif
         .task {
             await marketplace.ensureUserRecordFetched()
-            await marketplace.fetchActions(sortBy: sortOption)
+            await refreshActions()
         }
         .onDisappear {
             searchTask?.cancel()
@@ -114,11 +116,7 @@ struct MarketplaceView: View {
                 searchTask = Task {
                     try? await Task.sleep(for: .milliseconds(300))
                     guard !Task.isCancelled else { return }
-                    await marketplace.fetchActions(
-                        searchText: searchText,
-                        category: selectedCategory,
-                        sortBy: sortOption
-                    )
+                    await refreshActions()
                 }
             }
 
@@ -158,11 +156,7 @@ struct MarketplaceView: View {
         return Button {
             selectedCategory = category
             Task {
-                await marketplace.fetchActions(
-                    searchText: searchText,
-                    category: selectedCategory,
-                    sortBy: sortOption
-                )
+                await refreshActions()
             }
         } label: {
             Text(title)
@@ -187,11 +181,7 @@ struct MarketplaceView: View {
                 Button {
                     sortOption = option
                     Task {
-                        await marketplace.fetchActions(
-                            searchText: searchText,
-                            category: selectedCategory,
-                            sortBy: sortOption
-                        )
+                        await refreshActions()
                     }
                 } label: {
                     Text(option.displayName)
@@ -285,11 +275,7 @@ struct MarketplaceView: View {
 
             Button {
                 Task {
-                    await marketplace.fetchActions(
-                        searchText: searchText,
-                        category: selectedCategory,
-                        sortBy: sortOption
-                    )
+                    await refreshActions()
                 }
             } label: {
                 Text("Retry", comment: "Marketplace retry")
