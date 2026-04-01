@@ -1,1 +1,1 @@
-traducción,idioma,gramática,escritura,corrección,voz,diccionario,ChatGPT,texto,inglés,ayuda
+traducción,gramática,corrección,ChatGPT,texto,inglés,IA,GPT,Claude,traductor,revisión,bilingüe

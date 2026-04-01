@@ -1,1 +1,1 @@
-ChatGPT,language,grammar,polish,text,voice,dictionary,rewrite,correct,proofread,sentence,spellcheck
+ChatGPT,translate,grammar,writing,proofread,rewrite,GPT,Claude,bilingual,correct,polish,AI,language

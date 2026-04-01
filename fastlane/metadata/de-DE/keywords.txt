@@ -1,1 +1,1 @@
-Übersetzung,Sprache,Grammatik,Schreiben,Korrektur,Stimme,ChatGPT,Text,Hilfe,Englisch,Wörterbuch
+Übersetzung,Grammatik,Korrektur,ChatGPT,Englisch,KI,GPT,Claude,Übersetzer,Korrekturlesen
