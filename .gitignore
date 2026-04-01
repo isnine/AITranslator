@@ -93,6 +93,9 @@ AzureFunction/local.settings.json
 # XcodeBuildMCP
 .xcodebuildmcp/
 
+# MCP configuration (local)
+.mcp.json
+
 # Build tools
 Makefile
 xcodemake *.log
