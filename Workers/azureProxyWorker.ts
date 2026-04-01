@@ -57,6 +57,7 @@ const PREMIUM_MODELS = new Set([
   "gpt-4o",
   "o4-mini",
   "o3-mini",
+  "model-router",
 ]);
 
 interface ModelInfo {
@@ -85,6 +86,7 @@ const MODELS_LIST: ModelInfo[] = [
   { id: "gpt-4o", displayName: "GPT-4o", isDefault: false, isPremium: true, supportsVision: true },
   { id: "o4-mini", displayName: "o4 Mini", isDefault: false, isPremium: true, supportsVision: true },
   { id: "o3-mini", displayName: "o3 Mini", isDefault: false, isPremium: true, supportsVision: false },
+  { id: "model-router", displayName: "Model Router", isDefault: false, isPremium: true, supportsVision: true, tags: ["low-latency"] },
 ];
 
 const CORS_HEADERS: Record<string, string> = {
