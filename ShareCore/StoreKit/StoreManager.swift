@@ -27,12 +27,15 @@ public final class StoreManager: ObservableObject {
     private var transactionListener: Task<Void, Never>?
     private static let premiumKey = "is_premium_subscriber"
 
-    /// `true` when running via TestFlight (receipt is sandboxReceipt in a non-DEBUG build).
+    /// `true` when running via TestFlight (sandbox receipt in a non-DEBUG, non-App-Store build).
     public static var isTestFlight: Bool {
         #if DEBUG
             return false
         #else
-            return Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+            guard let receiptURL = Bundle.main.appStoreReceiptURL else { return false }
+            // iOS TestFlight uses "sandboxReceipt" as the receipt filename.
+            // macOS TestFlight receipt lives under a path containing "sandboxReceipt".
+            return receiptURL.path.contains("sandboxReceipt")
         #endif
     }
 
