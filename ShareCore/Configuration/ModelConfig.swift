@@ -27,17 +27,21 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
     /// Optional tags from server (e.g., "latest")
     public let tags: [String]
 
+    /// Whether this model is hidden by default (collapsed in UI)
+    public let hidden: Bool
+
     private enum CodingKeys: String, CodingKey {
-        case id, displayName, isDefault, isPremium, supportsVision, tags
+        case id, displayName, isDefault, isPremium, supportsVision, tags, hidden
     }
 
-    public init(id: String, displayName: String, isDefault: Bool = false, isPremium: Bool = false, supportsVision: Bool = true, tags: [String] = []) {
+    public init(id: String, displayName: String, isDefault: Bool = false, isPremium: Bool = false, supportsVision: Bool = true, tags: [String] = [], hidden: Bool = false) {
         self.id = id
         self.displayName = displayName
         self.isDefault = isDefault
         self.isPremium = isPremium
         self.supportsVision = supportsVision
         self.tags = tags
+        self.hidden = hidden
     }
 
     public init(from decoder: Decoder) throws {
@@ -48,6 +52,7 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
         isPremium = try container.decode(Bool.self, forKey: .isPremium)
         supportsVision = try container.decodeIfPresent(Bool.self, forKey: .supportsVision) ?? true
         tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        hidden = try container.decodeIfPresent(Bool.self, forKey: .hidden) ?? false
     }
 }
 

@@ -111,9 +111,15 @@ async function testAzure() {
     const router = r.data?.models?.find(m => m.id === "model-router");
     assert("model-router has 'low-latency' tag", router?.tags?.includes("low-latency"), `tags: ${JSON.stringify(router?.tags)}`);
 
-    // Verify premium filtering
+    // Verify hidden field
+    const gpt4oMini = r.data?.models?.find(m => m.id === "gpt-4o-mini");
+    assert("gpt-4o-mini has hidden=true", gpt4oMini?.hidden === true, `hidden: ${gpt4oMini?.hidden}`);
+    assert("gpt-5.4-mini is not hidden", !mini54?.hidden, `hidden: ${mini54?.hidden}`);
+
+    // Verify default model changed to gpt-5.4-nano
     const defaultModel = r.data?.models?.find(m => m.isDefault);
     assert("has a default model", !!defaultModel, "no default model found");
+    assert("default model is gpt-5.4-nano", defaultModel?.id === "gpt-5.4-nano", `default: ${defaultModel?.id}`);
   } catch (e) {
     assert("request succeeds", false, e.message);
   }
@@ -238,6 +244,12 @@ async function testMarketplace() {
     assert("has model-router", r.data?.models?.some(m => m.id === "model-router"), "model not found");
     const router = r.data?.models?.find(m => m.id === "model-router");
     assert("model-router has 'low-latency' tag", router?.tags?.includes("low-latency"), `tags: ${JSON.stringify(router?.tags)}`);
+
+    // Verify hidden field on Worker
+    const gpt4oMiniW = r.data?.models?.find(m => m.id === "gpt-4o-mini");
+    assert("gpt-4o-mini hidden on Worker", gpt4oMiniW?.hidden === true, `hidden: ${gpt4oMiniW?.hidden}`);
+    const mini54W = r.data?.models?.find(m => m.id === "gpt-5.4-mini");
+    assert("gpt-5.4-mini not hidden on Worker", !mini54W?.hidden, `hidden: ${mini54W?.hidden}`);
   } catch (e) {
     assert("request succeeds", false, e.message);
   }

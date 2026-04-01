@@ -19,6 +19,8 @@ struct ModelsView: View {
     @State private var enabledModelIDs: Set<String> = []
     @State private var showPaywall = false
     @State private var showLimitBanner = false
+    @State private var showHiddenFreeModels = false
+    @State private var showHiddenPremiumModels = false
 
     private let freeModelLimit = 2
 
@@ -37,11 +39,19 @@ struct ModelsView: View {
     }
 
     private var freeModels: [ModelConfig] {
-        models.filter { !$0.isPremium }
+        models.filter { !$0.isPremium && !$0.hidden }
+    }
+
+    private var hiddenFreeModels: [ModelConfig] {
+        models.filter { !$0.isPremium && $0.hidden }
     }
 
     private var premiumModels: [ModelConfig] {
-        models.filter { $0.isPremium }
+        models.filter { $0.isPremium && !$0.hidden }
+    }
+
+    private var hiddenPremiumModels: [ModelConfig] {
+        models.filter { $0.isPremium && $0.hidden }
     }
 
     var body: some View {
@@ -107,21 +117,25 @@ struct ModelsView: View {
                 emptyState
             } else {
                 // Free models section
-                if !freeModels.isEmpty {
+                if !freeModels.isEmpty || !hiddenFreeModels.isEmpty {
                     modelGroupSection(
                         title: "FREE MODELS",
                         icon: "cpu",
                         models: freeModels,
+                        hiddenModels: hiddenFreeModels,
+                        isExpanded: $showHiddenFreeModels,
                         isPremiumSection: false
                     )
                 }
 
                 // Premium models section
-                if !premiumModels.isEmpty {
+                if !premiumModels.isEmpty || !hiddenPremiumModels.isEmpty {
                     modelGroupSection(
                         title: "PREMIUM MODELS",
                         icon: "crown.fill",
                         models: premiumModels,
+                        hiddenModels: hiddenPremiumModels,
+                        isExpanded: $showHiddenPremiumModels,
                         isPremiumSection: true
                     )
                 }
@@ -135,6 +149,8 @@ struct ModelsView: View {
         title: String,
         icon: String,
         models: [ModelConfig],
+        hiddenModels: [ModelConfig] = [],
+        isExpanded: Binding<Bool>,
         isPremiumSection: Bool
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -173,9 +189,39 @@ struct ModelsView: View {
                 ForEach(Array(models.enumerated()), id: \.element.id) { index, model in
                     modelRow(model: model)
 
-                    if index < models.count - 1 {
+                    if index < models.count - 1 || !hiddenModels.isEmpty {
                         Divider()
                             .padding(.leading, 56)
+                    }
+                }
+
+                if !hiddenModels.isEmpty {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            isExpanded.wrappedValue.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: isExpanded.wrappedValue ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(colors.textSecondary.opacity(0.5))
+                            Text("\(hiddenModels.count) more models")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(colors.textSecondary)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if isExpanded.wrappedValue {
+                        ForEach(Array(hiddenModels.enumerated()), id: \.element.id) { index, model in
+                            Divider()
+                                .padding(.leading, 56)
+                            modelRow(model: model)
+                        }
                     }
                 }
             }
