@@ -26,7 +26,9 @@ struct ModelsView: View {
         guard !storeManager.isPremium else { return false }
         let freeModelIDs = Set(models.filter { !$0.isPremium }.map(\.id))
         let activeFreeCount = enabledModelIDs.intersection(freeModelIDs).count
+        #if DEBUG
         print("[ModelsView] enabledModelIDs=\(enabledModelIDs), freeModelIDs=\(freeModelIDs), activeFreeCount=\(activeFreeCount), isPremium=\(storeManager.isPremium)")
+        #endif
         return activeFreeCount >= freeModelLimit
     }
 
@@ -63,7 +65,9 @@ struct ModelsView: View {
         #endif
             .onAppear {
                 enabledModelIDs = preferences.enabledModelIDs
+                #if DEBUG
                 print("[ModelsView] onAppear enabledModelIDs=\(enabledModelIDs)")
+                #endif
                 loadModels()
             }
             .onChange(of: preferences.enabledModelIDs) { _, newValue in
@@ -223,6 +227,16 @@ struct ModelsView: View {
                             Image(systemName: "crown.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(.orange)
+                        }
+
+                        ForEach(model.tags, id: \.self) { tag in
+                            Text(tag.uppercased())
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.green)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.green.opacity(0.15))
+                                .clipShape(Capsule())
                         }
                     }
 

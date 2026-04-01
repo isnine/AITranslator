@@ -34,6 +34,8 @@ const ALLOWED_MODELS = [
   "gpt-4.1-nano",
   "gpt-5-nano",
   "gpt-5-mini",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
   // Premium tier
   "gpt-5.4",
   "gpt-5.2-chat",
@@ -63,17 +65,20 @@ interface ModelInfo {
   isDefault: boolean;
   isPremium: boolean;
   supportsVision: boolean;
+  tags?: string[];
 }
 
 const MODELS_LIST: ModelInfo[] = [
   // Free tier models
+  { id: "gpt-5.4-mini", displayName: "GPT-5.4 Mini", isDefault: false, isPremium: false, supportsVision: true, tags: ["latest"] },
+  { id: "gpt-5.4-nano", displayName: "GPT-5.4 Nano", isDefault: false, isPremium: false, supportsVision: true, tags: ["latest"] },
   { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false, isPremium: false, supportsVision: true },
   { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false, isPremium: false, supportsVision: true },
   { id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true, isPremium: false, supportsVision: true },
   { id: "gpt-4.1-mini", displayName: "GPT-4.1 Mini", isDefault: false, isPremium: false, supportsVision: true },
   { id: "gpt-4o-mini", displayName: "GPT-4o Mini", isDefault: false, isPremium: false, supportsVision: true },
   // Premium tier models
-  { id: "gpt-5.4", displayName: "GPT-5.4", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-5.4", displayName: "GPT-5.4", isDefault: false, isPremium: true, supportsVision: true, tags: ["latest"] },
   { id: "gpt-5.2-chat", displayName: "GPT-5.2 Chat", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-4.1", displayName: "GPT-4.1", isDefault: false, isPremium: true, supportsVision: true },

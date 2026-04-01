@@ -10,6 +10,7 @@ const TIMESTAMP_TOLERANCE_SECONDS = 120;
 const ALLOWED_MODELS = [
   // Free tier
   "gpt-4o-mini", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-5-nano", "gpt-5-mini",
+  "gpt-5.4-mini", "gpt-5.4-nano",
   // Premium tier
   "gpt-5.4", "gpt-5.2-chat", "gpt-5", "gpt-4.1", "gpt-4o", "o4-mini", "o3-mini",
   // Hidden
@@ -26,15 +27,18 @@ interface ModelInfo {
   isDefault: boolean;
   isPremium: boolean;
   supportsVision: boolean;
+  tags?: string[];
 }
 
 const MODELS_LIST: ModelInfo[] = [
+  { id: "gpt-5.4-mini", displayName: "GPT-5.4 Mini", isDefault: false, isPremium: false, supportsVision: true, tags: ["latest"] },
+  { id: "gpt-5.4-nano", displayName: "GPT-5.4 Nano", isDefault: false, isPremium: false, supportsVision: true, tags: ["latest"] },
   { id: "gpt-5-mini", displayName: "GPT-5 Mini", isDefault: false, isPremium: false, supportsVision: true },
   { id: "gpt-5-nano", displayName: "GPT-5 Nano", isDefault: false, isPremium: false, supportsVision: true },
   { id: "gpt-4.1-nano", displayName: "GPT-4.1 Nano", isDefault: true, isPremium: false, supportsVision: true },
   { id: "gpt-4.1-mini", displayName: "GPT-4.1 Mini", isDefault: false, isPremium: false, supportsVision: true },
   { id: "gpt-4o-mini", displayName: "GPT-4o Mini", isDefault: false, isPremium: false, supportsVision: true },
-  { id: "gpt-5.4", displayName: "GPT-5.4", isDefault: false, isPremium: true, supportsVision: true },
+  { id: "gpt-5.4", displayName: "GPT-5.4", isDefault: false, isPremium: true, supportsVision: true, tags: ["latest"] },
   { id: "gpt-5.2-chat", displayName: "GPT-5.2 Chat", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-5", displayName: "GPT-5", isDefault: false, isPremium: true, supportsVision: true },
   { id: "gpt-4.1", displayName: "GPT-4.1", isDefault: false, isPremium: true, supportsVision: true },
@@ -46,7 +50,7 @@ const MODELS_LIST: ModelInfo[] = [
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "Content-Type, api-key, Authorization, Accept, Accept-Language, X-Timestamp, X-Signature, X-Premium",
+    "Content-Type, api-key, Authorization, Accept, Accept-Language, X-Timestamp, X-Signature, X-Premium, X-User-ID",
   "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,DELETE,OPTIONS",
 };
 
