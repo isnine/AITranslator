@@ -182,4 +182,37 @@ platform :mac do
     upload_macos_screenshots
   end
 
+  # ─── macOS Metadata ──────────────────────────────────────────
+
+  desc "Upload all metadata (description, keywords, what's new, etc.) to App Store Connect for macOS"
+  lane :upload_metadata do
+    upload_to_app_store(
+      api_key: asc_api_key,
+      app_identifier: "com.zanderwang.AITranslator",
+      team_id: "JW2LR94V6G",
+      platform: "osx",
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      metadata_path: "./fastlane/metadata",
+      force: true,
+      run_precheck_before_submit: false
+    )
+  end
+
+  desc "Full macOS release: upload metadata + screenshots"
+  lane :release do
+    upload_to_app_store(
+      api_key: asc_api_key,
+      app_identifier: "com.zanderwang.AITranslator",
+      team_id: "JW2LR94V6G",
+      platform: "osx",
+      skip_binary_upload: true,
+      metadata_path: "./fastlane/metadata",
+      screenshots_path: "./fastlane/macos_screenshots_marketing",
+      overwrite_screenshots: true,
+      force: true,
+      run_precheck_before_submit: false
+    )
+  end
+
 end
