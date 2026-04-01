@@ -14,4 +14,4 @@ overwrite_screenshots(true)
 force(true)
 
 # App Store version
-app_version("2.4")
+app_version("2.6")
