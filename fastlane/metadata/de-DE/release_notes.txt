@@ -1,6 +1,8 @@
-Neu in TLingo 2.4
+Neu in TLingo 2.6
 
-• Neu: Smarte Vorschläge — Nach jeder Übersetzung schlägt TLingo Folgeaktionen vor, z. B. „Kürzer machen" oder „Formeller". Tippen Sie auf einen Vorschlag, um die Übersetzung im Gespräch weiter zu verfeinern.
-• Verbessert: Vollständige Lokalisierung — Über 40 zuvor nicht übersetzte UI-Elemente werden jetzt in Ihrer Sprache angezeigt.
-• Verbessert: Schnellere Cloud-Übersetzung dank verbesserter Serverinfrastruktur im asiatisch-pazifischen Raum.
+• Neu: Sprachbefehle — Sprechen Sie einen Befehl, und TLingo findet und führt die passende Aktion aus.
+• Neu: Aktions-Marktplatz — Community-Aktionen durchsuchen, herunterladen und teilen.
+• Neu: Übersetzungsverlauf — Ihre Übersetzungen werden automatisch gespeichert und sind durchsuchbar.
+• Neu: Farbauswahl — Passen Sie Ihre Akzentfarbe an.
+• Verbessert: Modellauswahl mit einklappbaren Bereichen und neuen Modellen.
 • Fehlerbehebungen und Leistungsverbesserungen.

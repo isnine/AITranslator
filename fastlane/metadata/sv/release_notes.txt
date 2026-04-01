@@ -1,6 +1,8 @@
-Nyheter i TLingo 2.4
+Nyheter i TLingo 2.6
 
-• Nytt: Smarta förslag — Efter varje översättning föreslår TLingo uppföljningsåtgärder som "Gör det kortare" eller "Mer formellt". Tryck på ett förslag för att fortsätta förfina i en konversation.
-• Förbättrat: Fullständig lokalisering — Över 40 tidigare oöversatta gränssnittselement visas nu på ditt språk.
-• Förbättrat: Snabbare molnöversättning tack vare uppgraderad serverinfrastruktur i Asien-Stillahavsområdet.
+• Nytt: Röstkommandon — Säg ett kommando så hittar och utför TLingo rätt åtgärd.
+• Nytt: Åtgärdsmarknad — Bläddra, ladda ner och dela community-skapade åtgärder.
+• Nytt: Översättningshistorik — Dina översättningar sparas automatiskt och är sökbara.
+• Nytt: Temaväljare — Anpassa din accentfärg.
+• Förbättrat: Modellväljare med hopfällbara sektioner och nya modeller.
 • Buggfixar och prestandaförbättringar.

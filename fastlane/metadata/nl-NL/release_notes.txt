@@ -1,6 +1,8 @@
-Nieuw in TLingo 2.4
+Nieuw in TLingo 2.6
 
-• Nieuw: Slimme suggesties — Na elke vertaling stelt TLingo vervolgacties voor zoals "Maak het korter" of "Meer formeel". Tik op een suggestie om direct verder te verfijnen in een gesprek.
-• Verbeterd: Volledige lokalisatie — Meer dan 40 eerder niet-vertaalde interface-elementen worden nu in uw taal weergegeven.
-• Verbeterd: Snellere cloudvertaling dankzij verbeterde serverinfrastructuur in Azië-Pacific.
+• Nieuw: Spraakopdrachten — Spreek een opdracht in en TLingo vindt en voert de juiste actie uit.
+• Nieuw: Actiemarktplaats — Blader door, download en deel door de community gemaakte acties.
+• Nieuw: Vertaalgeschiedenis — Uw vertalingen worden automatisch opgeslagen en zijn doorzoekbaar.
+• Nieuw: Thema kiezen — Pas uw accentkleur aan.
+• Verbeterd: Modelselectie met inklapbare secties en nieuwe modellen.
 • Bugfixes en prestatieverbeteringen.

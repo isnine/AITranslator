@@ -1,6 +1,8 @@
-What's New in TLingo 2.4
+What's New in TLingo 2.6
 
-• New: Smart Suggestions — After each translation, TLingo suggests follow-up actions like "Make it shorter" or "More formal". Tap a chip to instantly continue refining in a conversation.
-• Improved: Full localization — 40+ previously untranslated UI elements now display in your language.
-• Improved: Faster cloud translation with upgraded server infrastructure in Asia-Pacific.
+• New: Voice-to-Action — Speak a command and TLingo will find and run the right action for you.
+• New: Actions Marketplace — Browse, download, and share community-created actions.
+• New: Translation History — Your translations are now saved and searchable.
+• New: Theme Picker — Customize your accent color.
+• Improved: Model picker now supports collapsible sections and new models.
 • Bug fixes and performance improvements.

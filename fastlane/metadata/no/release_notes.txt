@@ -1,6 +1,8 @@
-Nytt i TLingo 2.4
+Nytt i TLingo 2.6
 
-• Nytt: Smarte forslag — Etter hver oversettelse foreslår TLingo oppfølgingshandlinger som «Gjør det kortere» eller «Mer formelt». Trykk på et forslag for å fortsette å forbedre i en samtale.
-• Forbedret: Fullstendig lokalisering — Over 40 tidligere uoversatte grensesnittelementer vises nå på ditt språk.
-• Forbedret: Raskere skyoversettelse takket være oppgradert serverinfrastruktur i Asia-Stillehavsregionen.
+• Nytt: Talekommandoer — Si en kommando, og TLingo finner og utfører riktig handling.
+• Nytt: Handlingsmarkedsplass — Bla gjennom, last ned og del fellesskapets handlinger.
+• Nytt: Oversettelseshistorikk — Oversettelsene dine lagres automatisk og er søkbare.
+• Nytt: Temavelger — Tilpass din aksentfarge.
+• Forbedret: Modellvelger med sammenleggbare seksjoner og nye modeller.
 • Feilrettinger og ytelsesforbedringer.

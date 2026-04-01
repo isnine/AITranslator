@@ -1,6 +1,8 @@
-Novità in TLingo 2.4
+Novità in TLingo 2.6
 
-• Novità: Suggerimenti intelligenti — Dopo ogni traduzione, TLingo propone azioni di seguito come "Rendilo più breve" o "Più formale". Tocca un suggerimento per continuare a perfezionare in una conversazione.
-• Migliorato: Localizzazione completa — Oltre 40 elementi dell'interfaccia non tradotti ora vengono visualizzati nella tua lingua.
-• Migliorato: Traduzione cloud più veloce grazie a un'infrastruttura server potenziata nell'area Asia-Pacifico.
+• Novità: Comandi vocali — Parla e TLingo troverà ed eseguirà l'azione giusta.
+• Novità: Marketplace delle azioni — Sfoglia, scarica e condividi azioni create dalla community.
+• Novità: Cronologia traduzioni — Le traduzioni vengono salvate automaticamente e sono ricercabili.
+• Novità: Selettore del tema — Personalizza il colore di accento.
+• Migliorato: Selettore modelli con sezioni comprimibili e nuovi modelli.
 • Correzioni di bug e miglioramenti delle prestazioni.
