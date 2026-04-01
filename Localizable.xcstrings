@@ -119,6 +119,9 @@
     "· %@" : {
 
     },
+    "%lld" : {
+
+    },
     "%lld Actions" : {
       "comment" : "Configuration actions count",
       "extractionState" : "stale",
@@ -346,6 +349,9 @@
         }
       }
     },
+    "%lld translations" : {
+
+    },
     "A nimble brown fox leapt over the lazy dog. This sentence contains every letter of the English alphabet." : {
       "comment" : "Snapshot mock polish result",
       "localizations" : {
@@ -461,6 +467,9 @@
     },
     "A translation action based on your description" : {
 
+    },
+    "Action has been added to your local actions." : {
+      "comment" : "Marketplace download success"
     },
     "Action Name" : {
       "localizations" : {
@@ -1022,6 +1031,9 @@
         }
       }
     },
+    "All" : {
+      "comment" : "Marketplace filter all\nUsage scene all"
+    },
     "All history is stored locally on your device." : {
       "localizations" : {
         "ar" : {
@@ -1246,6 +1258,9 @@
           }
         }
       }
+    },
+    "Analysis" : {
+      "comment" : "Marketplace category"
     },
     "and" : {
       "localizations" : {
@@ -2376,8 +2391,11 @@
     "Basic Translation Action" : {
 
     },
+    "Browse community actions" : {
+      "comment" : "Marketplace card subtitle"
+    },
     "Cancel" : {
-      "comment" : "Cancel voice recording",
+      "comment" : "Cancel voice recording\nPublish cancel",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4433,8 +4451,14 @@
         }
       }
     },
+    "Delete from Marketplace" : {
+      "comment" : "Marketplace delete button"
+    },
     "Describe the action you want, the more detail the better." : {
       "comment" : "Voice recording idle guidance"
+    },
+    "Describe what this action does..." : {
+      "comment" : "Publish description placeholder"
     },
     "Describe what you want in your own words" : {
       "comment" : "Custom input option hint"
@@ -5116,6 +5140,12 @@
           }
         }
       }
+    },
+    "Download" : {
+      "comment" : "Marketplace download button"
+    },
+    "Downloaded" : {
+
     },
     "Duration: %@" : {
       "comment" : "Provider run duration",
@@ -6702,6 +6732,9 @@
         }
       }
     },
+    "Failed to process marketplace action." : {
+      "comment" : "Marketplace error"
+    },
     "Feedback" : {
       "localizations" : {
         "ar" : {
@@ -7382,7 +7415,7 @@
       }
     },
     "Grammar Check" : {
-      "comment" : "Name of the grammar check action",
+      "comment" : "Name of the grammar check action\nOutput type name",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -8180,6 +8213,7 @@
       }
     },
     "In App" : {
+      "comment" : "Usage scene",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -8290,6 +8324,9 @@
           }
         }
       }
+    },
+    "Invalid server response." : {
+      "comment" : "Marketplace error"
     },
     "Keep Running in Menu Bar" : {
       "localizations" : {
@@ -8519,6 +8556,9 @@
     "Listening..." : {
       "comment" : "Voice recording state"
     },
+    "Load More" : {
+      "comment" : "Marketplace load more"
+    },
     "Loading configuration..." : {
       "localizations" : {
         "ar" : {
@@ -8744,6 +8784,7 @@
       }
     },
     "Loading..." : {
+      "comment" : "Marketplace loading",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -9193,6 +9234,9 @@
           }
         }
       }
+    },
+    "Marketplace" : {
+      "comment" : "Marketplace card title\nMarketplace title"
     },
     "Match App Language" : {
       "extractionState" : "manual",
@@ -9760,6 +9804,12 @@
           }
         }
       }
+    },
+    "Newest" : {
+      "comment" : "Marketplace sort option"
+    },
+    "No actions found" : {
+      "comment" : "Marketplace empty state"
     },
     "No Actions Yet" : {
       "localizations" : {
@@ -10891,7 +10941,11 @@
         }
       }
     },
+    "Other" : {
+      "comment" : "Marketplace category"
+    },
     "Output Type" : {
+      "comment" : "Marketplace detail label",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -11235,6 +11289,7 @@
 
     },
     "Plain Text" : {
+      "comment" : "Output type name",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -11457,6 +11512,9 @@
           }
         }
       }
+    },
+    "Popular" : {
+      "comment" : "Marketplace sort option"
     },
     "Powered by Built-in Cloud - No API key required" : {
       "localizations" : {
@@ -12246,6 +12304,15 @@
           }
         }
       }
+    },
+    "Publish" : {
+      "comment" : "Publish button"
+    },
+    "Publish Action" : {
+      "comment" : "Publish action title"
+    },
+    "Published" : {
+
     },
     "Purchase Failed" : {
       "localizations" : {
@@ -14954,7 +15021,7 @@
       }
     },
     "Retry" : {
-      "comment" : "Retry fetching options",
+      "comment" : "Marketplace retry\nRetry fetching options",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -15290,6 +15357,9 @@
           }
         }
       }
+    },
+    "Search actions..." : {
+      "comment" : "Marketplace search placeholder"
     },
     "Select as many models as you need" : {
       "localizations" : {
@@ -15965,6 +16035,7 @@
       }
     },
     "Sentence Pairs" : {
+      "comment" : "Output type name",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -16188,6 +16259,9 @@
           }
         }
       }
+    },
+    "Server error (%lld)." : {
+      "comment" : "Marketplace error"
     },
     "Set a shortcut in Settings → Hotkeys" : {
       "localizations" : {
@@ -16757,6 +16831,7 @@
       }
     },
     "Show Diff" : {
+      "comment" : "Output type name",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -19126,6 +19201,9 @@
     "Theme Color" : {
 
     },
+    "This action already exists in your local actions." : {
+      "comment" : "Marketplace duplicate error"
+    },
     "This action cannot be undone." : {
 
     },
@@ -19241,6 +19319,9 @@
           }
         }
       }
+    },
+    "This will remove the action from the marketplace. This cannot be undone." : {
+      "comment" : "Marketplace delete confirm"
     },
     "This will replace the editor content with the built-in default configuration. Save to apply." : {
 
@@ -19940,6 +20021,12 @@
         }
       }
     },
+    "Translation" : {
+      "comment" : "Marketplace category"
+    },
+    "Try adjusting your search or filters" : {
+      "comment" : "Marketplace empty hint"
+    },
     "Try creating actions with your voice — just describe what you need!" : {
       "comment" : "Voice action hint"
     },
@@ -20506,6 +20593,9 @@
           }
         }
       }
+    },
+    "Usage" : {
+      "comment" : "Marketplace detail label"
     },
     "Usage Scenes" : {
       "localizations" : {
@@ -21180,6 +21270,9 @@
         }
       }
     },
+    "Writing" : {
+      "comment" : "Marketplace category"
+    },
     "You are now a premium subscriber. Enjoy!" : {
       "localizations" : {
         "ar" : {
@@ -21404,6 +21497,9 @@
         }
       }
     },
+    "Your action is now available in the marketplace." : {
+      "comment" : "Publish success"
+    },
     "Your AI translator" : {
 
     },
@@ -21518,6 +21614,9 @@
           }
         }
       }
+    },
+    "Your name (optional)" : {
+      "comment" : "Publish author placeholder"
     },
     "Your purchases have been restored successfully." : {
       "localizations" : {

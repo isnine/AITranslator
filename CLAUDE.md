@@ -19,10 +19,15 @@ TLingoTranslation (system translation extension)
 
 | Module | Purpose |
 |--------|---------|
-| **AITranslator/** | Main app — MVVM UI layer (tabs: Home/Actions/Models/Settings), macOS menu bar, global hotkey, clipboard monitor |
+| **AITranslator/** | Main app — MVVM UI layer (tabs: Home/Actions/Providers/Settings), macOS menu bar, global hotkey, clipboard monitor |
 | **ShareCore/** | Embedded framework — all shared business logic: networking (`LLMService`), configuration models, preferences, StoreKit, UI components. ~56 Swift files |
 | **TranslationUI/** | System translation extension (`TranslationProvider.swift`). Reuses ShareCore views |
 | **Workers/** | Cloudflare Worker proxy (TypeScript) for built-in cloud service |
+
+### Backend Infrastructure
+
+- **LLM / GPT calls**: Proxied through a Cloudflare Worker (`Workers/azureProxyWorker.ts`) that forwards to Azure OpenAI endpoints. The Worker handles HMAC auth validation, model routing, and SSE streaming relay. Uses AI Gateway from Istio Foundation scripts for request management.
+- **Actions Marketplace**: Runs entirely on Cloudflare — the Worker handles CRUD for marketplace actions, backed by a Cloudflare D1 (SQLite) database. Endpoint: `CloudServiceConstants.marketplaceEndpoint` (`translator-api.zanderwang.com`). The marketplace endpoint is separate from the Azure proxy endpoint (`CloudServiceConstants.endpoint`).
 
 ### Key Patterns
 
@@ -113,6 +118,9 @@ fastlane mac macos_full_pipeline      # Full pipeline
 | Text diff/comparison | `ShareCore/Utilities/TextDiffBuilder.swift` |
 | App colors & theming | `ShareCore/AppColors.swift` |
 | TTS functionality | `ShareCore/Networking/TTSPreviewService.swift` |
+| Marketplace UI | `AITranslator/UI/MarketplaceView.swift`, `MarketplaceActionDetailView.swift`, `PublishActionView.swift` |
+| Marketplace service | `ShareCore/Marketplace/MarketplaceService.swift`, `MarketplaceAction.swift` |
+| Marketplace Worker API | `Workers/azureProxyWorker.ts` (routes under `/marketplace/`) |
 
 ## Code Style
 
