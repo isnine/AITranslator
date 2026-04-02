@@ -202,24 +202,33 @@ struct MarketplaceActionDetailView: View {
 
     // MARK: - Download
 
+    private var isAlreadyDownloaded: Bool {
+        configStore.actions.contains { $0.name == action.name && $0.prompt == action.prompt }
+    }
+
     private var downloadButton: some View {
         Button {
             downloadAction()
         } label: {
             HStack {
-                Image(systemName: "arrow.down.circle.fill")
-                Text("Download", comment: "Marketplace download button")
+                Image(systemName: isAlreadyDownloaded ? "checkmark.circle.fill" : "arrow.down.circle.fill")
+                Text(
+                    isAlreadyDownloaded
+                        ? String(localized: "Downloaded", comment: "Marketplace already downloaded label")
+                        : String(localized: "Download", comment: "Marketplace download button")
+                )
             }
             .font(.system(size: 16, weight: .semibold))
-            .foregroundColor(.white)
+            .foregroundColor(isAlreadyDownloaded ? colors.textSecondary : .white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(colors.accent)
+                    .fill(isAlreadyDownloaded ? colors.cardBackground : colors.accent)
             )
         }
         .buttonStyle(.plain)
+        .disabled(isAlreadyDownloaded)
     }
 
     // MARK: - Delete (owner only)
@@ -281,8 +290,7 @@ struct MarketplaceActionDetailView: View {
     private func downloadAction() {
         let newAction = action.toActionConfig()
         var actions = configStore.actions
-        // Prevent duplicate downloads
-        if actions.contains(where: { $0.name == newAction.name && $0.prompt == newAction.prompt }) {
+        if isAlreadyDownloaded {
             errorMessage = String(
                 localized: "This action already exists in your local actions.",
                 comment: "Marketplace duplicate error"
