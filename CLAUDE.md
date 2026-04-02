@@ -120,7 +120,8 @@ fastlane mac macos_full_pipeline      # Full pipeline
 | TTS functionality | `ShareCore/Networking/TTSPreviewService.swift` |
 | Marketplace UI | `AITranslator/UI/MarketplaceView.swift`, `MarketplaceActionDetailView.swift`, `PublishActionView.swift` |
 | Marketplace service | `ShareCore/Marketplace/MarketplaceService.swift`, `MarketplaceAction.swift` |
-| Marketplace Worker API | `Workers/azureProxyWorker.ts` (routes under `/marketplace/`) |
+| Marketplace Worker API | `Workers/azureProxyWorker.ts` (routes under `/marketplace/` and `/web/api/`) |
+| Marketplace Web UI | `Workers/azureProxyWorker.ts` (route `/web`, inline SPA) |
 
 ## Code Style
 
@@ -151,6 +152,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to main and all PRs:
 ## Additional Documentation
 
 - `docs/agent.md` — Detailed architecture & implementation notes (Chinese)
+- `docs/marketplace-web-api.md` — Marketplace Web API reference (endpoints, auth, data model, deployment)
 - `docs/macos-screenshots.md` — macOS screenshot pipeline
 - `docs/Swift Style Guide.md` — Code style conventions
 - `docs/KEY_ROTATION_CHECKLIST.md` — Secret rotation procedures
