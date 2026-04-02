@@ -41,7 +41,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     public let configDirectoryChangedPublisher = PassthroughSubject<Void, Never>()
 
     /// Directory where configuration files are stored
-    /// Priority: iCloud > Application Support > tmp
+    /// Priority: iCloud > App Group (iOS) > Application Support > tmp
     public var configurationsDirectory: URL {
         // 1. Check if iCloud is enabled and available
         if AppPreferences.shared.useICloudForConfig,
@@ -52,7 +52,19 @@ public final class ConfigurationFileManager: @unchecked Sendable {
             return configDir
         }
 
-        // 2. Application Support (app's own sandbox container — no permission dialog on macOS)
+        // 2. [iOS] App Group shared container — both app and extension share this directory.
+        //    On macOS we avoid containerURL() because it triggers the "Access Data from Other Apps" dialog.
+        #if os(iOS)
+            if let groupContainer = fileManager.containerURL(
+                forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
+            ) {
+                let configDir = groupContainer.appendingPathComponent("Configurations", isDirectory: true)
+                ensureDirectoryExists(configDir)
+                return configDir
+            }
+        #endif
+
+        // 3. Application Support (macOS primary, iOS fallback)
         guard let appSupport = fileManager.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
@@ -151,63 +163,30 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         }
     }
 
-    private init() {
-        migrateFromAppGroupIfNeeded()
-    }
-
-    // MARK: - App Group Migration
-
-    /// One-time migration from the old App Group container to Application Support.
-    /// Users who never customized configs (no `currentConfigName` set) skip migration entirely.
-    /// Uses a manually constructed path to avoid triggering the permission dialog via `containerURL`.
-    private func migrateFromAppGroupIfNeeded() {
-        #if os(macOS)
-        let migrationKey = "hasCompletedAppGroupMigration"
-        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
-
-        // Skip migration if user never saved a custom config — avoids the dialog entirely
-        guard AppPreferences.shared.currentConfigName != nil else {
-            UserDefaults.standard.set(true, forKey: migrationKey)
-            return
-        }
-
-        // Construct old path manually to avoid containerURL triggering the permission dialog.
-        // On macOS, App Group containers live at ~/Library/Group Containers/<group-id>/
-        let home = fileManager.homeDirectoryForCurrentUser
-        let oldConfigDir = home
-            .appendingPathComponent("Library/Group Containers", isDirectory: true)
-            .appendingPathComponent(Self.appGroupIdentifier, isDirectory: true)
-            .appendingPathComponent("Configurations", isDirectory: true)
-
-        guard fileManager.fileExists(atPath: oldConfigDir.path) else {
-            UserDefaults.standard.set(true, forKey: migrationKey)
-            return
-        }
-
-        // Destination is the current configurationsDirectory (Application Support)
-        let destination = configurationsDirectory
-        ensureDirectoryExists(destination)
-
-        if let files = try? fileManager.contentsOfDirectory(
-            at: oldConfigDir,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) {
-            for file in files where file.pathExtension == "json" {
-                let destFile = destination.appendingPathComponent(file.lastPathComponent)
-                if !fileManager.fileExists(atPath: destFile.path) {
-                    try? fileManager.copyItem(at: file, to: destFile)
-                    Logger.debug("[ConfigFileManager] Migrated from App Group: \(file.lastPathComponent)")
-                }
-            }
-        }
-
-        UserDefaults.standard.set(true, forKey: migrationKey)
-        Logger.debug("[ConfigFileManager] App Group migration completed")
-        #endif
-    }
+    private init() {}
 
     // MARK: - Storage Location Management
+
+    /// Copy configurations from one directory to another (used for iCloud switching)
+    private func migrateConfigurations(from source: URL, to destination: URL) {
+        ensureDirectoryExists(destination)
+
+        guard let files = try? fileManager.contentsOfDirectory(
+            at: source,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else {
+            return
+        }
+
+        for file in files where file.pathExtension == "json" {
+            let destFile = destination.appendingPathComponent(file.lastPathComponent)
+            if !fileManager.fileExists(atPath: destFile.path) {
+                try? fileManager.copyItem(at: file, to: destFile)
+                Logger.debug("[ConfigFileManager] Copied: \(file.lastPathComponent)")
+            }
+        }
+    }
 
     /// Switch to iCloud storage
     /// - Parameter migrate: If true, migrate existing configurations to iCloud
@@ -253,27 +232,6 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
         Logger.debug("[ConfigFileManager] ✅ Switched to local storage")
-    }
-
-    /// Migrate configurations from one directory to another
-    private func migrateConfigurations(from source: URL, to destination: URL) {
-        ensureDirectoryExists(destination)
-
-        guard let files = try? fileManager.contentsOfDirectory(
-            at: source,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        ) else {
-            return
-        }
-
-        for file in files where file.pathExtension == "json" {
-            let destFile = destination.appendingPathComponent(file.lastPathComponent)
-            if !fileManager.fileExists(atPath: destFile.path) {
-                try? fileManager.copyItem(at: file, to: destFile)
-                Logger.debug("[ConfigFileManager] Migrated: \(file.lastPathComponent)")
-            }
-        }
     }
 
     /// Reveal the configurations directory in Finder (macOS only)
@@ -329,6 +287,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     public func loadConfiguration(named name: String) throws -> AppConfiguration {
         let sanitizedName = Self.sanitizeFilename(name)
         let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
+        Logger.debug("[ConfigFileManager] loadConfiguration(named: '\(name)') → \(fileURL.path), exists: \(fileManager.fileExists(atPath: fileURL.path))")
         return try loadConfiguration(from: fileURL)
     }
 

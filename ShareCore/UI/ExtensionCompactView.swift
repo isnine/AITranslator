@@ -71,6 +71,7 @@
 
                 if !hasTriggeredAutoRequest {
                     viewModel.refreshConfiguration()
+                    Logger.debug("[ExtCompactView] onAppear — \(viewModel.actions.count) actions loaded")
                     viewModel.updateUsageScene(usageScene)
                     hasTriggeredAutoRequest = true
 

@@ -16,8 +16,7 @@ final class TranslationProviderExtension: TranslationUIProviderExtension {
     required init() {
         UserDefaults.standard.addSuite(named: AppPreferences.appGroupSuiteName)
         AppPreferences.shared.refreshFromDefaults()
-        // Load configuration from shared UserDefaults (XPC-based, no filesystem permission dialog)
-        AppConfigurationStore.shared.loadFromSharedDefaults()
+        Logger.debug("[Extension] init — configDir: \(ConfigurationFileManager.shared.configurationsDirectory.path)")
     }
 
     var body: some TranslationUIProviderExtensionScene {

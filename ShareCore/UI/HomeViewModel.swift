@@ -430,6 +430,7 @@ public final class HomeViewModel: ObservableObject {
         allActions = configurationStore.actions
         refreshActions()
         loadModels()
+        Logger.debug("[HomeVM] refreshConfiguration() — \(actions.count) actions: \(actions.map(\.name))")
 
         // Apply pending deep link action, or fall back to first action
         if let pendingName = pendingDeepLinkActionName,
@@ -1201,6 +1202,7 @@ public final class HomeViewModel: ObservableObject {
     private func refreshActions() {
         let filtered = allActions.filter { $0.usageScenes.contains(usageScene) }
         actions = filtered
+        Logger.debug("[HomeVM] refreshActions() — \(allActions.count) total, \(filtered.count) filtered for \(usageScene)")
 
         guard !filtered.isEmpty else {
             selectedActionID = nil

@@ -73,7 +73,7 @@ public final class AppConfigurationStore: ObservableObject {
 
         preferences.refreshFromDefaults()
 
-        // Then load from persistence or defaults
+        // Load from persistence or defaults
         loadConfiguration()
 
         // Subscribe to file change events
@@ -214,9 +214,9 @@ public final class AppConfigurationStore: ObservableObject {
         defer { isSaveSuspended = false }
 
         if tryLoadConfiguration(named: name) {
-            Logger.debug("[ConfigStore] ✅ Reloaded configuration: '\(name)'")
+            Logger.debug("[ConfigStore] Reloaded '\(name)' — \(actions.count) actions")
         } else {
-            Logger.debug("[ConfigStore] ❌ Failed to reload configuration: '\(name)'")
+            Logger.debug("[ConfigStore] Failed to reload '\(name)'")
         }
     }
 
@@ -238,13 +238,13 @@ public final class AppConfigurationStore: ObservableObject {
 
     private func loadConfiguration() {
         // Copy bundled default to App Group if needed
-        _ = configFileManager.copyBundledDefaultIfNeeded(to: "Configuration")
+        configFileManager.copyBundledDefaultIfNeeded(to: "Configuration")
 
         // Load from App Group
         if tryLoadConfiguration(named: "Configuration") {
-            Logger.debug("[ConfigStore] ✅ Loaded configuration from App Group")
+            Logger.debug("[ConfigStore] Loaded configuration — \(actions.count) actions: \(actions.map(\.name))")
         } else {
-            Logger.debug("[ConfigStore] ❌ Failed to load configuration, creating empty")
+            Logger.debug("[ConfigStore] Failed to load configuration, creating empty")
             createEmptyConfiguration()
         }
     }
@@ -336,8 +336,6 @@ public final class AppConfigurationStore: ObservableObject {
             targetLanguage: preferences.targetLanguage
         )
 
-        // Push config snapshot to UserDefaults for the translation extension
-        pushConfigToSharedDefaults(config)
     }
 
     private func saveConfiguration(force: Bool = false) {
@@ -372,36 +370,9 @@ public final class AppConfigurationStore: ObservableObject {
 
             try configFileManager.saveConfiguration(config, name: configName)
             Logger.debug("[ConfigStore] ✅ Saved configuration to '\(configName).json'")
-
-            // Push config snapshot to UserDefaults for the translation extension
-            pushConfigToSharedDefaults(config)
         } catch {
             Logger.debug("[ConfigStore] ❌ Failed to save configuration: \(error)")
         }
-    }
-
-    /// Push serialized configuration to UserDefaults for the translation extension
-    private func pushConfigToSharedDefaults(_ config: AppConfiguration) {
-        do {
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = [.sortedKeys]
-            let data = try encoder.encode(config)
-            preferences.setActiveConfigurationData(data)
-        } catch {
-            Logger.debug("[ConfigStore] Failed to push config to shared defaults: \(error)")
-        }
-    }
-
-    /// Load configuration from shared UserDefaults (for extension use — avoids filesystem I/O)
-    public func loadFromSharedDefaults() {
-        guard let data = preferences.activeConfigurationData,
-              let config = try? JSONDecoder().decode(AppConfiguration.self, from: data)
-        else {
-            loadBundledDefault()
-            return
-        }
-        applyLoadedConfiguration(config)
-        currentConfigurationName = preferences.currentConfigName
     }
 
     /// Load the bundled DefaultConfiguration.json as a fallback
