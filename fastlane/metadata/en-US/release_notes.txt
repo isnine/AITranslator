@@ -1,8 +1,6 @@
-What's New in TLingo 2.6
+What's New in TLingo 2.7
 
-• New: Voice-to-Action — Speak a command and TLingo will find and run the right action for you.
-• New: Actions Marketplace — Browse, download, and share community-created actions.
-• New: Translation History — Your translations are now saved and searchable.
-• New: Theme Picker — Customize your accent color.
-• Improved: Model picker now supports collapsible sections and new models.
+• Fixed: Marketplace download button now correctly reflects install status.
+• Fixed: Translation extension configuration syncing via shared container.
+• New: Marketplace Web API for streamlined action management.
 • Bug fixes and performance improvements.

@@ -1,8 +1,6 @@
-TLingo 2.6'daki Yenilikler
+TLingo 2.7'deki Yenilikler
 
-• Yeni: Sesli Komutlar — Bir komut söyleyin, TLingo doğru eylemi bulup çalıştırsın.
-• Yeni: Eylem Pazaryeri — Topluluk tarafından oluşturulan eylemleri keşfedin, indirin ve paylaşın.
-• Yeni: Çeviri Geçmişi — Çevirileriniz otomatik kaydedilir ve aranabilir.
-• Yeni: Tema Seçici — Vurgu renginizi özelleştirin.
-• İyileştirildi: Model seçicide katlanabilir bölümler ve yeni modeller.
+• Düzeltildi: Mağaza indirme düğmesi artık kurulum durumunu doğru gösteriyor.
+• Düzeltildi: Paylaşılan kapsayıcı aracılığıyla çeviri uzantısı yapılandırma senkronizasyonu.
+• Yeni: Kolay eylem yönetimi için Mağaza Web API'si.
 • Hata düzeltmeleri ve performans iyileştirmeleri.

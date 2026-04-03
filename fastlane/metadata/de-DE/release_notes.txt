@@ -1,8 +1,6 @@
-Neu in TLingo 2.6
+Neu in TLingo 2.7
 
-• Neu: Sprachbefehle — Sprechen Sie einen Befehl, und TLingo findet und führt die passende Aktion aus.
-• Neu: Aktions-Marktplatz — Community-Aktionen durchsuchen, herunterladen und teilen.
-• Neu: Übersetzungsverlauf — Ihre Übersetzungen werden automatisch gespeichert und sind durchsuchbar.
-• Neu: Farbauswahl — Passen Sie Ihre Akzentfarbe an.
-• Verbessert: Modellauswahl mit einklappbaren Bereichen und neuen Modellen.
+• Behoben: Die Marketplace-Download-Schaltfläche zeigt den Installationsstatus jetzt korrekt an.
+• Behoben: Synchronisierung der Übersetzungserweiterungs-Konfiguration über den gemeinsamen Container.
+• Neu: Marketplace Web-API für optimierte Aktionsverwaltung.
 • Fehlerbehebungen und Leistungsverbesserungen.

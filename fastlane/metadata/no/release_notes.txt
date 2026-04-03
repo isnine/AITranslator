@@ -1,8 +1,6 @@
-Nytt i TLingo 2.6
+Nytt i TLingo 2.7
 
-• Nytt: Talekommandoer — Si en kommando, og TLingo finner og utfører riktig handling.
-• Nytt: Handlingsmarkedsplass — Bla gjennom, last ned og del fellesskapets handlinger.
-• Nytt: Oversettelseshistorikk — Oversettelsene dine lagres automatisk og er søkbare.
-• Nytt: Temavelger — Tilpass din aksentfarge.
-• Forbedret: Modellvelger med sammenleggbare seksjoner og nye modeller.
+• Fikset: Marketplace-nedlastingsknappen viser nå installasjonsstatus korrekt.
+• Fikset: Synkronisering av oversettelsesutvidelsens konfigurasjon via delt beholder.
+• Nytt: Marketplace Web-API for effektiv handlingsadministrasjon.
 • Feilrettinger og ytelsesforbedringer.

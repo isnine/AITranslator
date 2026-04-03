@@ -1,8 +1,6 @@
-Nyheter i TLingo 2.6
+Nyheter i TLingo 2.7
 
-• Nytt: Röstkommandon — Säg ett kommando så hittar och utför TLingo rätt åtgärd.
-• Nytt: Åtgärdsmarknad — Bläddra, ladda ner och dela community-skapade åtgärder.
-• Nytt: Översättningshistorik — Dina översättningar sparas automatiskt och är sökbara.
-• Nytt: Temaväljare — Anpassa din accentfärg.
-• Förbättrat: Modellväljare med hopfällbara sektioner och nya modeller.
+• Fixat: Marketplace-nedladdningsknappen visar nu installationsstatus korrekt.
+• Fixat: Synkronisering av översättningstillägets konfiguration via delad behållare.
+• Nytt: Marketplace Web-API för effektiv åtgärdshantering.
 • Buggfixar och prestandaförbättringar.

@@ -1,8 +1,6 @@
-Novidades no TLingo 2.6
+Novidades no TLingo 2.7
 
-• Novo: Comandos de voz — Fale um comando e o TLingo encontrará e executará a ação certa.
-• Novo: Mercado de ações — Navegue, baixe e compartilhe ações criadas pela comunidade.
-• Novo: Histórico de traduções — Suas traduções são salvas automaticamente e pesquisáveis.
-• Novo: Seletor de tema — Personalize sua cor de destaque.
-• Melhorado: Seletor de modelos com seções recolhíveis e novos modelos.
+• Corrigido: O botão de download do Marketplace agora exibe corretamente o status de instalação.
+• Corrigido: Sincronização da configuração da extensão de tradução via contêiner compartilhado.
+• Novo: API Web do Marketplace para gerenciamento otimizado de ações.
 • Correções de bugs e melhorias de desempenho.

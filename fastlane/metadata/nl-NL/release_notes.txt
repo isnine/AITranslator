@@ -1,8 +1,6 @@
-Nieuw in TLingo 2.6
+Nieuw in TLingo 2.7
 
-• Nieuw: Spraakopdrachten — Spreek een opdracht in en TLingo vindt en voert de juiste actie uit.
-• Nieuw: Actiemarktplaats — Blader door, download en deel door de community gemaakte acties.
-• Nieuw: Vertaalgeschiedenis — Uw vertalingen worden automatisch opgeslagen en zijn doorzoekbaar.
-• Nieuw: Thema kiezen — Pas uw accentkleur aan.
-• Verbeterd: Modelselectie met inklapbare secties en nieuwe modellen.
+• Opgelost: De Marketplace-downloadknop toont nu correct de installatiestatus.
+• Opgelost: Synchronisatie van de vertaalextensie-configuratie via de gedeelde container.
+• Nieuw: Marketplace Web-API voor gestroomlijnd actiebeheer.
 • Bugfixes en prestatieverbeteringen.
