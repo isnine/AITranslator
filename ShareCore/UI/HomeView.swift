@@ -5,6 +5,7 @@
 //  Created by Zander Wang on 2025/10/19.
 //
 
+import StoreKit
 import SwiftUI
 #if canImport(UIKit)
     import UIKit
@@ -29,6 +30,7 @@ import WebKit
 
 public struct HomeView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.requestReview) private var requestReview
     @StateObject private var viewModel: HomeViewModel
     @ObservedObject private var preferences = AppPreferences.shared
     @State private var hasTriggeredAutoRequest = false
@@ -223,6 +225,9 @@ public struct HomeView: View {
             viewModel.updateUsageScene(usageScene)
         }
         #endif
+        .onChange(of: viewModel.successfulTranslationCount) {
+            requestReview()
+        }
         .sheet(isPresented: $showDefaultAppGuide) {
             DefaultAppGuideSheet(colors: colors, onOpenSettings: {
                 viewModel.openAppSettings()

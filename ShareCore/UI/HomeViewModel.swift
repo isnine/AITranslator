@@ -188,6 +188,9 @@ public final class HomeViewModel: ObservableObject {
     @Published public private(set) var isSpeakingInputText: Bool = false
     /// Set to `true` when the user triggers an action but has not yet accepted data sharing consent.
     @Published public var showDataConsentRequest: Bool = false
+    /// Incremented each time a translation request completes with at least one success.
+    /// Observe this in the view layer to trigger `requestReview()`.
+    @Published public private(set) var successfulTranslationCount: Int = 0
     private let ttsService: TTSPreviewService
 
     public let placeholderHint: String = NSLocalizedString(
@@ -1121,6 +1124,15 @@ public final class HomeViewModel: ObservableObject {
         if activeRequestID == requestID {
             currentRequestTask = nil
             activeRequestID = nil
+
+            // Signal view layer for app review prompt if any model succeeded
+            let hasSuccess = modelRuns.contains { run in
+                if case .success = run.status { return true }
+                return false
+            }
+            if hasSuccess {
+                successfulTranslationCount += 1
+            }
         }
     }
 
