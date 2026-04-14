@@ -127,11 +127,12 @@
             guard window == nil else { return }
             guard #available(macOS 14.4, *) else { return }
 
+            let size = NSSize(width: 400, height: 300)
             let hostingView = NSHostingView(rootView: AppleTranslationWindowView())
-            hostingView.frame = NSRect(x: 0, y: 0, width: 1, height: 1)
+            hostingView.frame = NSRect(origin: .zero, size: size)
 
             let win = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 1, height: 1),
+                contentRect: NSRect(origin: .zero, size: size),
                 styleMask: [.borderless],
                 backing: .buffered,
                 defer: false
@@ -174,14 +175,17 @@
         /// Called when a language pack needs to be downloaded so the system UI appears on screen.
         func showForLanguageDownload() {
             guard let win = window, let screen = NSScreen.main else { return }
-            let center = NSPoint(
-                x: screen.visibleFrame.midX - 0.5,
-                y: screen.visibleFrame.midY - 0.5
+            // Center the window on screen so the system download sheet appears in the middle.
+            let sf = screen.visibleFrame
+            let wf = win.frame
+            let origin = NSPoint(
+                x: sf.minX + (sf.width - wf.width) / 2,
+                y: sf.minY + (sf.height - wf.height) / 2
             )
-            win.setFrameOrigin(center)
+            win.setFrameOrigin(origin)
             win.alphaValue = 1
             win.orderFront(nil)
-            Logger.debug("[AppleTranslationWindowManager] Shown for language download")
+            Logger.debug("[AppleTranslationWindowManager] Shown for language download at \(origin)")
         }
 
         /// Hides the auxiliary window after the session is ready (language pack was installed).
