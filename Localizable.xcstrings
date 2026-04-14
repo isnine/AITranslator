@@ -6180,6 +6180,7 @@
       }
     },
     "Every email gets a reply" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -6290,6 +6291,9 @@
           }
         }
       }
+    },
+    "Every email gets a reply · xiaozwan@outlook.com" : {
+
     },
     "Export Configuration" : {
       "localizations" : {
@@ -13226,6 +13230,9 @@
           }
         }
       }
+    },
+    "Record Not Found" : {
+
     },
     "Reload from Extension" : {
       "extractionState" : "manual",
