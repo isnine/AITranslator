@@ -34,6 +34,20 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
         ]
     }
 
+    /// Returns selection options filtered by Apple Translate availability.
+    /// When Apple Translate is enabled and has installed languages, only those languages are shown.
+    public static func filteredSelectionOptions(
+        appleTranslateEnabled: Bool,
+        installedLanguages: Set<String>
+    ) -> [TargetLanguageOption] {
+        guard appleTranslateEnabled, !installedLanguages.isEmpty else {
+            return selectionOptions
+        }
+        return selectionOptions.filter { option in
+            option == .appLanguage || installedLanguages.contains(option.rawValue)
+        }
+    }
+
     public var nativeName: String {
         name(in: Locale(identifier: baseIdentifier))
     }

@@ -64,6 +64,35 @@ public final class AppleTranslationService: @unchecked Sendable {
         return .unsupported
     }
 
+    // MARK: - Installed Languages
+
+    /// Returns the set of `TargetLanguageOption`s whose translation language packs
+    /// are installed on this device (checked as pairs with English).
+    @available(iOS 17.4, macOS 14.4, *)
+    public func refreshInstalledLanguages() async -> Set<TargetLanguageOption> {
+        let availability = LanguageAvailability()
+        let english = Locale.Language(identifier: "en")
+        var installed: Set<TargetLanguageOption> = []
+
+        for option in TargetLanguageOption.allCases where option != .appLanguage {
+            let target = option.localeLanguage
+            // Check en → target
+            let forwardStatus = await availability.status(from: english, to: target)
+            if forwardStatus == .installed {
+                installed.insert(option)
+            }
+            // Check target → en (covers bidirectional use)
+            let reverseStatus = await availability.status(from: target, to: english)
+            if reverseStatus == .installed {
+                installed.insert(option)
+                installed.insert(.english)
+            }
+        }
+
+        Logger.debug("[AppleTranslation] refreshInstalledLanguages: \(installed.map(\.rawValue))")
+        return installed
+    }
+
     // MARK: - Translation
 
     /// Translate a single text string using the provided TranslationSession.

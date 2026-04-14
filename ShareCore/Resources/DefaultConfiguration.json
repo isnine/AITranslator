@@ -1,15 +1,17 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "actions": [
     {
       "name": "Translate",
       "prompt": "Translate: \"{{text}}\" to {{targetLanguage}} with tone: fluent",
-      "outputType": "plain"
+      "outputType": "plain",
+      "category": "translation"
     },
     {
       "name": "Sentence Translate",
       "prompt": "If input is in {{targetLanguage}}, translate sentence by sentence to English; otherwise translate to {{targetLanguage}}. Return original-translation pairs. Keep meaning and style.",
-      "outputType": "sentencePairs"
+      "outputType": "sentencePairs",
+      "category": "translation"
     },
     {
       "name": "Grammar Check",

@@ -24,6 +24,13 @@ public struct SentencePair: Codable, Hashable, Identifiable, Sendable {
 }
 
 public struct ActionConfig: Identifiable, Hashable, Codable {
+    /// Categorizes whether an action is a translation task or a general text-processing task.
+    /// Only `.translation` actions are eligible for on-device Apple Translate.
+    public enum ActionCategory: String, Codable, Hashable, Sendable {
+        case translation
+        case general
+    }
+
     /// Controls how the result is displayed in the UI.
     public enum DisplayMode: String, Codable, Hashable {
         /// Default text display with copy/speak buttons.
@@ -82,6 +89,7 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
     public var prompt: String
     public var usageScenes: UsageScene
     public var outputType: OutputType
+    public var category: ActionCategory
 
     /// Computed property for backward compatibility
     public var showsDiff: Bool {
@@ -98,9 +106,9 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
         outputType.displayMode
     }
 
-    /// Whether Apple Translate can handle this action (plain translation only).
+    /// Whether Apple Translate can handle this action (translation category only).
     public var supportsAppleTranslate: Bool {
-        outputType == .plain || outputType == .sentencePairs
+        category == .translation
     }
 
     /// Primary initializer
@@ -109,12 +117,14 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
         name: String,
         prompt: String,
         usageScenes: UsageScene = .all,
-        outputType: OutputType = .plain
+        outputType: OutputType = .plain,
+        category: ActionCategory = .general
     ) {
         self.id = id
         self.name = name
         self.prompt = prompt
         self.usageScenes = usageScenes
         self.outputType = outputType
+        self.category = category
     }
 }

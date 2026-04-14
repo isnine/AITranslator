@@ -19,6 +19,7 @@ public struct LanguagePickerView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Binding var selectedCode: String
     @Binding var isPresented: Bool
+    private let availableOptions: [TargetLanguageOption]
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -29,14 +30,19 @@ public struct LanguagePickerView: View {
     }
 
     private var rows: [LanguageRow] {
-        TargetLanguageOption.selectionOptions.map { option in
+        availableOptions.map { option in
             LanguageRow(id: option.rawValue, primaryLabel: option.primaryLabel, secondaryLabel: option.secondaryLabel)
         }
     }
 
-    public init(selectedCode: Binding<String>, isPresented: Binding<Bool>) {
+    public init(
+        selectedCode: Binding<String>,
+        isPresented: Binding<Bool>,
+        availableOptions: [TargetLanguageOption]? = nil
+    ) {
         _selectedCode = selectedCode
         _isPresented = isPresented
+        self.availableOptions = availableOptions ?? TargetLanguageOption.selectionOptions
     }
 
     public var body: some View {

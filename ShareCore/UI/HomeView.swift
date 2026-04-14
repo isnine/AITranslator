@@ -505,7 +505,10 @@ public struct HomeView: View {
                                     }
                                     Divider()
                                 }
-                                ForEach(TargetLanguageOption.selectionOptions.filter { $0 != resolved }) { option in
+                                ForEach(TargetLanguageOption.filteredSelectionOptions(
+                                    appleTranslateEnabled: preferences.enabledModelIDs.contains(ModelConfig.appleTranslateID),
+                                    installedLanguages: preferences.appleTranslateInstalledLanguages
+                                ).filter { $0 != resolved }) { option in
                                     Button(option.primaryLabel) {
                                         viewModel.overrideTargetLanguage(option)
                                     }

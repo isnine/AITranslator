@@ -287,7 +287,7 @@ struct HistoryView: View {
     ) -> some View {
         HStack(spacing: 8) {
             if !record.actionName.isEmpty {
-                MetadataChipView(record.actionName, icon: "bolt.fill")
+                MetadataChipView(record.actionName, icon: iconForAction(named: record.actionName))
             }
             if record.isConversation {
                 MetadataChipView("Chat", icon: "bubble.left.and.bubble.right.fill")
@@ -323,6 +323,14 @@ struct HistoryView: View {
     }
 
     // MARK: - Helpers
+
+    private func iconForAction(named name: String) -> String {
+        let actions = AppConfigurationStore.shared.actions
+        if let action = actions.first(where: { $0.name == name }) {
+            return action.outputType.systemImageName
+        }
+        return "bolt.fill"
+    }
 
     private func refreshRecords() {
         records = TranslationHistoryService.shared.fetchAll()
