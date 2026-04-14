@@ -41,14 +41,25 @@
             let targetLocale = target.localeLanguage
             Logger.debug("[AppleTranslationBridge] requestTranslation source=\(source?.languageCode?.identifier ?? "nil (auto)"), target=\(targetLocale.languageCode?.identifier ?? "unknown")")
 
-            if pendingConfig != nil {
-                pendingConfig?.invalidate()
-                pendingConfig = nil
-                Task { @MainActor in
-                    self.pendingConfig = .init(source: source, target: targetLocale)
+            Task { @MainActor in
+                // Check if language pack needs downloading — if so, show the window so the
+                // system download UI is visible to the user.
+                let status = await AppleTranslationService.shared.languageAvailabilityStatus(
+                    source: source, target: targetLocale
+                )
+                Logger.debug("[AppleTranslationBridge] language availability: \(status)")
+                if status == .supported {
+                    // Language pack not yet installed — bring the auxiliary window into view
+                    // so the system download dialog appears on screen.
+                    AppleTranslationWindowManager.shared.showForLanguageDownload()
                 }
-            } else {
-                pendingConfig = .init(source: source, target: targetLocale)
+
+                if self.pendingConfig != nil {
+                    self.pendingConfig?.invalidate()
+                    self.pendingConfig = nil
+                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms to let invalidate settle
+                }
+                self.pendingConfig = .init(source: source, target: targetLocale)
             }
         }
 
@@ -56,6 +67,8 @@
         @available(macOS 14.4, *)
         func sessionReady(_ session: TranslationSession) {
             Logger.debug("[AppleTranslationBridge] sessionReady, forwarding to activeViewModel=\(activeViewModel != nil)")
+            // Hide the auxiliary window again (in case it was shown for language download).
+            AppleTranslationWindowManager.shared.hideAfterSessionReady()
             activeViewModel?.executeAppleTranslation(session: session)
         }
     }
@@ -155,6 +168,28 @@
             window?.close()
             window = nil
             pendingViewModels.removeAll()
+        }
+
+        /// Moves the auxiliary window to screen center and makes it visible.
+        /// Called when a language pack needs to be downloaded so the system UI appears on screen.
+        func showForLanguageDownload() {
+            guard let win = window, let screen = NSScreen.main else { return }
+            let center = NSPoint(
+                x: screen.visibleFrame.midX - 0.5,
+                y: screen.visibleFrame.midY - 0.5
+            )
+            win.setFrameOrigin(center)
+            win.alphaValue = 1
+            win.orderFront(nil)
+            Logger.debug("[AppleTranslationWindowManager] Shown for language download")
+        }
+
+        /// Hides the auxiliary window after the session is ready (language pack was installed).
+        func hideAfterSessionReady() {
+            guard let win = window else { return }
+            win.alphaValue = 0
+            win.setFrameOrigin(NSPoint(x: -9999, y: -9999))
+            Logger.debug("[AppleTranslationWindowManager] Hidden after session ready")
         }
 
         /// Wires the bridge request handler into a HomeViewModel instance.
