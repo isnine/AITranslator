@@ -287,39 +287,25 @@ struct HistoryView: View {
     ) -> some View {
         HStack(spacing: 8) {
             if !record.actionName.isEmpty {
-                metadataChip(record.actionName, icon: "bolt.fill")
+                MetadataChipView(record.actionName, icon: "bolt.fill")
             }
             if record.isConversation {
-                metadataChip("Chat", icon: "bubble.left.and.bubble.right.fill")
+                MetadataChipView("Chat", icon: "bubble.left.and.bubble.right.fill")
             }
             if hasMultipleModels {
                 let models = record.modelResults
-                metadataChip(
+                MetadataChipView(
                     "\(models.count) models",
                     icon: isExpanded ? "chevron.up" : "chevron.down"
                 )
             } else if let first = record.modelResults.first, !first.modelDisplayName.isEmpty {
-                metadataChip(first.modelDisplayName, icon: "cpu")
+                MetadataChipView(first.modelDisplayName, icon: "cpu")
             }
             Spacer()
             Text(record.timestamp, style: .relative)
                 .font(.system(size: 12))
                 .foregroundColor(colors.textSecondary)
         }
-    }
-
-    private func metadataChip(_ text: String, icon: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 10))
-            Text(text)
-                .font(.system(size: 12))
-        }
-        .foregroundColor(colors.textSecondary)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(colors.chipSecondaryBackground)
-        .clipShape(Capsule())
     }
 
     // MARK: - Privacy Footer

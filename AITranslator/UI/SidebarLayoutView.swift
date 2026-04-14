@@ -8,49 +8,153 @@
 import ShareCore
 import SwiftUI
 
-struct SidebarLayoutView: View {
-    @State private var selection: RootTabView.TabItem?
-    @ObservedObject private var configStore: AppConfigurationStore
+#if os(macOS)
 
-    init(initialTab: RootTabView.TabItem, configStore: AppConfigurationStore) {
-        _selection = State(initialValue: initialTab)
-        self.configStore = configStore
+    // MARK: - Sidebar Selection
+
+    enum SidebarSelection: Hashable {
+        case tab(RootTabView.TabItem)
+        case historyRecord(UUID)
     }
 
-    var body: some View {
-        NavigationSplitView {
-            List(RootTabView.TabItem.allCases, selection: $selection) { item in
-                Label(item.title, systemImage: item.systemImage)
-                    .tag(item)
+    // MARK: - SidebarLayoutView
+
+    struct SidebarLayoutView: View {
+        @State private var selection: SidebarSelection?
+        @State private var historyRecords: [TranslationRecord] = []
+        @ObservedObject private var configStore: AppConfigurationStore
+
+        init(initialTab: RootTabView.TabItem, configStore: AppConfigurationStore) {
+            _selection = State(initialValue: .tab(initialTab))
+            self.configStore = configStore
+        }
+
+        private static let sidebarTabs: [RootTabView.TabItem] = RootTabView.TabItem.allCases.filter { $0 != .history }
+
+        var body: some View {
+            NavigationSplitView {
+                List(selection: $selection) {
+                    Section {
+                        ForEach(Self.sidebarTabs) { item in
+                            Label(item.title, systemImage: item.systemImage)
+                                .tag(SidebarSelection.tab(item))
+                        }
+                    }
+
+                    if !historyRecords.isEmpty {
+                        Section("History") {
+                            ForEach(historyRecords) { record in
+                                Text(record.sourceText)
+                                    .lineLimit(1)
+                                    .tag(SidebarSelection.historyRecord(record.id))
+                            }
+                        }
+                    }
+                }
+                .listStyle(.sidebar)
+                .navigationSplitViewColumnWidth(min: 160, ideal: 200)
+                .navigationTitle("TLingo")
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    PremiumSidebarFooter()
+                        .frame(height: 72)
+                }
+            } detail: {
+                contentView(for: selection ?? .tab(.home))
             }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 160, ideal: 200)
-            .navigationTitle("TLingo")
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                PremiumSidebarFooter()
-                    .frame(height: 72)
+            .onAppear {
+                refreshHistory()
             }
-        } detail: {
-            contentView(for: selection ?? .home)
+            .onReceive(NotificationCenter.default.publisher(for: .translationRecordSaved)) { _ in
+                refreshHistory()
+            }
+        }
+
+        @ViewBuilder
+        private func contentView(for selection: SidebarSelection) -> some View {
+            switch selection {
+            case .tab(let tab):
+                tabContentView(for: tab)
+            case .historyRecord(let id):
+                if let record = historyRecords.first(where: { $0.id == id }) {
+                    HistoryRecordDetailView(record: record)
+                } else {
+                    ContentUnavailableView("Record Not Found", systemImage: "clock.arrow.circlepath")
+                }
+            }
+        }
+
+        @ViewBuilder
+        private func tabContentView(for tab: RootTabView.TabItem) -> some View {
+            switch tab {
+            case .home:
+                HomeView(context: nil)
+            case .history:
+                let _ = { assertionFailure("History tab should not appear in macOS sidebar") }()
+                EmptyView()
+            case .actions:
+                ActionsView(configurationStore: configStore)
+            case .models:
+                ModelsView()
+            case .settings:
+                SettingsView(configStore: configStore)
+            }
+        }
+
+        private func refreshHistory() {
+            let cutoff = Calendar.current.date(byAdding: .month, value: -1, to: Date()) ?? Date()
+            historyRecords = TranslationHistoryService.shared.fetchSince(cutoff)
         }
     }
 
-    @ViewBuilder
-    private func contentView(for tab: RootTabView.TabItem) -> some View {
-        switch tab {
-        case .home:
-            HomeView(context: nil)
-        case .history:
-            HistoryView()
-        case .actions:
-            ActionsView(configurationStore: configStore)
-        case .models:
-            ModelsView()
-        case .settings:
-            SettingsView(configStore: configStore)
+#else
+
+    // MARK: - SidebarLayoutView (iOS)
+
+    struct SidebarLayoutView: View {
+        @State private var selection: RootTabView.TabItem?
+        @ObservedObject private var configStore: AppConfigurationStore
+
+        init(initialTab: RootTabView.TabItem, configStore: AppConfigurationStore) {
+            _selection = State(initialValue: initialTab)
+            self.configStore = configStore
+        }
+
+        var body: some View {
+            NavigationSplitView {
+                List(RootTabView.TabItem.allCases, selection: $selection) { item in
+                    Label(item.title, systemImage: item.systemImage)
+                        .tag(item)
+                }
+                .listStyle(.sidebar)
+                .navigationSplitViewColumnWidth(min: 160, ideal: 200)
+                .navigationTitle("TLingo")
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    PremiumSidebarFooter()
+                        .frame(height: 72)
+                }
+            } detail: {
+                contentView(for: selection ?? .home)
+            }
+        }
+
+        @ViewBuilder
+        private func contentView(for tab: RootTabView.TabItem) -> some View {
+            switch tab {
+            case .home:
+                HomeView(context: nil)
+            case .history:
+                HistoryView()
+            case .actions:
+                ActionsView(configurationStore: configStore)
+            case .models:
+                ModelsView()
+            case .settings:
+                SettingsView(configStore: configStore)
+            }
         }
     }
-}
+
+#endif
 
 // MARK: - Premium Footer
 

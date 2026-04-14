@@ -8,6 +8,10 @@
 import Foundation
 import SwiftData
 
+public extension Notification.Name {
+    static let translationRecordSaved = Notification.Name("com.tlingo.translationRecordSaved")
+}
+
 @MainActor
 public final class TranslationHistoryService {
     public static let shared = TranslationHistoryService()
@@ -102,6 +106,7 @@ public final class TranslationHistoryService {
         do {
             try persistentContext.save()
             Logger.debug("Saved translation record for request \(requestID.uuidString.prefix(8))", tag: Self.tag)
+            NotificationCenter.default.post(name: .translationRecordSaved, object: nil)
         } catch {
             Logger.debug("Save failed: \(error.localizedDescription)", tag: Self.tag)
         }
@@ -112,6 +117,16 @@ public final class TranslationHistoryService {
     public func fetchAll() -> [TranslationRecord] {
         guard let persistentContext else { return [] }
         var descriptor = FetchDescriptor<TranslationRecord>(
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        descriptor.fetchLimit = 500
+        return (try? persistentContext.fetch(descriptor)) ?? []
+    }
+
+    public func fetchSince(_ date: Date) -> [TranslationRecord] {
+        guard let persistentContext else { return [] }
+        var descriptor = FetchDescriptor<TranslationRecord>(
+            predicate: #Predicate { $0.timestamp >= date },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
         descriptor.fetchLimit = 500
