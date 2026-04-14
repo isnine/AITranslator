@@ -524,9 +524,10 @@ public final class HomeViewModel: ObservableObject {
             available = Array(models.filter { !$0.isPremium }.prefix(1))
         }
 
-        // Inject Apple Translate when enabled and available on this device.
+        // Inject Apple Translate only for translation-category actions.
         if enabledIDs.contains(ModelConfig.appleTranslateID),
-           AppleTranslationService.shared.isAvailable
+           AppleTranslationService.shared.isAvailable,
+           let action = selectedAction, action.category == .translation
         {
             available.insert(ModelConfig.appleTranslate, at: 0)
         }

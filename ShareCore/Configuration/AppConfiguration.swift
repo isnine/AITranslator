@@ -14,7 +14,7 @@ public struct AppConfiguration: Codable, Sendable {
     public var actions: [ActionEntry]
 
     /// Single source of truth for the current configuration version.
-    public static let currentVersion = "1.3.0"
+    public static let currentVersion = "1.4.0"
 
     public init(
         version: String = AppConfiguration.currentVersion,
@@ -33,22 +33,26 @@ public extension AppConfiguration {
         public var prompt: String
         public var scenes: [String]?
         public var outputType: String?
+        public var category: String?
 
         public init(
             name: String,
             prompt: String,
             scenes: [String]? = nil,
-            outputType: String? = nil
+            outputType: String? = nil,
+            category: String? = nil
         ) {
             self.name = name
             self.prompt = prompt
             self.scenes = scenes
             self.outputType = outputType
+            self.category = category
         }
 
         /// Convert to internal ActionConfig
         public func toActionConfig() -> ActionConfig {
             let resolvedOutputType = OutputType(rawValue: outputType ?? "") ?? .plain
+            let resolvedCategory = ActionConfig.ActionCategory(rawValue: category ?? "") ?? .general
 
             let usageScenes: ActionConfig.UsageScene
             if let scenes {
@@ -74,7 +78,8 @@ public extension AppConfiguration {
                 name: name,
                 prompt: prompt,
                 usageScenes: usageScenes,
-                outputType: resolvedOutputType
+                outputType: resolvedOutputType,
+                category: resolvedCategory
             )
         }
 
@@ -89,7 +94,8 @@ public extension AppConfiguration {
                 name: config.name,
                 prompt: config.prompt,
                 scenes: scenes.count == 3 ? nil : scenes,
-                outputType: config.outputType == .plain ? nil : config.outputType.rawValue
+                outputType: config.outputType == .plain ? nil : config.outputType.rawValue,
+                category: config.category == .general ? nil : config.category.rawValue
             )
         }
     }

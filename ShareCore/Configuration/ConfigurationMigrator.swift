@@ -33,6 +33,12 @@ public enum ConfigurationMigrator {
             didMigrate = true
         }
 
+        // 1.3.x -> 1.4.0
+        if versionCompare(result.version, isLessThan: "1.4.0") {
+            result = migrate_1_3_to_1_4(result)
+            didMigrate = true
+        }
+
         return (result, didMigrate)
     }
 
@@ -142,6 +148,40 @@ public enum ConfigurationMigrator {
         default:
             return nil
         }
+    }
+
+    // MARK: - 1.3.x -> 1.4.0
+
+    /// Migration: add `category: "translation"` to Translate and Sentence Translate actions.
+    private static func migrate_1_3_to_1_4(
+        _ config: AppConfiguration
+    ) -> AppConfiguration {
+        let translateName = NSLocalizedString(
+            "Translate",
+            comment: "Name of the translate action"
+        )
+        let sentenceTranslateName = NSLocalizedString(
+            "Sentence Translate",
+            comment: "Name of the sentence-by-sentence translation action"
+        )
+
+        var migrated = config
+        migrated.version = "1.4.0"
+
+        migrated.actions = migrated.actions.map { entry in
+            if entry.name == translateName || entry.name == sentenceTranslateName ||
+                entry.name == "Translate" || entry.name == "Sentence Translate"
+            {
+                var updated = entry
+                updated.category = "translation"
+                Logger.debug("[Migrator] Set category=translation for action '\(entry.name)'")
+                return updated
+            }
+            return entry
+        }
+
+        Logger.debug("[Migrator] Migration 1.3 -> 1.4 complete")
+        return migrated
     }
 
     // MARK: - Version comparison helpers

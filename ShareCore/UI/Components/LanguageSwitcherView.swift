@@ -47,6 +47,14 @@ public struct LanguageSwitcherView: View {
         return target.primaryLabel
     }
 
+    private var filteredOptions: [TargetLanguageOption] {
+        let appleTranslateEnabled = preferences.enabledModelIDs.contains(ModelConfig.appleTranslateID)
+        return TargetLanguageOption.filteredSelectionOptions(
+            appleTranslateEnabled: appleTranslateEnabled,
+            installedLanguages: preferences.appleTranslateInstalledLanguages
+        )
+    }
+
     public var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "globe")
@@ -73,7 +81,8 @@ public struct LanguageSwitcherView: View {
         .sheet(isPresented: $isTargetPickerPresented) {
             LanguagePickerView(
                 selectedCode: $targetCode,
-                isPresented: $isTargetPickerPresented
+                isPresented: $isTargetPickerPresented,
+                availableOptions: filteredOptions
             )
             .presentationDetents([.medium, .large])
         }

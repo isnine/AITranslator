@@ -28,6 +28,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var isPremium: Bool
     @Published public private(set) var hasAcceptedDataSharing: Bool
     @Published public private(set) var accentTheme: AccentTheme
+    @Published public private(set) var appleTranslateInstalledLanguages: Set<String>
     #if os(macOS)
         @Published public private(set) var keepRunningWhenClosed: Bool
     #endif
@@ -48,6 +49,7 @@ public final class AppPreferences: ObservableObject {
         isPremium = defaults.bool(forKey: StorageKeys.isPremium)
         hasAcceptedDataSharing = defaults.bool(forKey: StorageKeys.hasAcceptedDataSharing)
         accentTheme = AppPreferences.readAccentTheme(from: defaults)
+        appleTranslateInstalledLanguages = AppPreferences.readInstalledLanguages(from: defaults)
 
         // Clean up stale custom directory bookmark data from previous versions
         defaults.removeObject(forKey: "custom_config_directory")
@@ -147,6 +149,15 @@ public final class AppPreferences: ObservableObject {
         defaults.set(Array(ids), forKey: StorageKeys.enabledModels)
     }
 
+    // MARK: - Apple Translate Installed Languages
+
+    public func setAppleTranslateInstalledLanguages(_ languages: Set<String>) {
+        guard appleTranslateInstalledLanguages != languages else { return }
+
+        appleTranslateInstalledLanguages = languages
+        defaults.set(Array(languages), forKey: StorageKeys.appleTranslateInstalledLanguages)
+    }
+
     // MARK: - Voice Selection
 
     public func setSelectedVoiceID(_ voiceID: String) {
@@ -244,6 +255,11 @@ public final class AppPreferences: ObservableObject {
         if voiceActionHintDismissed != storedVoiceActionHint {
             voiceActionHintDismissed = storedVoiceActionHint
         }
+
+        let storedInstalledLangs = AppPreferences.readInstalledLanguages(from: defaults)
+        if appleTranslateInstalledLanguages != storedInstalledLangs {
+            appleTranslateInstalledLanguages = storedInstalledLangs
+        }
     }
 
     private static func resolveSharedDefaults() -> UserDefaults {
@@ -271,6 +287,13 @@ public final class AppPreferences: ObservableObject {
         }
         return Set(array)
     }
+
+    private static func readInstalledLanguages(from defaults: UserDefaults) -> Set<String> {
+        guard let array = defaults.stringArray(forKey: StorageKeys.appleTranslateInstalledLanguages) else {
+            return []
+        }
+        return Set(array)
+    }
 }
 
 private enum StorageKeys {
@@ -288,6 +311,8 @@ private enum StorageKeys {
     static let hasAcceptedDataSharing = "has_accepted_data_sharing"
     /// Key for accent theme preference
     static let accentTheme = "accent_theme"
+    /// Key for Apple Translate installed language codes
+    static let appleTranslateInstalledLanguages = "apple_translate_installed_languages"
     #if os(macOS)
         static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif

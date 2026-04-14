@@ -27,6 +27,8 @@ struct ModelsView: View {
     #if canImport(Translation)
         @State private var prepareTranslationConfig: TranslationSession.Configuration?
     #endif
+    @State private var isCheckingLanguages = false
+    @State private var showLanguageRequirementAlert = false
 
     private let freeModelLimit = 2
 
@@ -87,6 +89,15 @@ struct ModelsView: View {
                 print("[ModelsView] onAppear enabledModelIDs=\(enabledModelIDs)")
                 #endif
                 loadModels()
+                // Refresh installed languages if Apple Translate is enabled.
+                if enabledModelIDs.contains(ModelConfig.appleTranslateID) {
+                    Task {
+                        let installed = await fetchInstalledLanguages()
+                        await MainActor.run {
+                            AppPreferences.shared.setAppleTranslateInstalledLanguages(Set(installed.map(\.rawValue)))
+                        }
+                    }
+                }
             }
             .onChange(of: preferences.enabledModelIDs) { _, newValue in
                 enabledModelIDs = newValue
@@ -102,6 +113,8 @@ struct ModelsView: View {
                     .translationTask(prepareTranslationConfig) { session in
                         if #available(iOS 17.4, macOS 14.4, *) {
                             try? await session.prepareTranslation()
+                            // Re-check installed languages after download dialog.
+                            handleLanguageDownloadCompleted()
                         }
                     }
             }
@@ -192,9 +205,15 @@ struct ModelsView: View {
                     toggleAppleTranslate()
                 } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 22))
-                            .foregroundColor(isEnabled ? colors.accent : colors.textSecondary.opacity(0.4))
+                        if isCheckingLanguages {
+                            ProgressView()
+                                .controlSize(.small)
+                                .frame(width: 22, height: 22)
+                        } else {
+                            Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 22))
+                                .foregroundColor(isEnabled ? colors.accent : colors.textSecondary.opacity(0.4))
+                        }
 
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(spacing: 8) {
@@ -223,26 +242,67 @@ struct ModelsView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .disabled(isCheckingLanguages)
             }
             .background(cardBackground)
+        }
+        .alert(
+            "Download More Languages",
+            isPresented: $showLanguageRequirementAlert
+        ) {
+            Button("OK") {}
+        } message: {
+            Text("Apple Translate requires at least 2 downloaded languages. Please download more language packs in the system Translation settings.")
         }
     }
 
     private func toggleAppleTranslate() {
         let id = ModelConfig.appleTranslateID
         var newSet = enabledModelIDs
+
         if newSet.contains(id) {
+            // Disabling — remove and clear installed languages.
             newSet.remove(id)
+            enabledModelIDs = newSet
+            preferences.setEnabledModelIDs(newSet)
+            AppPreferences.shared.setAppleTranslateInstalledLanguages([])
         } else {
-            newSet.insert(id)
-            // Trigger language pack download prompt on first enable.
+            // Enabling — always trigger the system download dialog first.
+            // The dialog lets the user download language packs.
+            // We only enable the model after the dialog confirms at least one
+            // usable language pair is available.
             #if canImport(Translation)
                 let target = AppPreferences.shared.targetLanguage.localeLanguage
                 prepareTranslationConfig = .init(source: nil, target: target)
             #endif
         }
-        enabledModelIDs = newSet
-        preferences.setEnabledModelIDs(newSet)
+    }
+
+    /// Called after the system download dialog completes.
+    /// Checks installed languages and enables Apple Translate if enough are available.
+    private func handleLanguageDownloadCompleted() {
+        Task {
+            let installed = await fetchInstalledLanguages()
+            await MainActor.run {
+                if !installed.isEmpty {
+                    var updated = enabledModelIDs
+                    updated.insert(ModelConfig.appleTranslateID)
+                    enabledModelIDs = updated
+                    AppPreferences.shared.setEnabledModelIDs(updated)
+                    AppPreferences.shared.setAppleTranslateInstalledLanguages(Set(installed.map(\.rawValue)))
+                } else {
+                    showLanguageRequirementAlert = true
+                }
+            }
+        }
+    }
+
+    private func fetchInstalledLanguages() async -> Set<TargetLanguageOption> {
+        guard AppleTranslationService.shared.isAvailable else { return [] }
+        if #available(iOS 17.4, macOS 14.4, *) {
+            return await AppleTranslationService.shared.refreshInstalledLanguages()
+        }
+        return []
     }
 
     // MARK: - Cloud Model Sections
