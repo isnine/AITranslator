@@ -7,6 +7,9 @@
 
 import ShareCore
 import SwiftUI
+#if canImport(Translation)
+    import Translation
+#endif
 
 struct ModelsView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -21,13 +24,18 @@ struct ModelsView: View {
     @State private var showLimitBanner = false
     @State private var showHiddenFreeModels = false
     @State private var showHiddenPremiumModels = false
+    #if canImport(Translation)
+        @State private var prepareTranslationConfig: TranslationSession.Configuration?
+    #endif
 
     private let freeModelLimit = 2
 
     private var hasReachedFreeLimit: Bool {
         guard !storeManager.isPremium else { return false }
         let freeModelIDs = Set(models.filter { !$0.isPremium }.map(\.id))
-        let activeFreeCount = enabledModelIDs.intersection(freeModelIDs).count
+        // Apple Translate doesn't count toward the free cloud model limit.
+        let activeFreeCount = enabledModelIDs.intersection(freeModelIDs)
+            .subtracting([ModelConfig.appleTranslateID]).count
         #if DEBUG
         print("[ModelsView] enabledModelIDs=\(enabledModelIDs), freeModelIDs=\(freeModelIDs), activeFreeCount=\(activeFreeCount), isPremium=\(storeManager.isPremium)")
         #endif
@@ -86,6 +94,18 @@ struct ModelsView: View {
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
             }
+            #if canImport(Translation)
+            .background {
+                // Place .translationTask on an inert view so it does not
+                // interfere with button hit-testing in the scroll content.
+                Color.clear
+                    .translationTask(prepareTranslationConfig) { session in
+                        if #available(iOS 17.4, macOS 14.4, *) {
+                            try? await session.prepareTranslation()
+                        }
+                    }
+            }
+            #endif
     }
 
     private var headerSection: some View {
@@ -109,6 +129,11 @@ struct ModelsView: View {
                         .scaleEffect(0.7)
                     Spacer()
                 }
+            }
+
+            // On-device models render independently of cloud config state
+            if AppleTranslationService.shared.isAvailable {
+                onDeviceModelSection
             }
 
             if let error = errorMessage {
@@ -144,6 +169,83 @@ struct ModelsView: View {
             infoFooter
         }
     }
+
+    // MARK: - On-Device Models
+
+    private var onDeviceModelSection: some View {
+        let model = ModelConfig.appleTranslate
+        let isEnabled = enabledModelIDs.contains(model.id)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "apple.logo")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+                Text("ON-DEVICE")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(colors.textSecondary)
+            }
+            .padding(.leading, 4)
+
+            VStack(spacing: 0) {
+                Button {
+                    toggleAppleTranslate()
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                            .font(.system(size: 22))
+                            .foregroundColor(isEnabled ? colors.accent : colors.textSecondary.opacity(0.4))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 8) {
+                                Text(model.displayName)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(colors.textPrimary)
+
+                                Text("Free")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.green)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.green.opacity(0.15))
+                                    .clipShape(Capsule())
+                            }
+
+                            Text("Private & On-Device")
+                                .font(.system(size: 13))
+                                .foregroundColor(colors.textSecondary)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .background(cardBackground)
+        }
+    }
+
+    private func toggleAppleTranslate() {
+        let id = ModelConfig.appleTranslateID
+        var newSet = enabledModelIDs
+        if newSet.contains(id) {
+            newSet.remove(id)
+        } else {
+            newSet.insert(id)
+            // Trigger language pack download prompt on first enable.
+            #if canImport(Translation)
+                let target = AppPreferences.shared.targetLanguage.localeLanguage
+                prepareTranslationConfig = .init(source: nil, target: target)
+            #endif
+        }
+        enabledModelIDs = newSet
+        preferences.setEnabledModelIDs(newSet)
+    }
+
+    // MARK: - Cloud Model Sections
 
     private func modelGroupSection(
         title: String,

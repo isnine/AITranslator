@@ -290,12 +290,12 @@
                             onReplace: context.allowsReplacement ? { text in
                                 context.finish(translation: AttributedString(text))
                             } : nil,
-                            onChat: {
+                            onChat: run.model.isLocal ? nil : {
                                 if let session = viewModel.createConversation(from: run) {
                                     activeConversationSession = session
                                 }
                             },
-                            onSuggestedAction: { action in
+                            onSuggestedAction: run.model.isLocal ? nil : { action in
                                 if let session = viewModel.createConversationWithFollowUp(from: run, followUp: action) {
                                     activeConversationSession = session
                                 }

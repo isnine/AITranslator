@@ -44,6 +44,28 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
         self.hidden = hidden
     }
 
+    /// Well-known identifier for the on-device Apple Translate model.
+    public static let appleTranslateID = "apple-translate"
+
+    /// Pre-built ModelConfig for Apple Translate.
+    public static let appleTranslate = ModelConfig(
+        id: appleTranslateID,
+        displayName: "Apple Translate",
+        isDefault: false,
+        isPremium: false,
+        supportsVision: false,
+        tags: ["on-device"],
+        hidden: false
+    )
+
+    /// Whether this model runs locally on-device (e.g. Apple Translate).
+    public var isLocal: Bool { id == Self.appleTranslateID }
+
+    /// Whether the given model ID refers to a local/on-device model.
+    public static func isLocalModelID(_ id: String) -> Bool {
+        id == appleTranslateID
+    }
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)

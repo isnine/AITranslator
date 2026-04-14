@@ -98,6 +98,11 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
         outputType.displayMode
     }
 
+    /// Whether Apple Translate can handle this action (plain translation only).
+    public var supportsAppleTranslate: Bool {
+        outputType == .plain || outputType == .sentencePairs
+    }
+
     /// Primary initializer
     public init(
         id: UUID = UUID(),

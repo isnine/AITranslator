@@ -21,6 +21,9 @@ import SwiftUI
 #endif
 import UniformTypeIdentifiers
 import WebKit
+#if canImport(Translation)
+    import Translation
+#endif
 
 #if os(iOS) && !targetEnvironment(macCatalyst)
     public typealias AppTranslationContext = TranslationUIProviderContext
@@ -40,6 +43,9 @@ public struct HomeView: View {
     @State private var activeConversationSession: ConversationSession?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
     @State private var showSatisfactionToast = false
+    #if canImport(Translation)
+        @State private var appleTranslationConfig: TranslationSession.Configuration?
+    #endif
     #if os(macOS)
         @State private var showDataConsent = false
     #endif
@@ -323,6 +329,30 @@ public struct HomeView: View {
             if newValue {
                 showDataConsent = true
                 viewModel.showDataConsentRequest = false
+            }
+        }
+        #endif
+        #if canImport(Translation)
+        .background {
+            // Place .translationTask on an inert view so it does not
+            // interfere with button hit-testing in the main content.
+            Color.clear
+                .translationTask(appleTranslationConfig) { session in
+                    Logger.debug("[HomeView] .translationTask fired, session received")
+                    if #available(iOS 17.4, macOS 14.4, *) {
+                        viewModel.executeAppleTranslation(session: session)
+                    }
+                }
+        }
+        .onChange(of: viewModel.appleTranslateTargetLanguage) { _, newTarget in
+            Logger.debug("[HomeView] onChange appleTranslateTargetLanguage: \(String(describing: newTarget)), existingConfig=\(appleTranslationConfig != nil)")
+            if let target = newTarget {
+                if appleTranslationConfig != nil {
+                    // Config already exists — invalidate to re-trigger .translationTask().
+                    appleTranslationConfig?.invalidate()
+                } else {
+                    appleTranslationConfig = .init(source: nil, target: target.localeLanguage)
+                }
             }
         }
         #endif
@@ -1060,20 +1090,27 @@ public struct HomeView: View {
 
     @ViewBuilder
     private func chatButton(for runID: String) -> some View {
-        Button {
-            if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
-               let session = viewModel.createConversation(from: run)
-            {
-                activeConversationSession = session
+        // Apple Translate results have no LLM backend for chat.
+        if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
+           run.model.isLocal
+        {
+            EmptyView()
+        } else {
+            Button {
+                if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
+                   let session = viewModel.createConversation(from: run)
+                {
+                    activeConversationSession = session
+                }
+            } label: {
+                Image(systemName: "text.bubble")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.accent)
             }
-        } label: {
-            Image(systemName: "text.bubble")
-                .font(.system(size: 14))
-                .foregroundColor(colors.accent)
+            .buttonStyle(.plain)
+            .help("Continue conversation")
+            .accessibilityIdentifier("chat_button")
         }
-        .buttonStyle(.plain)
-        .help("Continue conversation")
-        .accessibilityIdentifier("chat_button")
     }
 
     @ViewBuilder
