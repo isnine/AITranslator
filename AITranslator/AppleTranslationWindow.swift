@@ -125,15 +125,17 @@
             )
             win.contentView = hostingView
             win.isReleasedWhenClosed = false
-            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
+            win.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
             win.level = .floating
             win.isOpaque = false
             win.backgroundColor = .clear
             win.ignoresMouseEvents = true
-            // Place off-screen so it's part of a real NSWindowScene but not visible.
-            win.setFrameOrigin(NSPoint(x: -10, y: -10))
-            win.orderFrontRegardless()
+            win.hasShadow = false
             win.alphaValue = 0
+            // Move far off-screen so it's part of a real NSWindowScene but completely invisible.
+            // Must be shown (orderFront) for .translationTask to get a valid session.
+            win.setFrameOrigin(NSPoint(x: -9999, y: -9999))
+            win.orderFront(nil)
 
             self.window = win
             Logger.debug("[AppleTranslationWindowManager] Hidden translation window created")
