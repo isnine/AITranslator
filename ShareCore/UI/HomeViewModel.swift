@@ -187,6 +187,11 @@ public final class HomeViewModel: ObservableObject {
     /// HomeView observes this and creates a `TranslationSession.Configuration`.
     @Published public var appleTranslateTargetLanguage: TargetLanguageOption?
 
+    /// Detected source language for the pending Apple Translate request.
+    /// Used by HomeView to set `TranslationSession.Configuration.source`
+    /// so the system does not show a "Choose Language" prompt.
+    public private(set) var appleTranslateSourceLanguage: Locale.Language?
+
     /// Context captured when an Apple Translate request is pending, so that the
     /// `.translationTask()` callback in HomeView can relay it back.
     public private(set) var pendingAppleTranslateText: String?
@@ -229,7 +234,6 @@ public final class HomeViewModel: ObservableObject {
     private var perRunTasks: [String: Task<Void, Never>] = [:]
     private var perRunRequestIDs: [String: UUID] = [:]
     private var allActions: [ActionConfig]
-    private var usageScene: ActionConfig.UsageScene
     public private(set) var currentRequestInputText: String = ""
     private var currentRequestImages: [ImageAttachment] = []
     private var currentActionShowsDiff: Bool = false
@@ -256,14 +260,12 @@ public final class HomeViewModel: ObservableObject {
         configurationStore: AppConfigurationStore? = nil,
         llmService: LLMService = .shared,
         preferences: AppPreferences = .shared,
-        usageScene: ActionConfig.UsageScene = .app,
         ttsService: TTSPreviewService = .shared
     ) {
         let store = configurationStore ?? .shared
         self.configurationStore = store
         self.llmService = llmService
         self.preferences = preferences
-        self.usageScene = usageScene
         self.ttsService = ttsService
         allActions = store.actions
         selectedActionID = store.defaultAction?.id
@@ -311,19 +313,16 @@ public final class HomeViewModel: ObservableObject {
         let translateAction = ActionConfig(
             name: NSLocalizedString("Translate", comment: ""),
             prompt: "Translate the following text",
-            usageScenes: .all,
-            outputType: .plain
+            outputType: .translate
         )
         let grammarAction = ActionConfig(
             name: NSLocalizedString("Grammar Check", comment: ""),
             prompt: "Check grammar",
-            usageScenes: .all,
             outputType: .grammarCheck
         )
         let polishAction = ActionConfig(
             name: NSLocalizedString("Polish Writing", comment: ""),
             prompt: "Polish the writing",
-            usageScenes: .all,
             outputType: .diff
         )
 
@@ -528,10 +527,10 @@ public final class HomeViewModel: ObservableObject {
             available = Array(models.filter { !$0.isPremium }.prefix(1))
         }
 
-        // Inject Apple Translate only for translation-category actions.
+        // Inject Apple Translate only for translation actions.
         if enabledIDs.contains(ModelConfig.appleTranslateID),
            AppleTranslationService.shared.isAvailable,
-           let action = selectedAction, action.category == .translation
+           let action = selectedAction, action.supportsAppleTranslate
         {
             available.insert(ModelConfig.appleTranslate, at: 0)
         }
@@ -616,12 +615,6 @@ public final class HomeViewModel: ObservableObject {
         guard selectedActionID != action.id else { return false }
         selectedActionID = action.id
         return true
-    }
-
-    public func updateUsageScene(_ scene: ActionConfig.UsageScene) {
-        guard usageScene != scene else { return }
-        usageScene = scene
-        refreshActions()
     }
 
     public func performSelectedAction() {
@@ -1075,6 +1068,9 @@ public final class HomeViewModel: ObservableObject {
                 pendingAppleTranslateText = text
                 pendingAppleTranslateAction = action
                 pendingAppleTranslateRequestID = requestID
+                // Detect source language locally so the system Translation framework
+                // does not show a "Choose Language" prompt for short/ambiguous text.
+                appleTranslateSourceLanguage = SourceLanguageDetector.detectLocaleLanguage(of: text)
                 appleTranslateTargetLanguage = resolvedTarget
                 Logger.debug("[HomeViewModel] Apple Translate: published target=\(resolvedTarget.englishName)")
             } else {
@@ -1232,6 +1228,7 @@ public final class HomeViewModel: ObservableObject {
         pendingAppleTranslateText = nil
         pendingAppleTranslateAction = nil
         pendingAppleTranslateRequestID = nil
+        appleTranslateSourceLanguage = nil
         appleTranslateTargetLanguage = nil
         if clearResults {
             if !modelRuns.isEmpty { modelRuns = [] }
@@ -1258,6 +1255,7 @@ public final class HomeViewModel: ObservableObject {
             pendingAppleTranslateText = nil
             pendingAppleTranslateAction = nil
             pendingAppleTranslateRequestID = nil
+            appleTranslateSourceLanguage = nil
             appleTranslateTargetLanguage = nil
 
             Task { [weak self] in
@@ -1369,21 +1367,20 @@ public final class HomeViewModel: ObservableObject {
     }
 
     private func refreshActions() {
-        let filtered = allActions.filter { $0.usageScenes.contains(usageScene) }
-        actions = filtered
-        Logger.debug("[HomeVM] refreshActions() — \(allActions.count) total, \(filtered.count) filtered for \(usageScene)")
+        actions = allActions
+        Logger.debug("[HomeVM] refreshActions() — \(allActions.count) total")
 
-        guard !filtered.isEmpty else {
+        guard !allActions.isEmpty else {
             selectedActionID = nil
             return
         }
 
         if let selectedID = selectedActionID,
-           filtered.contains(where: { $0.id == selectedID })
+           allActions.contains(where: { $0.id == selectedID })
         {
             return
         }
 
-        selectedActionID = filtered.first?.id
+        selectedActionID = allActions.first?.id
     }
 }

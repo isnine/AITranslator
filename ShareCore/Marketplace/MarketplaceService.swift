@@ -114,7 +114,6 @@ public final class MarketplaceService: ObservableObject {
             prompt: action.prompt,
             actionDescription: description,
             outputType: action.outputType.rawValue,
-            usageScenes: action.usageScenes.rawValue,
             category: category.rawValue,
             authorName: authorName.isEmpty ? "Anonymous" : authorName
         )
@@ -271,7 +270,6 @@ private struct CreateActionRequest: Codable {
     let prompt: String
     let actionDescription: String
     let outputType: String
-    let usageScenes: Int
     let category: String
     let authorName: String
 
@@ -279,7 +277,6 @@ private struct CreateActionRequest: Codable {
         case name, prompt, category
         case actionDescription = "action_description"
         case outputType = "output_type"
-        case usageScenes = "usage_scenes"
         case authorName = "author_name"
     }
 }

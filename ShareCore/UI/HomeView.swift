@@ -82,15 +82,6 @@ public struct HomeView: View {
         #endif
     }
 
-    private var usageScene: ActionConfig.UsageScene {
-        #if os(iOS)
-            guard let context else { return .app }
-            return context.allowsReplacement ? .contextEdit : .contextRead
-        #else
-            return .app
-        #endif
-    }
-
     private var shouldShowDefaultAppCard: Bool {
         #if os(macOS)
             return false
@@ -111,17 +102,7 @@ public struct HomeView: View {
     public init(context: AppTranslationContext? = nil, onHistoryTap: (() -> Void)? = nil) {
         self.context = context
         self.onHistoryTap = onHistoryTap
-        let initialScene: ActionConfig.UsageScene
-        #if os(iOS)
-            if let context {
-                initialScene = context.allowsReplacement ? .contextEdit : .contextRead
-            } else {
-                initialScene = .app
-            }
-        #else
-            initialScene = .app
-        #endif
-        _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
+        _viewModel = StateObject(wrappedValue: HomeViewModel())
         #if os(iOS)
             _isInputExpanded = State(initialValue: context == nil)
         #else
@@ -229,17 +210,12 @@ public struct HomeView: View {
                 // For extension context: refresh configuration first, then execute
                 if openFromExtension, !hasTriggeredAutoRequest {
                     viewModel.refreshConfiguration()
-                    viewModel.updateUsageScene(usageScene)
                     if let inputText = initialContextInput {
                         viewModel.inputText = inputText
                     }
                     hasTriggeredAutoRequest = true
                     viewModel.performSelectedAction()
-                } else {
-                    viewModel.updateUsageScene(usageScene)
                 }
-            #else
-                viewModel.updateUsageScene(usageScene)
             #endif
         }
         #if os(macOS)
@@ -261,14 +237,6 @@ public struct HomeView: View {
                 isInputExpanded = true
             }
         }
-        .onChange(of: openFromExtension) {
-            viewModel.updateUsageScene(usageScene)
-        }
-        #if os(iOS)
-        .onChange(of: context?.allowsReplacement ?? false) {
-            viewModel.updateUsageScene(usageScene)
-        }
-        #endif
         .onChange(of: viewModel.showSatisfactionPrompt) { _, newValue in
             if newValue {
                 withAnimation(.easeInOut(duration: 0.25)) {

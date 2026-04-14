@@ -52,6 +52,16 @@ struct HistoryRecordDetailView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(colors.cardBackground)
         )
+        .overlay(alignment: .leading) {
+            UnevenRoundedRectangle(
+                topLeadingRadius: 12,
+                bottomLeadingRadius: 12,
+                bottomTrailingRadius: 0,
+                topTrailingRadius: 0
+            )
+            .fill(colors.accent.opacity(0.6))
+            .frame(width: 3)
+        }
     }
 }
 

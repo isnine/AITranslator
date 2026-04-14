@@ -34,7 +34,7 @@
 
         init(onClose: @escaping () -> Void) {
             self.onClose = onClose
-            _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: .app))
+            _viewModel = StateObject(wrappedValue: HomeViewModel())
         }
 
         var body: some View {

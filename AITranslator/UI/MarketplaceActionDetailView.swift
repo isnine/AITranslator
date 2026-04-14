@@ -173,11 +173,6 @@ struct MarketplaceActionDetailView: View {
                     label: String(localized: "Output Type", comment: "Marketplace detail label"),
                     value: action.outputType.displayName
                 )
-                Divider().padding(.leading, 16)
-                detailRow(
-                    label: String(localized: "Usage", comment: "Marketplace detail label"),
-                    value: usageScenesDescription
-                )
             }
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -269,22 +264,6 @@ struct MarketplaceActionDetailView: View {
                 .foregroundColor(colors.textSecondary)
         }
         .padding(.leading, 4)
-    }
-
-    private var usageScenesDescription: String {
-        var scenes: [String] = []
-        if action.usageScenes.contains(.app) {
-            scenes.append(String(localized: "In App", comment: "Usage scene"))
-        }
-        if action.usageScenes.contains(.contextRead) {
-            scenes.append(String(localized: "Read-Only", comment: "Usage scene"))
-        }
-        if action.usageScenes.contains(.contextEdit) {
-            scenes.append(String(localized: "Editable", comment: "Usage scene"))
-        }
-        return scenes.isEmpty
-            ? String(localized: "All", comment: "Usage scene all")
-            : scenes.joined(separator: ", ")
     }
 
     private func downloadAction() {

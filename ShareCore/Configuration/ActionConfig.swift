@@ -70,24 +70,9 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
         }
     }
 
-    public struct UsageScene: OptionSet, Hashable, Codable {
-        public let rawValue: Int
-
-        public init(rawValue: Int) {
-            self.rawValue = rawValue
-        }
-
-        public static let app = UsageScene(rawValue: 1 << 0)
-        public static let contextRead = UsageScene(rawValue: 1 << 1)
-        public static let contextEdit = UsageScene(rawValue: 1 << 2)
-
-        public static let all: UsageScene = [.app, .contextRead, .contextEdit]
-    }
-
     public let id: UUID
     public var name: String
     public var prompt: String
-    public var usageScenes: UsageScene
     public var outputType: OutputType
     public var category: ActionCategory
 
@@ -106,9 +91,9 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
         outputType.displayMode
     }
 
-    /// Whether Apple Translate can handle this action (translation category only).
+    /// Whether Apple Translate can handle this action (translation output type only).
     public var supportsAppleTranslate: Bool {
-        category == .translation
+        outputType == .translate
     }
 
     /// Primary initializer
@@ -116,14 +101,12 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
         id: UUID = UUID(),
         name: String,
         prompt: String,
-        usageScenes: UsageScene = .all,
         outputType: OutputType = .plain,
         category: ActionCategory = .general
     ) {
         self.id = id
         self.name = name
         self.prompt = prompt
-        self.usageScenes = usageScenes
         self.outputType = outputType
         self.category = category
     }

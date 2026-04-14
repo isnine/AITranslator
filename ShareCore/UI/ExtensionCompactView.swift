@@ -25,14 +25,9 @@
             AppColors.palette(for: colorScheme)
         }
 
-        private var usageScene: ActionConfig.UsageScene {
-            context.allowsReplacement ? .contextEdit : .contextRead
-        }
-
         public init(context: TranslationUIProviderContext) {
             self.context = context
-            let initialScene: ActionConfig.UsageScene = context.allowsReplacement ? .contextEdit : .contextRead
-            _viewModel = StateObject(wrappedValue: HomeViewModel(usageScene: initialScene))
+            _viewModel = StateObject(wrappedValue: HomeViewModel())
         }
 
         /// Reads the current input text from the translation context.
@@ -72,7 +67,6 @@
                 if !hasTriggeredAutoRequest {
                     viewModel.refreshConfiguration()
                     Logger.debug("[ExtCompactView] onAppear — \(viewModel.actions.count) actions loaded")
-                    viewModel.updateUsageScene(usageScene)
                     hasTriggeredAutoRequest = true
 
                     let text = readContextText()
@@ -97,9 +91,6 @@
                     syncContextText()
                     if !displayText.isEmpty { break }
                 }
-            }
-            .onChange(of: context.allowsReplacement) {
-                viewModel.updateUsageScene(usageScene)
             }
             .onChange(of: preferences.targetLanguage) {
                 // Re-trigger translation when the user manually changes the target language

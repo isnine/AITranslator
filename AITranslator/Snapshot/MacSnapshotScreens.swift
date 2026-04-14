@@ -37,8 +37,7 @@ func macSnapshotView(for screen: MacSnapshotScreen) -> AnyView {
         let action = ActionConfig(
             name: NSLocalizedString("Translate", comment: ""),
             prompt: "Translate the following text",
-            usageScenes: .all,
-            outputType: .plain
+            outputType: .translate
         )
         let (userText, assistantText) = conversationSnapshotTexts()
         let msgs: [ChatMessage] = [

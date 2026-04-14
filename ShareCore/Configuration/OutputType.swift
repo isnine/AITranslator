@@ -21,12 +21,15 @@ public enum OutputType: String, Codable, CaseIterable, Sendable {
     /// Grammar check with revised text + explanations
     case grammarCheck
 
+    /// Translation output — marks the action as a translation task
+    case translate
+
     /// Whether to show diff comparison in the UI
     public var showsDiff: Bool {
         switch self {
         case .diff, .grammarCheck:
             return true
-        case .plain, .sentencePairs:
+        case .plain, .sentencePairs, .translate:
             return false
         }
     }
@@ -36,7 +39,7 @@ public enum OutputType: String, Codable, CaseIterable, Sendable {
         switch self {
         case .sentencePairs:
             return .sentencePairs
-        case .plain, .diff, .grammarCheck:
+        case .plain, .diff, .grammarCheck, .translate:
             return .standard
         }
     }
@@ -48,7 +51,7 @@ public enum OutputType: String, Codable, CaseIterable, Sendable {
             return .sentencePairs
         case .grammarCheck:
             return .grammarCheck
-        case .plain, .diff:
+        case .plain, .diff, .translate:
             return nil
         }
     }
@@ -64,6 +67,8 @@ public enum OutputType: String, Codable, CaseIterable, Sendable {
             return "text.alignleft"
         case .grammarCheck:
             return "checkmark.seal"
+        case .translate:
+            return "globe"
         }
     }
 
@@ -78,6 +83,8 @@ public enum OutputType: String, Codable, CaseIterable, Sendable {
             return String(localized: "Sentence Pairs", comment: "Output type name")
         case .grammarCheck:
             return String(localized: "Grammar Check", comment: "Output type name")
+        case .translate:
+            return String(localized: "Translate", comment: "Output type name")
         }
     }
 }

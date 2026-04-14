@@ -17,7 +17,6 @@ struct ActionDetailView: View {
     private let isNewAction: Bool
     @State private var name: String
     @State private var prompt: String
-    @State private var usageScenes: ActionConfig.UsageScene
     @State private var outputType: OutputType
 
     // Validation error state
@@ -25,7 +24,6 @@ struct ActionDetailView: View {
     @State private var validationErrorMessage = ""
 
     // Collapsible section state
-    @State private var isUsageScenesExpanded: Bool
     @State private var isOutputTypeExpanded: Bool
 
     // Delete confirmation state
@@ -40,7 +38,6 @@ struct ActionDetailView: View {
     ) {
         _configurationStore = ObservedObject(wrappedValue: configurationStore)
         self.isAIGenerated = isAIGenerated
-        _isUsageScenesExpanded = State(initialValue: isAIGenerated)
         _isOutputTypeExpanded = State(initialValue: isAIGenerated)
 
         if let action = action {
@@ -48,14 +45,12 @@ struct ActionDetailView: View {
             isNewAction = false
             _name = State(initialValue: action.name)
             _prompt = State(initialValue: action.prompt)
-            _usageScenes = State(initialValue: action.usageScenes)
             _outputType = State(initialValue: action.outputType)
         } else {
             actionID = UUID()
             isNewAction = true
             _name = State(initialValue: "")
             _prompt = State(initialValue: #"Translate: "{text}" to {targetLanguage} with tone: fluent"#)
-            _usageScenes = State(initialValue: .app)
             _outputType = State(initialValue: .plain)
         }
     }
@@ -67,7 +62,6 @@ struct ActionDetailView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     basicInfoSection
                     promptSection
-                    usageSection
                     optionsSection
 
                     if isAIGenerated {
@@ -157,43 +151,13 @@ struct ActionDetailView: View {
         }
     }
 
-    private var usageScenesSummary: String {
-        var parts: [String] = []
-        if usageScenes.contains(.app) { parts.append(String(localized: "In App")) }
-        if usageScenes.contains(.contextRead) { parts.append(String(localized: "Read-Only")) }
-        if usageScenes.contains(.contextEdit) { parts.append(String(localized: "Editable")) }
-        return parts.isEmpty ? String(localized: "None") : parts.joined(separator: ", ")
-    }
-
-    private var usageSection: some View {
-        collapsibleSection(
-            title: "Usage Scenes",
-            subtitle: "Context options apply to the iOS Translation Extension only",
-            summary: usageScenesSummary,
-            isExpanded: $isUsageScenesExpanded
-        ) {
-            VStack(alignment: .leading, spacing: 12) {
-                usageSceneRow(title: "In App", description: "Available inside the app", scene: .app)
-                usageSceneRow(
-                    title: "Read-Only Context",
-                    description: "Show in iOS Extension when viewing text",
-                    scene: .contextRead
-                )
-                usageSceneRow(
-                    title: "Editable Context",
-                    description: "Show in iOS Extension when editing text",
-                    scene: .contextEdit
-                )
-            }
-        }
-    }
-
     private var outputTypeSummary: String {
         switch outputType {
         case .plain: return String(localized: "Plain Text")
         case .diff: return String(localized: "Show Diff")
         case .sentencePairs: return String(localized: "Sentence Pairs")
         case .grammarCheck: return String(localized: "Grammar Check")
+        case .translate: return String(localized: "Translate")
         }
     }
 
@@ -223,6 +187,11 @@ struct ActionDetailView: View {
                     type: .grammarCheck,
                     title: "Grammar Check",
                     description: "Show revised text with grammar explanations"
+                )
+                outputTypeRow(
+                    type: .translate,
+                    title: "Translate",
+                    description: "Translation output — enables Apple Translate support"
                 )
             }
         }
@@ -398,62 +367,11 @@ struct ActionDetailView: View {
         }
     }
 
-    private func usageSceneRow(
-        title: LocalizedStringKey,
-        description: LocalizedStringKey,
-        scene: ActionConfig.UsageScene
-    ) -> some View {
-        let isSelected = usageScenes.contains(scene)
-        return Button {
-            toggleScene(scene)
-        } label: {
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(colors.textPrimary)
-                    Text(description)
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
-                }
-
-                Spacer()
-
-                Image(systemName: isSelected ? "checkmark.square.fill" : "square")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(isSelected ? colors.accent : colors.textSecondary.opacity(0.7))
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(usageSceneRowBackground)
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var usageSceneRowBackground: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(colors.cardBackground)
-    }
-
-    private func toggleScene(_ scene: ActionConfig.UsageScene) {
-        if usageScenes.contains(scene) {
-            usageScenes.remove(scene)
-        } else {
-            usageScenes.insert(scene)
-        }
-        if usageScenes.isEmpty {
-            usageScenes.insert(.app)
-        }
-    }
-
     private func saveAction() {
         let updated = ActionConfig(
             id: actionID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             prompt: prompt.trimmingCharacters(in: .whitespacesAndNewlines),
-            usageScenes: usageScenes,
             outputType: outputType
         )
 

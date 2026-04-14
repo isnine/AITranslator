@@ -15,7 +15,6 @@ public struct MarketplaceAction: Identifiable, Hashable, Sendable, Codable {
     public let prompt: String
     public let actionDescription: String
     public let outputType: OutputType
-    public let usageScenes: ActionConfig.UsageScene
     public let category: MarketplaceCategory
     public let authorName: String
     public var downloadCount: Int64
@@ -26,7 +25,6 @@ public struct MarketplaceAction: Identifiable, Hashable, Sendable, Codable {
         case id, name, prompt, category
         case actionDescription = "action_description"
         case outputType = "output_type"
-        case usageScenes = "usage_scenes"
         case authorName = "author_name"
         case downloadCount = "download_count"
         case createdAt = "created_at"
@@ -49,7 +47,6 @@ public extension MarketplaceAction {
         ActionConfig(
             name: name,
             prompt: prompt,
-            usageScenes: usageScenes,
             outputType: outputType
         )
     }

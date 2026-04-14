@@ -44,9 +44,14 @@ import SwiftUI
                     if !historyRecords.isEmpty {
                         Section("History") {
                             ForEach(historyRecords) { record in
-                                Text(record.sourceText)
-                                    .lineLimit(1)
-                                    .tag(SidebarSelection.historyRecord(record.id))
+                                Label(
+                                    record.sourceText,
+                                    systemImage: configStore.actions
+                                        .first(where: { $0.name == record.actionName })?
+                                        .outputType.systemImageName ?? "clock"
+                                )
+                                .lineLimit(1)
+                                .tag(SidebarSelection.historyRecord(record.id))
                             }
                         }
                     }

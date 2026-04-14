@@ -1035,7 +1035,7 @@
       }
     },
     "All" : {
-      "comment" : "Marketplace filter all\nUsage scene all"
+      "comment" : "Marketplace filter all"
     },
     "All history is stored locally on your device." : {
       "localizations" : {
@@ -1714,6 +1714,12 @@
         }
       }
     },
+    "Apple Translate does not support this language pair" : {
+      "comment" : "Unsupported language pair error"
+    },
+    "Apple Translate requires at least 2 downloaded languages. Please download more language packs in the system Translation settings." : {
+
+    },
     "Are you sure you want to delete '%@'? This action cannot be undone." : {
       "comment" : "Delete configuration confirmation",
       "extractionState" : "stale",
@@ -2053,6 +2059,7 @@
       }
     },
     "Available inside the app" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -3309,6 +3316,7 @@
       "comment" : "Confirm option selection"
     },
     "Context options apply to the iOS Translation Extension only" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -5150,6 +5158,9 @@
     "Download" : {
       "comment" : "Marketplace download button"
     },
+    "Download More Languages" : {
+
+    },
     "Downloaded" : {
       "comment" : "Marketplace already downloaded label"
     },
@@ -5498,6 +5509,7 @@
       }
     },
     "Editable Context" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -8227,6 +8239,7 @@
     },
     "In App" : {
       "comment" : "Usage scene",
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -10613,6 +10626,9 @@
         }
       }
     },
+    "ON-DEVICE" : {
+
+    },
     "One subscription, all your Apple devices" : {
       "localizations" : {
         "ar" : {
@@ -11981,6 +11997,9 @@
         }
       }
     },
+    "Private & On-Device" : {
+
+    },
     "Processing..." : {
       "comment" : "Menu bar popover processing state",
       "localizations" : {
@@ -12894,6 +12913,7 @@
       }
     },
     "Read-Only Context" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -16963,6 +16983,7 @@
       }
     },
     "Show in iOS Extension when editing text" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -17075,6 +17096,7 @@
       }
     },
     "Show in iOS Extension when viewing text" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -19813,7 +19835,7 @@
       "comment" : "Whisper transcription in progress"
     },
     "Translate" : {
-      "comment" : "Name of the translate action",
+      "comment" : "Name of the translate action\nOutput type name",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -20042,6 +20064,9 @@
     },
     "Translation" : {
       "comment" : "Marketplace category"
+    },
+    "Translation output — enables Apple Translate support" : {
+
     },
     "Try adjusting your search or filters" : {
       "comment" : "Marketplace empty hint"
@@ -20613,10 +20638,8 @@
         }
       }
     },
-    "Usage" : {
-      "comment" : "Marketplace detail label"
-    },
     "Usage Scenes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

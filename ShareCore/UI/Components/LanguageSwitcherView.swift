@@ -21,6 +21,7 @@ public struct LanguageSwitcherView: View {
     let textFont: Font
     let chevronFont: Font
     let foregroundColor: Color?
+    let isTranslateAction: Bool
 
     /// Whether the current action is a translate action (shows directional layout).
     let isTranslateAction: Bool

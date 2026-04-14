@@ -14,7 +14,7 @@ public struct AppConfiguration: Codable, Sendable {
     public var actions: [ActionEntry]
 
     /// Single source of truth for the current configuration version.
-    public static let currentVersion = "1.4.0"
+    public static let currentVersion = "1.5.0"
 
     public init(
         version: String = AppConfiguration.currentVersion,
@@ -54,30 +54,9 @@ public extension AppConfiguration {
             let resolvedOutputType = OutputType(rawValue: outputType ?? "") ?? .plain
             let resolvedCategory = ActionConfig.ActionCategory(rawValue: category ?? "") ?? .general
 
-            let usageScenes: ActionConfig.UsageScene
-            if let scenes {
-                var sceneSet: ActionConfig.UsageScene = []
-                for scene in scenes {
-                    switch scene {
-                    case "app":
-                        sceneSet.insert(.app)
-                    case "contextRead":
-                        sceneSet.insert(.contextRead)
-                    case "contextEdit":
-                        sceneSet.insert(.contextEdit)
-                    default:
-                        break
-                    }
-                }
-                usageScenes = sceneSet.isEmpty ? .all : sceneSet
-            } else {
-                usageScenes = .all
-            }
-
             return ActionConfig(
                 name: name,
                 prompt: prompt,
-                usageScenes: usageScenes,
                 outputType: resolvedOutputType,
                 category: resolvedCategory
             )
@@ -85,15 +64,9 @@ public extension AppConfiguration {
 
         /// Create from internal ActionConfig
         public static func from(_ config: ActionConfig) -> ActionEntry {
-            var scenes: [String] = []
-            if config.usageScenes.contains(.app) { scenes.append("app") }
-            if config.usageScenes.contains(.contextRead) { scenes.append("contextRead") }
-            if config.usageScenes.contains(.contextEdit) { scenes.append("contextEdit") }
-
             return ActionEntry(
                 name: config.name,
                 prompt: config.prompt,
-                scenes: scenes.count == 3 ? nil : scenes,
                 outputType: config.outputType == .plain ? nil : config.outputType.rawValue,
                 category: config.category == .general ? nil : config.category.rawValue
             )

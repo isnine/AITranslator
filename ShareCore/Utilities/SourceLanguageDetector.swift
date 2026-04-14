@@ -47,6 +47,13 @@ public enum SourceLanguageDetector {
         return preferred
     }
 
+    /// Detects the source language and returns it as a `Locale.Language`.
+    /// Useful when callers need a `Locale.Language` without importing NaturalLanguage.
+    public static func detectLocaleLanguage(of text: String) -> Locale.Language? {
+        guard let detected = detectLanguage(of: text) else { return nil }
+        return Locale.Language(identifier: detected.rawValue)
+    }
+
     /// Returns the best target language option for the given source text.
     ///
     /// When the detected source language matches the user's preferred target,

@@ -179,31 +179,15 @@ public final class VoiceActionService: Sendable {
         let name: String
         let prompt: String
         let outputType: String
-        let usageScenes: [String]
 
         enum CodingKeys: String, CodingKey {
             case name, prompt
             case outputType = "output_type"
-            case usageScenes = "usage_scenes"
         }
 
         func toActionConfig() -> ActionConfig {
-            let scenes = parseUsageScenes()
             let output = OutputType(rawValue: outputType) ?? .plain
-            return ActionConfig(name: name, prompt: prompt, usageScenes: scenes, outputType: output)
-        }
-
-        private func parseUsageScenes() -> ActionConfig.UsageScene {
-            var result: ActionConfig.UsageScene = []
-            for scene in usageScenes {
-                switch scene {
-                case "app": result.insert(.app)
-                case "contextRead": result.insert(.contextRead)
-                case "contextEdit": result.insert(.contextEdit)
-                default: break
-                }
-            }
-            return result.isEmpty ? .app : result
+            return ActionConfig(name: name, prompt: prompt, outputType: output)
         }
     }
 
@@ -224,7 +208,6 @@ public final class VoiceActionService: Sendable {
                 actionConfig: ActionConfig(
                     name: String(localized: "Custom Action"),
                     prompt: "Based on the user's request: \"\(transcript)\"\n\nTranslate \"{text}\" to {targetLanguage}.",
-                    usageScenes: .all,
                     outputType: .plain
                 )
             )

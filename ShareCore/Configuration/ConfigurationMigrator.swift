@@ -39,6 +39,12 @@ public enum ConfigurationMigrator {
             didMigrate = true
         }
 
+        // 1.4.x -> 1.5.0
+        if versionCompare(result.version, isLessThan: "1.5.0") {
+            result = migrate_1_4_to_1_5(result)
+            didMigrate = true
+        }
+
         return (result, didMigrate)
     }
 
@@ -181,6 +187,39 @@ public enum ConfigurationMigrator {
         }
 
         Logger.debug("[Migrator] Migration 1.3 -> 1.4 complete")
+        return migrated
+    }
+
+    // MARK: - 1.4.x -> 1.5.0
+
+    /// Migration: set `outputType: "translate"` on the built-in Translate action
+    /// and strip the `scenes` field (UsageScene removed).
+    private static func migrate_1_4_to_1_5(
+        _ config: AppConfiguration
+    ) -> AppConfiguration {
+        let translateName = NSLocalizedString(
+            "Translate",
+            comment: "Name of the translate action"
+        )
+
+        var migrated = config
+        migrated.version = "1.5.0"
+
+        migrated.actions = migrated.actions.map { entry in
+            var updated = entry
+            // Set outputType to "translate" for the built-in Translate action
+            if entry.name == translateName || entry.name == "Translate" {
+                if entry.outputType == nil || entry.outputType == "plain" {
+                    updated.outputType = "translate"
+                    Logger.debug("[Migrator] Set outputType=translate for action '\(entry.name)'")
+                }
+            }
+            // Strip scenes field (UsageScene removed)
+            updated.scenes = nil
+            return updated
+        }
+
+        Logger.debug("[Migrator] Migration 1.4 -> 1.5 complete")
         return migrated
     }
 
