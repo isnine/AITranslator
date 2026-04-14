@@ -7,6 +7,9 @@
 
 import Foundation
 import SwiftUI
+#if canImport(Translation)
+    import Translation
+#endif
 
 /// Service for using Apple's system Translation API
 /// Note: TranslationSession can only be obtained via SwiftUI's .translationTask() modifier
@@ -39,6 +42,88 @@ public final class AppleTranslationService: @unchecked Sendable {
         } else {
             return NSLocalizedString("Requires iOS 17.4+ or macOS 14.4+", comment: "Apple Translation unavailable status")
         }
+    }
+
+    // MARK: - Language Availability
+
+    /// Check whether a specific language pair is available for translation.
+    @available(iOS 17.4, macOS 14.4, *)
+    public func languageAvailabilityStatus(
+        source: Locale.Language?,
+        target: Locale.Language
+    ) async -> LanguageAvailability.Status {
+        let availability = LanguageAvailability()
+        if let source {
+            return await availability.status(from: source, to: target)
+        }
+        // When source is nil we rely on auto-detection; just check the target is in supported languages.
+        let supported = await availability.supportedLanguages
+        if supported.contains(where: { $0.minimalIdentifier == target.minimalIdentifier }) {
+            return .supported
+        }
+        return .unsupported
+    }
+
+    // MARK: - Translation
+
+    /// Translate a single text string using the provided TranslationSession.
+    @available(iOS 17.4, macOS 14.4, *)
+    public func translate(
+        text: String,
+        using session: TranslationSession
+    ) async throws -> ModelExecutionResult {
+        let start = Date()
+        Logger.debug("[AppleTranslation] translate called, text length: \(text.count)")
+
+        let response = try await session.translate(text)
+        let duration = Date().timeIntervalSince(start)
+
+        Logger.debug("[AppleTranslation] translate success, duration: \(duration)s")
+        return ModelExecutionResult(
+            modelID: ModelConfig.appleTranslateID,
+            duration: duration,
+            response: .success(response.targetText)
+        )
+    }
+
+    /// Translate text as sentence pairs using the provided TranslationSession.
+    @available(iOS 17.4, macOS 14.4, *)
+    public func translateSentences(
+        text: String,
+        using session: TranslationSession
+    ) async throws -> ModelExecutionResult {
+        let start = Date()
+        let sentences = splitIntoSentences(text)
+        Logger.debug("[AppleTranslation] translateSentences: \(sentences.count) sentences")
+
+        let requests = sentences.enumerated().map { index, sentence in
+            TranslationSession.Request(sourceText: sentence, clientIdentifier: "\(index)")
+        }
+
+        let responses = try await session.translations(from: requests)
+
+        // Map responses back by clientIdentifier to maintain order.
+        var translatedByIndex: [Int: String] = [:]
+        for response in responses {
+            if let id = response.clientIdentifier, let index = Int(id) {
+                translatedByIndex[index] = response.targetText
+            }
+        }
+
+        var pairs: [SentencePair] = []
+        for (index, original) in sentences.enumerated() {
+            let translation = translatedByIndex[index] ?? ""
+            pairs.append(SentencePair(original: original, translation: translation))
+        }
+
+        let duration = Date().timeIntervalSince(start)
+        Logger.debug("[AppleTranslation] translateSentences success, duration: \(duration)s")
+        return ModelExecutionResult(
+            modelID: ModelConfig.appleTranslateID,
+            duration: duration,
+            response: .success(pairs.map(\.translation).joined(separator: "\n")),
+            sentencePairs: pairs
+        )
     }
 
     // MARK: - Sentence Splitting (Public utility)
@@ -95,6 +180,7 @@ public enum LocalProviderError: LocalizedError {
     case notAvailable(String)
     case translationFailed(String)
     case unsupportedAction
+    case unsupportedLanguagePair
 
     public var errorDescription: String? {
         switch self {
@@ -104,6 +190,8 @@ public enum LocalProviderError: LocalizedError {
             return reason
         case .unsupportedAction:
             return NSLocalizedString("This action is not supported by the selected provider", comment: "Unsupported action error")
+        case .unsupportedLanguagePair:
+            return NSLocalizedString("Apple Translate does not support this language pair", comment: "Unsupported language pair error")
         }
     }
 }

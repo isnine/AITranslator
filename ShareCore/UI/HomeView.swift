@@ -20,6 +20,9 @@ import SwiftUI
 #endif
 import UniformTypeIdentifiers
 import WebKit
+#if canImport(Translation)
+    import Translation
+#endif
 
 #if os(iOS) && !targetEnvironment(macCatalyst)
     public typealias AppTranslationContext = TranslationUIProviderContext
@@ -37,6 +40,9 @@ public struct HomeView: View {
     @State private var showDefaultAppGuide = false
     @State private var activeConversationSession: ConversationSession?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    #if canImport(Translation)
+        @State private var appleTranslationConfig: TranslationSession.Configuration?
+    #endif
     #if os(macOS)
         @State private var showDataConsent = false
     #endif
@@ -274,6 +280,18 @@ public struct HomeView: View {
             if newValue {
                 showDataConsent = true
                 viewModel.showDataConsentRequest = false
+            }
+        }
+        #endif
+        #if canImport(Translation)
+        .translationTask(appleTranslationConfig) { session in
+            if #available(iOS 17.4, macOS 14.4, *) {
+                viewModel.executeAppleTranslation(session: session)
+            }
+        }
+        .onChange(of: viewModel.appleTranslateTargetLanguage) { _, newTarget in
+            if let target = newTarget {
+                appleTranslationConfig = .init(source: nil, target: target.localeLanguage)
             }
         }
         #endif
@@ -1011,20 +1029,27 @@ public struct HomeView: View {
 
     @ViewBuilder
     private func chatButton(for runID: String) -> some View {
-        Button {
-            if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
-               let session = viewModel.createConversation(from: run)
-            {
-                activeConversationSession = session
+        // Apple Translate results have no LLM backend for chat.
+        if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
+           run.model.isLocal
+        {
+            EmptyView()
+        } else {
+            Button {
+                if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
+                   let session = viewModel.createConversation(from: run)
+                {
+                    activeConversationSession = session
+                }
+            } label: {
+                Image(systemName: "text.bubble")
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.accent)
             }
-        } label: {
-            Image(systemName: "text.bubble")
-                .font(.system(size: 14))
-                .foregroundColor(colors.accent)
+            .buttonStyle(.plain)
+            .help("Continue conversation")
+            .accessibilityIdentifier("chat_button")
         }
-        .buttonStyle(.plain)
-        .help("Continue conversation")
-        .accessibilityIdentifier("chat_button")
     }
 
     @ViewBuilder
