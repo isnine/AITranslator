@@ -67,8 +67,8 @@
         @available(macOS 14.4, *)
         func sessionReady(_ session: TranslationSession) {
             Logger.debug("[AppleTranslationBridge] sessionReady, forwarding to activeViewModel=\(activeViewModel != nil)")
-            // Hide the auxiliary window again (in case it was shown for language download).
-            AppleTranslationWindowManager.shared.hideAfterSessionReady()
+            // Note: do NOT hide the window here — it must remain visible until
+            // prepareTranslation() completes so the system download sheet stays on screen.
             activeViewModel?.executeAppleTranslation(session: session)
         }
     }
@@ -99,6 +99,7 @@
 
         private var window: NSWindow?
         private var viewModelObserver: NSObjectProtocol?
+        private var prepareCompletedObserver: NSObjectProtocol?
         /// ViewModels that registered before the window was ready.
         private var pendingViewModels: [WeakRef<HomeViewModel>] = []
 
@@ -159,12 +160,27 @@
                 if let vm = ref.value { registerViewModel(vm) }
             }
             pendingViewModels.removeAll()
+
+            // Hide the auxiliary window once prepareTranslation() completes.
+            prepareCompletedObserver = NotificationCenter.default.addObserver(
+                forName: .appleTranslationPrepareCompleted,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    self?.hideAfterSessionReady()
+                }
+            }
         }
 
         func teardown() {
             if let observer = viewModelObserver {
                 NotificationCenter.default.removeObserver(observer)
                 viewModelObserver = nil
+            }
+            if let observer = prepareCompletedObserver {
+                NotificationCenter.default.removeObserver(observer)
+                prepareCompletedObserver = nil
             }
             window?.close()
             window = nil

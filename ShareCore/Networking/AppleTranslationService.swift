@@ -104,6 +104,12 @@ public final class AppleTranslationService: @unchecked Sendable {
         let start = Date()
         Logger.debug("[AppleTranslation] translate called, text length: \(text.count)")
 
+        // prepareTranslation() triggers the system download UI if the language pack
+        // is not yet installed (.supported status). No-op if already installed (.installed).
+        try await session.prepareTranslation()
+        // Notify the host app that language download is done and the auxiliary window can be hidden.
+        NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
+
         let response = try await session.translate(text)
         let duration = Date().timeIntervalSince(start)
 
@@ -122,6 +128,11 @@ public final class AppleTranslationService: @unchecked Sendable {
         using session: TranslationSession
     ) async throws -> ModelExecutionResult {
         let start = Date()
+
+        // prepareTranslation() triggers the system download UI if needed.
+        try await session.prepareTranslation()
+        NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
+
         let sentences = splitIntoSentences(text)
         Logger.debug("[AppleTranslation] translateSentences: \(sentences.count) sentences")
 
@@ -264,3 +275,12 @@ public extension TargetLanguageOption {
         }
     }
 }
+
+#if os(macOS)
+    public extension Notification.Name {
+        /// Posted after `TranslationSession.prepareTranslation()` completes (language pack
+        /// downloaded or already installed). The macOS host app uses this to hide the
+        /// auxiliary translation window after the download sheet is dismissed.
+        static let appleTranslationPrepareCompleted = Notification.Name("appleTranslationPrepareCompleted")
+    }
+#endif
