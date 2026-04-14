@@ -52,7 +52,6 @@ struct AITranslatorApp: App {
             #endif
         }
         #if os(macOS)
-        .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1280, height: 800)
         .defaultLaunchBehavior(.presented)
         #endif
@@ -367,8 +366,6 @@ struct AITranslatorApp: App {
                 defer: false
             )
             window.contentViewController = hostingController
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
             window.center()
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)

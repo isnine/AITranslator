@@ -39,6 +39,7 @@ public struct HomeView: View {
     @State private var showDefaultAppGuide = false
     @State private var activeConversationSession: ConversationSession?
     @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    @State private var showSatisfactionToast = false
     #if os(macOS)
         @State private var showDataConsent = false
     #endif
@@ -127,7 +128,9 @@ public struct HomeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if !openFromExtension {
-                        header
+                        #if !os(macOS)
+                            header
+                        #endif
                         if shouldShowDefaultAppCard {
                             defaultAppCard
                         }
@@ -154,6 +157,41 @@ public struct HomeView: View {
             // Loading overlay when configuration is loading
             if viewModel.isLoadingConfiguration {
                 configurationLoadingOverlay
+            }
+
+            if showSatisfactionToast {
+                VStack {
+                    Spacer()
+                    SatisfactionPromptView(
+                        colors: colors,
+                        onSatisfied: {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                showSatisfactionToast = false
+                            }
+                            requestReview()
+                        },
+                        onFeedback: {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                showSatisfactionToast = false
+                            }
+                            viewModel.openFeedbackEmail()
+                        },
+                        onDismiss: {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                showSatisfactionToast = false
+                            }
+                        }
+                    )
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 16)
+                }
+                .task {
+                    try? await Task.sleep(for: .seconds(10))
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        showSatisfactionToast = false
+                    }
+                }
             }
         }
         #if os(iOS)
@@ -225,8 +263,14 @@ public struct HomeView: View {
             viewModel.updateUsageScene(usageScene)
         }
         #endif
-        .onChange(of: viewModel.successfulTranslationCount) {
-            requestReview()
+        .onChange(of: viewModel.showSatisfactionPrompt) { _, newValue in
+            if newValue {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showSatisfactionToast = true
+                }
+                AppPreferences.shared.markSatisfactionPromptShown()
+                viewModel.showSatisfactionPrompt = false
+            }
         }
         .sheet(isPresented: $showDefaultAppGuide) {
             DefaultAppGuideSheet(colors: colors, onOpenSettings: {

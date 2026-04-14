@@ -31,6 +31,7 @@ struct RootTabView: View {
     /// Used by both TabView (iPhone) and custom sidebar (iPad/macOS).
     enum TabItem: String, CaseIterable, Identifiable {
         case home
+        case history
         case actions
         case models
         case settings
@@ -41,6 +42,8 @@ struct RootTabView: View {
             switch self {
             case .home:
                 return "Home"
+            case .history:
+                return "History"
             case .actions:
                 return "Actions"
             case .models:
@@ -54,6 +57,8 @@ struct RootTabView: View {
             switch self {
             case .home:
                 return "house.fill"
+            case .history:
+                return "clock.arrow.circlepath"
             case .actions:
                 return "bolt.fill"
             case .models:
