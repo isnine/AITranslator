@@ -64,7 +64,11 @@ private struct PremiumSidebarFooter: View {
     }
 
     private var fadeGradient: LinearGradient {
-        let base = Color(NSColor.windowBackgroundColor)
+        #if canImport(AppKit)
+            let base = Color(NSColor.windowBackgroundColor)
+        #else
+            let base = Color(.systemBackground)
+        #endif
         return LinearGradient(
             stops: [
                 .init(color: base.opacity(0), location: 0),
