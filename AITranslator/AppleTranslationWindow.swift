@@ -86,8 +86,29 @@
 
         private var window: NSWindow?
         private var viewModelObserver: NSObjectProtocol?
+        /// ViewModels that registered before the window was ready.
+        private var pendingViewModels: [WeakRef<HomeViewModel>] = []
 
-        private init() {}
+        private init() {
+            // Start listening immediately so viewModels that register before setup() don't get lost.
+            viewModelObserver = NotificationCenter.default.addObserver(
+                forName: .appleTranslationViewModelRegister,
+                object: nil,
+                queue: .main
+            ) { [weak self] notification in
+                guard let self,
+                      let viewModel = notification.userInfo?["viewModel"] as? HomeViewModel
+                else { return }
+                Task { @MainActor in
+                    if self.window != nil {
+                        if #available(macOS 14.4, *) { self.registerViewModel(viewModel) }
+                    } else {
+                        self.pendingViewModels.append(WeakRef(viewModel))
+                        Logger.debug("[AppleTranslationWindowManager] Queued viewModel (window not ready yet)")
+                    }
+                }
+            }
+        }
 
         func setup() {
             guard window == nil else { return }
@@ -117,19 +138,11 @@
             self.window = win
             Logger.debug("[AppleTranslationWindowManager] Hidden translation window created")
 
-            // Listen for HomeView/MenuBarPopoverView to announce their viewModels.
-            viewModelObserver = NotificationCenter.default.addObserver(
-                forName: .appleTranslationViewModelRegister,
-                object: nil,
-                queue: .main
-            ) { [weak self] notification in
-                guard let self,
-                      let viewModel = notification.userInfo?["viewModel"] as? HomeViewModel
-                else { return }
-                Task { @MainActor in
-                    self.registerViewModel(viewModel)
-                }
+            // Register any viewModels that arrived before we were ready.
+            for ref in pendingViewModels {
+                if let vm = ref.value { registerViewModel(vm) }
             }
+            pendingViewModels.removeAll()
         }
 
         func teardown() {
@@ -139,6 +152,7 @@
             }
             window?.close()
             window = nil
+            pendingViewModels.removeAll()
         }
 
         /// Wires the bridge request handler into a HomeViewModel instance.
@@ -154,5 +168,12 @@
             }
             Logger.debug("[AppleTranslationWindowManager] Registered viewModel \(ObjectIdentifier(viewModel))")
         }
+    }
+
+    // MARK: - WeakRef helper
+
+    private final class WeakRef<T: AnyObject> {
+        weak var value: T?
+        init(_ value: T) { self.value = value }
     }
 #endif

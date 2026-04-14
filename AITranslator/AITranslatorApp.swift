@@ -128,6 +128,9 @@ struct AITranslatorApp: App {
             // Set shared early so SwiftUI views can access it during onAppear
             // (which may fire before applicationDidFinishLaunching)
             AppDelegate.shared = self
+            // Touch the AppleTranslationWindowManager singleton early so its notification
+            // observer is registered before any HomeView.onAppear fires.
+            _ = AppleTranslationWindowManager.shared
         }
 
         func applicationDidFinishLaunching(_: Notification) {

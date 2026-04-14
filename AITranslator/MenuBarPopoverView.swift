@@ -57,6 +57,13 @@
                 )
             }
             .onReceive(NotificationCenter.default.publisher(for: .menuBarPopoverDidShow)) { _ in
+                // Re-register viewModel each time the popover shows, in case the hidden
+                // translation window wasn't ready during onAppear.
+                NotificationCenter.default.post(
+                    name: .appleTranslationViewModelRegister,
+                    object: nil,
+                    userInfo: ["viewModel": viewModel]
+                )
                 viewModel.refreshConfiguration()
                 loadClipboardAndExecute()
             }
