@@ -39,26 +39,26 @@
         ) {
             activeViewModel = viewModel
             let targetLocale = target.localeLanguage
-            Logger.debug("[AppleTranslationBridge] requestTranslation source=\(source?.languageCode?.identifier ?? "nil (auto)"), target=\(targetLocale.languageCode?.identifier ?? "unknown")")
+            Logger.debug("[AppleTranslationBridge] requestTranslation source=\(source?.languageCode?.identifier ?? "nil (auto)"), target=\(targetLocale.languageCode?.identifier ?? "unknown"), viewModel=\(ObjectIdentifier(viewModel))")
 
-            Task { @MainActor in
-                // Check if language pack needs downloading — if so, show the window so the
-                // system download UI is visible to the user.
+            // Capture a strong reference so the correct viewModel is used even if
+            // activeViewModel is overwritten by another registration before the Task runs.
+            Task { @MainActor [viewModel] in
                 let status = await AppleTranslationService.shared.languageAvailabilityStatus(
                     source: source, target: targetLocale
                 )
-                Logger.debug("[AppleTranslationBridge] language availability: \(status)")
+                Logger.debug("[AppleTranslationBridge] language availability: \(status) for viewModel=\(ObjectIdentifier(viewModel))")
                 if status == .supported {
-                    // Language pack not yet installed — bring the auxiliary window into view
-                    // so the system download dialog appears on screen.
                     AppleTranslationWindowManager.shared.showForLanguageDownload()
                 }
 
                 if self.pendingConfig != nil {
                     self.pendingConfig?.invalidate()
                     self.pendingConfig = nil
-                    try? await Task.sleep(nanoseconds: 50_000_000) // 50ms to let invalidate settle
+                    try? await Task.sleep(nanoseconds: 50_000_000)
                 }
+                // Store the viewModel for this specific request so sessionReady delivers to the right one.
+                self.activeViewModel = viewModel
                 self.pendingConfig = .init(source: source, target: targetLocale)
             }
         }
@@ -66,9 +66,8 @@
         /// Called by the hidden window view when a TranslationSession becomes available.
         @available(macOS 14.4, *)
         func sessionReady(_ session: TranslationSession) {
-            Logger.debug("[AppleTranslationBridge] sessionReady, forwarding to activeViewModel=\(activeViewModel != nil)")
-            // Note: do NOT hide the window here — it must remain visible until
-            // prepareTranslation() completes so the system download sheet stays on screen.
+            let vmId = activeViewModel.map { "\(ObjectIdentifier($0))" } ?? "nil"
+            Logger.debug("[AppleTranslationBridge] sessionReady, activeViewModel=\(vmId)")
             activeViewModel?.executeAppleTranslation(session: session)
         }
     }
