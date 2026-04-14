@@ -590,11 +590,14 @@ public final class HomeViewModel: ObservableObject {
         guard !availableIDs.isEmpty else { return }
 
         let currentEnabled = preferences.enabledModelIDs
-        var resolved = currentEnabled.intersection(availableIDs)
-        if resolved.isEmpty {
+        // Preserve local model IDs (e.g. apple-translate) that are not in the
+        // cloud/fallback models list but are still valid selections.
+        let localIDs = currentEnabled.filter { ModelConfig.isLocalModelID($0) }
+        var resolved = currentEnabled.intersection(availableIDs).union(localIDs)
+        if resolved.subtracting(localIDs).isEmpty {
             let defaults = Set(models.filter { $0.isDefault }.map { $0.id })
             if !defaults.isEmpty {
-                resolved = defaults
+                resolved = resolved.union(defaults)
             }
         }
 
@@ -1037,6 +1040,7 @@ public final class HomeViewModel: ObservableObject {
         // Separate Apple Translate from cloud models.
         let cloudModels = models.filter { !$0.isLocal }
         let hasAppleTranslate = models.contains { $0.isLocal }
+        Logger.debug("[HomeViewModel] executeRequest: models=\(models.map(\.id)), hasAppleTranslate=\(hasAppleTranslate), action.supportsAppleTranslate=\(action.supportsAppleTranslate)")
 
         // Kick off Apple Translate if present.
         if hasAppleTranslate {
@@ -1047,6 +1051,7 @@ public final class HomeViewModel: ObservableObject {
                 pendingAppleTranslateAction = action
                 pendingAppleTranslateRequestID = requestID
                 appleTranslateTargetLanguage = resolvedTarget
+                Logger.debug("[HomeViewModel] Apple Translate: published target=\(resolvedTarget.englishName)")
             } else {
                 // Unsupported action — show inline error immediately.
                 let result = ModelExecutionResult(
@@ -1203,10 +1208,14 @@ public final class HomeViewModel: ObservableObject {
     #if canImport(Translation)
         @available(iOS 17.4, macOS 14.4, *)
         public func executeAppleTranslation(session: TranslationSession) {
+            Logger.debug("[HomeViewModel] executeAppleTranslation called, pending text=\(pendingAppleTranslateText != nil), action=\(pendingAppleTranslateAction != nil), requestID=\(pendingAppleTranslateRequestID != nil)")
             guard let text = pendingAppleTranslateText,
                   let action = pendingAppleTranslateAction,
                   let requestID = pendingAppleTranslateRequestID
-            else { return }
+            else {
+                Logger.debug("[HomeViewModel] executeAppleTranslation: missing pending state, aborting")
+                return
+            }
 
             // Clear pending state.
             pendingAppleTranslateText = nil

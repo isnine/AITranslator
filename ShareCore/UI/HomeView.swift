@@ -284,14 +284,26 @@ public struct HomeView: View {
         }
         #endif
         #if canImport(Translation)
-        .translationTask(appleTranslationConfig) { session in
-            if #available(iOS 17.4, macOS 14.4, *) {
-                viewModel.executeAppleTranslation(session: session)
-            }
+        .background {
+            // Place .translationTask on an inert view so it does not
+            // interfere with button hit-testing in the main content.
+            Color.clear
+                .translationTask(appleTranslationConfig) { session in
+                    Logger.debug("[HomeView] .translationTask fired, session received")
+                    if #available(iOS 17.4, macOS 14.4, *) {
+                        viewModel.executeAppleTranslation(session: session)
+                    }
+                }
         }
         .onChange(of: viewModel.appleTranslateTargetLanguage) { _, newTarget in
+            Logger.debug("[HomeView] onChange appleTranslateTargetLanguage: \(String(describing: newTarget)), existingConfig=\(appleTranslationConfig != nil)")
             if let target = newTarget {
-                appleTranslationConfig = .init(source: nil, target: target.localeLanguage)
+                if appleTranslationConfig != nil {
+                    // Config already exists — invalidate to re-trigger .translationTask().
+                    appleTranslationConfig?.invalidate()
+                } else {
+                    appleTranslationConfig = .init(source: nil, target: target.localeLanguage)
+                }
             }
         }
         #endif

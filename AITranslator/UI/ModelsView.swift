@@ -95,10 +95,15 @@ struct ModelsView: View {
                 PaywallView()
             }
             #if canImport(Translation)
-            .translationTask(prepareTranslationConfig) { session in
-                if #available(iOS 17.4, macOS 14.4, *) {
-                    try? await session.prepareTranslation()
-                }
+            .background {
+                // Place .translationTask on an inert view so it does not
+                // interfere with button hit-testing in the scroll content.
+                Color.clear
+                    .translationTask(prepareTranslationConfig) { session in
+                        if #available(iOS 17.4, macOS 14.4, *) {
+                            try? await session.prepareTranslation()
+                        }
+                    }
             }
             #endif
     }
@@ -126,16 +131,16 @@ struct ModelsView: View {
                 }
             }
 
+            // On-device models render independently of cloud config state
+            if AppleTranslationService.shared.isAvailable {
+                onDeviceModelSection
+            }
+
             if let error = errorMessage {
                 errorView(error)
             } else if models.isEmpty && !isLoading {
                 emptyState
             } else {
-                // On-device models section
-                if AppleTranslationService.shared.isAvailable {
-                    onDeviceModelSection
-                }
-
                 // Free models section
                 if !freeModels.isEmpty || !hiddenFreeModels.isEmpty {
                     modelGroupSection(
