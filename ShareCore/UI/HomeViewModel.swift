@@ -969,15 +969,24 @@ public final class HomeViewModel: ObservableObject {
         perRunTasks.values.forEach { $0.cancel() }
     }
 
-    /// Consumes `targetLanguageOverride` if set, otherwise auto-detects from `text`.
+    /// Consumes `targetLanguageOverride` if set, otherwise resolves from source language or auto-detects from `text`.
     private func consumeResolvedTarget(for text: String) -> TargetLanguageOption {
         if let override = targetLanguageOverride {
             targetLanguageOverride = nil
             return override
         }
+        let preferred = AppPreferences.shared.targetLanguage
+        let sourceLanguage = AppPreferences.shared.sourceLanguage
+        if sourceLanguage != .auto {
+            // User pinned source language — use it directly instead of NL detection
+            return SourceLanguageDetector.resolveTargetLanguage(
+                forKnownSourceCode: sourceLanguage.rawValue,
+                preferred: preferred
+            )
+        }
         return SourceLanguageDetector.resolveTargetLanguage(
             for: text,
-            preferred: AppPreferences.shared.targetLanguage
+            preferred: preferred
         )
     }
 

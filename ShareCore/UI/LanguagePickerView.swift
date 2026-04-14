@@ -7,42 +7,56 @@
 
 import SwiftUI
 
-/// A row model for target language options display.
-private struct LanguageRow: Identifiable {
-    let id: String // rawValue
-    let primaryLabel: String
-    let secondaryLabel: String
+/// A row model for language option display.
+public struct LanguageRow: Identifiable {
+    public let id: String
+    public let primaryLabel: String
+    public let secondaryLabel: String
+
+    public init(id: String, primaryLabel: String, secondaryLabel: String) {
+        self.id = id
+        self.primaryLabel = primaryLabel
+        self.secondaryLabel = secondaryLabel
+    }
 }
 
-/// A language picker view for selecting the target language, presented as a sheet.
+/// A language picker view presented as a sheet. Accepts generic LanguageRow data.
 public struct LanguagePickerView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Binding var selectedCode: String
     @Binding var isPresented: Bool
-    private let availableOptions: [TargetLanguageOption]
+    private let rows: [LanguageRow]
+    private let title: String
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
 
-    private var title: String {
-        "Select Target Language"
-    }
-
-    private var rows: [LanguageRow] {
-        availableOptions.map { option in
-            LanguageRow(id: option.rawValue, primaryLabel: option.primaryLabel, secondaryLabel: option.secondaryLabel)
-        }
-    }
-
+    /// Generic initialiser — caller provides rows and an optional title.
     public init(
         selectedCode: Binding<String>,
         isPresented: Binding<Bool>,
-        availableOptions: [TargetLanguageOption]? = nil
+        rows: [LanguageRow],
+        title: String = String(localized: "Select Language")
     ) {
         _selectedCode = selectedCode
         _isPresented = isPresented
-        self.availableOptions = availableOptions ?? TargetLanguageOption.selectionOptions
+        self.rows = rows
+        self.title = title
+    }
+
+    /// Convenience initialiser for target language options.
+    public init(
+        selectedCode: Binding<String>,
+        isPresented: Binding<Bool>,
+        availableOptions: [TargetLanguageOption]? = nil,
+        title: String = String(localized: "Select Target Language")
+    ) {
+        _selectedCode = selectedCode
+        _isPresented = isPresented
+        let options = availableOptions ?? TargetLanguageOption.selectionOptions
+        self.rows = options.map { LanguageRow(id: $0.rawValue, primaryLabel: $0.primaryLabel, secondaryLabel: $0.secondaryLabel) }
+        self.title = title
     }
 
     public var body: some View {

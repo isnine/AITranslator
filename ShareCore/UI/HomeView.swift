@@ -347,11 +347,12 @@ public struct HomeView: View {
         .onChange(of: viewModel.appleTranslateTargetLanguage) { _, newTarget in
             Logger.debug("[HomeView] onChange appleTranslateTargetLanguage: \(String(describing: newTarget)), existingConfig=\(appleTranslationConfig != nil)")
             if let target = newTarget {
+                let sourceLocale = AppPreferences.shared.sourceLanguage.localeLanguage
                 if appleTranslationConfig != nil {
                     // Config already exists — invalidate to re-trigger .translationTask().
                     appleTranslationConfig?.invalidate()
                 } else {
-                    appleTranslationConfig = .init(source: nil, target: target.localeLanguage)
+                    appleTranslationConfig = .init(source: sourceLocale, target: target.localeLanguage)
                 }
             }
         }
@@ -491,46 +492,11 @@ public struct HomeView: View {
                         LanguageSwitcherView(
                             globeFont: .system(size: 12),
                             textFont: .system(size: 13, weight: .medium),
-                            foregroundColor: colors.accent
+                            foregroundColor: colors.accent,
+                            isTranslateAction: viewModel.selectedAction?.supportsAppleTranslate ?? false,
+                            resolvedTarget: viewModel.resolvedTargetLanguage,
+                            onOverrideTarget: { viewModel.overrideTargetLanguage($0) }
                         )
-
-                        if let resolved = viewModel.resolvedTargetLanguage {
-                            Menu {
-                                let preferred = AppPreferences.shared.targetLanguage
-                                if resolved != preferred {
-                                    Button {
-                                        viewModel.overrideTargetLanguage(preferred)
-                                    } label: {
-                                        Label(preferred.primaryLabel, systemImage: "arrow.uturn.backward")
-                                    }
-                                    Divider()
-                                }
-                                ForEach(TargetLanguageOption.filteredSelectionOptions(
-                                    appleTranslateEnabled: preferences.enabledModelIDs.contains(ModelConfig.appleTranslateID),
-                                    installedLanguages: preferences.appleTranslateInstalledLanguages
-                                ).filter { $0 != resolved }) { option in
-                                    Button(option.primaryLabel) {
-                                        viewModel.overrideTargetLanguage(option)
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "arrow.right")
-                                        .font(.system(size: 9, weight: .semibold))
-                                    Text(resolved.primaryLabel)
-                                        .font(.system(size: 12, weight: .medium))
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 7))
-                                        .opacity(0.6)
-                                }
-                                .foregroundColor(colors.textSecondary)
-                            }
-                            #if os(macOS)
-                            .menuStyle(.borderlessButton)
-                            #endif
-                            .fixedSize()
-                            .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                        }
 
                         #if os(macOS)
                             Button {

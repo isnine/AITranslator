@@ -20,6 +20,33 @@ public enum SourceLanguageDetector {
         return recognizer.dominantLanguage
     }
 
+    /// Resolves the target language when the source language is already known (user-pinned).
+    /// Avoids NL detection — directly checks if source matches preferred target.
+    public static func resolveTargetLanguage(
+        forKnownSourceCode sourceCode: String,
+        preferred: TargetLanguageOption
+    ) -> TargetLanguageOption {
+        let preferredCode = resolvedLanguageCode(for: preferred)
+        guard languageCodesMatch(sourceCode, preferredCode) else {
+            return preferred
+        }
+        // Source matches target — walk system languages for an alternative
+        for identifier in Locale.preferredLanguages {
+            let components = Locale.Language.Components(identifier: identifier)
+            guard let langCode = components.languageCode else { continue }
+            var candidateCode = langCode.identifier
+            if let script = components.script {
+                candidateCode += "-" + script.identifier
+            }
+            if !languageCodesMatch(candidateCode, sourceCode),
+               let option = targetLanguageOption(for: candidateCode)
+            {
+                return option
+            }
+        }
+        return preferred
+    }
+
     /// Returns the best target language option for the given source text.
     ///
     /// When the detected source language matches the user's preferred target,

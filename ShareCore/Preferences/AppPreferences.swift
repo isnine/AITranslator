@@ -19,6 +19,7 @@ public final class AppPreferences: ObservableObject {
     public static let shared = AppPreferences()
 
     @Published public private(set) var targetLanguage: TargetLanguageOption
+    @Published public private(set) var sourceLanguage: SourceLanguageOption
     @Published public private(set) var currentConfigName: String?
     @Published public private(set) var useICloudForConfig: Bool
     @Published public private(set) var defaultAppHintDismissed: Bool
@@ -40,6 +41,7 @@ public final class AppPreferences: ObservableObject {
     private init(defaults: UserDefaults = AppPreferences.resolveSharedDefaults()) {
         self.defaults = defaults
         targetLanguage = AppPreferences.readTargetLanguage(from: defaults)
+        sourceLanguage = AppPreferences.readSourceLanguage(from: defaults)
         currentConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
         useICloudForConfig = defaults.bool(forKey: StorageKeys.useICloudForConfig)
         defaultAppHintDismissed = defaults.bool(forKey: StorageKeys.defaultAppHintDismissed)
@@ -97,6 +99,12 @@ public final class AppPreferences: ObservableObject {
         // Verify the write
         let readBack = defaults.string(forKey: TargetLanguageOption.storageKey)
         Logger.debug("[Preferences] Read back from UserDefaults: \(readBack ?? "nil")")
+    }
+
+    public func setSourceLanguage(_ option: SourceLanguageOption) {
+        guard sourceLanguage != option else { return }
+        sourceLanguage = option
+        defaults.set(option.rawValue, forKey: SourceLanguageOption.storageKey)
     }
 
     public func setCurrentConfigName(_ name: String?) {
@@ -226,6 +234,11 @@ public final class AppPreferences: ObservableObject {
             targetLanguage = resolved
         }
 
+        let resolvedSource = AppPreferences.readSourceLanguage(from: defaults)
+        if resolvedSource != sourceLanguage {
+            sourceLanguage = resolvedSource
+        }
+
         let storedConfigName = defaults.string(forKey: StorageKeys.currentConfigName)
         if currentConfigName != storedConfigName {
             currentConfigName = storedConfigName
@@ -294,6 +307,11 @@ public final class AppPreferences: ObservableObject {
     private static func readTargetLanguage(from defaults: UserDefaults) -> TargetLanguageOption {
         let stored = defaults.string(forKey: TargetLanguageOption.storageKey)
         return TargetLanguageOption(rawValue: stored ?? "") ?? .appLanguage
+    }
+
+    private static func readSourceLanguage(from defaults: UserDefaults) -> SourceLanguageOption {
+        let stored = defaults.string(forKey: SourceLanguageOption.storageKey)
+        return SourceLanguageOption(rawValue: stored ?? "") ?? .auto
     }
 
     private static func readAccentTheme(from defaults: UserDefaults) -> AccentTheme {

@@ -224,43 +224,11 @@
                         globeFont: .system(size: 10),
                         textFont: .system(size: 11, weight: .medium),
                         chevronFont: .system(size: 7),
-                        foregroundColor: colors.textSecondary.opacity(0.7)
+                        foregroundColor: colors.textSecondary.opacity(0.7),
+                        isTranslateAction: viewModel.selectedAction?.supportsAppleTranslate ?? false,
+                        resolvedTarget: viewModel.resolvedTargetLanguage,
+                        onOverrideTarget: { viewModel.overrideTargetLanguage($0) }
                     )
-
-                    if let resolved = viewModel.resolvedTargetLanguage {
-                        Menu {
-                            let preferred = AppPreferences.shared.targetLanguage
-                            if resolved != preferred {
-                                Button {
-                                    viewModel.overrideTargetLanguage(preferred)
-                                } label: {
-                                    Label(preferred.primaryLabel, systemImage: "arrow.uturn.backward")
-                                }
-                                Divider()
-                            }
-                            ForEach(TargetLanguageOption.filteredSelectionOptions(
-                                appleTranslateEnabled: preferences.enabledModelIDs.contains(ModelConfig.appleTranslateID),
-                                installedLanguages: preferences.appleTranslateInstalledLanguages
-                            ).filter { $0 != resolved }) { option in
-                                Button(option.primaryLabel) {
-                                    viewModel.overrideTargetLanguage(option)
-                                }
-                            }
-                        } label: {
-                            HStack(spacing: 3) {
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 8, weight: .semibold))
-                                Text(resolved.primaryLabel)
-                                    .font(.system(size: 11, weight: .medium))
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 6))
-                                    .opacity(0.6)
-                            }
-                            .foregroundColor(colors.textSecondary)
-                        }
-                        .menuStyle(.borderlessButton)
-                        .fixedSize()
-                    }
 
                     Spacer()
 

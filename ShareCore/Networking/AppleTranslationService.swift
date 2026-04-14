@@ -225,6 +225,20 @@ public enum LocalProviderError: LocalizedError {
     }
 }
 
+// MARK: - SourceLanguageOption Extension
+
+public extension SourceLanguageOption {
+    /// Convert to optional Locale.Language for Translation API (nil for .auto)
+    var localeLanguage: Locale.Language? {
+        switch self {
+        case .auto:
+            return nil
+        default:
+            return Locale.Language(identifier: rawValue)
+        }
+    }
+}
+
 // MARK: - TargetLanguageOption Extension
 
 public extension TargetLanguageOption {
