@@ -174,6 +174,25 @@ public final class AppPreferences: ObservableObject {
         defaults.set(theme.rawValue, forKey: StorageKeys.accentTheme)
     }
 
+    // MARK: - Satisfaction Prompt
+
+    public var shouldShowSatisfactionPrompt: Bool {
+        let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        let lastVersion = defaults.string(forKey: StorageKeys.satisfactionPromptLastVersion)
+        let lastDate = defaults.object(forKey: StorageKeys.satisfactionPromptLastDate) as? Date
+
+        let isNewVersion = lastVersion == nil || lastVersion != currentVersion
+        let isOldEnough = lastDate == nil || Date().timeIntervalSince(lastDate!) >= 7 * 24 * 3600
+
+        return isNewVersion && isOldEnough
+    }
+
+    public func markSatisfactionPromptShown() {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        defaults.set(version, forKey: StorageKeys.satisfactionPromptLastVersion)
+        defaults.set(Date(), forKey: StorageKeys.satisfactionPromptLastDate)
+    }
+
 
     /// Returns the iCloud Documents directory URL if available
     public static var iCloudDocumentsURL: URL? {
@@ -291,4 +310,6 @@ private enum StorageKeys {
     #if os(macOS)
         static let keepRunningWhenClosed = "keep_running_when_closed"
     #endif
+    static let satisfactionPromptLastVersion = "satisfaction_prompt_last_version"
+    static let satisfactionPromptLastDate = "satisfaction_prompt_last_date"
 }

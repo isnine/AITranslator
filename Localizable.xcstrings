@@ -4919,6 +4919,9 @@
         }
       }
     },
+    "Dismiss" : {
+
+    },
     "Display original and translation side by side" : {
       "localizations" : {
         "ar" : {
@@ -5718,6 +5721,9 @@
           }
         }
       }
+    },
+    "Enjoying TLingo?" : {
+
     },
     "Enter text and choose an action to get started" : {
       "comment" : "Hint shown above the action list when no input or results exist",
@@ -15136,6 +15142,9 @@
         }
       }
     },
+    "Satisfied" : {
+
+    },
     "Save" : {
       "localizations" : {
         "ar" : {
@@ -21502,9 +21511,6 @@
     },
     "Your action is now available in the marketplace." : {
       "comment" : "Publish success"
-    },
-    "Your AI translator" : {
-
     },
     "Your data is encrypted in transit and not stored after processing." : {
       "localizations" : {

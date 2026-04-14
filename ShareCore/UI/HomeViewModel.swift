@@ -188,8 +188,9 @@ public final class HomeViewModel: ObservableObject {
     @Published public private(set) var isSpeakingInputText: Bool = false
     /// Set to `true` when the user triggers an action but has not yet accepted data sharing consent.
     @Published public var showDataConsentRequest: Bool = false
+    /// Set to `true` when the satisfaction prompt toast should be displayed.
+    @Published public var showSatisfactionPrompt: Bool = false
     /// Incremented each time a translation request completes with at least one success.
-    /// Observe this in the view layer to trigger `requestReview()`.
     @Published public private(set) var successfulTranslationCount: Int = 0
     private let ttsService: TTSPreviewService
 
@@ -785,6 +786,17 @@ public final class HomeViewModel: ObservableObject {
         #endif
     }
 
+    public func openFeedbackEmail() {
+        let isPremium = StoreManager.shared.isPremium
+        let subject = isPremium ? "TLingo%20Feedback%20%5BPremium%5D" : "TLingo%20Feedback"
+        guard let url = URL(string: "mailto:xiaozwan@outlook.com?subject=\(subject)") else { return }
+        #if canImport(UIKit)
+            UIApplication.shared.open(url)
+        #elseif canImport(AppKit)
+            NSWorkspace.shared.open(url)
+        #endif
+    }
+
     // MARK: - TTS Playback
 
     /// Speaks the result text for a specific run
@@ -1125,13 +1137,16 @@ public final class HomeViewModel: ObservableObject {
             currentRequestTask = nil
             activeRequestID = nil
 
-            // Signal view layer for app review prompt if any model succeeded
+            // Signal view layer for satisfaction prompt if any model succeeded
             let hasSuccess = modelRuns.contains { run in
                 if case .success = run.status { return true }
                 return false
             }
             if hasSuccess {
                 successfulTranslationCount += 1
+                if AppPreferences.shared.shouldShowSatisfactionPrompt {
+                    showSatisfactionPrompt = true
+                }
             }
         }
     }
