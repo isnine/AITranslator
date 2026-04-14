@@ -1042,16 +1042,11 @@ public struct HomeView: View {
 
     @ViewBuilder
     private func chatButton(for runID: String) -> some View {
-        // Apple Translate results have no LLM backend for chat.
         if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
-           run.model.isLocal
+           !run.model.isLocal
         {
-            EmptyView()
-        } else {
             Button {
-                if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
-                   let session = viewModel.createConversation(from: run)
-                {
+                if let session = viewModel.createConversation(from: run) {
                     activeConversationSession = session
                 }
             } label: {

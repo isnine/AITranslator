@@ -91,9 +91,9 @@ public struct ActionConfig: Identifiable, Hashable, Codable {
         outputType.displayMode
     }
 
-    /// Whether Apple Translate can handle this action (translation output type only).
+    /// Whether Apple Translate can handle this action.
     public var supportsAppleTranslate: Bool {
-        outputType == .translate
+        outputType == .translate || outputType == .sentencePairs
     }
 
     /// Primary initializer

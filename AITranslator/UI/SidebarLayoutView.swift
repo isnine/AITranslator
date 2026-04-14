@@ -22,6 +22,7 @@ import SwiftUI
     struct SidebarLayoutView: View {
         @State private var selection: SidebarSelection?
         @State private var historyRecords: [TranslationRecord] = []
+        @State private var historyRefreshTask: Task<Void, Never>?
         @ObservedObject private var configStore: AppConfigurationStore
 
         init(initialTab: RootTabView.TabItem, configStore: AppConfigurationStore) {
@@ -70,7 +71,12 @@ import SwiftUI
                 refreshHistory()
             }
             .onReceive(NotificationCenter.default.publisher(for: .translationRecordSaved)) { _ in
-                refreshHistory()
+                historyRefreshTask?.cancel()
+                historyRefreshTask = Task {
+                    try? await Task.sleep(for: .milliseconds(500))
+                    guard !Task.isCancelled else { return }
+                    refreshHistory()
+                }
             }
         }
 

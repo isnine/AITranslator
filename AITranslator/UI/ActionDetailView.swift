@@ -155,7 +155,7 @@ struct ActionDetailView: View {
         switch outputType {
         case .plain: return String(localized: "Plain Text")
         case .diff: return String(localized: "Show Diff")
-        case .sentencePairs: return String(localized: "Sentence Pairs")
+        case .sentencePairs: return String(localized: "Translator Sentence Pairs")
         case .grammarCheck: return String(localized: "Grammar Check")
         case .translate: return String(localized: "Translate")
         }
@@ -180,8 +180,8 @@ struct ActionDetailView: View {
                 )
                 outputTypeRow(
                     type: .sentencePairs,
-                    title: "Sentence Pairs",
-                    description: "Display original and translation side by side"
+                    title: "Translator Sentence Pairs",
+                    description: "Display original and translation side by side, supports Apple Translate"
                 )
                 outputTypeRow(
                     type: .grammarCheck,

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct SatisfactionPromptView: View {
-    let colors: AppColors.Palette
+    let colors: AppColorPalette
     let onSatisfied: () -> Void
     let onFeedback: () -> Void
     let onDismiss: () -> Void

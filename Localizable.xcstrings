@@ -2058,6 +2058,9 @@
         }
       }
     },
+    "Auto" : {
+
+    },
     "Available inside the app" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4477,6 +4480,9 @@
     "Describe what you want the action to do — the more detail, the better." : {
       "comment" : "Voice recording guidance"
     },
+    "Detect automatically" : {
+
+    },
     "Developer" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4931,6 +4937,7 @@
 
     },
     "Display original and translation side by side" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -5041,6 +5048,9 @@
           }
         }
       }
+    },
+    "Display original and translation side by side, supports Apple Translate" : {
+
     },
     "Done" : {
       "comment" : "Finish voice recording",
@@ -15512,6 +15522,9 @@
         }
       }
     },
+    "Select Language" : {
+
+    },
     "Select models to use for translation" : {
       "localizations" : {
         "ar" : {
@@ -15623,6 +15636,9 @@
           }
         }
       }
+    },
+    "Select Source Language" : {
+
     },
     "Select Target Language" : {
       "localizations" : {
@@ -20067,6 +20083,9 @@
     },
     "Translation output — enables Apple Translate support" : {
 
+    },
+    "Translator Sentence Pairs" : {
+      "comment" : "Output type name"
     },
     "Try adjusting your search or filters" : {
       "comment" : "Marketplace empty hint"
