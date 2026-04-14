@@ -49,6 +49,13 @@
             }
             .frame(width: 360, height: 420)
             .animation(.easeInOut(duration: 0.25), value: activeConversationSession != nil)
+            .onAppear {
+                NotificationCenter.default.post(
+                    name: .appleTranslationViewModelRegister,
+                    object: nil,
+                    userInfo: ["viewModel": viewModel]
+                )
+            }
             .onReceive(NotificationCenter.default.publisher(for: .menuBarPopoverDidShow)) { _ in
                 viewModel.refreshConfiguration()
                 loadClipboardAndExecute()

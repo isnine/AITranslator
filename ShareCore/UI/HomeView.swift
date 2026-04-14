@@ -226,6 +226,15 @@ public struct HomeView: View {
                 viewModel.performSelectedAction()
             }
         }
+        .onAppear {
+            // Notify the host app (macOS only) so AppleTranslationWindowManager can register
+            // this viewModel with the hidden translation window bridge.
+            NotificationCenter.default.post(
+                name: .appleTranslationViewModelRegister,
+                object: nil,
+                userInfo: ["viewModel": viewModel]
+            )
+        }
         #endif
         .onReceive(NotificationCenter.default.publisher(for: .deepLinkTextReceived)) { notification in
             if let text = notification.userInfo?[DeepLink.NotificationKey.text] as? String {
@@ -301,28 +310,34 @@ public struct HomeView: View {
         }
         #endif
         #if canImport(Translation)
-        .background {
-            // Place .translationTask on an inert view so it does not
-            // interfere with button hit-testing in the main content.
-            Color.clear
-                .translationTask(appleTranslationConfig) { session in
-                    Logger.debug("[HomeView] .translationTask fired, session received")
-                    if #available(iOS 17.4, macOS 14.4, *) {
-                        viewModel.executeAppleTranslation(session: session)
-                    }
-                }
+        .translationTask(appleTranslationConfig) { session in
+            Logger.debug("[HomeView] .translationTask fired, session received")
+            if #available(iOS 17.4, macOS 14.4, *) {
+                viewModel.executeAppleTranslation(session: session)
+            }
         }
-        .onChange(of: viewModel.appleTranslateTargetLanguage) { _, newTarget in
+        .onChange(of: viewModel.appleTranslateTargetLanguage) { newTarget in
             Logger.debug("[HomeView] onChange appleTranslateTargetLanguage: \(String(describing: newTarget)), existingConfig=\(appleTranslationConfig != nil)")
+            #if os(macOS)
+            // On macOS, Apple Translate is routed through the hidden translation window
+            // (AppleTranslationBridge) to avoid Code=14 / _EXUISceneSession errors.
+            // HomeView's .translationTask is iOS-only; skip config updates on macOS.
+            _ = newTarget
+            #else
             if let target = newTarget {
-                let sourceLocale = AppPreferences.shared.sourceLanguage.localeLanguage
+                let sourceLocale = viewModel.appleTranslateSourceLanguage
+                Logger.debug("[HomeView] Apple Translate config: source=\(sourceLocale.map { $0.languageCode?.identifier ?? "unknown" } ?? "nil (auto-detect)"), target=\(target.localeLanguage.languageCode?.identifier ?? "unknown")")
                 if appleTranslationConfig != nil {
-                    // Config already exists — invalidate to re-trigger .translationTask().
                     appleTranslationConfig?.invalidate()
+                    appleTranslationConfig = nil
+                    Task { @MainActor in
+                        appleTranslationConfig = .init(source: sourceLocale, target: target.localeLanguage)
+                    }
                 } else {
                     appleTranslationConfig = .init(source: sourceLocale, target: target.localeLanguage)
                 }
             }
+            #endif
         }
         #endif
     }
@@ -1438,6 +1453,9 @@ private extension View {
     public extension Notification.Name {
         /// Notification posted when text is received from macOS Services (right-click menu)
         static let serviceTextReceived = Notification.Name("serviceTextReceived")
+        /// Notification posted by AppleTranslationWindowManager to register a HomeViewModel
+        /// with the hidden translation window bridge. userInfo["register"] is (HomeViewModel) -> Void.
+        static let appleTranslationViewModelRegister = Notification.Name("appleTranslationViewModelRegister")
     }
 #endif
 

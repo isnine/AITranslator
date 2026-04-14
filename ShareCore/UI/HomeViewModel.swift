@@ -202,6 +202,11 @@ public final class HomeViewModel: ObservableObject {
     /// target language for the current translation.
     private var targetLanguageOverride: TargetLanguageOption?
 
+    /// Optional handler invoked on macOS to route Apple Translate requests through a
+    /// real NSWindow (required for TranslationSession to work outside an NSPopover).
+    /// Set by the host app (AITranslator) via `AppleTranslationWindowManager`.
+    public var appleTranslationRequestHandler: ((Locale.Language?, TargetLanguageOption) -> Void)?
+
     // MARK: - TTS Playback State
 
     @Published public private(set) var speakingModels: Set<String> = []
@@ -1070,9 +1075,19 @@ public final class HomeViewModel: ObservableObject {
                 pendingAppleTranslateRequestID = requestID
                 // Detect source language locally so the system Translation framework
                 // does not show a "Choose Language" prompt for short/ambiguous text.
-                appleTranslateSourceLanguage = SourceLanguageDetector.detectLocaleLanguage(of: text)
+                // If the user pinned a source language, use it directly; otherwise fall back
+                // to NL detection (and accept nil if detection fails — Apple will auto-detect).
+                let pinnedSource = AppPreferences.shared.sourceLanguage
+                if pinnedSource != .auto {
+                    appleTranslateSourceLanguage = pinnedSource.localeLanguage
+                    Logger.debug("[HomeViewModel] Apple Translate: source=\(pinnedSource.rawValue) (user-pinned)")
+                } else {
+                        appleTranslateSourceLanguage = SourceLanguageDetector.detectLocaleLanguage(of: text)
+                    Logger.debug("[HomeViewModel] Apple Translate: source=\(appleTranslateSourceLanguage.map { $0.languageCode?.identifier ?? "unknown" } ?? "nil (detection failed)") (auto-detected)")
+                }
                 appleTranslateTargetLanguage = resolvedTarget
                 Logger.debug("[HomeViewModel] Apple Translate: published target=\(resolvedTarget.englishName)")
+                appleTranslationRequestHandler?(appleTranslateSourceLanguage, resolvedTarget)
             } else {
                 // Unsupported action — show inline error immediately.
                 let result = ModelExecutionResult(

@@ -62,11 +62,13 @@
 
             setupPopover()
             setupRightClickMenu()
+            AppleTranslationWindowManager.shared.setup()
         }
 
         /// Remove the menu bar status item
         func teardown() {
             closePopover()
+            AppleTranslationWindowManager.shared.teardown()
             if let rightClickMonitor = rightClickMonitor {
                 NSEvent.removeMonitor(rightClickMonitor)
                 self.rightClickMonitor = nil
