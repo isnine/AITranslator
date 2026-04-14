@@ -417,7 +417,7 @@ private extension SettingsView {
                     Text("Feedback")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(colors.textPrimary)
-                    Text("Every email gets a reply")
+                    Text("Every email gets a reply · xiaozwan@outlook.com")
                         .font(.system(size: 12))
                         .foregroundColor(colors.textSecondary)
                 }
