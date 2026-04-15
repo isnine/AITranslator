@@ -27,7 +27,9 @@
 
         public init(context: TranslationUIProviderContext) {
             self.context = context
-            _viewModel = StateObject(wrappedValue: HomeViewModel())
+            // supportsAppleTranslate: false — extension context cannot use .translationTask();
+            // falls back to TranslationSession(installedSource:target:) for installed packs.
+            _viewModel = StateObject(wrappedValue: HomeViewModel(supportsAppleTranslate: false))
         }
 
         /// Reads the current input text from the translation context.

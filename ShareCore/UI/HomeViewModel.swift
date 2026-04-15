@@ -187,6 +187,10 @@ public final class HomeViewModel: ObservableObject {
 
     // MARK: - Apple Translation Bridge
 
+    /// When false, Apple Translate is excluded from the model list even if enabled in preferences.
+    /// Use the extension path (`TranslationSession(installedSource:target:)`) which requires pre-installed packs.
+    public let supportsAppleTranslate: Bool
+
     /// Published by the view model to request a `.translationTask()` session from the view layer.
     /// HomeView observes this and creates a `TranslationSession.Configuration`.
     @Published public var appleTranslateTargetLanguage: TargetLanguageOption?
@@ -269,13 +273,15 @@ public final class HomeViewModel: ObservableObject {
         configurationStore: AppConfigurationStore? = nil,
         llmService: LLMService = .shared,
         preferences: AppPreferences = .shared,
-        ttsService: TTSPreviewService = .shared
+        ttsService: TTSPreviewService = .shared,
+        supportsAppleTranslate: Bool = true
     ) {
         let store = configurationStore ?? .shared
         self.configurationStore = store
         self.llmService = llmService
         self.preferences = preferences
         self.ttsService = ttsService
+        self.supportsAppleTranslate = supportsAppleTranslate
         allActions = store.actions
         selectedActionID = store.defaultAction?.id
         actions = []
@@ -539,6 +545,9 @@ public final class HomeViewModel: ObservableObject {
         }
 
         // Inject Apple Translate only for translation actions.
+        // In SwiftUI contexts (supportsAppleTranslate = true), the view layer provides a session
+        // via .translationTask(). In non-SwiftUI contexts (e.g. extension), we fall back to
+        // TranslationSession(installedSource:target:) which requires pre-installed language packs.
         if enabledIDs.contains(ModelConfig.appleTranslateID),
            AppleTranslationService.shared.isAvailable,
            let action = selectedAction, action.supportsAppleTranslate
@@ -609,7 +618,7 @@ public final class HomeViewModel: ObservableObject {
         // cloud/fallback models list but are still valid selections.
         let localIDs = currentEnabled.filter { ModelConfig.isLocalModelID($0) }
         var resolved = currentEnabled.intersection(availableIDs).union(localIDs)
-        if resolved.subtracting(localIDs).isEmpty {
+        if resolved.isEmpty {
             let defaults = Set(models.filter { $0.isDefault }.map { $0.id })
             if !defaults.isEmpty {
                 resolved = resolved.union(defaults)
@@ -1095,26 +1104,54 @@ public final class HomeViewModel: ObservableObject {
         // Kick off Apple Translate if present.
         if hasAppleTranslate {
             if action.supportsAppleTranslate {
-                // Store pending context and publish target language so HomeView
-                // triggers .translationTask() which invokes executeAppleTranslation().
-                pendingAppleTranslateText = text
-                pendingAppleTranslateAction = action
-                pendingAppleTranslateRequestID = requestID
-                // Detect source language locally so the system Translation framework
-                // does not show a "Choose Language" prompt for short/ambiguous text.
-                // If the user pinned a source language, use it directly; otherwise fall back
-                // to NL detection (and accept nil if detection fails — Apple will auto-detect).
-                let pinnedSource = AppPreferences.shared.sourceLanguage
-                if pinnedSource != .auto {
-                    appleTranslateSourceLanguage = pinnedSource.localeLanguage
-                    Logger.debug("[HomeViewModel] Apple Translate: source=\(pinnedSource.rawValue) (user-pinned)")
+                if supportsAppleTranslate {
+                    // SwiftUI context: store pending state and publish target language so
+                    // HomeView triggers .translationTask() which invokes executeAppleTranslation().
+                    pendingAppleTranslateText = text
+                    pendingAppleTranslateAction = action
+                    pendingAppleTranslateRequestID = requestID
+                    appleTranslateSourceLanguage = resolvedAppleSourceLocale(for: text)
+                    appleTranslateTargetLanguage = resolvedTarget
+                    Logger.debug("[HomeViewModel] Apple Translate: published target=\(resolvedTarget.englishName)")
+                    appleTranslationRequestHandler?(appleTranslateSourceLanguage, resolvedTarget)
                 } else {
-                        appleTranslateSourceLanguage = SourceLanguageDetector.detectLocaleLanguage(of: text)
-                    Logger.debug("[HomeViewModel] Apple Translate: source=\(appleTranslateSourceLanguage.map { $0.languageCode?.identifier ?? "unknown" } ?? "nil (detection failed)") (auto-detected)")
+                    // Non-SwiftUI context (e.g. extension): use TranslationSession(installedSource:target:)
+                    // directly. Only works if language packs are already installed.
+                    let sourceLocale = resolvedAppleSourceLocale(for: text)
+                    let targetLocale = resolvedTarget.localeLanguage
+                    Task { [weak self] in
+                        guard let self else { return }
+                        // Always true at runtime (guarded by isAvailable in getEnabledModels),
+                        // but required for the compiler's availability check.
+                        if #available(iOS 17.4, macOS 14.4, *) {
+                            do {
+                                guard let source = sourceLocale else {
+                                    throw LocalProviderError.translationFailed("Could not detect source language")
+                                }
+                                let result: ModelExecutionResult
+                                if action.outputType == .sentencePairs {
+                                    result = try await AppleTranslationService.shared.translateSentencesWithInstalledLanguages(
+                                        text: text, source: source, target: targetLocale
+                                    )
+                                } else {
+                                    result = try await AppleTranslationService.shared.translateWithInstalledLanguages(
+                                        text: text, source: source, target: targetLocale
+                                    )
+                                }
+                                guard self.activeRequestID == requestID else { return }
+                                self.apply(result: result, allowDiff: false)
+                            } catch {
+                                guard self.activeRequestID == requestID else { return }
+                                let fail = ModelExecutionResult(
+                                    modelID: ModelConfig.appleTranslateID,
+                                    duration: 0,
+                                    response: .failure(LocalProviderError.translationFailed(error.localizedDescription))
+                                )
+                                self.apply(result: fail, allowDiff: false)
+                            }
+                        }
+                    }
                 }
-                appleTranslateTargetLanguage = resolvedTarget
-                Logger.debug("[HomeViewModel] Apple Translate: published target=\(resolvedTarget.englishName)")
-                appleTranslationRequestHandler?(appleTranslateSourceLanguage, resolvedTarget)
             } else {
                 // Unsupported action — show inline error immediately.
                 let result = ModelExecutionResult(
@@ -1280,6 +1317,19 @@ public final class HomeViewModel: ObservableObject {
     }
 
     // MARK: - Apple Translation Execution
+
+    /// Resolves the source language for an Apple Translate request.
+    /// Uses the user-pinned source if set; otherwise auto-detects from text.
+    private func resolvedAppleSourceLocale(for text: String) -> Locale.Language? {
+        let pinned = AppPreferences.shared.sourceLanguage
+        if pinned != .auto {
+            Logger.debug("[HomeViewModel] Apple Translate: source=\(pinned.rawValue) (user-pinned)")
+            return pinned.localeLanguage
+        }
+        let detected = SourceLanguageDetector.detectLocaleLanguage(of: text)
+        Logger.debug("[HomeViewModel] Apple Translate: source=\(detected.map { $0.languageCode?.identifier ?? "unknown" } ?? "nil (detection failed)") (auto-detected)")
+        return detected
+    }
 
     /// Called from HomeView's `.translationTask()` callback once a TranslationSession is available.
     #if canImport(Translation)

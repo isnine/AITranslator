@@ -45,6 +45,7 @@ public struct HomeView: View {
     @State private var showSatisfactionToast = false
     #if canImport(Translation)
         @State private var appleTranslationConfig: TranslationSession.Configuration?
+        @State private var appleTranslationConfigLanguagePair: (source: String?, target: String)?
     #endif
     #if os(macOS)
         @State private var showDataConsent = false
@@ -216,6 +217,18 @@ public struct HomeView: View {
                     hasTriggeredAutoRequest = true
                     viewModel.performSelectedAction()
                 }
+                #if canImport(Translation)
+                if #available(iOS 17.4, *),
+                   appleTranslationConfig == nil,
+                   preferences.enabledModelIDs.contains(ModelConfig.appleTranslateID) {
+                    let target = AppPreferences.shared.targetLanguage
+                    let sourceLocale = AppPreferences.shared.sourceLanguage.localeLanguage
+                    let sourceKey = sourceLocale?.languageCode?.identifier
+                    let targetKey = target.localeLanguage.languageCode?.identifier ?? target.rawValue
+                    appleTranslationConfigLanguagePair = (sourceKey, targetKey)
+                    appleTranslationConfig = .init(source: sourceLocale, target: target.localeLanguage)
+                }
+                #endif
             #endif
         }
         #if os(macOS)
@@ -326,15 +339,19 @@ public struct HomeView: View {
             #else
             if let target = newTarget {
                 let sourceLocale = viewModel.appleTranslateSourceLanguage
-                Logger.debug("[HomeView] Apple Translate config: source=\(sourceLocale.map { $0.languageCode?.identifier ?? "unknown" } ?? "nil (auto-detect)"), target=\(target.localeLanguage.languageCode?.identifier ?? "unknown")")
-                if appleTranslationConfig != nil {
-                    appleTranslationConfig?.invalidate()
-                    appleTranslationConfig = nil
-                    Task { @MainActor in
-                        appleTranslationConfig = .init(source: sourceLocale, target: target.localeLanguage)
-                    }
-                } else {
+                let sourceKey = sourceLocale?.languageCode?.identifier
+                let targetKey = target.localeLanguage.languageCode?.identifier ?? target.rawValue
+                Logger.debug("[HomeView] Apple Translate config: source=\(sourceKey ?? "nil (auto-detect)"), target=\(targetKey)")
+                let pairChanged = appleTranslationConfigLanguagePair?.source != sourceKey
+                    || appleTranslationConfigLanguagePair?.target != targetKey
+                if pairChanged || appleTranslationConfig == nil {
+                    // Language pair changed (or first use): replace config without going through nil
+                    // to avoid the system sheet flash on every request.
+                    appleTranslationConfigLanguagePair = (sourceKey, targetKey)
                     appleTranslationConfig = .init(source: sourceLocale, target: target.localeLanguage)
+                } else {
+                    // Same language pair: invalidate to re-trigger .translationTask for the new request.
+                    appleTranslationConfig?.invalidate()
                 }
             }
             #endif

@@ -93,6 +93,32 @@ public final class AppleTranslationService: @unchecked Sendable {
         return installed
     }
 
+    // MARK: - Translation (direct, no SwiftUI required)
+
+    /// Translate using a directly-initialized session from installed language packs.
+    /// Does NOT require `.translationTask()` — safe to call from extension contexts.
+    /// Throws `LocalProviderError.unsupportedLanguagePair` if the language pack is not installed.
+    @available(iOS 17.4, macOS 14.4, *)
+    public func translateWithInstalledLanguages(
+        text: String,
+        source: Locale.Language,
+        target: Locale.Language
+    ) async throws -> ModelExecutionResult {
+        let session = TranslationSession(installedSource: source, target: target)
+        return try await translate(text: text, using: session)
+    }
+
+    /// Translate sentence pairs using a directly-initialized session from installed language packs.
+    @available(iOS 17.4, macOS 14.4, *)
+    public func translateSentencesWithInstalledLanguages(
+        text: String,
+        source: Locale.Language,
+        target: Locale.Language
+    ) async throws -> ModelExecutionResult {
+        let session = TranslationSession(installedSource: source, target: target)
+        return try await translateSentences(text: text, using: session)
+    }
+
     // MARK: - Translation
 
     /// Translate a single text string using the provided TranslationSession.
