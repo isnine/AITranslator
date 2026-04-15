@@ -1105,15 +1105,88 @@ public final class HomeViewModel: ObservableObject {
         if hasAppleTranslate {
             if action.supportsAppleTranslate {
                 if supportsAppleTranslate {
-                    // SwiftUI context: store pending state and publish target language so
-                    // HomeView triggers .translationTask() which invokes executeAppleTranslation().
-                    pendingAppleTranslateText = text
-                    pendingAppleTranslateAction = action
-                    pendingAppleTranslateRequestID = requestID
-                    appleTranslateSourceLanguage = resolvedAppleSourceLocale(for: text)
-                    appleTranslateTargetLanguage = resolvedTarget
-                    Logger.debug("[HomeViewModel] Apple Translate: published target=\(resolvedTarget.englishName)")
-                    appleTranslationRequestHandler?(appleTranslateSourceLanguage, resolvedTarget)
+                    // SwiftUI context: if the language pack is already installed, use the direct
+                    // TranslationSession(installedSource:target:) path which is faster and more
+                    // reliable than waiting for .translationTask() to fire.
+                    // Only fall back to .translationTask() when a download is required.
+                    let sourceLocale = resolvedAppleSourceLocale(for: text)
+                    let targetLocale = resolvedTarget.localeLanguage
+                    Logger.debug("[HomeViewModel] Apple Translate: checking language availability before choosing path")
+                    Task { [weak self] in
+                        guard let self else { return }
+                        if #available(iOS 17.4, macOS 14.4, *) {
+                            let status = await AppleTranslationService.shared.languageAvailabilityStatus(
+                                source: sourceLocale, target: targetLocale
+                            )
+                            Logger.debug("[HomeViewModel] Apple Translate: language status=\(status), using \(status == .installed ? "installedSource" : ".translationTask") path")
+                            if status == .installed, let source = sourceLocale {
+                                // Language pack already on device — skip SwiftUI bridge entirely.
+                                do {
+                                    let result: ModelExecutionResult
+                                    if action.outputType == .sentencePairs {
+                                        result = try await AppleTranslationService.shared.translateSentencesWithInstalledLanguages(
+                                            text: text, source: source, target: targetLocale
+                                        )
+                                    } else {
+                                        result = try await AppleTranslationService.shared.translateWithInstalledLanguages(
+                                            text: text, source: source, target: targetLocale
+                                        )
+                                    }
+                                    guard self.activeRequestID == requestID else { return }
+                                    self.apply(result: result, allowDiff: false)
+                                    if case let .success(message) = result.response,
+                                       let idx = self.modelRuns.firstIndex(where: { $0.id == result.modelID })
+                                    {
+                                        TranslationHistoryService.shared.save(
+                                            requestID: requestID,
+                                            sourceText: self.currentRequestInputText,
+                                            resultText: message,
+                                            actionName: action.name,
+                                            targetLanguage: self.resolvedTargetLanguage?.englishName ?? "",
+                                            modelID: result.modelID,
+                                            modelDisplayName: self.modelRuns[idx].modelDisplayName,
+                                            duration: result.duration
+                                        )
+                                    }
+                                } catch {
+                                    guard self.activeRequestID == requestID else { return }
+                                    let fail = ModelExecutionResult(
+                                        modelID: ModelConfig.appleTranslateID,
+                                        duration: 0,
+                                        response: .failure(LocalProviderError.translationFailed(error.localizedDescription))
+                                    )
+                                    self.apply(result: fail, allowDiff: false)
+                                }
+                            } else {
+                                // Language pack not installed; need .translationTask() to trigger download UI.
+                                // Set pending state then schedule a 10s timeout watchdog.
+                                self.pendingAppleTranslateText = text
+                                self.pendingAppleTranslateAction = action
+                                self.pendingAppleTranslateRequestID = requestID
+                                self.appleTranslateSourceLanguage = sourceLocale
+                                self.appleTranslateTargetLanguage = resolvedTarget
+                                Logger.debug("[HomeViewModel] Apple Translate: published target=\(resolvedTarget.englishName), starting 10s timeout watchdog")
+                                self.appleTranslationRequestHandler?(sourceLocale, resolvedTarget)
+
+                                // Watchdog: if .translationTask() doesn't fire within 10s, surface an error.
+                                try? await Task.sleep(nanoseconds: 10_000_000_000)
+                                guard self.pendingAppleTranslateRequestID == requestID else { return }
+                                Logger.debug("[HomeViewModel] Apple Translate: watchdog fired — .translationTask() did not respond in 10s")
+                                self.pendingAppleTranslateText = nil
+                                self.pendingAppleTranslateAction = nil
+                                self.pendingAppleTranslateRequestID = nil
+                                self.appleTranslateSourceLanguage = nil
+                                self.appleTranslateTargetLanguage = nil
+                                guard self.activeRequestID == requestID else { return }
+                                let timeoutResult = ModelExecutionResult(
+                                    modelID: ModelConfig.appleTranslateID,
+                                    duration: 10,
+                                    response: .failure(LocalProviderError.translationFailed("Apple Translate timed out (10s). Language pack may not be available."))
+                                )
+                                self.apply(result: timeoutResult, allowDiff: false)
+                            }
+                        }
+                    }
                 } else {
                     // Non-SwiftUI context (e.g. extension): use TranslationSession(installedSource:target:)
                     // directly. Only works if language packs are already installed.

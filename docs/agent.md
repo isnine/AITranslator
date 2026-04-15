@@ -1,6 +1,8 @@
 # TLingo
 
 > **AI Agent 开发指南**：本文档专为 AI Agent 理解项目结构和代码逻辑而编写。修改代码前请先阅读相关章节。
+>
+> Agent 行为规范（核心原则、工作模式、表达风格、自检修复等）见 [`~/.claude/CLAUDE.md`](../../.claude/CLAUDE.md)。项目构建、代码风格、CI/CD 等见 [`CLAUDE.md`](../CLAUDE.md)。
 
 ## 快速定位
 
@@ -607,7 +609,7 @@ public enum ProviderCategory: String, Codable {
 
 - 一个文件一个顶层类型
 - 私有辅助类型使用嵌套声明（如 `SettingsView.LanguagePickerView`）
-- 2 空格缩进，最大行宽 100 字符
+- 4 空格缩进，最大行宽 130 字符
 - trailing comma 规则
 - 多行条件语句在关键字后换行
 

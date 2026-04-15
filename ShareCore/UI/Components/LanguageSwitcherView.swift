@@ -231,6 +231,7 @@ public struct LanguageSwitcherView: View {
                 .menuStyle(.borderlessButton)
                 #endif
                 .buttonStyle(.plain)
+                .fixedSize()
             } else {
                 Button {
                     targetCode = preferences.targetLanguage.rawValue
