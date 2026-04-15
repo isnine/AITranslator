@@ -529,10 +529,12 @@ public final class HomeViewModel: ObservableObject {
 
         // Fallback: if all selected models were filtered out (e.g. user downgraded),
         // use the default free model so the send button never silently fails.
-        if available.isEmpty && !models.isEmpty {
+        // Skip fallback if Apple Translate is selected — it alone is sufficient.
+        let appleTranslateSelected = enabledIDs.contains(ModelConfig.appleTranslateID)
+        if available.isEmpty && !models.isEmpty && !appleTranslateSelected {
             available = models.filter { $0.isDefault && !$0.isPremium }
         }
-        if available.isEmpty && !models.isEmpty {
+        if available.isEmpty && !models.isEmpty && !appleTranslateSelected {
             available = Array(models.filter { !$0.isPremium }.prefix(1))
         }
 
