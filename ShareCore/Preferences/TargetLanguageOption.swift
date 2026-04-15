@@ -10,12 +10,25 @@ import Foundation
 public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
     case appLanguage = "app-language"
     case english = "en"
+    case arabic = "ar"
     case simplifiedChinese = "zh-Hans"
-    case japanese = "ja"
-    case korean = "ko"
+    case traditionalChinese = "zh-Hant"
+    case dutch = "nl"
     case french = "fr"
     case german = "de"
+    case hindi = "hi"
+    case indonesian = "id"
+    case italian = "it"
+    case japanese = "ja"
+    case korean = "ko"
+    case polish = "pl"
+    case portugueseBrazil = "pt-BR"
+    case russian = "ru"
     case spanish = "es"
+    case thai = "th"
+    case turkish = "tr"
+    case ukrainian = "uk"
+    case vietnamese = "vi"
 
     public static let storageKey = "settings.targetLanguageCode"
 
@@ -25,12 +38,25 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
         [
             .appLanguage,
             .english,
+            .arabic,
             .simplifiedChinese,
-            .japanese,
-            .korean,
+            .traditionalChinese,
+            .dutch,
             .french,
             .german,
+            .hindi,
+            .indonesian,
+            .italian,
+            .japanese,
+            .korean,
+            .polish,
+            .portugueseBrazil,
+            .russian,
             .spanish,
+            .thai,
+            .turkish,
+            .ukrainian,
+            .vietnamese,
         ]
     }
 

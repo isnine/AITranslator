@@ -288,20 +288,8 @@ public extension TargetLanguageOption {
         switch self {
         case .appLanguage:
             return Locale.Language(identifier: TargetLanguageOption.appLanguageIdentifier)
-        case .simplifiedChinese:
-            return Locale.Language(identifier: "zh-Hans")
-        case .english:
-            return Locale.Language(identifier: "en")
-        case .japanese:
-            return Locale.Language(identifier: "ja")
-        case .korean:
-            return Locale.Language(identifier: "ko")
-        case .french:
-            return Locale.Language(identifier: "fr")
-        case .german:
-            return Locale.Language(identifier: "de")
-        case .spanish:
-            return Locale.Language(identifier: "es")
+        default:
+            return Locale.Language(identifier: rawValue)
         }
     }
 }
