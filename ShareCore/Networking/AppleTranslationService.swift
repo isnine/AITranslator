@@ -108,7 +108,9 @@ public final class AppleTranslationService: @unchecked Sendable {
         // is not yet installed (.supported status). No-op if already installed (.installed).
         try await session.prepareTranslation()
         // Notify the host app that language download is done and the auxiliary window can be hidden.
-        NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
+        #if os(macOS)
+            NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
+        #endif
 
         let response = try await session.translate(text)
         let duration = Date().timeIntervalSince(start)
@@ -131,7 +133,9 @@ public final class AppleTranslationService: @unchecked Sendable {
 
         // prepareTranslation() triggers the system download UI if needed.
         try await session.prepareTranslation()
-        NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
+        #if os(macOS)
+            NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
+        #endif
 
         let sentences = splitIntoSentences(text)
         Logger.debug("[AppleTranslation] translateSentences: \(sentences.count) sentences")
