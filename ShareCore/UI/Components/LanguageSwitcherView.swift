@@ -27,6 +27,10 @@ public struct LanguageSwitcherView: View {
     let resolvedTarget: TargetLanguageOption?
     /// Called when the user picks an override target from the resolved-target menu.
     let onOverrideTarget: ((TargetLanguageOption) -> Void)?
+    /// When non-nil, shows the source selector with a strikethrough and this detected language label beside it.
+    let detectedSource: SourceLanguageOption?
+    /// Called when the user picks a new source language (so callers can clear detectedSource state).
+    let onSourceChanged: (() -> Void)?
 
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
@@ -39,7 +43,9 @@ public struct LanguageSwitcherView: View {
         foregroundColor: Color? = nil,
         isTranslateAction: Bool = false,
         resolvedTarget: TargetLanguageOption? = nil,
-        onOverrideTarget: ((TargetLanguageOption) -> Void)? = nil
+        onOverrideTarget: ((TargetLanguageOption) -> Void)? = nil,
+        detectedSource: SourceLanguageOption? = nil,
+        onSourceChanged: (() -> Void)? = nil
     ) {
         self.globeFont = globeFont
         self.textFont = textFont
@@ -48,6 +54,8 @@ public struct LanguageSwitcherView: View {
         self.isTranslateAction = isTranslateAction
         self.resolvedTarget = resolvedTarget
         self.onOverrideTarget = onOverrideTarget
+        self.detectedSource = detectedSource
+        self.onSourceChanged = onSourceChanged
     }
 
     private var resolvedColor: Color {
@@ -119,6 +127,7 @@ public struct LanguageSwitcherView: View {
         .onChange(of: sourceCode) {
             if let option = SourceLanguageOption(rawValue: sourceCode) {
                 preferences.setSourceLanguage(option)
+                onSourceChanged?()
             }
         }
     }
@@ -151,6 +160,14 @@ public struct LanguageSwitcherView: View {
 
     // MARK: - Directional layout: [Auto ▾] → [日本語 ▾]
 
+    private func languageLabel(_ text: String) -> some View {
+        Text(text)
+            .font(textFont)
+            .foregroundColor(resolvedColor)
+            .lineLimit(1)
+            .truncationMode(.tail)
+    }
+
     private var directionalLayout: some View {
         HStack(spacing: 4) {
             // Source language button
@@ -159,11 +176,12 @@ public struct LanguageSwitcherView: View {
                 isSourcePickerPresented = true
             } label: {
                 HStack(spacing: 3) {
-                    Text(sourceDisplayName)
-                        .font(textFont)
-                        .foregroundColor(resolvedColor)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    let showDetected = detectedSource != nil && detectedSource != preferences.sourceLanguage
+                    languageLabel(sourceDisplayName)
+                        .strikethrough(showDetected)
+                    if showDetected, let detected = detectedSource {
+                        languageLabel(detected.primaryLabel)
+                    }
                     Image(systemName: "chevron.up.chevron.down")
                         .font(chevronFont)
                         .foregroundColor(resolvedColor.opacity(0.6))
@@ -182,11 +200,7 @@ public struct LanguageSwitcherView: View {
                 isTargetPickerPresented = true
             } label: {
                 HStack(spacing: 3) {
-                    Text(targetDisplayName)
-                        .font(textFont)
-                        .foregroundColor(resolvedColor)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    languageLabel(targetDisplayName)
                     Image(systemName: "chevron.up.chevron.down")
                         .font(chevronFont)
                         .foregroundColor(resolvedColor.opacity(0.6))

@@ -478,7 +478,9 @@ public struct HomeView: View {
                             foregroundColor: colors.accent,
                             isTranslateAction: viewModel.selectedAction?.supportsAppleTranslate ?? false,
                             resolvedTarget: viewModel.resolvedTargetLanguage,
-                            onOverrideTarget: { viewModel.overrideTargetLanguage($0) }
+                            onOverrideTarget: { viewModel.overrideTargetLanguage($0) },
+                            detectedSource: viewModel.detectedSourceLanguage,
+                            onSourceChanged: { viewModel.clearDetectedSourceLanguage() }
                         )
 
                         #if os(macOS)

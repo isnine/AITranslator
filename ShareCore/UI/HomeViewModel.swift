@@ -181,6 +181,10 @@ public final class HomeViewModel: ObservableObject {
     /// or when the user manually overrode the target language.
     @Published public private(set) var resolvedTargetLanguage: TargetLanguageOption?
 
+    /// Non-nil after a translation runs: the detected (or user-pinned) source language,
+    /// used to show a strikethrough on the source selector with the detected name beside it.
+    @Published public private(set) var detectedSourceLanguage: SourceLanguageOption?
+
     // MARK: - Apple Translation Bridge
 
     /// Published by the view model to request a `.translationTask()` session from the view layer.
@@ -687,6 +691,7 @@ public final class HomeViewModel: ObservableObject {
         activeRequestID = requestID
 
         resolvedTargetLanguage = nil
+        detectedSourceLanguage = nil
 
         modelRuns = modelsToUse.map {
             ModelRunViewState(model: $0, status: .running(start: Date()))
@@ -768,6 +773,11 @@ public final class HomeViewModel: ObservableObject {
         let preferred = AppPreferences.shared.targetLanguage
         resolvedTargetLanguage = language != preferred ? language : nil
         performSelectedAction()
+    }
+
+    /// Called when the user picks a new source language — clears the detected-source strikethrough state.
+    public func clearDetectedSourceLanguage() {
+        detectedSourceLanguage = nil
     }
 
     public func toggleDiffDisplay(for runID: String) {
@@ -976,9 +986,24 @@ public final class HomeViewModel: ObservableObject {
         let preferred = AppPreferences.shared.targetLanguage
         let sourceLanguage = AppPreferences.shared.sourceLanguage
         if sourceLanguage != .auto {
-            // User pinned source language — use it directly instead of NL detection
+            // User pinned source language — surface it as detectedSource for strikethrough UI
+            detectedSourceLanguage = sourceLanguage
             return SourceLanguageDetector.resolveTargetLanguage(
                 forKnownSourceCode: sourceLanguage.rawValue,
+                preferred: preferred
+            )
+        }
+        // Auto mode: detect once, use result for both UI strikethrough and target resolution
+        if let detected = SourceLanguageDetector.detectLocaleLanguage(of: text) {
+            var detectedCode = detected.languageCode?.identifier ?? ""
+            if let script = detected.script {
+                detectedCode += "-" + script.identifier
+            }
+            detectedSourceLanguage = SourceLanguageOption(rawValue: detectedCode)
+                ?? SourceLanguageOption(rawValue: String(detectedCode.prefix(2)))
+            // Use the known code to skip a redundant detectLanguage call inside resolveTargetLanguage
+            return SourceLanguageDetector.resolveTargetLanguage(
+                forKnownSourceCode: detectedCode,
                 preferred: preferred
             )
         }
@@ -1245,6 +1270,7 @@ public final class HomeViewModel: ObservableObject {
         pendingAppleTranslateRequestID = nil
         appleTranslateSourceLanguage = nil
         appleTranslateTargetLanguage = nil
+        detectedSourceLanguage = nil
         if clearResults {
             if !modelRuns.isEmpty { modelRuns = [] }
             targetLanguageOverride = nil

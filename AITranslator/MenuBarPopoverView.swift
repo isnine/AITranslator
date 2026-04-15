@@ -241,7 +241,9 @@
                         foregroundColor: colors.textSecondary.opacity(0.7),
                         isTranslateAction: viewModel.selectedAction?.supportsAppleTranslate ?? false,
                         resolvedTarget: viewModel.resolvedTargetLanguage,
-                        onOverrideTarget: { viewModel.overrideTargetLanguage($0) }
+                        onOverrideTarget: { viewModel.overrideTargetLanguage($0) },
+                        detectedSource: viewModel.detectedSourceLanguage,
+                        onSourceChanged: { viewModel.clearDetectedSourceLanguage() }
                     )
 
                     Spacer()
