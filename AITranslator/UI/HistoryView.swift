@@ -194,7 +194,6 @@ struct HistoryView: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 8)
-        .background(colors.background)
     }
 
     @ViewBuilder

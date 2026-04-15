@@ -89,18 +89,22 @@ public struct LanguageSwitcherView: View {
         }
     }
 
-    public var body: some View {
+    @ViewBuilder
+    private var layoutContent: some View {
         HStack(spacing: 0) {
             if isTranslateAction {
                 directionalLayout
             } else {
                 standardLayout
-            }
-
-            if let resolved = resolvedTarget, let onOverride = onOverrideTarget {
-                resolvedTargetMenu(resolved: resolved, onOverride: onOverride)
+                if let resolved = resolvedTarget, let onOverride = onOverrideTarget {
+                    resolvedTargetMenu(resolved: resolved, onOverride: onOverride)
+                }
             }
         }
+    }
+
+    public var body: some View {
+        layoutContent
         .sheet(isPresented: $isTargetPickerPresented) {
             LanguagePickerView(
                 selectedCode: $targetCode,
@@ -194,19 +198,53 @@ public struct LanguageSwitcherView: View {
                 .foregroundColor(resolvedColor.opacity(0.5))
                 .padding(.horizontal, 2)
 
-            // Target language button
-            Button {
-                targetCode = preferences.targetLanguage.rawValue
-                isTargetPickerPresented = true
-            } label: {
-                HStack(spacing: 3) {
-                    languageLabel(targetDisplayName)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(chevronFont)
-                        .foregroundColor(resolvedColor.opacity(0.6))
+            // Target language button / menu
+            if let resolved = resolvedTarget, let onOverride = onOverrideTarget {
+                let showResolved = resolved != preferences.targetLanguage
+                Menu {
+                    if showResolved {
+                        Button {
+                            onOverride(preferences.targetLanguage)
+                        } label: {
+                            Label(preferences.targetLanguage.primaryLabel, systemImage: "arrow.uturn.backward")
+                        }
+                        Divider()
+                    }
+                    ForEach(filteredTargetOptions.filter { $0 != resolved }) { option in
+                        Button(option.primaryLabel) {
+                            onOverride(option)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        languageLabel(targetDisplayName)
+                            .strikethrough(showResolved)
+                        if showResolved {
+                            languageLabel(resolved.primaryLabel)
+                        }
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(chevronFont)
+                            .foregroundColor(resolvedColor.opacity(0.6))
+                    }
                 }
+                #if os(macOS)
+                .menuStyle(.borderlessButton)
+                #endif
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    targetCode = preferences.targetLanguage.rawValue
+                    isTargetPickerPresented = true
+                } label: {
+                    HStack(spacing: 3) {
+                        languageLabel(targetDisplayName)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(chevronFont)
+                            .foregroundColor(resolvedColor.opacity(0.6))
+                    }
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
         }
     }
 
