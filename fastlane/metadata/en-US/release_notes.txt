@@ -1,6 +1,17 @@
-What's New in TLingo 2.7
+Translate on-device with Apple Translate — no download required, instant results right from the app or the system translation extension.
 
-• Fixed: Marketplace download button now correctly reflects install status.
-• Fixed: Translation extension configuration syncing via shared container.
-• New: Marketplace Web API for streamlined action management.
-• Bug fixes and performance improvements.
+New
+• Apple Translate integration brings a powerful on-device translation engine to TLingo. Start translating immediately — no language pack downloads needed.
+• Source language detection now shows which language was detected with a clear visual indicator, so you always know what's being translated.
+• Check which Apple Translate language packs are installed on your device directly from the Models page.
+
+Improved
+• Translation history cards now clearly distinguish your source text from the translated result — easier to scan and reference.
+• macOS sidebar redesigned with native NavigationSplitView for a smoother, more responsive experience.
+• History records display inline in the macOS sidebar for quicker access.
+
+Fixed
+• Resolved language switcher target menu layout issues.
+• Language download sheet now appears at the correct position.
+• Translation extension configuration syncs reliably across app and extension.
+• Various stability improvements throughout the app.

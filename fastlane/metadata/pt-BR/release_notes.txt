@@ -1,6 +1,17 @@
-Novidades no TLingo 2.7
+Traduza diretamente no dispositivo com o Apple Translate — sem downloads, resultados instantâneos direto do app ou da extensão de tradução do sistema.
 
-• Corrigido: O botão de download do Marketplace agora exibe corretamente o status de instalação.
-• Corrigido: Sincronização da configuração da extensão de tradução via contêiner compartilhado.
-• Novo: API Web do Marketplace para gerenciamento otimizado de ações.
-• Correções de bugs e melhorias de desempenho.
+Novo
+• A integração do Apple Translate traz um poderoso motor de tradução diretamente no seu dispositivo. Comece a traduzir imediatamente — sem precisar baixar pacotes de idiomas.
+• A detecção do idioma de origem agora mostra qual idioma foi detectado com um indicador visual claro, para que você sempre saiba o que está sendo traduzido.
+• Verifique quais pacotes de idiomas do Apple Translate estão instalados no seu dispositivo diretamente na página de Modelos.
+
+Melhorado
+• Os cartões do histórico de tradução agora distinguem claramente o texto original do resultado traduzido — mais fácil de consultar e referenciar.
+• Barra lateral do macOS redesenhada com NavigationSplitView nativo para uma experiência mais fluida e responsiva.
+• Registros do histórico são exibidos diretamente na barra lateral do macOS para acesso mais rápido.
+
+Corrigido
+• Resolvidos problemas de layout no menu do seletor de idiomas.
+• A janela de download de idioma agora aparece na posição correta.
+• A sincronização de configuração da extensão de tradução funciona de forma confiável entre o app e a extensão.
+• Diversas melhorias de estabilidade em todo o aplicativo.

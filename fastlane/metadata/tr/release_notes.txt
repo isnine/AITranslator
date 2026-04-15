@@ -1,6 +1,17 @@
-TLingo 2.7'deki Yenilikler
+Apple Translate ile doğrudan cihazda çeviri yapın — indirme gerekmez, uygulamadan veya sistem çeviri eklentisinden anında sonuç alın.
 
-• Düzeltildi: Mağaza indirme düğmesi artık kurulum durumunu doğru gösteriyor.
-• Düzeltildi: Paylaşılan kapsayıcı aracılığıyla çeviri uzantısı yapılandırma senkronizasyonu.
-• Yeni: Kolay eylem yönetimi için Mağaza Web API'si.
-• Hata düzeltmeleri ve performans iyileştirmeleri.
+Yeni
+• Apple Translate entegrasyonu, güçlü bir cihaz üzerinde çeviri motorunu TLingo'ya getiriyor. Dil paketi indirmeden hemen çevirmeye başlayın.
+• Kaynak dil algılama artık hangi dilin algılandığını net bir görsel göstergeyle gösteriyor, böylece neyin çevrildiğini her zaman bilirsiniz.
+• Cihazınızda hangi Apple Translate dil paketlerinin yüklü olduğunu doğrudan Modeller sayfasından kontrol edin.
+
+İyileştirme
+• Çeviri geçmişi kartları artık kaynak metni ve çeviri sonucunu açıkça ayırt ediyor — taramak ve başvurmak daha kolay.
+• macOS kenar çubuğu, daha akıcı ve duyarlı bir deneyim için yerel NavigationSplitView ile yeniden tasarlandı.
+• Geçmiş kayıtları, daha hızlı erişim için macOS kenar çubuğunda doğrudan görüntüleniyor.
+
+Düzeltme
+• Dil değiştirici hedef menüsü düzen sorunları çözüldü.
+• Dil indirme penceresi artık doğru konumda görünüyor.
+• Çeviri eklentisi yapılandırma senkronizasyonu, uygulama ve eklenti arasında güvenilir şekilde çalışıyor.
+• Uygulama genelinde çeşitli kararlılık iyileştirmeleri.

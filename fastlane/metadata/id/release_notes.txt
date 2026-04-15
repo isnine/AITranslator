@@ -1,6 +1,17 @@
-Yang Baru di TLingo 2.7
+Terjemahkan langsung di perangkat dengan Apple Translate — tanpa perlu unduhan, hasil instan langsung dari aplikasi atau ekstensi terjemahan sistem.
 
-• Diperbaiki: Tombol unduh Marketplace kini menampilkan status instalasi dengan benar.
-• Diperbaiki: Sinkronisasi konfigurasi ekstensi terjemahan melalui wadah bersama.
-• Baru: API Web Marketplace untuk manajemen aksi yang lebih efisien.
-• Perbaikan bug dan peningkatan performa.
+Baru
+• Integrasi Apple Translate menghadirkan mesin terjemahan canggih langsung di perangkat Anda. Mulai menerjemahkan seketika — tanpa perlu mengunduh paket bahasa.
+• Deteksi bahasa sumber kini menampilkan bahasa yang terdeteksi dengan indikator visual yang jelas, sehingga Anda selalu tahu apa yang sedang diterjemahkan.
+• Periksa paket bahasa Apple Translate mana yang terinstal di perangkat Anda langsung dari halaman Model.
+
+Ditingkatkan
+• Kartu riwayat terjemahan kini membedakan dengan jelas antara teks sumber dan hasil terjemahan — lebih mudah untuk ditinjau dan dirujuk.
+• Sidebar macOS didesain ulang dengan NavigationSplitView native untuk pengalaman yang lebih lancar dan responsif.
+• Catatan riwayat ditampilkan langsung di sidebar macOS untuk akses yang lebih cepat.
+
+Diperbaiki
+• Masalah tata letak menu pengalih bahasa telah diperbaiki.
+• Jendela unduhan bahasa kini muncul di posisi yang benar.
+• Sinkronisasi konfigurasi ekstensi terjemahan berfungsi dengan andal antara aplikasi dan ekstensi.
+• Berbagai peningkatan stabilitas di seluruh aplikasi.
