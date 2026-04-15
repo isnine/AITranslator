@@ -7,6 +7,9 @@
 
 import ShareCore
 import SwiftUI
+#if canImport(Translation)
+    import Translation
+#endif
 
 struct ModelsView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -21,6 +24,8 @@ struct ModelsView: View {
     @State private var showLimitBanner = false
     @State private var showHiddenFreeModels = false
     @State private var showHiddenPremiumModels = false
+    @State private var showInstalledLanguages = false
+    @State private var showDownloadLanguagesGuide = false
 
     private let freeModelLimit = 2
 
@@ -88,9 +93,15 @@ struct ModelsView: View {
             }
             .onChange(of: preferences.enabledModelIDs) { _, newValue in
                 enabledModelIDs = newValue
+                #if DEBUG
+                print("[ModelsView] onChange(preferences.enabledModelIDs) → \(newValue)")
+                #endif
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
+            }
+            .sheet(isPresented: $showDownloadLanguagesGuide) {
+                DownloadLanguagesGuideView()
             }
     }
 
@@ -161,6 +172,7 @@ struct ModelsView: View {
     private var onDeviceModelSection: some View {
         let model = ModelConfig.appleTranslate
         let isEnabled = enabledModelIDs.contains(model.id)
+        let installedLangs = installedLanguageOptions
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
@@ -175,6 +187,9 @@ struct ModelsView: View {
 
             VStack(spacing: 0) {
                 Button {
+                    #if DEBUG
+                    print("[ModelsView] AppleTranslate TAPPED: isEnabled=\(isEnabled)")
+                    #endif
                     toggleAppleTranslate()
                 } label: {
                     HStack(spacing: 12) {
@@ -188,7 +203,7 @@ struct ModelsView: View {
                                     .font(.system(size: 16, weight: .semibold))
                                     .foregroundColor(colors.textPrimary)
 
-                                Text("Free")
+                                Text("On-Device")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(.green)
                                     .padding(.horizontal, 6)
@@ -209,16 +224,87 @@ struct ModelsView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+
+                // Installed languages summary & expandable list
+                if isEnabled {
+                    Divider()
+                        .padding(.leading, 50)
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            showInstalledLanguages.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: showInstalledLanguages ? "chevron.down" : "chevron.right")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(colors.textSecondary.opacity(0.5))
+                            Text("\(installedLangs.count) languages downloaded")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(colors.textSecondary)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if showInstalledLanguages {
+                        ForEach(installedLangs) { lang in
+                            Divider()
+                                .padding(.leading, 50)
+
+                            HStack(spacing: 8) {
+                                Text(lang.nativeName)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(colors.textPrimary)
+                                Text(lang.englishName)
+                                    .font(.system(size: 13))
+                                    .foregroundColor(colors.textSecondary)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                        }
+
+                        Divider()
+                            .padding(.leading, 50)
+
+                        Button {
+                            showDownloadLanguagesGuide = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "questionmark.circle")
+                                    .font(.system(size: 14))
+                                Text("How to Download More Languages")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundColor(colors.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
             .background(cardBackground)
         }
     }
 
+    private var installedLanguageOptions: [TargetLanguageOption] {
+        let installed = preferences.appleTranslateInstalledLanguages
+        return TargetLanguageOption.filteredSelectionOptions(appleTranslateEnabled: true, installedLanguages: installed)
+            .filter { $0 != .appLanguage }
+    }
+
     private func toggleAppleTranslate() {
         let id = ModelConfig.appleTranslateID
         var newSet = enabledModelIDs
+        let wasEnabled = newSet.contains(id)
 
-        if newSet.contains(id) {
+        if wasEnabled {
             newSet.remove(id)
             AppPreferences.shared.setAppleTranslateInstalledLanguages([])
         } else {
@@ -227,6 +313,10 @@ struct ModelsView: View {
             newSet.insert(id)
             refreshInstalledLanguagesInBackground()
         }
+
+        #if DEBUG
+        print("[ModelsView] toggleAppleTranslate: \(wasEnabled ? "OFF" : "ON"), before=\(enabledModelIDs), after=\(newSet)")
+        #endif
 
         enabledModelIDs = newSet
         preferences.setEnabledModelIDs(newSet)
@@ -341,6 +431,9 @@ struct ModelsView: View {
         let isDisabledByLimit = hasReachedFreeLimit && !isEnabled && !isLocked
 
         return Button {
+            #if DEBUG
+            print("[ModelsView] modelRow TAPPED: \(model.id), isEnabled=\(isEnabled), isLocked=\(isLocked), isDisabledByLimit=\(isDisabledByLimit)")
+            #endif
             if isLocked {
                 showPaywall = true
             } else {
@@ -533,10 +626,20 @@ struct ModelsView: View {
 
     private func toggleModel(_ model: ModelConfig) {
         var newSet = enabledModelIDs
-        if newSet.contains(model.id) {
+        let wasEnabled = newSet.contains(model.id)
+        let isLocked = model.isPremium && !storeManager.isPremium
+
+        #if DEBUG
+        print("[ModelsView] toggleModel(\(model.id)): wasEnabled=\(wasEnabled), isLocked=\(isLocked), hasReachedFreeLimit=\(hasReachedFreeLimit), before=\(enabledModelIDs)")
+        #endif
+
+        if wasEnabled {
             newSet.remove(model.id)
         } else {
             if hasReachedFreeLimit {
+                #if DEBUG
+                print("[ModelsView] toggleModel(\(model.id)): BLOCKED by free limit")
+                #endif
                 withAnimation(.spring(duration: 0.3)) {
                     showLimitBanner = true
                 }
@@ -544,6 +647,11 @@ struct ModelsView: View {
             }
             newSet.insert(model.id)
         }
+
+        #if DEBUG
+        print("[ModelsView] toggleModel(\(model.id)): \(wasEnabled ? "OFF" : "ON"), after=\(newSet)")
+        #endif
+
         enabledModelIDs = newSet
         preferences.setEnabledModelIDs(newSet)
     }
@@ -570,6 +678,9 @@ struct ModelsView: View {
                         let defaultModels = fetchedModels.filter { $0.isDefault }
                         enabledModelIDs = Set(defaultModels.map { $0.id })
                         preferences.setEnabledModelIDs(enabledModelIDs)
+                        #if DEBUG
+                        print("[ModelsView] loadModels: set defaults → \(enabledModelIDs)")
+                        #endif
                     }
                 }
             } catch {
@@ -582,6 +693,115 @@ struct ModelsView: View {
         }
     }
 }
+
+// MARK: - Download Languages Guide Sheet
+
+private struct DownloadLanguagesGuideView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var colors: AppColorPalette {
+        AppColors.palette(for: colorScheme)
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    #if os(iOS)
+                    iosGuide
+                    #else
+                    macGuide
+                    #endif
+                }
+                .padding(24)
+            }
+            .background(colors.background.ignoresSafeArea())
+            .navigationTitle("Download More Languages")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    #if os(iOS)
+    private var iosGuide: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            guideHeader(
+                icon: "iphone",
+                title: "On iPhone / iPad",
+                subtitle: "Go to Settings to download language packs for offline use."
+            )
+
+            VStack(alignment: .leading, spacing: 12) {
+                guideStep(number: 1, text: "Open the **Settings** app")
+                guideStep(number: 2, text: "Tap **Apps** → **Translate**")
+                guideStep(number: 3, text: "Tap **Languages**")
+                guideStep(number: 4, text: "Toggle on the languages you want to use offline")
+            }
+        }
+    }
+    #endif
+
+    #if os(macOS)
+    private var macGuide: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            guideHeader(
+                icon: "laptopcomputer",
+                title: "On Mac",
+                subtitle: "Download language packs from System Settings."
+            )
+
+            VStack(alignment: .leading, spacing: 12) {
+                guideStep(number: 1, text: "Open **System Settings**")
+                guideStep(number: 2, text: "Click **General** → **Language & Region**")
+                guideStep(number: 3, text: "Scroll down to **Translation Languages**")
+                guideStep(number: 4, text: "Click **+** to add the languages you need")
+            }
+        }
+    }
+    #endif
+
+    private func guideHeader(icon: String, title: String, subtitle: String) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 28))
+                .foregroundColor(colors.accent)
+                .frame(width: 40)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(colors.textPrimary)
+                Text(subtitle)
+                    .font(.system(size: 14))
+                    .foregroundColor(colors.textSecondary)
+            }
+        }
+    }
+
+    private func guideStep(number: Int, text: LocalizedStringKey) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(number)")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 24, height: 24)
+                .background(colors.accent)
+                .clipShape(Circle())
+
+            Text(text)
+                .font(.system(size: 15))
+                .foregroundColor(colors.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }}
 
 #Preview {
     ModelsView()

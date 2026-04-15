@@ -236,6 +236,9 @@
         }
       }
     },
+    "%lld languages downloaded" : {
+
+    },
     "%lld models" : {
       "comment" : "Number of models",
       "localizations" : {
@@ -1717,9 +1720,6 @@
     "Apple Translate does not support this language pair" : {
       "comment" : "Unsupported language pair error"
     },
-    "Apple Translate requires at least 2 downloaded languages. Please download more language packs in the system Translation settings." : {
-
-    },
     "Are you sure you want to delete '%@'? This action cannot be undone." : {
       "comment" : "Delete configuration confirmation",
       "extractionState" : "stale",
@@ -2637,6 +2637,12 @@
       }
     },
     "Clear All History" : {
+
+    },
+    "Click **+** to add the languages you need" : {
+
+    },
+    "Click **General** → **Language & Region**" : {
 
     },
     "Click to set" : {
@@ -7904,6 +7910,9 @@
         }
       }
     },
+    "How to Download More Languages" : {
+
+    },
     "How to Set Up" : {
 
     },
@@ -10751,6 +10760,9 @@
         }
       }
     },
+    "Open **System Settings**" : {
+
+    },
     "Open in TLingo" : {
       "comment" : "Button in extension to open selected text in the main app"
     },
@@ -10979,6 +10991,9 @@
           }
         }
       }
+    },
+    "Open the **Settings** app" : {
+
     },
     "Other" : {
       "comment" : "Marketplace category"
@@ -15407,6 +15422,9 @@
         }
       }
     },
+    "Scroll down to **Translation Languages**" : {
+
+    },
     "Search actions..." : {
       "comment" : "Marketplace search placeholder"
     },
@@ -18912,6 +18930,12 @@
         }
       }
     },
+    "Tap **Apps** → **Translate**" : {
+
+    },
+    "Tap **Languages**" : {
+
+    },
     "Tap + to create your first action" : {
       "localizations" : {
         "ar" : {
@@ -19846,6 +19870,9 @@
           }
         }
       }
+    },
+    "Toggle on the languages you want to use offline" : {
+
     },
     "Transcribing..." : {
       "comment" : "Whisper transcription in progress"
