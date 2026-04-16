@@ -128,16 +128,16 @@ public final class AppConfigurationStore: ObservableObject {
 
         switch event.changeType {
         case .modified:
-            logger.debug("🔄 External file modification detected, reloading...")
+            logger.debug("External file modification detected, reloading...")
             reloadCurrentConfiguration()
 
         case .deleted:
-            logger.warning("⚠️ Configuration file deleted externally")
+            logger.warning("Configuration file deleted externally")
             // Try to reload from bundled default
             _ = tryLoadConfiguration(named: "Configuration")
 
         case .renamed:
-            logger.warning("⚠️ Configuration file renamed externally")
+            logger.warning("Configuration file renamed externally")
             // Try to find the file under a new name or reload
             reloadCurrentConfiguration()
         }
@@ -169,7 +169,7 @@ public final class AppConfigurationStore: ObservableObject {
         // Apply changes even with warnings, but log them
         if validationResult.hasWarnings {
             for warning in validationResult.warnings {
-                logger.warning("⚠️ Validation warning: \(warning.message, privacy: .public)")
+                logger.warning("Validation warning: \(warning.message, privacy: .public)")
             }
         }
 
@@ -267,7 +267,7 @@ public final class AppConfigurationStore: ObservableObject {
 
             // Check version compatibility - require 1.1.0 or higher
             if !isVersionCompatible(config.version) {
-                logger.warning("⚠️ Configuration '\(name, privacy: .public)' has incompatible version: \(config.version, privacy: .public)")
+                logger.warning("Configuration '\(name, privacy: .public)' has incompatible version: \(config.version, privacy: .public)")
                 return false
             }
 
@@ -280,7 +280,7 @@ public final class AppConfigurationStore: ObservableObject {
             lastValidationResult = validationResult
 
             if validationResult.hasErrors {
-                logger.error("❌ Configuration '\(name, privacy: .public)' has validation errors:")
+                logger.error("Configuration '\(name, privacy: .public)' has validation errors:")
                 for error in validationResult.errors {
                     logger.error("  - \(error.message, privacy: .public)")
                 }
@@ -289,7 +289,7 @@ public final class AppConfigurationStore: ObservableObject {
             }
 
             if validationResult.hasWarnings {
-                logger.warning("⚠️ Configuration '\(name, privacy: .public)' has validation warnings:")
+                logger.warning("Configuration '\(name, privacy: .public)' has validation warnings:")
                 for warning in validationResult.warnings {
                     logger.warning("  - \(warning.message, privacy: .public)")
                 }
@@ -357,7 +357,7 @@ public final class AppConfigurationStore: ObservableObject {
         if !force {
             let validationResult = validateCurrentConfiguration()
             if validationResult.hasErrors {
-                logger.error("❌ Cannot save - validation errors:")
+                logger.error("Cannot save - validation errors:")
                 for error in validationResult.errors {
                     logger.error("  - \(error.message, privacy: .public)")
                 }
@@ -372,9 +372,9 @@ public final class AppConfigurationStore: ObservableObject {
             lastSaveTimestamp = Date()
 
             try configFileManager.saveConfiguration(config, name: configName)
-            logger.info("✅ Saved configuration to '\(configName, privacy: .public).json'")
+            logger.info("Saved configuration to '\(configName, privacy: .public).json'")
         } catch {
-            logger.error("❌ Failed to save configuration: \(error, privacy: .public)")
+            logger.error("Failed to save configuration: \(error, privacy: .public)")
         }
     }
 
@@ -384,7 +384,7 @@ public final class AppConfigurationStore: ObservableObject {
               let data = try? Data(contentsOf: url),
               let config = try? JSONDecoder().decode(AppConfiguration.self, from: data)
         else {
-            logger.error("❌ Failed to load bundled default configuration")
+            logger.error("Failed to load bundled default configuration")
             actions = []
             currentConfigurationName = nil
             return
@@ -417,7 +417,7 @@ public final class AppConfigurationStore: ObservableObject {
             do {
                 try configFileManager.deleteConfiguration(named: name)
             } catch {
-                logger.error("⚠️ Failed to delete configuration: \(error, privacy: .public)")
+                logger.error("Failed to delete configuration: \(error, privacy: .public)")
             }
         }
 

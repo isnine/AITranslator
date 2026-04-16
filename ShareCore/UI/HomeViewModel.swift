@@ -1080,7 +1080,7 @@ public final class HomeViewModel: ObservableObject {
         let resolvedTarget = resolved.target
         let preferred = AppPreferences.shared.targetLanguage
         if resolvedTarget != preferred {
-            logger.debug("SingleModel target redirected: \(preferred.rawValue, privacy: .public) (\(preferred.primaryLabel, privacy: .public)) → \(resolvedTarget.rawValue, privacy: .public) (\(resolvedTarget.primaryLabel, privacy: .public)), detectedSource=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public)")
+            logger.debug("Target redirected: \(preferred.rawValue, privacy: .public) → \(resolvedTarget.rawValue, privacy: .public), source=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public)")
             resolvedTargetLanguage = resolvedTarget
         }
 
@@ -1142,17 +1142,17 @@ public final class HomeViewModel: ObservableObject {
         // Surface the resolved language in the UI only when it differs from the preference
         let preferred = AppPreferences.shared.targetLanguage
         if resolvedTarget != preferred {
-            logger.debug("Target redirected: \(preferred.rawValue, privacy: .public) (\(preferred.primaryLabel, privacy: .public)) → \(resolvedTarget.rawValue, privacy: .public) (\(resolvedTarget.primaryLabel, privacy: .public)), detectedSource=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public), sourceLanguageSetting=\(AppPreferences.shared.sourceLanguage.rawValue, privacy: .public)")
+            logger.debug("Target redirected: \(preferred.rawValue, privacy: .public) → \(resolvedTarget.rawValue, privacy: .public), source=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public)")
             resolvedTargetLanguage = resolvedTarget
         } else {
-            logger.debug("No redirect needed: target=\(preferred.rawValue, privacy: .public) (\(preferred.primaryLabel, privacy: .public)), detectedSource=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public)")
+            logger.debug("No redirect needed: target=\(preferred.rawValue, privacy: .public)")
         }
 
         // Separate direct translation services from cloud LLM models.
         let cloudModels = models.filter { !$0.isDirectTranslation }
         let hasAppleTranslate = models.contains { $0.isLocal }
         let hasGoogleTranslate = models.contains { $0.isGoogleTranslate }
-        logger.debug("executeRequest: models=\(models.map(\.id), privacy: .public), hasAppleTranslate=\(hasAppleTranslate, privacy: .public), hasGoogleTranslate=\(hasGoogleTranslate, privacy: .public), action.supportsAppleTranslate=\(action.supportsAppleTranslate, privacy: .public)")
+        logger.debug("executeRequest: \(models.count, privacy: .public) models, apple=\(hasAppleTranslate, privacy: .public), google=\(hasGoogleTranslate, privacy: .public)")
 
         // Kick off Apple Translate if present.
         if hasAppleTranslate {
@@ -1488,7 +1488,7 @@ public final class HomeViewModel: ObservableObject {
     #if canImport(Translation)
         @available(iOS 17.4, macOS 14.4, *)
         public func executeAppleTranslation(session: TranslationSession) {
-            logger.debug("executeAppleTranslation called, pending text=\(self.pendingAppleTranslateText != nil, privacy: .public), action=\(self.pendingAppleTranslateAction != nil, privacy: .public), requestID=\(self.pendingAppleTranslateRequestID != nil, privacy: .public)")
+            logger.debug("executeAppleTranslation: hasText=\(self.pendingAppleTranslateText != nil, privacy: .public), hasAction=\(self.pendingAppleTranslateAction != nil, privacy: .public)")
             guard let text = pendingAppleTranslateText,
                   let action = pendingAppleTranslateAction,
                   let requestID = pendingAppleTranslateRequestID

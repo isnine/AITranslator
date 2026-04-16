@@ -82,7 +82,7 @@ public final class ConfigurationService: Sendable {
         preferences _: AppPreferences,
         configurationName: String? = nil
     ) {
-        logger.debug("🔄 Applying configuration: '\(configurationName ?? "unnamed", privacy: .public)'")
+        logger.debug("Applying configuration: '\(configurationName ?? "unnamed", privacy: .public)'")
         // Build actions (actions is now an array)
         var actions: [ActionConfig] = []
         for entry in config.actions {
@@ -104,7 +104,7 @@ public final class ConfigurationService: Sendable {
         // Apply actions directly (bypassing the default-mode check)
         store.applyActionsDirectly(actions)
 
-        logger.info("✅ Configuration applied successfully")
+        logger.info("Configuration applied successfully")
     }
 
     // MARK: - Private Helpers

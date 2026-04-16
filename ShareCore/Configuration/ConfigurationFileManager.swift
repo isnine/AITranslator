@@ -148,7 +148,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         }
 
         guard let bundledURL = Self.bundledDefaultConfigURL() else {
-            logger.error("❌ Bundled default config not found in any bundle")
+            logger.error("Bundled default config not found in any bundle")
             return false
         }
 
@@ -158,10 +158,10 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         do {
             ensureDirectoryExists(configurationsDirectory)
             try fileManager.copyItem(at: bundledURL, to: targetURL)
-            logger.info("✅ Copied bundled default to '\(name, privacy: .public).json'")
+            logger.info("Copied bundled default to '\(name, privacy: .public).json'")
             return true
         } catch {
-            logger.error("❌ Failed to copy bundled config: \(error, privacy: .public)")
+            logger.error("Failed to copy bundled config: \(error, privacy: .public)")
             return false
         }
     }
@@ -197,7 +197,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     @discardableResult
     public func switchToICloud(migrate: Bool = true) -> Bool {
         guard AppPreferences.isICloudAvailable else {
-            logger.error("❌ iCloud is not available")
+            logger.error("iCloud is not available")
             return false
         }
 
@@ -214,7 +214,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
         ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
-        logger.info("✅ Switched to iCloud storage")
+        logger.info("Switched to iCloud storage")
         return true
     }
 
@@ -234,7 +234,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
         ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
-        logger.info("✅ Switched to local storage")
+        logger.info("Switched to local storage")
     }
 
     /// Reveal the configurations directory in Finder (macOS only)

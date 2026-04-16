@@ -242,15 +242,8 @@ public final class LLMService {
             request.httpBody = payloadData
 
             if let jsonString = String(data: payloadData, encoding: .utf8) {
-                logger.debug("Request Debug - Model: \(model.displayName, privacy: .public)")
-                logger.debug("URL: \(requestURL.absoluteString, privacy: .public)")
-                logger.debug("Action: \(action.name, privacy: .public)")
-                logger.debug("Original Prompt: \(action.prompt, privacy: .public)")
-                logger
-                    .debug(
-                        "Target Language: \(targetLanguageDescriptor, privacy: .public)"
-                    )
-                logger.debug("Request payload: \(jsonString, privacy: .public)")
+                logger.debug("Request: model=\(model.displayName, privacy: .public), url=\(requestURL.absoluteString, privacy: .public), action=\(action.name, privacy: .public)")
+                logger.debug("Payload: \(jsonString, privacy: .public)")
             }
 
             try Task.checkCancellation()
@@ -498,9 +491,7 @@ public final class LLMService {
         encoder.outputFormatting = []
         request.httpBody = try encoder.encode(payload)
 
-        logger.debug("Continuation request - Model: \(model.displayName, privacy: .public)")
-        logger.debug("URL: \(requestURL.absoluteString, privacy: .public)")
-        logger.debug("Messages count: \(messages.count, privacy: .public)")
+        logger.debug("Continuation: model=\(model.displayName, privacy: .public), url=\(requestURL.absoluteString, privacy: .public), messages=\(messages.count, privacy: .public)")
 
         try Task.checkCancellation()
 

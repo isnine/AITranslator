@@ -39,7 +39,7 @@ struct ModelsView: View {
         let activeFreeCount = enabledModelIDs.intersection(freeModelIDs)
             .subtracting([ModelConfig.appleTranslateID, ModelConfig.googleTranslateID]).count
         #if DEBUG
-        logger.debug("enabledModelIDs=\(self.enabledModelIDs, privacy: .public), freeModelIDs=\(freeModelIDs, privacy: .public), activeFreeCount=\(activeFreeCount, privacy: .public), isPremium=\(self.storeManager.isPremium, privacy: .public)")
+        logger.debug("enabledModels=\(enabledModelIDs.count, privacy: .public), freeActive=\(activeFreeCount, privacy: .public), premium=\(self.storeManager.isPremium, privacy: .public)")
         #endif
         return activeFreeCount >= freeModelLimit
     }
@@ -501,7 +501,7 @@ struct ModelsView: View {
 
         return Button {
             #if DEBUG
-            logger.debug("modelRow TAPPED: \(model.id, privacy: .public), isEnabled=\(isEnabled, privacy: .public), isLocked=\(isLocked, privacy: .public), isDisabledByLimit=\(isDisabledByLimit, privacy: .public)")
+            logger.debug("modelRow tapped: \(model.id, privacy: .public), enabled=\(isEnabled, privacy: .public), locked=\(isLocked, privacy: .public)")
             #endif
             if isLocked {
                 showPaywall = true
@@ -699,7 +699,7 @@ struct ModelsView: View {
         let isLocked = model.isPremium && !storeManager.isPremium
 
         #if DEBUG
-        logger.debug("toggleModel(\(model.id, privacy: .public)): wasEnabled=\(wasEnabled, privacy: .public), isLocked=\(isLocked, privacy: .public), hasReachedFreeLimit=\(self.hasReachedFreeLimit, privacy: .public), before=\(self.enabledModelIDs, privacy: .public)")
+        logger.debug("toggleModel(\(model.id, privacy: .public)): enabled=\(wasEnabled, privacy: .public), locked=\(isLocked, privacy: .public), atLimit=\(self.hasReachedFreeLimit, privacy: .public)")
         #endif
 
         if wasEnabled {

@@ -84,24 +84,12 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setTargetLanguage(_ option: TargetLanguageOption) {
-        logger.debug("setTargetLanguage called")
-        logger.debug("Requested option: \(option.rawValue, privacy: .public)")
-        logger.debug("Current targetLanguage: \(self.targetLanguage.rawValue, privacy: .public)")
-        logger.debug("Are they equal? \(self.targetLanguage == option, privacy: .public)")
-        guard targetLanguage != option else {
-            logger.debug("SKIPPING - values are equal, returning early")
-            return
-        }
+        logger.debug("setTargetLanguage: \(option.rawValue, privacy: .public) (current: \(self.targetLanguage.rawValue, privacy: .public))")
+        guard targetLanguage != option else { return }
 
-        logger.debug("Proceeding with update...")
         targetLanguage = option
         defaults.set(option.rawValue, forKey: TargetLanguageOption.storageKey)
-        logger.debug("Updated targetLanguage to: \(self.targetLanguage.rawValue, privacy: .public)")
-        logger.debug("Wrote to UserDefaults key '\(TargetLanguageOption.storageKey, privacy: .public)': \(option.rawValue, privacy: .public)")
-
-        // Verify the write
-        let readBack = defaults.string(forKey: TargetLanguageOption.storageKey)
-        logger.debug("Read back from UserDefaults: \(readBack ?? "nil", privacy: .public)")
+        logger.debug("targetLanguage updated to \(self.targetLanguage.rawValue, privacy: .public)")
     }
 
     public func setSourceLanguage(_ option: SourceLanguageOption) {
