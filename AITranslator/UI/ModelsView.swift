@@ -816,6 +816,8 @@ private struct DownloadLanguagesGuideView: View {
                 guideStep(number: 3, text: "Tap **Languages**")
                 guideStep(number: 4, text: "Toggle on the languages you want to use offline")
             }
+
+            openSettingsButton
         }
     }
     #endif
@@ -835,9 +837,38 @@ private struct DownloadLanguagesGuideView: View {
                 guideStep(number: 3, text: "Scroll down to **Translation Languages**")
                 guideStep(number: 4, text: "Click **+** to add the languages you need")
             }
+
+            openSettingsButton
         }
     }
     #endif
+
+    private var openSettingsButton: some View {
+        Button {
+            #if os(iOS)
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+            #elseif os(macOS)
+            if let url = URL(string: "x-apple.systempreferences:com.apple.Localization-Settings") {
+                NSWorkspace.shared.open(url)
+            }
+            #endif
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.up.forward.app")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Open Settings")
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(colors.accent)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .buttonStyle(.plain)
+    }
 
     private func guideHeader(icon: String, title: String, subtitle: String) -> some View {
         HStack(alignment: .top, spacing: 14) {
