@@ -149,6 +149,15 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on push to main and all PRs:
 2. SwiftLint
 3. Build for iOS Simulator
 
+## Code Change Guidelines
+
+- Before committing, verify that ONLY the files you intentionally modified are staged. Run `git diff --cached --name-only` and confirm with the user if more than the expected files are included.
+- When fixing a UI bug, identify ALL views where the affected component appears (list view, detail view, macOS, iOS) before implementing. Ask the user which views need fixing if unclear.
+- When modifying existing UI elements (subtitles, labels, footers), COMBINE new content with existing content rather than replacing it, unless explicitly told to replace.
+- After making UI or code changes, verify cross-platform compilation for both iOS Simulator and macOS targets before committing. Report any platform-specific errors.
+- Before implementing a feature, check `git log --oneline -20 main` to see if it already exists on the main branch to avoid duplicate work.
+- When the user specifies a threshold, value, or specific requirement, repeat it back before implementing. Do not silently adjust values.
+
 ## Additional Documentation
 
 - `docs/agent.md` — Detailed architecture & implementation notes (Chinese)
