@@ -219,12 +219,7 @@ public struct LanguageSwitcherView: View {
                 } label: {
                     HStack(spacing: 3) {
                         if showResolved {
-                            languageLabel(targetDisplayName)
-                                .strikethrough(true)
-                                .opacity(0.5)
-                                .layoutPriority(-1)
                             languageLabel(resolved.primaryLabel)
-                                .layoutPriority(1)
                         } else {
                             languageLabel(targetDisplayName)
                         }
