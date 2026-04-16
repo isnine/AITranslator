@@ -35,6 +35,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var appleTranslateInstalledLanguages: Set<String>
     #if os(macOS)
         @Published public private(set) var keepRunningWhenClosed: Bool
+        @Published public private(set) var textSelectionTranslationEnabled: Bool
     #endif
 
     private let defaults: UserDefaults
@@ -64,6 +65,7 @@ public final class AppPreferences: ObservableObject {
             keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
                 ? true
                 : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
+            textSelectionTranslationEnabled = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
         #endif
 
         notificationObserver = NotificationCenter.default.addObserver(
@@ -136,6 +138,13 @@ public final class AppPreferences: ObservableObject {
 
             keepRunningWhenClosed = keepRunning
             defaults.set(keepRunning, forKey: StorageKeys.keepRunningWhenClosed)
+        }
+
+        public func setTextSelectionTranslationEnabled(_ enabled: Bool) {
+            guard textSelectionTranslationEnabled != enabled else { return }
+
+            textSelectionTranslationEnabled = enabled
+            defaults.set(enabled, forKey: StorageKeys.textSelectionTranslationEnabled)
         }
     #endif
 
@@ -247,6 +256,11 @@ public final class AppPreferences: ObservableObject {
             if keepRunningWhenClosed != storedKeepRunning {
                 keepRunningWhenClosed = storedKeepRunning
             }
+
+            let storedTextSelection = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
+            if textSelectionTranslationEnabled != storedTextSelection {
+                textSelectionTranslationEnabled = storedTextSelection
+            }
         #endif
 
         let storedEnabledModels = AppPreferences.readEnabledModelIDs(from: defaults)
@@ -343,6 +357,7 @@ private enum StorageKeys {
     static let appleTranslateInstalledLanguages = "apple_translate_installed_languages"
     #if os(macOS)
         static let keepRunningWhenClosed = "keep_running_when_closed"
+        static let textSelectionTranslationEnabled = "text_selection_translation_enabled"
     #endif
     static let satisfactionPromptLastVersion = "satisfaction_prompt_last_version"
     static let satisfactionPromptLastDate = "satisfaction_prompt_last_date"

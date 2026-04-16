@@ -124,6 +124,8 @@ struct AITranslatorApp: App {
         var openWindowAction: OpenWindowAction?
 
         private var windowObservers: [NSObjectProtocol] = []
+        private let selectionTranslationCoordinator = SelectionTranslationCoordinator()
+        private var selectionTranslationCancellable: AnyCancellable?
 
         override init() {
             super.init()
@@ -258,6 +260,15 @@ struct AITranslatorApp: App {
 
             // Observe window lifecycle for smart Dock icon management
             setupWindowObservers()
+
+            selectionTranslationCancellable = AppPreferences.shared.$textSelectionTranslationEnabled
+                .sink { [weak self] enabled in
+                    if enabled {
+                        self?.selectionTranslationCoordinator.start()
+                    } else {
+                        self?.selectionTranslationCoordinator.stop()
+                    }
+                }
         }
 
         func applicationWillTerminate(_: Notification) {
@@ -266,6 +277,9 @@ struct AITranslatorApp: App {
 
             // Unregister global hotkey
             HotKeyManager.shared.unregister()
+
+            selectionTranslationCoordinator.stop()
+            selectionTranslationCancellable?.cancel()
 
             // Teardown menu bar
             Task { @MainActor in

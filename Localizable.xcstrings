@@ -474,6 +474,9 @@
     "A translation action based on your description" : {
 
     },
+    "Accessibility" : {
+
+    },
     "Action has been added to your local actions." : {
       "comment" : "Marketplace download success"
     },
@@ -2637,6 +2640,9 @@
       }
     },
     "Clear All History" : {
+
+    },
+    "Click \"Open System Settings\" below" : {
 
     },
     "Click **+** to add the languages you need" : {
@@ -5750,6 +5756,9 @@
         }
       }
     },
+    "Enable Text Selection Translation" : {
+
+    },
     "Enjoying TLingo?" : {
 
     },
@@ -6888,6 +6897,9 @@
         }
       }
     },
+    "Find TLingo in the list and enable it" : {
+
+    },
     "Free" : {
       "localizations" : {
         "ar" : {
@@ -7570,6 +7582,9 @@
           }
         }
       }
+    },
+    "Granted" : {
+
     },
     "Here's what I heard:" : {
       "comment" : "Transcript confirmation header"
@@ -10995,6 +11010,9 @@
         }
       }
     },
+    "Open System Settings" : {
+
+    },
     "Open the **Settings** app" : {
 
     },
@@ -14070,6 +14088,9 @@
         }
       }
     },
+    "Required to detect text selections" : {
+
+    },
     "Requires iOS 17.4+ or macOS 14.4+" : {
       "comment" : "Apple Translation unavailable status",
       "localizations" : {
@@ -15772,6 +15793,12 @@
           }
         }
       }
+    },
+    "Select text in any app to instantly translate it. TLingo needs Accessibility permission to detect your text selections." : {
+
+    },
+    "Select text in any app to translate" : {
+
     },
     "Select Voice" : {
       "localizations" : {
@@ -19169,6 +19196,9 @@
     "TestFlight" : {
 
     },
+    "Text Selection Translation" : {
+
+    },
     "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet." : {
       "comment" : "Snapshot mock input text\nSnapshot mock translation result",
       "localizations" : {
@@ -19403,6 +19433,9 @@
           }
         }
       }
+    },
+    "This page will update automatically" : {
+
     },
     "This will remove the action from the marketplace. This cannot be undone." : {
       "comment" : "Marketplace delete confirm"

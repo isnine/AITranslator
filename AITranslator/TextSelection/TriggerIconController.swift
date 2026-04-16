@@ -1,0 +1,233 @@
+//
+//  TriggerIconController.swift
+//  TLingo
+//
+//  Manages trigger icon lifecycle: show near cursor, hover/click to translate, auto-dismiss.
+//
+
+#if os(macOS)
+    import AppKit
+
+    // MARK: - TriggerTrackingView
+
+    @MainActor
+    final class TriggerTrackingView: NSView {
+        var onMouseEntered: (() -> Void)?
+        var onMouseExited: (() -> Void)?
+        var onMouseDown: (() -> Void)?
+
+        private var trackingArea: NSTrackingArea?
+
+        override init(frame frameRect: NSRect) {
+            super.init(frame: frameRect)
+            wantsLayer = true
+        }
+
+        @available(*, unavailable)
+        required init?(coder _: NSCoder) { fatalError() }
+
+        override func updateTrackingAreas() {
+            super.updateTrackingAreas()
+            if let existing = trackingArea {
+                removeTrackingArea(existing)
+            }
+            let area = NSTrackingArea(
+                rect: bounds,
+                options: [.mouseEnteredAndExited, .activeAlways],
+                owner: self,
+                userInfo: nil
+            )
+            addTrackingArea(area)
+            trackingArea = area
+        }
+
+        override func draw(_ dirtyRect: NSRect) {
+            super.draw(dirtyRect)
+
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return }
+            let rect = bounds.insetBy(dx: 1, dy: 1)
+
+            // Circle background
+            ctx.setFillColor(NSColor.controlBackgroundColor.cgColor)
+            ctx.fillEllipse(in: rect)
+
+            // Border
+            ctx.setStrokeColor(NSColor.separatorColor.cgColor)
+            ctx.setLineWidth(0.5)
+            ctx.strokeEllipse(in: rect)
+
+            // SF Symbol icon
+            let sizeConfig = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+            let colorConfig = NSImage.SymbolConfiguration(hierarchicalColor: .labelColor)
+            if let image = NSImage(systemSymbolName: "translate", accessibilityDescription: "Translate")?
+                .withSymbolConfiguration(sizeConfig.applying(colorConfig))
+            {
+                let imageSize = image.size
+                let imageRect = NSRect(
+                    x: (bounds.width - imageSize.width) / 2,
+                    y: (bounds.height - imageSize.height) / 2,
+                    width: imageSize.width,
+                    height: imageSize.height
+                )
+                image.draw(in: imageRect, from: .zero, operation: .sourceOver, fraction: 1.0)
+            }
+        }
+
+        override func mouseEntered(with _: NSEvent) {
+            onMouseEntered?()
+        }
+
+        override func mouseExited(with _: NSEvent) {
+            onMouseExited?()
+        }
+
+        override func mouseDown(with _: NSEvent) {
+            onMouseDown?()
+        }
+    }
+
+    // MARK: - TriggerIconController
+
+    @MainActor
+    final class TriggerIconController {
+        var onTranslateRequested: ((String) -> Void)?
+        var onDismissed: (() -> Void)?
+
+        private var panel: TriggerIconPanel?
+        private var trackingView: TriggerTrackingView?
+        private var currentText: String = ""
+        private var hoverTimer: Timer?
+        private var autoDismissTimer: Timer?
+
+        func show(text: String, near point: CGPoint) {
+            dismissSilently()
+
+            currentText = text
+
+            let panel = TriggerIconPanel()
+            let size = TriggerIconPanel.size
+            let trackingView = TriggerTrackingView(frame: NSRect(x: 0, y: 0, width: size, height: size))
+
+            trackingView.onMouseEntered = { [weak self] in
+                self?.startHoverTimer()
+            }
+            trackingView.onMouseExited = { [weak self] in
+                self?.cancelHoverTimer()
+            }
+            trackingView.onMouseDown = { [weak self] in
+                self?.triggerTranslation()
+            }
+
+            panel.contentView = trackingView
+
+            let offset: CGFloat = 8
+            var x = point.x + offset
+            var y = point.y - offset - size
+
+            if let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) ?? NSScreen.main {
+                let visibleFrame = screen.visibleFrame
+                if x + size > visibleFrame.maxX { x = point.x - size - offset }
+                if y + size > visibleFrame.maxY { y = point.y - size - offset }
+                if x < visibleFrame.minX { x = visibleFrame.minX }
+                if y < visibleFrame.minY { y = visibleFrame.minY }
+            }
+
+            panel.setFrame(NSRect(x: x, y: y, width: size, height: size), display: true)
+            panel.alphaValue = 0
+            panel.orderFront(nil)
+
+            NSAnimationContext.runAnimationGroup { ctx in
+                ctx.duration = 0.15
+                panel.animator().alphaValue = 1
+            }
+
+            self.panel = panel
+            self.trackingView = trackingView
+
+            startAutoDismissTimer()
+        }
+
+        func dismiss() {
+            guard let panel else { return }
+            cancelAllTimers()
+
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = 0.15
+                panel.animator().alphaValue = 0
+            }, completionHandler: { [weak self] in
+                Task { @MainActor in
+                    panel.contentView = nil
+                    panel.close()
+                    self?.cleanup()
+                    self?.onDismissed?()
+                }
+            })
+        }
+
+        func dismissSilently() {
+            guard let panel else { return }
+            cancelAllTimers()
+            panel.contentView = nil
+            panel.close()
+            cleanup()
+        }
+
+        var isVisible: Bool {
+            panel?.isVisible ?? false
+        }
+
+        private func cleanup() {
+            panel = nil
+            trackingView = nil
+            currentText = ""
+        }
+
+        // MARK: - Timers
+
+        private func startHoverTimer() {
+            cancelHoverTimer()
+            cancelAutoDismissTimer()
+            hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+                Task { @MainActor in
+                    self?.triggerTranslation()
+                }
+            }
+        }
+
+        private func cancelHoverTimer() {
+            hoverTimer?.invalidate()
+            hoverTimer = nil
+        }
+
+        private func startAutoDismissTimer() {
+            cancelAutoDismissTimer()
+            autoDismissTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { [weak self] _ in
+                Task { @MainActor in
+                    self?.dismiss()
+                }
+            }
+        }
+
+        private func cancelAutoDismissTimer() {
+            autoDismissTimer?.invalidate()
+            autoDismissTimer = nil
+        }
+
+        private func cancelAllTimers() {
+            cancelHoverTimer()
+            cancelAutoDismissTimer()
+        }
+
+        private func triggerTranslation() {
+            let text = currentText
+            cancelAllTimers()
+
+            guard let panel else { return }
+            panel.contentView = nil
+            panel.close()
+            cleanup()
+
+            onTranslateRequested?(text)
+        }
+    }
+#endif

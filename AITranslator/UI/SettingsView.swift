@@ -36,6 +36,8 @@ struct SettingsView: View {
         @ObservedObject private var hotKeyManager = HotKeyManager.shared
         @State private var recordingHotKeyType: HotKeyType?
         @State private var localEventMonitor: Any?
+        @State private var showAccessibilityOnboarding = false
+        @StateObject private var accessibilityPermissionManager = AccessibilityPermissionManager()
     #endif
 
     private var colors: AppColorPalette {
@@ -100,6 +102,16 @@ struct SettingsView: View {
                 #endif
             }
         #endif
+        #if os(macOS)
+        .sheet(isPresented: $showAccessibilityOnboarding) {
+            AccessibilityOnboardingView(
+                permissionManager: accessibilityPermissionManager,
+                onPermissionGranted: {
+                    preferences.setTextSelectionTranslationEnabled(true)
+                }
+            )
+        }
+        #endif
             .onAppear {
                 preferences.refreshFromDefaults()
             }
@@ -142,6 +154,9 @@ struct SettingsView: View {
                 Divider()
                     .padding(.leading, 52)
                 hotKeyPreferenceRow
+                Divider()
+                    .padding(.leading, 52)
+                textSelectionTranslationRow
                 Divider()
                     .padding(.leading, 52)
                 keepRunningRow
@@ -597,6 +612,42 @@ private extension SettingsView {
                 Toggle("", isOn: Binding(
                     get: { preferences.keepRunningWhenClosed },
                     set: { preferences.setKeepRunningWhenClosed($0) }
+                ))
+                .labelsHidden()
+                .toggleStyle(.switch)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+        }
+
+        var textSelectionTranslationRow: some View {
+            HStack(spacing: 16) {
+                SettingsIconBadge(icon: "text.cursor", color: .green)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Text Selection Translation")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(colors.textPrimary)
+                    Text("Select text in any app to translate")
+                        .font(.system(size: 12))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+
+                Toggle("", isOn: Binding(
+                    get: { preferences.textSelectionTranslationEnabled },
+                    set: { newValue in
+                        if newValue {
+                            if AXIsProcessTrusted() {
+                                preferences.setTextSelectionTranslationEnabled(true)
+                            } else {
+                                showAccessibilityOnboarding = true
+                            }
+                        } else {
+                            preferences.setTextSelectionTranslationEnabled(false)
+                        }
+                    }
                 ))
                 .labelsHidden()
                 .toggleStyle(.switch)
