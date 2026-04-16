@@ -364,8 +364,9 @@ struct ModelsView: View {
 
     private var installedLanguageOptions: [TargetLanguageOption] {
         let installed = preferences.appleTranslateInstalledLanguages
-        return TargetLanguageOption.filteredSelectionOptions(appleTranslateEnabled: true, installedLanguages: installed)
-            .filter { $0 != .appLanguage }
+        guard !installed.isEmpty else { return [] }
+        return TargetLanguageOption.selectionOptions
+            .filter { $0 != .appLanguage && installed.contains($0.rawValue) }
     }
 
     private func toggleAppleTranslate() {
