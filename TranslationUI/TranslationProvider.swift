@@ -7,16 +7,19 @@
 
 import ExtensionKit
 import Foundation
+import os
 import ShareCore
 import SwiftUI
 import TranslationUIProvider
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "Extension")
 
 @main
 final class TranslationProviderExtension: TranslationUIProviderExtension {
     required init() {
         UserDefaults.standard.addSuite(named: AppPreferences.appGroupSuiteName)
         AppPreferences.shared.refreshFromDefaults()
-        Logger.debug("[Extension] init — configDir: \(ConfigurationFileManager.shared.configurationsDirectory.path)")
+        logger.debug("init — configDir: \(ConfigurationFileManager.shared.configurationsDirectory.path, privacy: .public)")
     }
 
     var body: some TranslationUIProviderExtensionScene {

@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import os
 #if os(macOS)
     import AppKit
 #endif
@@ -15,6 +16,8 @@ import Foundation
 public extension Notification.Name {
     static let configurationFileDidChange = Notification.Name("configurationFileDidChange")
 }
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "ConfigFileManager")
 
 /// Manages multiple configuration files stored in Application Support (or iCloud)
 public final class ConfigurationFileManager: @unchecked Sendable {
@@ -145,7 +148,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         }
 
         guard let bundledURL = Self.bundledDefaultConfigURL() else {
-            Logger.debug("[ConfigFileManager] ❌ Bundled default config not found in any bundle")
+            logger.error("❌ Bundled default config not found in any bundle")
             return false
         }
 
@@ -155,10 +158,10 @@ public final class ConfigurationFileManager: @unchecked Sendable {
         do {
             ensureDirectoryExists(configurationsDirectory)
             try fileManager.copyItem(at: bundledURL, to: targetURL)
-            Logger.debug("[ConfigFileManager] ✅ Copied bundled default to '\(name).json'")
+            logger.info("✅ Copied bundled default to '\(name, privacy: .public).json'")
             return true
         } catch {
-            Logger.debug("[ConfigFileManager] ❌ Failed to copy bundled config: \(error)")
+            logger.error("❌ Failed to copy bundled config: \(error, privacy: .public)")
             return false
         }
     }
@@ -183,7 +186,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
             let destFile = destination.appendingPathComponent(file.lastPathComponent)
             if !fileManager.fileExists(atPath: destFile.path) {
                 try? fileManager.copyItem(at: file, to: destFile)
-                Logger.debug("[ConfigFileManager] Copied: \(file.lastPathComponent)")
+                logger.debug("Copied: \(file.lastPathComponent, privacy: .public)")
             }
         }
     }
@@ -194,7 +197,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     @discardableResult
     public func switchToICloud(migrate: Bool = true) -> Bool {
         guard AppPreferences.isICloudAvailable else {
-            Logger.debug("[ConfigFileManager] ❌ iCloud is not available")
+            logger.error("❌ iCloud is not available")
             return false
         }
 
@@ -211,7 +214,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
         ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
-        Logger.debug("[ConfigFileManager] ✅ Switched to iCloud storage")
+        logger.info("✅ Switched to iCloud storage")
         return true
     }
 
@@ -231,7 +234,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
 
         ensuredDirectories.removeAll()
         configDirectoryChangedPublisher.send()
-        Logger.debug("[ConfigFileManager] ✅ Switched to local storage")
+        logger.info("✅ Switched to local storage")
     }
 
     /// Reveal the configurations directory in Finder (macOS only)
@@ -287,7 +290,7 @@ public final class ConfigurationFileManager: @unchecked Sendable {
     public func loadConfiguration(named name: String) throws -> AppConfiguration {
         let sanitizedName = Self.sanitizeFilename(name)
         let fileURL = configurationsDirectory.appendingPathComponent("\(sanitizedName).json")
-        Logger.debug("[ConfigFileManager] loadConfiguration(named: '\(name)') → \(fileURL.path), exists: \(fileManager.fileExists(atPath: fileURL.path))")
+        logger.debug("loadConfiguration(named: '\(name, privacy: .public)') → \(fileURL.path, privacy: .public), exists: \(self.fileManager.fileExists(atPath: fileURL.path), privacy: .public)")
         return try loadConfiguration(from: fileURL)
     }
 
@@ -445,7 +448,7 @@ public extension ConfigurationFileManager {
 
         let fileDescriptor = open(url.path, O_EVTONLY)
         guard fileDescriptor >= 0 else {
-            Logger.debug("[ConfigFileManager] Failed to open file for monitoring: \(url.path)")
+            logger.error("Failed to open file for monitoring: \(url.path, privacy: .public)")
             return
         }
 
@@ -495,7 +498,7 @@ public extension ConfigurationFileManager {
         fileSources[url] = source
         source.resume()
 
-        Logger.debug("[ConfigFileManager] Started monitoring: \(url.lastPathComponent)")
+        logger.debug("Started monitoring: \(url.lastPathComponent, privacy: .public)")
     }
 
     /// Stop monitoring a specific file
@@ -505,7 +508,7 @@ public extension ConfigurationFileManager {
 
         if let source = fileSources.removeValue(forKey: url) {
             source.cancel()
-            Logger.debug("[ConfigFileManager] Stopped monitoring: \(url.lastPathComponent)")
+            logger.debug("Stopped monitoring: \(url.lastPathComponent, privacy: .public)")
         }
     }
 
@@ -526,7 +529,7 @@ public extension ConfigurationFileManager {
         }
         fileSources.removeAll()
 
-        Logger.debug("[ConfigFileManager] Stopped all file monitoring")
+        logger.debug("Stopped all file monitoring")
     }
 
     /// Check if a file is being monitored

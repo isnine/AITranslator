@@ -6,6 +6,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "VoicesService")
 
 public final class VoicesService: Sendable {
     public static let shared = VoicesService()
@@ -22,7 +25,7 @@ public final class VoicesService: Sendable {
         do {
             return try await fetchVoicesFromAPI()
         } catch {
-            Logger.debug("[VoicesService] Failed to fetch voices from API: \(error). Using defaults.")
+            logger.error("Failed to fetch voices from API: \(error, privacy: .public). Using defaults.")
             return VoiceConfig.defaultVoices
         }
     }

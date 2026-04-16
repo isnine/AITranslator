@@ -6,8 +6,11 @@
 //
 
 import Combine
+import os
 import ShareCore
 import SwiftUI
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "App")
 #if os(macOS)
     import AppKit
 #endif
@@ -21,16 +24,15 @@ struct AITranslatorApp: App {
     init() {
         // Debug: Print configuration on launch
         #if DEBUG
-            print("🚀 AITranslator launching...")
-            print(BuildEnvironment.debugDescription)
-            // Print first/last 4 chars of secret for verification
+            logger.info("AITranslator launching...")
+            logger.debug("\(BuildEnvironment.debugDescription, privacy: .public)")
             let secret = BuildEnvironment.cloudSecret
             if secret.isEmpty {
-                print("⚠️ WARNING: Cloud secret is empty!")
+                logger.warning("Cloud secret is empty!")
             } else {
                 let prefix = String(secret.prefix(4))
                 let suffix = String(secret.suffix(4))
-                print("🔑 Secret preview: \(prefix)...\(suffix) (\(secret.count) chars)")
+                logger.debug("Secret preview: \(prefix, privacy: .public)...\(suffix, privacy: .public) (\(secret.count, privacy: .public) chars)")
             }
             // Also write args to /tmp (stdout is unreliable when launched via open)
             let dbg = "/tmp/tlingo_launch_args.txt"

@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import os
 
 #if canImport(UIKit)
     import UIKit
@@ -16,6 +17,8 @@ import SwiftUI
     import AppKit
     public typealias PlatformImage = NSImage
 #endif
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "ImageAttachment")
 
 /// Represents an image attached to a translation request for multimodal LLM input.
 public struct ImageAttachment: Identifiable, Sendable {
@@ -51,25 +54,25 @@ public struct ImageAttachment: Identifiable, Sendable {
             let cgImage: CGImage? = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil)
                 ?? {
                     // Fallback: render NSImage into a bitmap context to get CGImage
-                    Logger.debug("cgImage(forProposedRect:) returned nil, trying NSBitmapImageRep fallback", tag: "ImageAttachment")
+                    logger.error("cgImage(forProposedRect:) returned nil, trying NSBitmapImageRep fallback")
                     guard let tiffData = nsImage.tiffRepresentation,
                           let bitmapRep = NSBitmapImageRep(data: tiffData)
                     else {
-                        Logger.debug("NSBitmapImageRep fallback also failed", tag: "ImageAttachment")
+                        logger.error("NSBitmapImageRep fallback also failed")
                         return nil
                     }
                     return bitmapRep.cgImage
                 }()
 
             guard let cgImage else {
-                Logger.debug("Failed to extract CGImage from NSImage (size: \(nsImage.size))", tag: "ImageAttachment")
+                logger.error("Failed to extract CGImage from NSImage (size: \(nsImage.size.debugDescription, privacy: .public))")
                 return nil
             }
 
             let originalWidth = CGFloat(cgImage.width)
             let originalHeight = CGFloat(cgImage.height)
             let originalSize = CGSize(width: originalWidth, height: originalHeight)
-            Logger.debug("Extracted CGImage: \(Int(originalWidth))x\(Int(originalHeight)), bitsPerComponent: \(cgImage.bitsPerComponent), alphaInfo: \(cgImage.alphaInfo.rawValue)", tag: "ImageAttachment")
+            logger.debug("Extracted CGImage: \(Int(originalWidth), privacy: .public)x\(Int(originalHeight), privacy: .public), bitsPerComponent: \(cgImage.bitsPerComponent, privacy: .public), alphaInfo: \(cgImage.alphaInfo.rawValue, privacy: .public)")
 
             let resizedImage = resizeIfNeeded(
                 cgImage: cgImage,
@@ -78,11 +81,11 @@ public struct ImageAttachment: Identifiable, Sendable {
             )
 
             guard let jpegData = jpegData(from: resizedImage) else {
-                Logger.debug("JPEG conversion failed for CGImage \(Int(originalWidth))x\(Int(originalHeight))", tag: "ImageAttachment")
+                logger.error("JPEG conversion failed for CGImage \(Int(originalWidth), privacy: .public)x\(Int(originalHeight), privacy: .public)")
                 return nil
             }
 
-            Logger.debug("ImageAttachment created: \(Int(originalWidth))x\(Int(originalHeight)), JPEG size: \(String(format: "%.2f", Double(jpegData.count) / 1024))KB", tag: "ImageAttachment")
+            logger.debug("ImageAttachment created: \(Int(originalWidth), privacy: .public)x\(Int(originalHeight), privacy: .public), JPEG size: \(String(format: "%.2f", Double(jpegData.count) / 1024), privacy: .public)KB")
             return ImageAttachment(imageData: jpegData, originalSize: originalSize)
         }
     #endif
@@ -144,7 +147,7 @@ public struct ImageAttachment: Identifiable, Sendable {
         let newWidth = Int(originalWidth * scale)
         let newHeight = Int(originalHeight * scale)
 
-        Logger.debug("Resizing image from \(Int(originalWidth))x\(Int(originalHeight)) to \(newWidth)x\(newHeight)", tag: "ImageAttachment")
+        logger.debug("Resizing image from \(Int(originalWidth), privacy: .public)x\(Int(originalHeight), privacy: .public) to \(newWidth, privacy: .public)x\(newHeight, privacy: .public)")
 
         // Use a safe bitmapInfo that works for all source images (premultiplied alpha with skip)
         let colorSpace = cgImage.colorSpace ?? CGColorSpaceCreateDeviceRGB()
@@ -161,7 +164,7 @@ public struct ImageAttachment: Identifiable, Sendable {
                 bitmapInfo: safeBitmapInfo.rawValue
             )
         else {
-            Logger.debug("CGContext creation failed during resize", tag: "ImageAttachment")
+            logger.error("CGContext creation failed during resize")
             return cgImage
         }
 
@@ -189,7 +192,7 @@ public struct ImageAttachment: Identifiable, Sendable {
             space: colorSpace,
             bitmapInfo: bitmapInfo.rawValue
         ) else {
-            Logger.debug("stripAlpha: CGContext creation failed", tag: "ImageAttachment")
+            logger.error("stripAlpha: CGContext creation failed")
             return nil
         }
 

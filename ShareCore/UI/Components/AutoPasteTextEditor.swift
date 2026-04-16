@@ -1,5 +1,8 @@
+import os
 import SwiftUI
 import UniformTypeIdentifiers
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "ImagePaste")
 #if canImport(AppKit)
     import AppKit
 #endif
@@ -140,7 +143,7 @@ import UniformTypeIdentifiers
                let data = pb.data(forType: availableType),
                let image = NSImage(data: data)
             {
-                Logger.debug("Paste: image from raw data (\(availableType.rawValue)), size: \(image.size)", tag: "ImagePaste")
+                logger.debug("Paste: image from raw data (\(availableType.rawValue, privacy: .public)), size: \(image.size.debugDescription, privacy: .public)")
                 onImagePaste?([image])
                 return
             }
@@ -151,7 +154,7 @@ import UniformTypeIdentifiers
             ]) as? [URL], !urls.isEmpty {
                 let images = urls.compactMap { NSImage(contentsOf: $0) }
                 if !images.isEmpty {
-                    Logger.debug("Paste: \(images.count) image(s) from file URLs", tag: "ImagePaste")
+                    logger.debug("Paste: \(images.count, privacy: .public) image(s) from file URLs")
                     onImagePaste?(images)
                     return
                 }

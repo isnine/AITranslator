@@ -7,6 +7,9 @@
 
 import Combine
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "Preferences")
 
 public final class AppPreferences: ObservableObject {
     public static let appGroupSuiteName = "group.com.zanderwang.AITranslator"
@@ -81,24 +84,24 @@ public final class AppPreferences: ObservableObject {
     }
 
     public func setTargetLanguage(_ option: TargetLanguageOption) {
-        Logger.debug("[Preferences] setTargetLanguage called")
-        Logger.debug("[Preferences] Requested option: \(option.rawValue)")
-        Logger.debug("[Preferences] Current targetLanguage: \(targetLanguage.rawValue)")
-        Logger.debug("[Preferences] Are they equal? \(targetLanguage == option)")
+        logger.debug("setTargetLanguage called")
+        logger.debug("Requested option: \(option.rawValue, privacy: .public)")
+        logger.debug("Current targetLanguage: \(self.targetLanguage.rawValue, privacy: .public)")
+        logger.debug("Are they equal? \(self.targetLanguage == option, privacy: .public)")
         guard targetLanguage != option else {
-            Logger.debug("[Preferences] SKIPPING - values are equal, returning early")
+            logger.debug("SKIPPING - values are equal, returning early")
             return
         }
 
-        Logger.debug("[Preferences] Proceeding with update...")
+        logger.debug("Proceeding with update...")
         targetLanguage = option
         defaults.set(option.rawValue, forKey: TargetLanguageOption.storageKey)
-        Logger.debug("[Preferences] Updated targetLanguage to: \(targetLanguage.rawValue)")
-        Logger.debug("[Preferences] Wrote to UserDefaults key '\(TargetLanguageOption.storageKey)': \(option.rawValue)")
+        logger.debug("Updated targetLanguage to: \(self.targetLanguage.rawValue, privacy: .public)")
+        logger.debug("Wrote to UserDefaults key '\(TargetLanguageOption.storageKey, privacy: .public)': \(option.rawValue, privacy: .public)")
 
         // Verify the write
         let readBack = defaults.string(forKey: TargetLanguageOption.storageKey)
-        Logger.debug("[Preferences] Read back from UserDefaults: \(readBack ?? "nil")")
+        logger.debug("Read back from UserDefaults: \(readBack ?? "nil", privacy: .public)")
     }
 
     public func setSourceLanguage(_ option: SourceLanguageOption) {

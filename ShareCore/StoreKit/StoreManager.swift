@@ -7,7 +7,10 @@
 
 import Combine
 import Foundation
+import os
 import StoreKit
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "StoreManager")
 
 /// Manages StoreKit 2 subscription state and purchasing.
 @MainActor
@@ -51,7 +54,7 @@ public final class StoreManager: ObservableObject {
             // Auto-enable premium in development builds
             isPremium = true
             AppPreferences.sharedDefaults.set(true, forKey: Self.premiumKey)
-            Logger.debug("[StoreManager] DEBUG build – premium auto-enabled")
+            logger.debug("DEBUG build – premium auto-enabled")
         #else
             // Read cached premium status from App Group defaults
             isPremium = AppPreferences.sharedDefaults.bool(forKey: Self.premiumKey)
@@ -61,7 +64,7 @@ public final class StoreManager: ObservableObject {
                 isTestFlightOverride = AppPreferences.sharedDefaults.bool(forKey: Self.testFlightOverrideKey)
                 if isTestFlightOverride {
                     isPremium = true
-                    Logger.debug("[StoreManager] TestFlight override restored – premium enabled")
+                    logger.debug("TestFlight override restored – premium enabled")
                 }
             } else {
                 // Clean up any stale TF override from a previous TestFlight install
@@ -103,7 +106,7 @@ public final class StoreManager: ObservableObject {
             }
 
         } catch {
-            Logger.debug("[StoreManager] Failed to load products: \(error)")
+            logger.error("Failed to load products: \(error, privacy: .public)")
         }
     }
 
@@ -127,20 +130,20 @@ public final class StoreManager: ObservableObject {
                     updatePremiumStatus(true)
                 }
                 await checkSubscriptionStatus()
-                Logger.debug("[StoreManager] Purchase successful: \(product.id)")
+                logger.info("Purchase successful: \(product.id, privacy: .public)")
 
             case .userCancelled:
-                Logger.debug("[StoreManager] Purchase cancelled by user")
+                logger.debug("Purchase cancelled by user")
 
             case .pending:
-                Logger.debug("[StoreManager] Purchase pending")
+                logger.debug("Purchase pending")
 
             @unknown default:
-                Logger.debug("[StoreManager] Unknown purchase result")
+                logger.debug("Unknown purchase result")
             }
         } catch {
             purchaseError = error.localizedDescription
-            Logger.debug("[StoreManager] Purchase failed: \(error)")
+            logger.error("Purchase failed: \(error, privacy: .public)")
         }
     }
 
@@ -154,10 +157,10 @@ public final class StoreManager: ObservableObject {
         do {
             try await AppStore.sync()
             await checkSubscriptionStatus()
-            Logger.debug("[StoreManager] Restore completed")
+            logger.info("Restore completed")
         } catch {
             purchaseError = error.localizedDescription
-            Logger.debug("[StoreManager] Restore failed: \(error)")
+            logger.error("Restore failed: \(error, privacy: .public)")
         }
     }
 
@@ -205,7 +208,7 @@ public final class StoreManager: ObservableObject {
             }
         }
 
-        Logger.debug("[StoreManager] TestFlight override toggled: \(newValue)")
+        logger.debug("TestFlight override toggled: \(newValue, privacy: .public)")
         return newValue
     }
 
@@ -239,7 +242,7 @@ public final class StoreManager: ObservableObject {
         isPremium = newValue
         AppPreferences.sharedDefaults.set(newValue, forKey: Self.premiumKey)
         AppPreferences.sharedDefaults.synchronize()
-        Logger.debug("[StoreManager] Premium status updated: \(newValue)")
+        logger.info("Premium status updated: \(newValue, privacy: .public)")
     }
 
     // MARK: - Convenience

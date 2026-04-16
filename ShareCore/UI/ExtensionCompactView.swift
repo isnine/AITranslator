@@ -6,8 +6,11 @@
 //
 
 #if os(iOS) && !targetEnvironment(macCatalyst)
+    import os
     import SwiftUI
     import TranslationUIProvider
+
+    private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "ExtCompactView")
 
     /// A compact view for iOS Translation Extension, mirroring the Mac MenuBarPopoverView style
     public struct ExtensionCompactView: View {
@@ -68,7 +71,7 @@
 
                 if !hasTriggeredAutoRequest {
                     viewModel.refreshConfiguration()
-                    Logger.debug("[ExtCompactView] onAppear — \(viewModel.actions.count) actions loaded")
+                    logger.debug("onAppear — \(viewModel.actions.count, privacy: .public) actions loaded")
                     hasTriggeredAutoRequest = true
 
                     let text = readContextText()

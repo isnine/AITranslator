@@ -10,9 +10,12 @@
 #if os(macOS)
     import AppKit
     import Combine
+    import os
     import ShareCore
     import SwiftUI
     import Translation
+
+    private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "AppleTranslationBridge")
 
     // MARK: - Bridge
 
@@ -39,7 +42,7 @@
         ) {
             activeViewModel = viewModel
             let targetLocale = target.localeLanguage
-            Logger.debug("[AppleTranslationBridge] requestTranslation source=\(source?.languageCode?.identifier ?? "nil (auto)"), target=\(targetLocale.languageCode?.identifier ?? "unknown"), viewModel=\(ObjectIdentifier(viewModel))")
+            logger.debug("requestTranslation source=\(source?.languageCode?.identifier ?? "nil (auto)", privacy: .public), target=\(targetLocale.languageCode?.identifier ?? "unknown", privacy: .public), viewModel=\(String(describing: ObjectIdentifier(viewModel)), privacy: .public)")
 
             // Capture a strong reference so the correct viewModel is used even if
             // activeViewModel is overwritten by another registration before the Task runs.
@@ -47,7 +50,7 @@
                 let status = await AppleTranslationService.shared.languageAvailabilityStatus(
                     source: source, target: targetLocale
                 )
-                Logger.debug("[AppleTranslationBridge] language availability: \(status) for viewModel=\(ObjectIdentifier(viewModel))")
+                logger.debug("language availability: \(String(describing: status), privacy: .public) for viewModel=\(String(describing: ObjectIdentifier(viewModel)), privacy: .public)")
                 if status == .supported {
                     AppleTranslationWindowManager.shared.showForLanguageDownload()
                 }
@@ -67,7 +70,7 @@
         @available(macOS 14.4, *)
         func sessionReady(_ session: TranslationSession) {
             let vmId = activeViewModel.map { "\(ObjectIdentifier($0))" } ?? "nil"
-            Logger.debug("[AppleTranslationBridge] sessionReady, activeViewModel=\(vmId)")
+            logger.debug("sessionReady, activeViewModel=\(vmId, privacy: .public)")
             activeViewModel?.executeAppleTranslation(session: session)
         }
     }
@@ -83,7 +86,7 @@
             Color.clear
                 .frame(width: 1, height: 1)
                 .translationTask(bridge.pendingConfig) { session in
-                    Logger.debug("[AppleTranslationWindowView] .translationTask fired")
+                    logger.debug(".translationTask fired")
                     AppleTranslationBridge.shared.sessionReady(session)
                 }
         }
@@ -117,7 +120,7 @@
                         if #available(macOS 14.4, *) { self.registerViewModel(viewModel) }
                     } else {
                         self.pendingViewModels.append(WeakRef(viewModel))
-                        Logger.debug("[AppleTranslationWindowManager] Queued viewModel (window not ready yet)")
+                        logger.debug("Queued viewModel (window not ready yet)")
                     }
                 }
             }
@@ -152,7 +155,7 @@
             win.orderFront(nil)
 
             self.window = win
-            Logger.debug("[AppleTranslationWindowManager] Hidden translation window created")
+            logger.debug("Hidden translation window created")
 
             // Register any viewModels that arrived before we were ready.
             for ref in pendingViewModels {
@@ -200,7 +203,7 @@
             win.setFrameOrigin(origin)
             win.alphaValue = 1
             win.orderFront(nil)
-            Logger.debug("[AppleTranslationWindowManager] Shown for language download at \(origin)")
+            logger.debug("Shown for language download at \(String(describing: origin), privacy: .public)")
         }
 
         /// Hides the auxiliary window after the session is ready (language pack was installed).
@@ -208,7 +211,7 @@
             guard let win = window else { return }
             win.alphaValue = 0
             win.setFrameOrigin(NSPoint(x: -9999, y: -9999))
-            Logger.debug("[AppleTranslationWindowManager] Hidden after session ready")
+            logger.debug("Hidden after session ready")
         }
 
         /// Wires the bridge request handler into a HomeViewModel instance.
@@ -222,7 +225,7 @@
                     for: viewModel
                 )
             }
-            Logger.debug("[AppleTranslationWindowManager] Registered viewModel \(ObjectIdentifier(viewModel))")
+            logger.debug("Registered viewModel \(String(describing: ObjectIdentifier(viewModel)), privacy: .public)")
         }
     }
 

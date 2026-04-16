@@ -4,6 +4,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "Migrator")
 
 /// Migrates persisted `AppConfiguration` from older versions to the current version.
 ///
@@ -74,14 +77,14 @@ public enum ConfigurationMigrator {
             if isOldTranslatePrompt(entry.prompt) {
                 var updated = entry
                 updated.prompt = newTranslatePrompt
-                Logger.debug("[Migrator] Migrated translate prompt for action '\(entry.name)'")
+                logger.debug("Migrated translate prompt for action '\(entry.name, privacy: .public)'")
                 return updated
             }
 
             return entry
         }
 
-        Logger.debug("[Migrator] Migration 1.1 -> 1.2 complete")
+        logger.info("Migration 1.1 -> 1.2 complete")
         return migrated
     }
 
@@ -113,13 +116,13 @@ public enum ConfigurationMigrator {
 
             if let replacement = newPromptForAction(named: entry.name) {
                 updated.prompt = replacement
-                Logger.debug("[Migrator] Migrated fallbackLanguage prompt for action '\(entry.name)'")
+                logger.debug("Migrated fallbackLanguage prompt for action '\(entry.name, privacy: .public)'")
             }
 
             return updated
         }
 
-        Logger.debug("[Migrator] Migration 1.2 -> 1.3 complete")
+        logger.info("Migration 1.2 -> 1.3 complete")
         return migrated
     }
 
@@ -180,13 +183,13 @@ public enum ConfigurationMigrator {
             {
                 var updated = entry
                 updated.category = "translation"
-                Logger.debug("[Migrator] Set category=translation for action '\(entry.name)'")
+                logger.debug("Set category=translation for action '\(entry.name, privacy: .public)'")
                 return updated
             }
             return entry
         }
 
-        Logger.debug("[Migrator] Migration 1.3 -> 1.4 complete")
+        logger.info("Migration 1.3 -> 1.4 complete")
         return migrated
     }
 
@@ -211,7 +214,7 @@ public enum ConfigurationMigrator {
             if entry.name == translateName || entry.name == "Translate" {
                 if entry.outputType == nil || entry.outputType == "plain" {
                     updated.outputType = "translate"
-                    Logger.debug("[Migrator] Set outputType=translate for action '\(entry.name)'")
+                    logger.debug("Set outputType=translate for action '\(entry.name, privacy: .public)'")
                 }
             }
             // Strip scenes field (UsageScene removed)
@@ -219,7 +222,7 @@ public enum ConfigurationMigrator {
             return updated
         }
 
-        Logger.debug("[Migrator] Migration 1.4 -> 1.5 complete")
+        logger.info("Migration 1.4 -> 1.5 complete")
         return migrated
     }
 

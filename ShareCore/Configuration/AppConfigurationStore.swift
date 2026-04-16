@@ -7,6 +7,9 @@
 
 import Combine
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "ConfigStore")
 
 @MainActor
 public final class AppConfigurationStore: ObservableObject {
@@ -119,22 +122,22 @@ public final class AppConfigurationStore: ObservableObject {
         if let lastSave = lastSaveTimestamp,
            event.timestamp.timeIntervalSince(lastSave) < Self.fileChangeDebounceInterval
         {
-            Logger.debug("[ConfigStore] Ignoring file change - self-initiated save")
+            logger.debug("Ignoring file change - self-initiated save")
             return
         }
 
         switch event.changeType {
         case .modified:
-            Logger.debug("[ConfigStore] 🔄 External file modification detected, reloading...")
+            logger.debug("🔄 External file modification detected, reloading...")
             reloadCurrentConfiguration()
 
         case .deleted:
-            Logger.debug("[ConfigStore] ⚠️ Configuration file deleted externally")
+            logger.warning("⚠️ Configuration file deleted externally")
             // Try to reload from bundled default
             _ = tryLoadConfiguration(named: "Configuration")
 
         case .renamed:
-            Logger.debug("[ConfigStore] ⚠️ Configuration file renamed externally")
+            logger.warning("⚠️ Configuration file renamed externally")
             // Try to find the file under a new name or reload
             reloadCurrentConfiguration()
         }
@@ -166,7 +169,7 @@ public final class AppConfigurationStore: ObservableObject {
         // Apply changes even with warnings, but log them
         if validationResult.hasWarnings {
             for warning in validationResult.warnings {
-                Logger.debug("[ConfigStore] ⚠️ Validation warning: \(warning.message)")
+                logger.warning("⚠️ Validation warning: \(warning.message, privacy: .public)")
             }
         }
 
@@ -214,9 +217,9 @@ public final class AppConfigurationStore: ObservableObject {
         defer { isSaveSuspended = false }
 
         if tryLoadConfiguration(named: name) {
-            Logger.debug("[ConfigStore] Reloaded '\(name)' — \(actions.count) actions")
+            logger.info("Reloaded '\(name, privacy: .public)' — \(self.actions.count, privacy: .public) actions")
         } else {
-            Logger.debug("[ConfigStore] Failed to reload '\(name)'")
+            logger.error("Failed to reload '\(name, privacy: .public)'")
         }
     }
 
@@ -242,9 +245,9 @@ public final class AppConfigurationStore: ObservableObject {
 
         // Load from App Group
         if tryLoadConfiguration(named: "Configuration") {
-            Logger.debug("[ConfigStore] Loaded configuration — \(actions.count) actions: \(actions.map(\.name))")
+            logger.info("Loaded configuration — \(self.actions.count, privacy: .public) actions: \(self.actions.map(\.name), privacy: .public)")
         } else {
-            Logger.debug("[ConfigStore] Failed to load configuration, creating empty")
+            logger.error("Failed to load configuration, creating empty")
             createEmptyConfiguration()
         }
     }
@@ -264,7 +267,7 @@ public final class AppConfigurationStore: ObservableObject {
 
             // Check version compatibility - require 1.1.0 or higher
             if !isVersionCompatible(config.version) {
-                Logger.debug("[ConfigStore] \u{26a0}\u{fe0f} Configuration '\(name)' has incompatible version: \(config.version)")
+                logger.warning("⚠️ Configuration '\(name, privacy: .public)' has incompatible version: \(config.version, privacy: .public)")
                 return false
             }
 
@@ -277,18 +280,18 @@ public final class AppConfigurationStore: ObservableObject {
             lastValidationResult = validationResult
 
             if validationResult.hasErrors {
-                Logger.debug("[ConfigStore] \u{274c} Configuration '\(name)' has validation errors:")
+                logger.error("❌ Configuration '\(name, privacy: .public)' has validation errors:")
                 for error in validationResult.errors {
-                    Logger.debug("[ConfigStore]   - \(error.message)")
+                    logger.error("  - \(error.message, privacy: .public)")
                 }
                 // Still load with warnings, but fail on errors
                 return false
             }
 
             if validationResult.hasWarnings {
-                Logger.debug("[ConfigStore] \u{26a0}\u{fe0f} Configuration '\(name)' has validation warnings:")
+                logger.warning("⚠️ Configuration '\(name, privacy: .public)' has validation warnings:")
                 for warning in validationResult.warnings {
-                    Logger.debug("[ConfigStore]   - \(warning.message)")
+                    logger.warning("  - \(warning.message, privacy: .public)")
                 }
             }
 
@@ -298,7 +301,7 @@ public final class AppConfigurationStore: ObservableObject {
 
             // Persist the migrated configuration so the migration is not repeated
             if didMigrate {
-                Logger.debug("[ConfigStore] Persisting migrated configuration '\(name)'")
+                logger.debug("Persisting migrated configuration '\(name, privacy: .public)'")
                 saveConfiguration(force: true)
             }
 
@@ -307,7 +310,7 @@ public final class AppConfigurationStore: ObservableObject {
 
             return true
         } catch {
-            Logger.debug("[ConfigStore] Failed to load config '\(name)': \(error)")
+            logger.error("Failed to load config '\(name, privacy: .public)': \(error, privacy: .public)")
             return false
         }
     }
@@ -329,7 +332,7 @@ public final class AppConfigurationStore: ObservableObject {
             loadedActions.append(action)
         }
 
-        Logger.debug("[ConfigStore] Total loaded actions: \(loadedActions.count)")
+        logger.debug("Total loaded actions: \(loadedActions.count, privacy: .public)")
 
         actions = AppConfigurationStore.applyTargetLanguage(
             loadedActions,
@@ -341,12 +344,12 @@ public final class AppConfigurationStore: ObservableObject {
     private func saveConfiguration(force: Bool = false) {
         // Skip if save is suspended (during reload)
         guard !isSaveSuspended else {
-            Logger.debug("[ConfigStore] Save suspended, skipping")
+            logger.debug("Save suspended, skipping")
             return
         }
 
         guard let configName = currentConfigurationName else {
-            Logger.debug("[ConfigStore] No current configuration name set, skipping save")
+            logger.debug("No current configuration name set, skipping save")
             return
         }
 
@@ -354,9 +357,9 @@ public final class AppConfigurationStore: ObservableObject {
         if !force {
             let validationResult = validateCurrentConfiguration()
             if validationResult.hasErrors {
-                Logger.debug("[ConfigStore] ❌ Cannot save - validation errors:")
+                logger.error("❌ Cannot save - validation errors:")
                 for error in validationResult.errors {
-                    Logger.debug("[ConfigStore]   - \(error.message)")
+                    logger.error("  - \(error.message, privacy: .public)")
                 }
                 return
             }
@@ -369,9 +372,9 @@ public final class AppConfigurationStore: ObservableObject {
             lastSaveTimestamp = Date()
 
             try configFileManager.saveConfiguration(config, name: configName)
-            Logger.debug("[ConfigStore] ✅ Saved configuration to '\(configName).json'")
+            logger.info("✅ Saved configuration to '\(configName, privacy: .public).json'")
         } catch {
-            Logger.debug("[ConfigStore] ❌ Failed to save configuration: \(error)")
+            logger.error("❌ Failed to save configuration: \(error, privacy: .public)")
         }
     }
 
@@ -381,14 +384,14 @@ public final class AppConfigurationStore: ObservableObject {
               let data = try? Data(contentsOf: url),
               let config = try? JSONDecoder().decode(AppConfiguration.self, from: data)
         else {
-            Logger.debug("[ConfigStore] ❌ Failed to load bundled default configuration")
+            logger.error("❌ Failed to load bundled default configuration")
             actions = []
             currentConfigurationName = nil
             return
         }
         applyLoadedConfiguration(config)
         currentConfigurationName = nil
-        Logger.debug("[ConfigStore] Loaded bundled default configuration")
+        logger.info("Loaded bundled default configuration")
     }
 
     private func buildCurrentConfiguration() -> AppConfiguration {
@@ -414,7 +417,7 @@ public final class AppConfigurationStore: ObservableObject {
             do {
                 try configFileManager.deleteConfiguration(named: name)
             } catch {
-                Logger.debug("[ConfigStore] ⚠️ Failed to delete configuration: \(error)")
+                logger.error("⚠️ Failed to delete configuration: \(error, privacy: .public)")
             }
         }
 

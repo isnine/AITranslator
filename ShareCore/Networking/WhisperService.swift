@@ -4,6 +4,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "WhisperService")
 
 public enum WhisperError: Error, LocalizedError {
     case invalidResponse
@@ -46,7 +49,7 @@ public final class WhisperService: Sendable {
         let filename = audioFileURL.lastPathComponent
         request.httpBody = buildMultipartBody(audioData: audioData, filename: filename, boundary: boundary)
 
-        Logger.debug("[WhisperService] Uploading \(audioData.count) bytes to Whisper")
+        logger.debug("Uploading \(audioData.count, privacy: .public) bytes to Whisper")
 
         let (data, response) = try await urlSession.data(for: request)
 
@@ -66,7 +69,7 @@ public final class WhisperService: Sendable {
             throw WhisperError.emptyTranscript
         }
 
-        Logger.debug("[WhisperService] Transcript: \(transcript)")
+        logger.debug("Transcript: \(transcript, privacy: .public)")
         return transcript
     }
 

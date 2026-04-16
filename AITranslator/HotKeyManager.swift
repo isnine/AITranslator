@@ -9,7 +9,10 @@
     import AppKit
     import Carbon
     import Combine
+    import os
     import ShareCore
+
+    private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "HotKey")
 
     /// Hot key configuration
     struct HotKeyConfiguration: Equatable, Codable {
@@ -186,7 +189,7 @@
             )
 
             guard handlerResult == noErr else {
-                Logger.debug("[HotKey] Failed to install event handler: \(handlerResult)")
+                logger.error("Failed to install event handler: \(handlerResult, privacy: .public)")
                 return
             }
 
@@ -223,7 +226,7 @@
             if registerResult == noErr, let ref = hotKeyRef {
                 registeredHotKeys[type] = ref
             } else {
-                Logger.debug("[HotKey] Failed to register hotkey for \(type): \(registerResult)")
+                logger.error("Failed to register hotkey for \(String(describing: type), privacy: .public): \(registerResult, privacy: .public)")
             }
         }
 

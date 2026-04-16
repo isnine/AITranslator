@@ -5,8 +5,11 @@
 //  Created by Zander Wang on 2025/10/19.
 //
 
+import os
 import StoreKit
 import SwiftUI
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "HomeView")
 #if canImport(UIKit)
     import UIKit
 #endif
@@ -324,13 +327,13 @@ public struct HomeView: View {
         #endif
         #if canImport(Translation)
         .translationTask(appleTranslationConfig) { session in
-            Logger.debug("[HomeView] .translationTask fired, session received")
+            logger.debug(".translationTask fired, session received")
             if #available(iOS 17.4, macOS 14.4, *) {
                 viewModel.executeAppleTranslation(session: session)
             }
         }
         .onChange(of: viewModel.appleTranslateTargetLanguage) { newTarget in
-            Logger.debug("[HomeView] onChange appleTranslateTargetLanguage: \(String(describing: newTarget)), existingConfig=\(appleTranslationConfig != nil)")
+            logger.debug("onChange appleTranslateTargetLanguage: \(String(describing: newTarget), privacy: .public), existingConfig=\(appleTranslationConfig != nil, privacy: .public)")
             #if os(macOS)
             // On macOS, Apple Translate is routed through the hidden translation window
             // (AppleTranslationBridge) to avoid Code=14 / _EXUISceneSession errors.
@@ -341,7 +344,7 @@ public struct HomeView: View {
                 let sourceLocale = viewModel.appleTranslateSourceLanguage
                 let sourceKey = sourceLocale?.languageCode?.identifier
                 let targetKey = target.localeLanguage.languageCode?.identifier ?? target.rawValue
-                Logger.debug("[HomeView] Apple Translate config: source=\(sourceKey ?? "nil (auto-detect)"), target=\(targetKey)")
+                logger.debug("Apple Translate config: source=\(sourceKey ?? "nil (auto-detect)", privacy: .public), target=\(targetKey, privacy: .public)")
                 let pairChanged = appleTranslationConfigLanguagePair?.source != sourceKey
                     || appleTranslationConfigLanguagePair?.target != targetKey
                 if pairChanged || appleTranslationConfig == nil {
@@ -663,18 +666,16 @@ public struct HomeView: View {
                             applyPastedTextIfNeeded(pastedText)
                         },
                         onImagePaste: { nsImages in
-                            Logger.debug("onImagePaste callback: received \(nsImages.count) NSImage(s)", tag: "ImagePaste")
+                            logger.debug("onImagePaste callback: received \(nsImages.count, privacy: .public) NSImage(s)")
                             for nsImage in nsImages {
                                 if let attachment = ImageAttachment.from(nsImage: nsImage) {
-                                    Logger.debug(
-                                        "onImagePaste: attachment created, size: \(String(format: "%.2f", attachment.sizeMB))MB",
-                                        tag: "ImagePaste"
+                                    logger.debug(
+                                        "onImagePaste: attachment created, size: \(String(format: "%.2f", attachment.sizeMB), privacy: .public)MB"
                                     )
                                     viewModel.addImage(attachment)
                                 } else {
-                                    Logger.debug(
-                                        "onImagePaste: ImageAttachment.from(nsImage:) returned nil for image size \(nsImage.size)",
-                                        tag: "ImagePaste"
+                                    logger.debug(
+                                        "onImagePaste: ImageAttachment.from(nsImage:) returned nil for image size \(nsImage.size.debugDescription, privacy: .public)"
                                     )
                                 }
                             }

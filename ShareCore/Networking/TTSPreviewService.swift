@@ -8,6 +8,9 @@
 import AVFoundation
 import Combine
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "TTSPreviewService")
 
 /// Service for playing TTS voice previews from the Worker API
 public final class TTSPreviewService: NSObject, ObservableObject, AVAudioPlayerDelegate {
@@ -52,7 +55,7 @@ public final class TTSPreviewService: NSObject, ObservableObject, AVAudioPlayerD
             let audioData = try await fetchTTSAudio(text: text, voiceID: voiceID)
             try await playAudio(data: audioData)
         } catch {
-            Logger.debug("[TTSPreviewService] TTS playback failed: \(error)")
+            logger.error("TTS playback failed: \(error, privacy: .public)")
         }
 
         isPlaying = false
@@ -74,7 +77,7 @@ public final class TTSPreviewService: NSObject, ObservableObject, AVAudioPlayerD
             let audioData = try await fetchTTSAudio(text: Self.previewText, voiceID: voiceID)
             try await playAudio(data: audioData)
         } catch {
-            Logger.debug("[TTSPreviewService] Preview failed for voice '\(voiceID)': \(error)")
+            logger.error("Preview failed for voice '\(voiceID, privacy: .public)': \(error, privacy: .public)")
         }
 
         isPlaying = false
@@ -124,7 +127,7 @@ public final class TTSPreviewService: NSObject, ObservableObject, AVAudioPlayerD
         ]
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        Logger.debug("[TTSPreviewService] Requesting TTS for voice: \(voiceID), text length: \(text.count)")
+        logger.debug("Requesting TTS for voice: \(voiceID, privacy: .public), text length: \(text.count, privacy: .public)")
 
         let (data, response) = try await urlSession.data(for: request)
 
@@ -137,7 +140,7 @@ public final class TTSPreviewService: NSObject, ObservableObject, AVAudioPlayerD
             throw TTSPreviewError.httpError(statusCode: httpResponse.statusCode, body: body)
         }
 
-        Logger.debug("[TTSPreviewService] Received \(data.count) bytes of audio data")
+        logger.debug("Received \(data.count, privacy: .public) bytes of audio data")
         return data
     }
 

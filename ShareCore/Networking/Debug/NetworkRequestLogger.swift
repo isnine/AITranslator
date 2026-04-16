@@ -9,6 +9,9 @@
 
 import Combine
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "NetworkRequestLogger")
 
 /// Singleton logger that stores network request records in memory and to the app caches directory.
 @MainActor
@@ -62,7 +65,7 @@ public final class NetworkRequestLogger: ObservableObject {
                 records = Array(records.prefix(Self.maxRecords))
             }
         } catch {
-            Logger.debug("[NetworkRequestLogger] Failed to read log file: \(error)")
+            logger.error("Failed to read log file: \(error, privacy: .public)")
         }
     }
 
@@ -95,7 +98,7 @@ public final class NetworkRequestLogger: ObservableObject {
                 try line.write(to: fileURL, atomically: true, encoding: .utf8)
             }
         } catch {
-            Logger.debug("[NetworkRequestLogger] Failed to write record: \(error)")
+            logger.error("Failed to write record: \(error, privacy: .public)")
         }
     }
 }

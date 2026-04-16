@@ -6,7 +6,10 @@
 //
 
 import Foundation
+import os
 import SwiftData
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "History")
 
 public extension Notification.Name {
     static let translationRecordSaved = Notification.Name("com.tlingo.translationRecordSaved")
@@ -17,7 +20,6 @@ public final class TranslationHistoryService {
     public static let shared = TranslationHistoryService()
 
     private static let appGroupIdentifier = AppPreferences.appGroupSuiteName
-    private static let tag = "HistoryService"
 
     private let modelContainer: ModelContainer?
     private let persistentContext: ModelContext?
@@ -26,7 +28,7 @@ public final class TranslationHistoryService {
         let storeURL = Self.historyStoreURL()
 
         guard let storeURL else {
-            Logger.debug("Could not determine storage directory — history disabled", tag: Self.tag)
+            logger.debug("Could not determine storage directory — history disabled")
             modelContainer = nil
             persistentContext = nil
             return
@@ -49,9 +51,9 @@ public final class TranslationHistoryService {
             )
             modelContainer = try ModelContainer(for: schema, configurations: [config])
             persistentContext = ModelContext(modelContainer!)
-            Logger.debug("Initialized at \(storeURL.path)", tag: Self.tag)
+            logger.info("Initialized at \(storeURL.path, privacy: .public)")
         } catch {
-            Logger.debug("ModelContainer init failed: \(error.localizedDescription)", tag: Self.tag)
+            logger.error("ModelContainer init failed: \(error.localizedDescription, privacy: .public)")
             modelContainer = nil
             persistentContext = nil
         }
@@ -105,10 +107,10 @@ public final class TranslationHistoryService {
 
         do {
             try persistentContext.save()
-            Logger.debug("Saved translation record for request \(requestID.uuidString.prefix(8))", tag: Self.tag)
+            logger.debug("Saved translation record for request \(requestID.uuidString.prefix(8), privacy: .public)")
             NotificationCenter.default.post(name: .translationRecordSaved, object: nil)
         } catch {
-            Logger.debug("Save failed: \(error.localizedDescription)", tag: Self.tag)
+            logger.error("Save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -152,9 +154,9 @@ public final class TranslationHistoryService {
         do {
             try persistentContext.delete(model: TranslationRecord.self)
             try persistentContext.save()
-            Logger.debug("Deleted all records", tag: Self.tag)
+            logger.info("Deleted all records")
         } catch {
-            Logger.debug("Delete all failed: \(error.localizedDescription)", tag: Self.tag)
+            logger.error("Delete all failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -206,6 +208,6 @@ public final class TranslationHistoryService {
             try? FileManager.default.removeItem(atPath: path + suffix)
         }
         UserDefaults.standard.set(true, forKey: markerKey)
-        Logger.debug("Removed v1 history store for schema migration", tag: tag)
+        logger.debug("Removed v1 history store for schema migration")
     }
 }

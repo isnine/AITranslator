@@ -7,9 +7,12 @@
 
 import Foundation
 import SwiftUI
+import os
 #if canImport(Translation)
     import Translation
 #endif
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "AppleTranslation")
 
 /// Service for using Apple's system Translation API
 /// Note: TranslationSession can only be obtained via SwiftUI's .translationTask() modifier
@@ -31,7 +34,7 @@ public final class AppleTranslationService: @unchecked Sendable {
         } else {
             available = false
         }
-        Logger.debug("[AppleTranslation] isAvailable: \(available)")
+        logger.debug("isAvailable: \(available, privacy: .public)")
         return available
     }
 
@@ -89,7 +92,7 @@ public final class AppleTranslationService: @unchecked Sendable {
             }
         }
 
-        Logger.debug("[AppleTranslation] refreshInstalledLanguages: \(installed.map(\.rawValue))")
+        logger.debug("refreshInstalledLanguages: \(installed.map(\.rawValue), privacy: .public)")
         return installed
     }
 
@@ -128,7 +131,7 @@ public final class AppleTranslationService: @unchecked Sendable {
         using session: TranslationSession
     ) async throws -> ModelExecutionResult {
         let start = Date()
-        Logger.debug("[AppleTranslation] translate called, text length: \(text.count)")
+        logger.debug("translate called, text length: \(text.count, privacy: .public)")
 
         // prepareTranslation() triggers the system download UI if the language pack
         // is not yet installed (.supported status). No-op if already installed (.installed).
@@ -141,7 +144,7 @@ public final class AppleTranslationService: @unchecked Sendable {
         let response = try await session.translate(text)
         let duration = Date().timeIntervalSince(start)
 
-        Logger.debug("[AppleTranslation] translate success, duration: \(duration)s")
+        logger.debug("translate success, duration: \(duration, privacy: .public)s")
         return ModelExecutionResult(
             modelID: ModelConfig.appleTranslateID,
             duration: duration,
@@ -164,7 +167,7 @@ public final class AppleTranslationService: @unchecked Sendable {
         #endif
 
         let sentences = splitIntoSentences(text)
-        Logger.debug("[AppleTranslation] translateSentences: \(sentences.count) sentences")
+        logger.debug("translateSentences: \(sentences.count, privacy: .public) sentences")
 
         let requests = sentences.enumerated().map { index, sentence in
             TranslationSession.Request(sourceText: sentence, clientIdentifier: "\(index)")
@@ -187,7 +190,7 @@ public final class AppleTranslationService: @unchecked Sendable {
         }
 
         let duration = Date().timeIntervalSince(start)
-        Logger.debug("[AppleTranslation] translateSentences success, duration: \(duration)s")
+        logger.debug("translateSentences success, duration: \(duration, privacy: .public)s")
         return ModelExecutionResult(
             modelID: ModelConfig.appleTranslateID,
             duration: duration,
@@ -200,7 +203,7 @@ public final class AppleTranslationService: @unchecked Sendable {
 
     /// Split text into sentences for translation
     public func splitIntoSentences(_ text: String) -> [String] {
-        Logger.debug("[AppleTranslation] splitIntoSentences called, text length: \(text.count)")
+        logger.debug("splitIntoSentences called, text length: \(text.count, privacy: .public)")
         var sentences: [String] = []
 
         let tagger = NSLinguisticTagger(tagSchemes: [.tokenType], options: 0)
@@ -239,7 +242,7 @@ public final class AppleTranslationService: @unchecked Sendable {
             }
         }
 
-        Logger.debug("[AppleTranslation] splitIntoSentences result: \(sentences.count) sentences")
+        logger.debug("splitIntoSentences result: \(sentences.count, privacy: .public) sentences")
         return sentences
     }
 }

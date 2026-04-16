@@ -5,6 +5,9 @@
 //  Created by Codex on 2025/10/19.
 //
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "LLMService")
 
 /// Represents a streaming update that can be either plain text or sentence pairs.
 public enum StreamingUpdate: Sendable {
@@ -239,15 +242,15 @@ public final class LLMService {
             request.httpBody = payloadData
 
             if let jsonString = String(data: payloadData, encoding: .utf8) {
-                Logger.debug("[LLMService] Request Debug - Model: \(model.displayName)")
-                Logger.debug("[LLMService] URL: \(requestURL.absoluteString)")
-                Logger.debug("[LLMService] Action: \(action.name)")
-                Logger.debug("[LLMService] Original Prompt: \(action.prompt)")
-                Logger
+                logger.debug("Request Debug - Model: \(model.displayName, privacy: .public)")
+                logger.debug("URL: \(requestURL.absoluteString, privacy: .public)")
+                logger.debug("Action: \(action.name, privacy: .public)")
+                logger.debug("Original Prompt: \(action.prompt, privacy: .public)")
+                logger
                     .debug(
-                        "[LLMService] Target Language: \(targetLanguageDescriptor)"
+                        "Target Language: \(targetLanguageDescriptor, privacy: .public)"
                     )
-                Logger.debug("[LLMService] Request payload: \(jsonString)")
+                logger.debug("Request payload: \(jsonString, privacy: .public)")
             }
 
             try Task.checkCancellation()
@@ -269,7 +272,7 @@ public final class LLMService {
                 }
 
                 let responseString = String(data: data, encoding: .utf8) ?? ""
-                Logger.debug("[LLMService] Response JSON from \(model.displayName): \(responseString)")
+                logger.debug("Response JSON from \(model.displayName, privacy: .public): \(responseString, privacy: .public)")
 
                 guard (200 ... 299).contains(httpResponse.statusCode) else {
                     throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
@@ -331,7 +334,7 @@ public final class LLMService {
                 errorBytes.append(chunk)
             }
             let responseString = String(data: Data(errorBytes), encoding: .utf8) ?? ""
-            Logger.debug("[LLMService] Response JSON from \(model.displayName): \(responseString)")
+            logger.debug("Response JSON from \(model.displayName, privacy: .public): \(responseString, privacy: .public)")
             throw LLMServiceError.httpError(statusCode: httpResponse.statusCode, body: responseString)
         }
 
@@ -340,7 +343,7 @@ public final class LLMService {
         let isStructuredOutputMode = structuredOutputConfig != nil && !isSentencePairsMode
 
         if contentType.contains("text/event-stream") {
-            Logger.debug("[LLMService] Streaming response from \(model.displayName)")
+            logger.debug("Streaming response from \(model.displayName, privacy: .public)")
             var aggregatedText = ""
             let sentencePairParser = isSentencePairsMode ? StreamingSentencePairParser() : nil
             let structuredParser = isStructuredOutputMode ? StreamingStructuredOutputParser(config: structuredOutputConfig!) : nil
@@ -375,7 +378,7 @@ public final class LLMService {
             try Task.checkCancellation()
             guard !finalText.isEmpty else { throw LLMServiceError.emptyContent }
 
-            Logger.debug("[LLMService] Final stream output from \(model.displayName): \(finalText)")
+            logger.debug("Final stream output from \(model.displayName, privacy: .public): \(finalText, privacy: .public)")
 
             if isSentencePairsMode {
                 let pairs = parseSentencePairsFromJSON(finalText)
@@ -436,7 +439,7 @@ public final class LLMService {
             let data = Data(responseBytes)
 
             let responseString = String(data: data, encoding: .utf8) ?? ""
-            Logger.debug("[LLMService] Non-stream response from \(model.displayName): \(responseString)")
+            logger.debug("Non-stream response from \(model.displayName, privacy: .public): \(responseString, privacy: .public)")
 
             let parsed = try parseResponsePayload(data: data, structuredOutput: structuredOutputConfig)
             let trimmed = parsed.message.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -495,9 +498,9 @@ public final class LLMService {
         encoder.outputFormatting = []
         request.httpBody = try encoder.encode(payload)
 
-        Logger.debug("[LLMService] Continuation request - Model: \(model.displayName)")
-        Logger.debug("[LLMService] URL: \(requestURL.absoluteString)")
-        Logger.debug("[LLMService] Messages count: \(messages.count)")
+        logger.debug("Continuation request - Model: \(model.displayName, privacy: .public)")
+        logger.debug("URL: \(requestURL.absoluteString, privacy: .public)")
+        logger.debug("Messages count: \(messages.count, privacy: .public)")
 
         try Task.checkCancellation()
 

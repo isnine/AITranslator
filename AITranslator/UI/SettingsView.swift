@@ -5,8 +5,11 @@
 //  Created by Codex on 2025/10/27.
 //
 
+import os
 import ShareCore
 import SwiftUI
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "ConfigEditor")
 import UniformTypeIdentifiers
 #if os(macOS)
     import AppKit
@@ -860,9 +863,9 @@ struct ConfigurationEditorView: View {
 
             // Show warnings but still allow save
             if validationResult.hasWarnings {
-                Logger.debug("[ConfigEditor] ⚠️ Saving with warnings:")
+                logger.warning("⚠️ Saving with warnings:")
                 for warning in validationResult.warnings {
-                    Logger.debug("[ConfigEditor]   - \(warning.message)")
+                    logger.warning("  - \(warning.message, privacy: .public)")
                 }
             }
 

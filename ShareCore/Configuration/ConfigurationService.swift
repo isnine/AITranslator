@@ -6,6 +6,9 @@
 //
 
 import Foundation
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "ConfigService")
 
 /// Service for importing and exporting app configuration as JSON
 public final class ConfigurationService: Sendable {
@@ -79,30 +82,29 @@ public final class ConfigurationService: Sendable {
         preferences _: AppPreferences,
         configurationName: String? = nil
     ) {
-        Logger.debug("[ConfigService] 🔄 Applying configuration: '\(configurationName ?? "unnamed")'")
-
+        logger.debug("🔄 Applying configuration: '\(configurationName ?? "unnamed", privacy: .public)'")
         // Build actions (actions is now an array)
         var actions: [ActionConfig] = []
         for entry in config.actions {
             let action = entry.toActionConfig()
             actions.append(action)
         }
-        Logger.debug("[ConfigService]   - Loaded \(actions.count) actions")
+        logger.debug("  - Loaded \(actions.count, privacy: .public) actions")
 
         // IMPORTANT: Set configuration name BEFORE updating actions
         // This ensures the configuration is properly tracked
         if let name = configurationName {
             store.setCurrentConfigurationName(name)
-            Logger.debug("[ConfigService]   - Set configuration name: '\(name)'")
+            logger.debug("  - Set configuration name: '\(name, privacy: .public)'")
         } else {
             store.setCurrentConfigurationName(nil)
-            Logger.debug("[ConfigService]   - Set configuration name to nil")
+            logger.debug("  - Set configuration name to nil")
         }
 
         // Apply actions directly (bypassing the default-mode check)
         store.applyActionsDirectly(actions)
 
-        Logger.debug("[ConfigService] ✅ Configuration applied successfully")
+        logger.info("✅ Configuration applied successfully")
     }
 
     // MARK: - Private Helpers

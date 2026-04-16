@@ -5,8 +5,11 @@
 //  Created by Codex on 2025/01/28.
 //
 
+import os
 import ShareCore
 import SwiftUI
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "ModelsView")
 #if canImport(Translation)
     import Translation
 #endif
@@ -36,7 +39,7 @@ struct ModelsView: View {
         let activeFreeCount = enabledModelIDs.intersection(freeModelIDs)
             .subtracting([ModelConfig.appleTranslateID, ModelConfig.googleTranslateID]).count
         #if DEBUG
-        print("[ModelsView] enabledModelIDs=\(enabledModelIDs), freeModelIDs=\(freeModelIDs), activeFreeCount=\(activeFreeCount), isPremium=\(storeManager.isPremium)")
+        logger.debug("enabledModelIDs=\(self.enabledModelIDs, privacy: .public), freeModelIDs=\(freeModelIDs, privacy: .public), activeFreeCount=\(activeFreeCount, privacy: .public), isPremium=\(self.storeManager.isPremium, privacy: .public)")
         #endif
         return activeFreeCount >= freeModelLimit
     }
@@ -83,7 +86,7 @@ struct ModelsView: View {
             .onAppear {
                 enabledModelIDs = preferences.enabledModelIDs
                 #if DEBUG
-                print("[ModelsView] onAppear enabledModelIDs=\(enabledModelIDs)")
+                logger.debug("onAppear enabledModelIDs=\(self.enabledModelIDs, privacy: .public)")
                 #endif
                 loadModels()
                 // Refresh installed languages if Apple Translate is enabled.
@@ -94,7 +97,7 @@ struct ModelsView: View {
             .onChange(of: preferences.enabledModelIDs) { _, newValue in
                 enabledModelIDs = newValue
                 #if DEBUG
-                print("[ModelsView] onChange(preferences.enabledModelIDs) → \(newValue)")
+                logger.debug("onChange(preferences.enabledModelIDs) → \(newValue, privacy: .public)")
                 #endif
             }
             .sheet(isPresented: $showPaywall) {
@@ -381,7 +384,7 @@ struct ModelsView: View {
         }
 
         #if DEBUG
-        print("[ModelsView] toggleAppleTranslate: \(wasEnabled ? "OFF" : "ON"), before=\(enabledModelIDs), after=\(newSet)")
+        logger.debug("toggleAppleTranslate: \(wasEnabled ? "OFF" : "ON", privacy: .public), before=\(self.enabledModelIDs, privacy: .public), after=\(newSet, privacy: .public)")
         #endif
 
         enabledModelIDs = newSet
@@ -498,7 +501,7 @@ struct ModelsView: View {
 
         return Button {
             #if DEBUG
-            print("[ModelsView] modelRow TAPPED: \(model.id), isEnabled=\(isEnabled), isLocked=\(isLocked), isDisabledByLimit=\(isDisabledByLimit)")
+            logger.debug("modelRow TAPPED: \(model.id, privacy: .public), isEnabled=\(isEnabled, privacy: .public), isLocked=\(isLocked, privacy: .public), isDisabledByLimit=\(isDisabledByLimit, privacy: .public)")
             #endif
             if isLocked {
                 showPaywall = true
@@ -696,7 +699,7 @@ struct ModelsView: View {
         let isLocked = model.isPremium && !storeManager.isPremium
 
         #if DEBUG
-        print("[ModelsView] toggleModel(\(model.id)): wasEnabled=\(wasEnabled), isLocked=\(isLocked), hasReachedFreeLimit=\(hasReachedFreeLimit), before=\(enabledModelIDs)")
+        logger.debug("toggleModel(\(model.id, privacy: .public)): wasEnabled=\(wasEnabled, privacy: .public), isLocked=\(isLocked, privacy: .public), hasReachedFreeLimit=\(self.hasReachedFreeLimit, privacy: .public), before=\(self.enabledModelIDs, privacy: .public)")
         #endif
 
         if wasEnabled {
@@ -704,7 +707,7 @@ struct ModelsView: View {
         } else {
             if hasReachedFreeLimit {
                 #if DEBUG
-                print("[ModelsView] toggleModel(\(model.id)): BLOCKED by free limit")
+                logger.warning("toggleModel(\(model.id, privacy: .public)): BLOCKED by free limit")
                 #endif
                 withAnimation(.spring(duration: 0.3)) {
                     showLimitBanner = true
@@ -715,7 +718,7 @@ struct ModelsView: View {
         }
 
         #if DEBUG
-        print("[ModelsView] toggleModel(\(model.id)): \(wasEnabled ? "OFF" : "ON"), after=\(newSet)")
+        logger.debug("toggleModel(\(model.id, privacy: .public)): \(wasEnabled ? "OFF" : "ON", privacy: .public), after=\(newSet, privacy: .public)")
         #endif
 
         enabledModelIDs = newSet
@@ -745,7 +748,7 @@ struct ModelsView: View {
                         enabledModelIDs = Set(defaultModels.map { $0.id })
                         preferences.setEnabledModelIDs(enabledModelIDs)
                         #if DEBUG
-                        print("[ModelsView] loadModels: set defaults → \(enabledModelIDs)")
+                        logger.debug("loadModels: set defaults → \(self.enabledModelIDs, privacy: .public)")
                         #endif
                     }
                 }

@@ -5,7 +5,10 @@
 //  Created by Zander Wang on 2025/10/19.
 //
 import Combine
+import os
 import SwiftUI
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "HomeViewModel")
 #if DEBUG
     import Foundation
 #endif
@@ -463,7 +466,7 @@ public final class HomeViewModel: ObservableObject {
         allActions = configurationStore.actions
         refreshActions()
         loadModels()
-        Logger.debug("[HomeVM] refreshConfiguration() — \(actions.count) actions: \(actions.map(\.name))")
+        logger.debug("refreshConfiguration() — \(self.actions.count, privacy: .public) actions: \(self.actions.map(\.name), privacy: .public)")
 
         // Apply pending deep link action, or fall back to first action
         if let pendingName = pendingDeepLinkActionName,
@@ -517,9 +520,9 @@ public final class HomeViewModel: ObservableObject {
         let enabledIDs = preferences.enabledModelIDs
         let isPremium = StoreManager.shared.isPremium
 
-        Logger
+        logger
             .debug(
-                "[HomeViewModel] getEnabledModels: enabledIDs=\(enabledIDs), models.count=\(models.count), isPremium=\(isPremium)"
+                "getEnabledModels: enabledIDs=\(enabledIDs, privacy: .public), models.count=\(self.models.count, privacy: .public), isPremium=\(isPremium, privacy: .public)"
             )
 
         var available: [ModelConfig]
@@ -565,7 +568,7 @@ public final class HomeViewModel: ObservableObject {
             available.insert(ModelConfig.googleTranslate, at: insertIndex)
         }
 
-        Logger.debug("[HomeViewModel] getEnabledModels result: \(available.map(\.id))")
+        logger.debug("getEnabledModels result: \(available.map(\.id), privacy: .public)")
         return available
     }
 
@@ -577,10 +580,10 @@ public final class HomeViewModel: ObservableObject {
         // Display cached models immediately if available, then refresh in background.
         if let cached = ModelsService.shared.getCachedModels(), !cached.isEmpty {
             models = cached
-            Logger.debug("[HomeViewModel] loadModels: loaded \(cached.count) cached models")
+            logger.debug("loadModels: loaded \(cached.count, privacy: .public) cached models")
             updateEnabledModels()
         } else {
-            Logger.debug("[HomeViewModel] loadModels: no cached models, fetching from network")
+            logger.debug("loadModels: no cached models, fetching from network")
         }
 
         Task { [weak self] in
@@ -590,7 +593,7 @@ public final class HomeViewModel: ObservableObject {
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     self.models = fetchedModels
-                    Logger.debug("[HomeViewModel] loadModels: fetched \(fetchedModels.count) models from network")
+                    logger.debug("loadModels: fetched \(fetchedModels.count, privacy: .public) models from network")
                     self.updateEnabledModels()
 
                     // If a request was attempted before models loaded, trigger it now.
@@ -600,13 +603,13 @@ public final class HomeViewModel: ObservableObject {
                     }
                 }
             } catch {
-                Logger.debug("[HomeViewModel] Failed to fetch models: \(error)")
+                logger.error("Failed to fetch models: \(error, privacy: .public)")
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     // Use fallback models so the app is functional even offline
                     if self.models.isEmpty {
                         self.models = Self.fallbackModels
-                        Logger.debug("[HomeViewModel] Using fallback models for offline mode")
+                        logger.debug("Using fallback models for offline mode")
                         self.updateEnabledModels()
 
                         if self.pendingAutoAction {
@@ -661,14 +664,14 @@ public final class HomeViewModel: ObservableObject {
         cancelActiveRequest(clearResults: false)
 
         guard let action = selectedAction else {
-            Logger.debug("[HomeViewModel] No action selected.")
+            logger.debug("No action selected.")
             modelRuns = []
             return
         }
 
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty || !attachedImages.isEmpty else {
-            Logger.debug("[HomeViewModel] Input text is empty and no images attached; skipping request.")
+            logger.debug("Input text is empty and no images attached; skipping request.")
             modelRuns = []
             return
         }
@@ -682,14 +685,14 @@ public final class HomeViewModel: ObservableObject {
         guard !modelsToUse.isEmpty else {
             if models.isEmpty {
                 // Models still loading from network; queue for auto-trigger.
-                Logger.debug("[HomeViewModel] Models not loaded yet; marking pending auto-action.")
+                logger.debug("Models not loaded yet; marking pending auto-action.")
                 pendingAutoAction = true
                 modelRuns = []
             } else {
                 // Models loaded but none available — show error to user.
-                Logger
+                logger
                     .debug(
-                        "[HomeViewModel] No usable models found. models=\(models.map(\.id)), enabledIDs=\(preferences.enabledModelIDs)"
+                        "No usable models found. models=\(self.models.map(\.id), privacy: .public), enabledIDs=\(self.preferences.enabledModelIDs, privacy: .public)"
                     )
                 modelRuns = [
                     ModelRunViewState(
@@ -1077,7 +1080,7 @@ public final class HomeViewModel: ObservableObject {
         let resolvedTarget = resolved.target
         let preferred = AppPreferences.shared.targetLanguage
         if resolvedTarget != preferred {
-            Logger.debug("[LanguageRedirect] SingleModel target redirected: \(preferred.rawValue) (\(preferred.primaryLabel)) → \(resolvedTarget.rawValue) (\(resolvedTarget.primaryLabel)), detectedSource=\(detectedSourceLanguage?.rawValue ?? "nil")")
+            logger.debug("SingleModel target redirected: \(preferred.rawValue, privacy: .public) (\(preferred.primaryLabel, privacy: .public)) → \(resolvedTarget.rawValue, privacy: .public) (\(resolvedTarget.primaryLabel, privacy: .public)), detectedSource=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public)")
             resolvedTargetLanguage = resolvedTarget
         }
 
@@ -1139,17 +1142,17 @@ public final class HomeViewModel: ObservableObject {
         // Surface the resolved language in the UI only when it differs from the preference
         let preferred = AppPreferences.shared.targetLanguage
         if resolvedTarget != preferred {
-            Logger.debug("[LanguageRedirect] Target redirected: \(preferred.rawValue) (\(preferred.primaryLabel)) → \(resolvedTarget.rawValue) (\(resolvedTarget.primaryLabel)), detectedSource=\(detectedSourceLanguage?.rawValue ?? "nil"), sourceLanguageSetting=\(AppPreferences.shared.sourceLanguage.rawValue)")
+            logger.debug("Target redirected: \(preferred.rawValue, privacy: .public) (\(preferred.primaryLabel, privacy: .public)) → \(resolvedTarget.rawValue, privacy: .public) (\(resolvedTarget.primaryLabel, privacy: .public)), detectedSource=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public), sourceLanguageSetting=\(AppPreferences.shared.sourceLanguage.rawValue, privacy: .public)")
             resolvedTargetLanguage = resolvedTarget
         } else {
-            Logger.debug("[LanguageRedirect] No redirect needed: target=\(preferred.rawValue) (\(preferred.primaryLabel)), detectedSource=\(detectedSourceLanguage?.rawValue ?? "nil")")
+            logger.debug("No redirect needed: target=\(preferred.rawValue, privacy: .public) (\(preferred.primaryLabel, privacy: .public)), detectedSource=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public)")
         }
 
         // Separate direct translation services from cloud LLM models.
         let cloudModels = models.filter { !$0.isDirectTranslation }
         let hasAppleTranslate = models.contains { $0.isLocal }
         let hasGoogleTranslate = models.contains { $0.isGoogleTranslate }
-        Logger.debug("[HomeViewModel] executeRequest: models=\(models.map(\.id)), hasAppleTranslate=\(hasAppleTranslate), hasGoogleTranslate=\(hasGoogleTranslate), action.supportsAppleTranslate=\(action.supportsAppleTranslate)")
+        logger.debug("executeRequest: models=\(models.map(\.id), privacy: .public), hasAppleTranslate=\(hasAppleTranslate, privacy: .public), hasGoogleTranslate=\(hasGoogleTranslate, privacy: .public), action.supportsAppleTranslate=\(action.supportsAppleTranslate, privacy: .public)")
 
         // Kick off Apple Translate if present.
         if hasAppleTranslate {
@@ -1161,14 +1164,14 @@ public final class HomeViewModel: ObservableObject {
                     // Only fall back to .translationTask() when a download is required.
                     let sourceLocale: Locale.Language? = resolved.sourceCode.map { Locale.Language(identifier: $0) }
                     let targetLocale = resolvedTarget.localeLanguage
-                    Logger.debug("[HomeViewModel] Apple Translate: checking language availability before choosing path")
+                    logger.debug("Apple Translate: checking language availability before choosing path")
                     Task { [weak self] in
                         guard let self else { return }
                         if #available(iOS 17.4, macOS 14.4, *) {
                             let status = await AppleTranslationService.shared.languageAvailabilityStatus(
                                 source: sourceLocale, target: targetLocale
                             )
-                            Logger.debug("[HomeViewModel] Apple Translate: language status=\(status), using \(status == .installed ? "installedSource" : ".translationTask") path")
+                            logger.debug("Apple Translate: language status=\(String(describing: status), privacy: .public), using \(status == .installed ? "installedSource" : ".translationTask", privacy: .public) path")
                             if status == .installed, let source = sourceLocale {
                                 // Language pack already on device — skip SwiftUI bridge entirely.
                                 do {
@@ -1215,13 +1218,13 @@ public final class HomeViewModel: ObservableObject {
                                 self.pendingAppleTranslateRequestID = requestID
                                 self.appleTranslateSourceLanguage = sourceLocale
                                 self.appleTranslateTargetLanguage = resolvedTarget
-                                Logger.debug("[HomeViewModel] Apple Translate: published target=\(resolvedTarget.englishName), starting 10s timeout watchdog")
+                                logger.debug("Apple Translate: published target=\(resolvedTarget.englishName, privacy: .public), starting 10s timeout watchdog")
                                 self.appleTranslationRequestHandler?(sourceLocale, resolvedTarget)
 
                                 // Watchdog: if .translationTask() doesn't fire within 10s, surface an error.
                                 try? await Task.sleep(nanoseconds: 10_000_000_000)
                                 guard self.pendingAppleTranslateRequestID == requestID else { return }
-                                Logger.debug("[HomeViewModel] Apple Translate: watchdog fired — .translationTask() did not respond in 10s")
+                                logger.debug("Apple Translate: watchdog fired — .translationTask() did not respond in 10s")
                                 self.pendingAppleTranslateText = nil
                                 self.pendingAppleTranslateAction = nil
                                 self.pendingAppleTranslateRequestID = nil
@@ -1485,12 +1488,12 @@ public final class HomeViewModel: ObservableObject {
     #if canImport(Translation)
         @available(iOS 17.4, macOS 14.4, *)
         public func executeAppleTranslation(session: TranslationSession) {
-            Logger.debug("[HomeViewModel] executeAppleTranslation called, pending text=\(pendingAppleTranslateText != nil), action=\(pendingAppleTranslateAction != nil), requestID=\(pendingAppleTranslateRequestID != nil)")
+            logger.debug("executeAppleTranslation called, pending text=\(self.pendingAppleTranslateText != nil, privacy: .public), action=\(self.pendingAppleTranslateAction != nil, privacy: .public), requestID=\(self.pendingAppleTranslateRequestID != nil, privacy: .public)")
             guard let text = pendingAppleTranslateText,
                   let action = pendingAppleTranslateAction,
                   let requestID = pendingAppleTranslateRequestID
             else {
-                Logger.debug("[HomeViewModel] executeAppleTranslation: missing pending state, aborting")
+                logger.debug("executeAppleTranslation: missing pending state, aborting")
                 return
             }
 
@@ -1611,7 +1614,7 @@ public final class HomeViewModel: ObservableObject {
 
     private func refreshActions() {
         actions = allActions
-        Logger.debug("[HomeVM] refreshActions() — \(allActions.count) total")
+        logger.debug("refreshActions() — \(self.allActions.count, privacy: .public) total")
 
         guard !allActions.isEmpty else {
             selectedActionID = nil
