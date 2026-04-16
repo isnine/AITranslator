@@ -1,6 +1,7 @@
 Twee krachtige nieuwe vertaalmotoren vervoegen TLingo — Apple Translate voor privacy op het apparaat en Google Translate voor brede taalondersteuning.
 
 Nieuw
+• Tekstselectie-vertaling (macOS) — selecteer tekst in elke app om direct te vertalen. Een zwevend pictogram verschijnt bij uw cursor voor snelle toegang.
 • Apple Translate-integratie — een krachtige vertaalmotor die rechtstreeks op uw apparaat werkt. Begin direct met vertalen zonder taalpakketten te downloaden.
 • Google Translate-integratie — toegang tot de vertaalservice van Google voor nog bredere taalondersteuning.
 • De taalkeuzelijst is uitgebreid naar alle 21 Apple Translate-talen.

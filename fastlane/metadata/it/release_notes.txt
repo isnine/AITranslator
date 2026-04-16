@@ -1,6 +1,7 @@
 Due nuovi potenti motori di traduzione si aggiungono a TLingo — Apple Translate per la privacy sul dispositivo e Google Translate per una copertura linguistica più ampia.
 
 Novità
+• Traduzione per selezione testo (macOS) — seleziona del testo in qualsiasi app per tradurlo istantaneamente. Un'icona fluttuante appare vicino al cursore per un accesso rapido.
 • Integrazione di Apple Translate — un potente motore di traduzione sul dispositivo. Inizia a tradurre immediatamente senza scaricare pacchetti lingua.
 • Integrazione di Google Translate — accedi al servizio di traduzione di Google per un supporto linguistico ancora più ampio.
 • Il selettore di lingua è stato esteso a tutte le 21 lingue di Apple Translate.

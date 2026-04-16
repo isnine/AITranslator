@@ -1,6 +1,7 @@
 Två kraftfulla nya översättningsmotorer ansluter sig till TLingo — Apple Translate för integritet på enheten och Google Translate för bred språktäckning.
 
 Nytt
+• Textmarkeringsöversättning (macOS) — markera text i valfri app för att översätta direkt. En svävande ikon visas nära markören för snabb åtkomst.
 • Apple Translate-integration — en kraftfull översättningsmotor direkt på din enhet. Börja översätta omedelbart utan att ladda ner språkpaket.
 • Google Translate-integration — få tillgång till Googles översättningstjänst för ännu bredare språkstöd.
 • Språkväljaren har utökats till alla 21 Apple Translate-språk.

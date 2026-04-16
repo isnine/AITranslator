@@ -1,6 +1,7 @@
 Two powerful new translation engines join TLingo — Apple Translate for on-device privacy and Google Translate for broad language coverage.
 
 New
+• Text Selection Translation (macOS) — select text in any app to instantly translate. A floating icon appears near your cursor for quick access.
 • Apple Translate integration — a powerful on-device translation engine. Start translating immediately with no language pack downloads needed.
 • Google Translate integration — access Google's translation service for even broader language support.
 • Language selector expanded to all 21 Apple Translate languages.

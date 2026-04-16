@@ -1,6 +1,7 @@
 Zwei leistungsstarke neue Übersetzungsmotoren ergänzen TLingo — Apple Translate für datenschutzfreundliche Übersetzungen auf dem Gerät und Google Translate für breite Sprachabdeckung.
 
 Neu
+• Textauswahl-Übersetzung (macOS) — markieren Sie Text in einer beliebigen App, um ihn sofort zu übersetzen. Ein schwebendes Symbol erscheint neben dem Cursor für schnellen Zugriff.
 • Apple Translate-Integration — ein leistungsstarker On-Device-Übersetzungsmotor. Beginnen Sie sofort mit dem Übersetzen, ohne Sprachpakete herunterzuladen.
 • Google Translate-Integration — greifen Sie auf Googles Übersetzungsdienst für noch umfangreichere Sprachunterstützung zu.
 • Die Sprachauswahl wurde auf alle 21 Apple Translate-Sprachen erweitert.

@@ -1,6 +1,7 @@
 TLingo'ya iki güçlü yeni çeviri motoru ekleniyor — cihaz üzerinde gizlilik için Apple Translate ve geniş dil desteği için Google Translate.
 
 Yeni
+• Metin Seçimi ile Çeviri (macOS) — herhangi bir uygulamada metin seçerek anında çevirin. İmlecin yanında hızlı erişim için kayan bir simge belirir.
 • Apple Translate entegrasyonu — cihazınızda çalışan güçlü bir çeviri motoru. Dil paketi indirmeden hemen çevirmeye başlayın.
 • Google Translate entegrasyonu — daha geniş dil desteği için Google'ın çeviri hizmetine erişin.
 • Dil seçici, tüm 21 Apple Translate diline genişletildi.

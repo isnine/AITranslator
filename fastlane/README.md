@@ -128,6 +128,22 @@ Upload macOS screenshots to App Store Connect
 
 Full macOS screenshot pipeline: capture → frame → upload
 
+### mac upload_metadata
+
+```sh
+[bundle exec] fastlane mac upload_metadata
+```
+
+Upload all metadata (description, keywords, what's new, etc.) to App Store Connect for macOS
+
+### mac release
+
+```sh
+[bundle exec] fastlane mac release
+```
+
+Full macOS release: upload metadata + screenshots
+
 ----
 
 This README.md is auto-generated and will be re-generated every time [_fastlane_](https://fastlane.tools) is run.

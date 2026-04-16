@@ -1,6 +1,7 @@
 Dua mesin terjemahan baru yang canggih hadir di TLingo — Apple Translate untuk privasi di perangkat dan Google Translate untuk cakupan bahasa yang lebih luas.
 
 Baru
+• Terjemahan Seleksi Teks (macOS) — pilih teks di aplikasi mana pun untuk langsung menerjemahkan. Ikon mengambang muncul di dekat kursor untuk akses cepat.
 • Integrasi Apple Translate — mesin terjemahan canggih yang bekerja langsung di perangkat Anda. Mulai menerjemahkan seketika tanpa perlu mengunduh paket bahasa.
 • Integrasi Google Translate — akses layanan terjemahan Google untuk dukungan bahasa yang lebih luas lagi.
 • Pemilih bahasa diperluas ke semua 21 bahasa Apple Translate.
