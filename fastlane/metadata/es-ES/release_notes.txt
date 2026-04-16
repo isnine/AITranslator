@@ -1,17 +1,20 @@
-Traduzca directamente en el dispositivo con Apple Translate — sin descargas, resultados instantáneos desde la app o la extensión de traducción del sistema.
+Dos potentes nuevos motores de traducción se incorporan a TLingo — Apple Translate para mayor privacidad en el dispositivo y Google Translate para una cobertura lingüística más amplia.
 
 Nuevo
-• La integración de Apple Translate incorpora un potente motor de traducción directamente en su dispositivo. Comience a traducir de inmediato — sin necesidad de descargar paquetes de idiomas.
-• La detección del idioma de origen ahora muestra qué idioma se detectó con un indicador visual claro, para que siempre sepa qué se está traduciendo.
-• Consulte qué paquetes de idiomas de Apple Translate están instalados en su dispositivo directamente desde la página de Modelos.
+• Integración de Apple Translate — un potente motor de traducción en el dispositivo. Comience a traducir de inmediato sin necesidad de descargar paquetes de idiomas.
+• Integración de Google Translate — acceda al servicio de traducción de Google para una compatibilidad lingüística aún más amplia.
+• El selector de idiomas se ha ampliado a los 21 idiomas de Apple Translate.
+• La detección del idioma de origen ahora muestra qué idioma se detectó con un indicador visual claro.
+• Consulte los paquetes de idiomas de Apple Translate instalados directamente desde la página de Modelos.
 
 Mejorado
-• Las tarjetas del historial de traducción ahora distinguen claramente entre el texto original y el resultado traducido — más fácil de revisar y consultar.
-• Barra lateral de macOS rediseñada con NavigationSplitView nativo para una experiencia más fluida y responsiva.
+• La página de Modelos ahora muestra solo los idiomas descargados para una vista más limpia.
+• Las tarjetas del historial de traducción distinguen claramente el texto original del resultado traducido.
+• Barra lateral de macOS rediseñada con NavigationSplitView nativo para una experiencia más fluida.
 • Los registros del historial se muestran directamente en la barra lateral de macOS para un acceso más rápido.
 
 Corregido
-• Resueltos problemas de diseño en el menú del selector de idiomas.
+• Resueltos problemas de diseño en el menú del selector de idiomas de destino.
 • La ventana de descarga de idiomas ahora aparece en la posición correcta.
 • La sincronización de configuración de la extensión de traducción funciona de manera fiable entre la app y la extensión.
 • Diversas mejoras de estabilidad en toda la aplicación.

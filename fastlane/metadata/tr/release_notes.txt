@@ -1,13 +1,16 @@
-Apple Translate ile doğrudan cihazda çeviri yapın — indirme gerekmez, uygulamadan veya sistem çeviri eklentisinden anında sonuç alın.
+TLingo'ya iki güçlü yeni çeviri motoru ekleniyor — cihaz üzerinde gizlilik için Apple Translate ve geniş dil desteği için Google Translate.
 
 Yeni
-• Apple Translate entegrasyonu, güçlü bir cihaz üzerinde çeviri motorunu TLingo'ya getiriyor. Dil paketi indirmeden hemen çevirmeye başlayın.
-• Kaynak dil algılama artık hangi dilin algılandığını net bir görsel göstergeyle gösteriyor, böylece neyin çevrildiğini her zaman bilirsiniz.
-• Cihazınızda hangi Apple Translate dil paketlerinin yüklü olduğunu doğrudan Modeller sayfasından kontrol edin.
+• Apple Translate entegrasyonu — cihazınızda çalışan güçlü bir çeviri motoru. Dil paketi indirmeden hemen çevirmeye başlayın.
+• Google Translate entegrasyonu — daha geniş dil desteği için Google'ın çeviri hizmetine erişin.
+• Dil seçici, tüm 21 Apple Translate diline genişletildi.
+• Kaynak dil algılama artık hangi dilin algılandığını net bir görsel göstergeyle gösteriyor.
+• Yüklü Apple Translate dil paketlerini doğrudan Modeller sayfasından görüntüleyin.
 
 İyileştirme
-• Çeviri geçmişi kartları artık kaynak metni ve çeviri sonucunu açıkça ayırt ediyor — taramak ve başvurmak daha kolay.
-• macOS kenar çubuğu, daha akıcı ve duyarlı bir deneyim için yerel NavigationSplitView ile yeniden tasarlandı.
+• Modeller sayfası artık daha temiz bir görünüm için yalnızca indirilen dilleri gösteriyor.
+• Çeviri geçmişi kartları artık kaynak metni ve çeviri sonucunu açıkça ayırt ediyor.
+• macOS kenar çubuğu, daha akıcı bir deneyim için yerel NavigationSplitView ile yeniden tasarlandı.
 • Geçmiş kayıtları, daha hızlı erişim için macOS kenar çubuğunda doğrudan görüntüleniyor.
 
 Düzeltme

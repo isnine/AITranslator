@@ -1,13 +1,16 @@
-Översätt direkt på enheten med Apple Translate — ingen nedladdning krävs, omedelbara resultat direkt från appen eller systemets översättningsfunktion.
+Två kraftfulla nya översättningsmotorer ansluter sig till TLingo — Apple Translate för integritet på enheten och Google Translate för bred språktäckning.
 
 Nytt
-• Apple Translate-integrationen ger en kraftfull översättningsmotor direkt på din enhet. Börja översätta omedelbart — utan att ladda ner språkpaket.
-• Källspråksigenkänning visar nu vilket språk som identifierades med en tydlig visuell indikator, så att du alltid vet vad som översätts.
-• Se vilka Apple Translate-språkpaket som är installerade på din enhet direkt från Modeller-sidan.
+• Apple Translate-integration — en kraftfull översättningsmotor direkt på din enhet. Börja översätta omedelbart utan att ladda ner språkpaket.
+• Google Translate-integration — få tillgång till Googles översättningstjänst för ännu bredare språkstöd.
+• Språkväljaren har utökats till alla 21 Apple Translate-språk.
+• Källspråksigenkänning visar nu vilket språk som identifierades med en tydlig visuell indikator.
+• Se installerade Apple Translate-språkpaket direkt från Modeller-sidan.
 
 Förbättrat
-• Översättningshistorik-kort skiljer nu tydligt mellan din källtext och det översatta resultatet — enklare att skanna och referera till.
-• macOS-sidofältet har omarbetats med native NavigationSplitView för en smidigare och mer responsiv upplevelse.
+• Modeller-sidan visar nu bara nedladdade språk för en renare vy.
+• Översättningshistorik-kort skiljer nu tydligt mellan källtexten och det översatta resultatet.
+• macOS-sidofältet har omarbetats med native NavigationSplitView för en smidigare upplevelse.
 • Historikposter visas direkt i macOS-sidofältet för snabbare åtkomst.
 
 Åtgärdat

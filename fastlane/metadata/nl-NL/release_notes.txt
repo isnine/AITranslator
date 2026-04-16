@@ -1,13 +1,16 @@
-Vertaal direct op het apparaat met Apple Translate — geen download nodig, directe resultaten vanuit de app of de systeemvertaalextensie.
+Twee krachtige nieuwe vertaalmotoren vervoegen TLingo — Apple Translate voor privacy op het apparaat en Google Translate voor brede taalondersteuning.
 
 Nieuw
-• Apple Translate-integratie brengt een krachtige vertaalengine rechtstreeks op uw apparaat. Begin direct met vertalen — zonder taalpakketten te downloaden.
-• Brontalendetectie toont nu welke taal is gedetecteerd met een duidelijke visuele indicator, zodat u altijd weet wat er wordt vertaald.
-• Bekijk welke Apple Translate-taalpakketten op uw apparaat zijn geïnstalleerd, rechtstreeks vanaf de Modellen-pagina.
+• Apple Translate-integratie — een krachtige vertaalmotor die rechtstreeks op uw apparaat werkt. Begin direct met vertalen zonder taalpakketten te downloaden.
+• Google Translate-integratie — toegang tot de vertaalservice van Google voor nog bredere taalondersteuning.
+• De taalkeuzelijst is uitgebreid naar alle 21 Apple Translate-talen.
+• Brontalendetectie toont nu welke taal is gedetecteerd met een duidelijke visuele indicator.
+• Bekijk geïnstalleerde Apple Translate-taalpakketten direct vanaf de Modellen-pagina.
 
 Verbeterd
-• Vertaalgeschiedenis-kaarten onderscheiden nu duidelijk uw brontekst van het vertaalde resultaat — makkelijker om te scannen en terug te vinden.
-• macOS-zijbalk opnieuw ontworpen met native NavigationSplitView voor een vloeiendere en responsievere ervaring.
+• De Modellen-pagina toont nu alleen gedownloade talen voor een overzichtelijker weergave.
+• Vertaalgeschiedenis-kaarten onderscheiden nu duidelijk de brontekst van het vertaalde resultaat.
+• De macOS-zijbalk is opnieuw ontworpen met native NavigationSplitView voor een vloeiendere ervaring.
 • Geschiedenisrecords worden direct in de macOS-zijbalk weergegeven voor snellere toegang.
 
 Opgelost

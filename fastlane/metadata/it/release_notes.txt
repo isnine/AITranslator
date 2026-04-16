@@ -1,17 +1,20 @@
-Traduci direttamente sul dispositivo con Apple Translate — nessun download necessario, risultati istantanei dall'app o dall'estensione di traduzione di sistema.
+Due nuovi potenti motori di traduzione si aggiungono a TLingo — Apple Translate per la privacy sul dispositivo e Google Translate per una copertura linguistica più ampia.
 
 Novità
-• L'integrazione di Apple Translate porta un potente motore di traduzione direttamente sul Suo dispositivo. Inizi a tradurre immediatamente — senza scaricare pacchetti lingua.
-• Il rilevamento della lingua di origine mostra ora quale lingua è stata rilevata con un chiaro indicatore visivo, così saprà sempre cosa viene tradotto.
-• Verifichi quali pacchetti lingua di Apple Translate sono installati sul Suo dispositivo direttamente dalla pagina Modelli.
+• Integrazione di Apple Translate — un potente motore di traduzione sul dispositivo. Inizia a tradurre immediatamente senza scaricare pacchetti lingua.
+• Integrazione di Google Translate — accedi al servizio di traduzione di Google per un supporto linguistico ancora più ampio.
+• Il selettore di lingua è stato esteso a tutte le 21 lingue di Apple Translate.
+• Il rilevamento della lingua di origine mostra ora quale lingua è stata rilevata con un chiaro indicatore visivo.
+• Visualizza i pacchetti lingua di Apple Translate installati direttamente dalla pagina Modelli.
 
 Migliorato
-• Le schede della cronologia traduzioni distinguono ora chiaramente il testo di origine dal risultato tradotto — più facile da consultare e da ritrovare.
-• La barra laterale di macOS è stata ridisegnata con NavigationSplitView nativo per un'esperienza più fluida e reattiva.
+• La pagina Modelli ora mostra solo le lingue scaricate per una visualizzazione più ordinata.
+• Le schede della cronologia traduzioni distinguono chiaramente il testo di origine dal risultato tradotto.
+• La barra laterale di macOS è stata ridisegnata con NavigationSplitView nativo per un'esperienza più fluida.
 • I record della cronologia vengono visualizzati direttamente nella barra laterale di macOS per un accesso più rapido.
 
 Corretto
-• Risolti i problemi di layout del menu del selettore lingua.
+• Risolti i problemi di layout del menu di destinazione del selettore lingua.
 • La finestra di download della lingua appare ora nella posizione corretta.
 • La sincronizzazione della configurazione dell'estensione di traduzione funziona in modo affidabile tra app ed estensione.
 • Diversi miglioramenti di stabilità in tutta l'applicazione.

@@ -1,14 +1,17 @@
-Direkt auf dem Gerät übersetzen mit Apple Translate — kein Download erforderlich, sofortige Ergebnisse direkt aus der App oder der System-Übersetzungserweiterung.
+Zwei leistungsstarke neue Übersetzungsmotoren ergänzen TLingo — Apple Translate für datenschutzfreundliche Übersetzungen auf dem Gerät und Google Translate für breite Sprachabdeckung.
 
 Neu
-• Die Apple Translate-Integration bringt eine leistungsstarke Übersetzungsmaschine direkt auf Ihr Gerät. Beginnen Sie sofort mit dem Übersetzen — ohne Sprachpakete herunterzuladen.
-• Die Quellspracherkennung zeigt nun mit einem deutlichen visuellen Indikator an, welche Sprache erkannt wurde, damit Sie immer wissen, was übersetzt wird.
-• Prüfen Sie direkt auf der Modelle-Seite, welche Apple Translate-Sprachpakete auf Ihrem Gerät installiert sind.
+• Apple Translate-Integration — ein leistungsstarker On-Device-Übersetzungsmotor. Beginnen Sie sofort mit dem Übersetzen, ohne Sprachpakete herunterzuladen.
+• Google Translate-Integration — greifen Sie auf Googles Übersetzungsdienst für noch umfangreichere Sprachunterstützung zu.
+• Die Sprachauswahl wurde auf alle 21 Apple Translate-Sprachen erweitert.
+• Die Quellspracherkennung zeigt nun mit einem deutlichen visuellen Indikator an, welche Sprache erkannt wurde.
+• Überprüfen Sie installierte Apple Translate-Sprachpakete direkt auf der Modelle-Seite.
 
 Verbessert
-• Übersetzungsverlauf-Karten unterscheiden nun klar zwischen Ihrem Quelltext und dem übersetzten Ergebnis — einfacher zu überblicken und nachzuschlagen.
-• Die macOS-Seitenleiste wurde mit nativem NavigationSplitView für ein flüssigeres und reaktionsschnelleres Erlebnis neu gestaltet.
-• Verlaufseinträge werden direkt in der macOS-Seitenleiste angezeigt, für schnelleren Zugriff.
+• Die Modelle-Seite zeigt nun nur heruntergeladene Sprachen für eine übersichtlichere Ansicht.
+• Übersetzungsverlauf-Karten unterscheiden nun klar zwischen dem Quelltext und dem übersetzten Ergebnis.
+• Die macOS-Seitenleiste wurde mit nativem NavigationSplitView für ein flüssigeres Erlebnis neu gestaltet.
+• Verlaufseinträge werden direkt in der macOS-Seitenleiste angezeigt für schnelleren Zugriff.
 
 Behoben
 • Layoutprobleme im Zielmenü des Sprachumschalters behoben.
