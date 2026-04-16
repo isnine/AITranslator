@@ -19,6 +19,7 @@
 		CE9B52832F70331F00914308 /* TLingo: AI Translator.storekit in Resources */ = {isa = PBXBuildFile; fileRef = CE9B52822F70331F00914308 /* TLingo: AI Translator.storekit */; };
 		CE9B52842F70331F00914308 /* TLingo: AI Translator.storekit in Resources */ = {isa = PBXBuildFile; fileRef = CE9B52822F70331F00914308 /* TLingo: AI Translator.storekit */; };
 		CE9B52852F70331F00914308 /* TLingo: AI Translator.storekit in Resources */ = {isa = PBXBuildFile; fileRef = CE9B52822F70331F00914308 /* TLingo: AI Translator.storekit */; };
+		CEF8C8842F90768B005141F7 /* LookinServer in Frameworks */ = {isa = PBXBuildFile; productRef = CEF8C8832F90768B005141F7 /* LookinServer */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -168,6 +169,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CE2263882EB2509600BB7BEF /* ShareCore.framework in Frameworks */,
+				CEF8C8842F90768B005141F7 /* LookinServer in Frameworks */,
 				C470DB9E2F37431400517417 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -314,6 +316,7 @@
 			);
 			name = TLingo;
 			packageProductDependencies = (
+				CEF8C8832F90768B005141F7 /* LookinServer */,
 			);
 			productName = TLingo;
 			productReference = CE4EB0DD2EA33ADD00DDDFA5 /* TLingo.app */;
@@ -403,6 +406,9 @@
 			);
 			mainGroup = CE4EB0D42EA33ADD00DDDFA5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CEF8C8822F90768B005141F7 /* XCRemoteSwiftPackageReference "LookInside" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CE4EB0DE2EA33ADD00DDDFA5 /* Products */;
 			projectDirPath = "";
@@ -809,7 +815,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -870,7 +876,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
@@ -911,7 +917,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TranslationUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -945,7 +951,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.TranslationUI;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -986,7 +992,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.ShareCore;
@@ -1034,7 +1040,7 @@
 					"@loader_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 2.7;
+				MARKETING_VERSION = 2.8;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
 				PRODUCT_BUNDLE_IDENTIFIER = com.zanderwang.AITranslator.ShareCore;
@@ -1115,6 +1121,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CEF8C8822F90768B005141F7 /* XCRemoteSwiftPackageReference "LookInside" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Lakr233/LookInside";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.6;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CEF8C8832F90768B005141F7 /* LookinServer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CEF8C8822F90768B005141F7 /* XCRemoteSwiftPackageReference "LookInside" */;
+			productName = LookinServer;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = CE4EB0D52EA33ADD00DDDFA5 /* Project object */;
 }
