@@ -337,12 +337,12 @@
                             onCopy: { text in
                                 PasteboardHelper.copy(text)
                             },
-                            onChat: run.model.isLocal ? nil : {
+                            onChat: run.model.isDirectTranslation ? nil : {
                                 if let session = viewModel.createConversation(from: run) {
                                     activeConversationSession = session
                                 }
                             },
-                            onSuggestedAction: run.model.isLocal ? nil : { action in
+                            onSuggestedAction: run.model.isDirectTranslation ? nil : { action in
                                 if let session = viewModel.createConversationWithFollowUp(from: run, followUp: action) {
                                     activeConversationSession = session
                                 }

@@ -32,9 +32,9 @@ struct ModelsView: View {
     private var hasReachedFreeLimit: Bool {
         guard !storeManager.isPremium else { return false }
         let freeModelIDs = Set(models.filter { !$0.isPremium }.map(\.id))
-        // Apple Translate doesn't count toward the free cloud model limit.
+        // Apple Translate and Google Translate don't count toward the free cloud model limit.
         let activeFreeCount = enabledModelIDs.intersection(freeModelIDs)
-            .subtracting([ModelConfig.appleTranslateID]).count
+            .subtracting([ModelConfig.appleTranslateID, ModelConfig.googleTranslateID]).count
         #if DEBUG
         print("[ModelsView] enabledModelIDs=\(enabledModelIDs), freeModelIDs=\(freeModelIDs), activeFreeCount=\(activeFreeCount), isPremium=\(storeManager.isPremium)")
         #endif
@@ -128,10 +128,8 @@ struct ModelsView: View {
                 }
             }
 
-            // On-device models render independently of cloud config state
-            if AppleTranslationService.shared.isAvailable {
-                onDeviceModelSection
-            }
+            // Translation services (Google Translate + Apple Translate)
+            translationServicesSection
 
             if let error = errorMessage {
                 errorView(error)
@@ -169,128 +167,196 @@ struct ModelsView: View {
 
     // MARK: - On-Device Models
 
-    private var onDeviceModelSection: some View {
-        let model = ModelConfig.appleTranslate
-        let isEnabled = enabledModelIDs.contains(model.id)
-        let installedLangs = installedLanguageOptions
+    // MARK: - Translation Services
 
-        return VStack(alignment: .leading, spacing: 12) {
+    private var translationServicesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Image(systemName: "apple.logo")
+                Image(systemName: "globe")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundColor(colors.textSecondary)
-                Text("ON-DEVICE")
+                Text("TRANSLATION")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(colors.textSecondary)
             }
             .padding(.leading, 4)
 
             VStack(spacing: 0) {
-                Button {
-                    #if DEBUG
-                    print("[ModelsView] AppleTranslate TAPPED: isEnabled=\(isEnabled)")
-                    #endif
-                    toggleAppleTranslate()
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 22))
-                            .foregroundColor(isEnabled ? colors.accent : colors.textSecondary.opacity(0.4))
+                // Google Translate row
+                googleTranslateRow
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 8) {
-                                Text(model.displayName)
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(colors.textPrimary)
-
-                                Text("On-Device")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(.green)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.green.opacity(0.15))
-                                    .clipShape(Capsule())
-                            }
-
-                            Text("Private & On-Device")
-                                .font(.system(size: 13))
-                                .foregroundColor(colors.textSecondary)
-                        }
-
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-
-                // Installed languages summary & expandable list
-                if isEnabled {
+                // Apple Translate row (only when available)
+                if AppleTranslationService.shared.isAvailable {
                     Divider()
                         .padding(.leading, 50)
-
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            showInstalledLanguages.toggle()
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: showInstalledLanguages ? "chevron.down" : "chevron.right")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(colors.textSecondary.opacity(0.5))
-                            Text("\(installedLangs.count) languages downloaded")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(colors.textSecondary)
-                            Spacer()
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    if showInstalledLanguages {
-                        ForEach(installedLangs) { lang in
-                            Divider()
-                                .padding(.leading, 50)
-
-                            HStack(spacing: 8) {
-                                Text(lang.nativeName)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(colors.textPrimary)
-                                Text(lang.englishName)
-                                    .font(.system(size: 13))
-                                    .foregroundColor(colors.textSecondary)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                        }
-
-                        Divider()
-                            .padding(.leading, 50)
-
-                        Button {
-                            showDownloadLanguagesGuide = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "questionmark.circle")
-                                    .font(.system(size: 14))
-                                Text("How to Download More Languages")
-                                    .font(.system(size: 14, weight: .medium))
-                            }
-                            .foregroundColor(colors.accent)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
+                    appleTranslateRow
                 }
             }
             .background(cardBackground)
         }
+    }
+
+    private var googleTranslateRow: some View {
+        let model = ModelConfig.googleTranslate
+        let isEnabled = enabledModelIDs.contains(model.id)
+
+        return Button {
+            toggleGoogleTranslate()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundColor(isEnabled ? colors.accent : colors.textSecondary.opacity(0.4))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(model.displayName)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(colors.textPrimary)
+
+                        Text("Free")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.blue)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.blue.opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+
+                    Text("Free, no API key needed")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var appleTranslateRow: some View {
+        let model = ModelConfig.appleTranslate
+        let isEnabled = enabledModelIDs.contains(model.id)
+        let installedLangs = installedLanguageOptions
+
+        Button {
+            toggleAppleTranslate()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundColor(isEnabled ? colors.accent : colors.textSecondary.opacity(0.4))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(model.displayName)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(colors.textPrimary)
+
+                        Text("On-Device")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.green.opacity(0.15))
+                            .clipShape(Capsule())
+                    }
+
+                    Text("Private & On-Device")
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+
+        // Installed languages summary & expandable list
+        if isEnabled {
+            Divider()
+                .padding(.leading, 50)
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showInstalledLanguages.toggle()
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: showInstalledLanguages ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(colors.textSecondary.opacity(0.5))
+                    Text("\(installedLangs.count) languages downloaded")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(colors.textSecondary)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if showInstalledLanguages {
+                ForEach(installedLangs) { lang in
+                    Divider()
+                        .padding(.leading, 50)
+
+                    HStack(spacing: 8) {
+                        Text(lang.nativeName)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(colors.textPrimary)
+                        Text(lang.englishName)
+                            .font(.system(size: 13))
+                            .foregroundColor(colors.textSecondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                }
+
+                Divider()
+                    .padding(.leading, 50)
+
+                Button {
+                    showDownloadLanguagesGuide = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "questionmark.circle")
+                            .font(.system(size: 14))
+                        Text("How to Download More Languages")
+                            .font(.system(size: 14, weight: .medium))
+                    }
+                    .foregroundColor(colors.accent)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func toggleGoogleTranslate() {
+        let id = ModelConfig.googleTranslateID
+        var newSet = enabledModelIDs
+        let wasEnabled = newSet.contains(id)
+
+        if wasEnabled {
+            newSet.remove(id)
+        } else {
+            newSet.insert(id)
+        }
+
+        enabledModelIDs = newSet
+        preferences.setEnabledModelIDs(newSet)
     }
 
     private var installedLanguageOptions: [TargetLanguageOption] {

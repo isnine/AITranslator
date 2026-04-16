@@ -535,12 +535,12 @@ public final class HomeViewModel: ObservableObject {
 
         // Fallback: if all selected models were filtered out (e.g. user downgraded),
         // use the default free model so the send button never silently fails.
-        // Skip fallback if Apple Translate is selected — it alone is sufficient.
-        let appleTranslateSelected = enabledIDs.contains(ModelConfig.appleTranslateID)
-        if available.isEmpty && !models.isEmpty && !appleTranslateSelected {
+        // Skip fallback if Apple Translate or Google Translate is selected — either alone is sufficient.
+        let directTranslateSelected = enabledIDs.contains(where: { ModelConfig.isDirectTranslationID($0) })
+        if available.isEmpty && !models.isEmpty && !directTranslateSelected {
             available = models.filter { $0.isDefault && !$0.isPremium }
         }
-        if available.isEmpty && !models.isEmpty && !appleTranslateSelected {
+        if available.isEmpty && !models.isEmpty && !directTranslateSelected {
             available = Array(models.filter { !$0.isPremium }.prefix(1))
         }
 
@@ -553,6 +553,16 @@ public final class HomeViewModel: ObservableObject {
            let action = selectedAction, action.supportsAppleTranslate
         {
             available.insert(ModelConfig.appleTranslate, at: 0)
+        }
+
+        // Inject Google Translate for translation actions.
+        if enabledIDs.contains(ModelConfig.googleTranslateID),
+           let action = selectedAction, action.supportsAppleTranslate
+        {
+            // Insert after Apple Translate if present, otherwise at the beginning.
+            let insertIndex = available.firstIndex(where: { $0.id == ModelConfig.appleTranslateID })
+                .map { available.index(after: $0) } ?? 0
+            available.insert(ModelConfig.googleTranslate, at: insertIndex)
         }
 
         Logger.debug("[HomeViewModel] getEnabledModels result: \(available.map(\.id))")
@@ -614,9 +624,9 @@ public final class HomeViewModel: ObservableObject {
         guard !availableIDs.isEmpty else { return }
 
         let currentEnabled = preferences.enabledModelIDs
-        // Preserve local model IDs (e.g. apple-translate) that are not in the
-        // cloud/fallback models list but are still valid selections.
-        let localIDs = currentEnabled.filter { ModelConfig.isLocalModelID($0) }
+        // Preserve local/direct-translation model IDs (e.g. apple-translate, google-translate)
+        // that are not in the cloud/fallback models list but are still valid selections.
+        let localIDs = currentEnabled.filter { ModelConfig.isDirectTranslationID($0) }
         var resolved = currentEnabled.intersection(availableIDs).union(localIDs)
         if resolved.isEmpty {
             let defaults = Set(models.filter { $0.isDefault }.map { $0.id })
@@ -634,6 +644,8 @@ public final class HomeViewModel: ObservableObject {
     public func selectAction(_ action: ActionConfig) -> Bool {
         guard selectedActionID != action.id else { return false }
         selectedActionID = action.id
+        resolvedTargetLanguage = nil
+        detectedSourceLanguage = nil
         return true
     }
 
@@ -927,7 +939,7 @@ public final class HomeViewModel: ObservableObject {
                 prompt: prompt,
                 text: text,
                 targetLanguage: resolvedTarget.promptDescriptor,
-                sourceLanguage: ""
+                sourceLanguage: detectedSourceLanguage?.promptDescriptor ?? ""
             )
             let promptContainsTextPlaceholder = PromptSubstitution.containsTextPlaceholder(prompt)
 
@@ -988,40 +1000,67 @@ public final class HomeViewModel: ObservableObject {
         perRunTasks.values.forEach { $0.cancel() }
     }
 
+    /// Result of `consumeResolvedTarget`: the resolved target language and
+    /// the detected/pinned source language code (for reuse by Apple/Google/LLM engines).
+    struct ResolvedLanguagePair {
+        let target: TargetLanguageOption
+        /// BCP 47 source code (e.g. "en", "zh-Hans"), or nil when detection failed.
+        let sourceCode: String?
+
+        var targetLanguageDescriptor: String { target.promptDescriptor }
+
+        /// Human-readable source descriptor for LLM prompts, e.g. "日本語 (Japanese)".
+        /// Empty when source is unknown (auto-detect failed).
+        var sourceLanguageDescriptor: String {
+            guard let code = sourceCode else { return "" }
+            let option = SourceLanguageOption(rawValue: code)
+                ?? SourceLanguageOption(rawValue: String(code.prefix(2)))
+            return option?.promptDescriptor ?? ""
+        }
+    }
+
     /// Consumes `targetLanguageOverride` if set, otherwise resolves from source language or auto-detects from `text`.
-    private func consumeResolvedTarget(for text: String) -> TargetLanguageOption {
+    /// Returns both the resolved target and the detected source code so that callers (Apple Translate,
+    /// Google Translate, LLM) can reuse the detection result without re-running NLLanguageRecognizer.
+    private func consumeResolvedTarget(for text: String) -> ResolvedLanguagePair {
+        let sourceCode = detectSourceCode(for: text)
+
         if let override = targetLanguageOverride {
             targetLanguageOverride = nil
-            return override
+            return ResolvedLanguagePair(target: override, sourceCode: sourceCode)
         }
         let preferred = AppPreferences.shared.targetLanguage
-        let sourceLanguage = AppPreferences.shared.sourceLanguage
-        if sourceLanguage != .auto {
-            // User pinned source language — surface it as detectedSource for strikethrough UI
-            detectedSourceLanguage = sourceLanguage
-            return SourceLanguageDetector.resolveTargetLanguage(
-                forKnownSourceCode: sourceLanguage.rawValue,
+        if let code = sourceCode {
+            let target = SourceLanguageDetector.resolveTargetLanguage(
+                forKnownSourceCode: code,
                 preferred: preferred
             )
+            return ResolvedLanguagePair(target: target, sourceCode: code)
         }
-        // Auto mode: detect once, use result for both UI strikethrough and target resolution
-        if let detected = SourceLanguageDetector.detectLocaleLanguage(of: text) {
-            var detectedCode = detected.languageCode?.identifier ?? ""
-            if let script = detected.script {
-                detectedCode += "-" + script.identifier
-            }
-            detectedSourceLanguage = SourceLanguageOption(rawValue: detectedCode)
-                ?? SourceLanguageOption(rawValue: String(detectedCode.prefix(2)))
-            // Use the known code to skip a redundant detectLanguage call inside resolveTargetLanguage
-            return SourceLanguageDetector.resolveTargetLanguage(
-                forKnownSourceCode: detectedCode,
-                preferred: preferred
-            )
-        }
-        return SourceLanguageDetector.resolveTargetLanguage(
+        let target = SourceLanguageDetector.resolveTargetLanguage(
             for: text,
             preferred: preferred
         )
+        return ResolvedLanguagePair(target: target, sourceCode: nil)
+    }
+
+    /// Detects the source language code and sets `detectedSourceLanguage` for UI.
+    private func detectSourceCode(for text: String) -> String? {
+        let sourceLanguage = AppPreferences.shared.sourceLanguage
+        if sourceLanguage != .auto {
+            detectedSourceLanguage = sourceLanguage
+            return sourceLanguage.rawValue
+        }
+        if let detected = SourceLanguageDetector.detectLocaleLanguage(of: text) {
+            var code = detected.languageCode?.identifier ?? ""
+            if let script = detected.script {
+                code += "-" + script.identifier
+            }
+            detectedSourceLanguage = SourceLanguageOption(rawValue: code)
+                ?? SourceLanguageOption(rawValue: String(code.prefix(2)))
+            return code
+        }
+        return nil
     }
 
     private func executeSingleModelRequest(
@@ -1034,15 +1073,21 @@ public final class HomeViewModel: ObservableObject {
     ) async {
         guard !Task.isCancelled else { return }
 
-        let resolvedTarget = consumeResolvedTarget(for: text)
-        let targetLanguageDescriptor = resolvedTarget.promptDescriptor
+        let resolved = consumeResolvedTarget(for: text)
+        let resolvedTarget = resolved.target
+        let preferred = AppPreferences.shared.targetLanguage
+        if resolvedTarget != preferred {
+            Logger.debug("[LanguageRedirect] SingleModel target redirected: \(preferred.rawValue) (\(preferred.primaryLabel)) → \(resolvedTarget.rawValue) (\(resolvedTarget.primaryLabel)), detectedSource=\(detectedSourceLanguage?.rawValue ?? "nil")")
+            resolvedTargetLanguage = resolvedTarget
+        }
 
         let _ = await llmService.perform(
             text: text,
             with: action,
             models: [model],
             images: images,
-            targetLanguageDescriptor: targetLanguageDescriptor,
+            targetLanguageDescriptor: resolved.targetLanguageDescriptor,
+            sourceLanguageDescriptor: resolved.sourceLanguageDescriptor,
             partialHandler: { [weak self] modelID, update in
                 guard let self else { return }
                 guard self.perRunRequestIDs[runID] == requestID else { return }
@@ -1088,18 +1133,23 @@ public final class HomeViewModel: ObservableObject {
     ) async {
         guard !Task.isCancelled else { return }
 
-        let resolvedTarget = consumeResolvedTarget(for: text)
-        let targetLanguageDescriptor = resolvedTarget.promptDescriptor
+        let resolved = consumeResolvedTarget(for: text)
+        let resolvedTarget = resolved.target
 
         // Surface the resolved language in the UI only when it differs from the preference
-        if resolvedTarget != AppPreferences.shared.targetLanguage {
+        let preferred = AppPreferences.shared.targetLanguage
+        if resolvedTarget != preferred {
+            Logger.debug("[LanguageRedirect] Target redirected: \(preferred.rawValue) (\(preferred.primaryLabel)) → \(resolvedTarget.rawValue) (\(resolvedTarget.primaryLabel)), detectedSource=\(detectedSourceLanguage?.rawValue ?? "nil"), sourceLanguageSetting=\(AppPreferences.shared.sourceLanguage.rawValue)")
             resolvedTargetLanguage = resolvedTarget
+        } else {
+            Logger.debug("[LanguageRedirect] No redirect needed: target=\(preferred.rawValue) (\(preferred.primaryLabel)), detectedSource=\(detectedSourceLanguage?.rawValue ?? "nil")")
         }
 
-        // Separate Apple Translate from cloud models.
-        let cloudModels = models.filter { !$0.isLocal }
+        // Separate direct translation services from cloud LLM models.
+        let cloudModels = models.filter { !$0.isDirectTranslation }
         let hasAppleTranslate = models.contains { $0.isLocal }
-        Logger.debug("[HomeViewModel] executeRequest: models=\(models.map(\.id)), hasAppleTranslate=\(hasAppleTranslate), action.supportsAppleTranslate=\(action.supportsAppleTranslate)")
+        let hasGoogleTranslate = models.contains { $0.isGoogleTranslate }
+        Logger.debug("[HomeViewModel] executeRequest: models=\(models.map(\.id)), hasAppleTranslate=\(hasAppleTranslate), hasGoogleTranslate=\(hasGoogleTranslate), action.supportsAppleTranslate=\(action.supportsAppleTranslate)")
 
         // Kick off Apple Translate if present.
         if hasAppleTranslate {
@@ -1109,7 +1159,7 @@ public final class HomeViewModel: ObservableObject {
                     // TranslationSession(installedSource:target:) path which is faster and more
                     // reliable than waiting for .translationTask() to fire.
                     // Only fall back to .translationTask() when a download is required.
-                    let sourceLocale = resolvedAppleSourceLocale(for: text)
+                    let sourceLocale: Locale.Language? = resolved.sourceCode.map { Locale.Language(identifier: $0) }
                     let targetLocale = resolvedTarget.localeLanguage
                     Logger.debug("[HomeViewModel] Apple Translate: checking language availability before choosing path")
                     Task { [weak self] in
@@ -1190,7 +1240,7 @@ public final class HomeViewModel: ObservableObject {
                 } else {
                     // Non-SwiftUI context (e.g. extension): use TranslationSession(installedSource:target:)
                     // directly. Only works if language packs are already installed.
-                    let sourceLocale = resolvedAppleSourceLocale(for: text)
+                    let sourceLocale: Locale.Language? = resolved.sourceCode.map { Locale.Language(identifier: $0) }
                     let targetLocale = resolvedTarget.localeLanguage
                     Task { [weak self] in
                         guard let self else { return }
@@ -1236,10 +1286,49 @@ public final class HomeViewModel: ObservableObject {
             }
         }
 
+        // Kick off Google Translate if present.
+        if hasGoogleTranslate {
+            if action.supportsAppleTranslate {
+                // Reuse the source code already detected by consumeResolvedTarget
+                let googleSourceCode = resolved.sourceCode
+                Task { [weak self] in
+                    guard let self else { return }
+                    let result = await GoogleTranslateService.shared.translate(
+                        text: text,
+                        sourceCode: googleSourceCode,
+                        targetCode: resolvedTarget.rawValue
+                    )
+                    guard self.activeRequestID == requestID else { return }
+                    self.apply(result: result, allowDiff: false)
+                    if case let .success(message) = result.response,
+                       let idx = self.modelRuns.firstIndex(where: { $0.id == result.modelID })
+                    {
+                        TranslationHistoryService.shared.save(
+                            requestID: requestID,
+                            sourceText: self.currentRequestInputText,
+                            resultText: message,
+                            actionName: action.name,
+                            targetLanguage: self.resolvedTargetLanguage?.englishName ?? "",
+                            modelID: result.modelID,
+                            modelDisplayName: self.modelRuns[idx].modelDisplayName,
+                            duration: result.duration
+                        )
+                    }
+                }
+            } else {
+                let result = ModelExecutionResult(
+                    modelID: ModelConfig.googleTranslateID,
+                    duration: 0,
+                    response: .failure(LocalProviderError.unsupportedAction)
+                )
+                apply(result: result, allowDiff: false)
+            }
+        }
+
         // Run cloud models through the existing LLM path.
         guard !cloudModels.isEmpty else {
-            // Only Apple Translate was selected; skip cloud path.
-            if !hasAppleTranslate {
+            // Only direct translation services were selected; skip cloud path.
+            if !hasAppleTranslate && !hasGoogleTranslate {
                 // No models at all — shouldn't reach here but guard anyway.
                 if activeRequestID == requestID {
                     currentRequestTask = nil
@@ -1254,7 +1343,8 @@ public final class HomeViewModel: ObservableObject {
             with: action,
             models: cloudModels,
             images: images,
-            targetLanguageDescriptor: targetLanguageDescriptor,
+            targetLanguageDescriptor: resolved.targetLanguageDescriptor,
+            sourceLanguageDescriptor: resolved.sourceLanguageDescriptor,
             partialHandler: { [weak self] modelID, update in
                 guard let self else { return }
                 guard self.activeRequestID == requestID else { return }
@@ -1390,19 +1480,6 @@ public final class HomeViewModel: ObservableObject {
     }
 
     // MARK: - Apple Translation Execution
-
-    /// Resolves the source language for an Apple Translate request.
-    /// Uses the user-pinned source if set; otherwise auto-detects from text.
-    private func resolvedAppleSourceLocale(for text: String) -> Locale.Language? {
-        let pinned = AppPreferences.shared.sourceLanguage
-        if pinned != .auto {
-            Logger.debug("[HomeViewModel] Apple Translate: source=\(pinned.rawValue) (user-pinned)")
-            return pinned.localeLanguage
-        }
-        let detected = SourceLanguageDetector.detectLocaleLanguage(of: text)
-        Logger.debug("[HomeViewModel] Apple Translate: source=\(detected.map { $0.languageCode?.identifier ?? "unknown" } ?? "nil (detection failed)") (auto-detected)")
-        return detected
-    }
 
     /// Called from HomeView's `.translationTask()` callback once a TranslationSession is available.
     #if canImport(Translation)

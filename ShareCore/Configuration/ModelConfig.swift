@@ -47,6 +47,9 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
     /// Well-known identifier for the on-device Apple Translate model.
     public static let appleTranslateID = "apple-translate"
 
+    /// Well-known identifier for the free Google Translate model.
+    public static let googleTranslateID = "google-translate"
+
     /// Pre-built ModelConfig for Apple Translate.
     public static let appleTranslate = ModelConfig(
         id: appleTranslateID,
@@ -58,12 +61,34 @@ public struct ModelConfig: Identifiable, Hashable, Codable, Sendable {
         hidden: false
     )
 
+    /// Pre-built ModelConfig for Google Translate.
+    public static let googleTranslate = ModelConfig(
+        id: googleTranslateID,
+        displayName: "Google Translate",
+        isDefault: false,
+        isPremium: false,
+        supportsVision: false,
+        tags: ["free"],
+        hidden: false
+    )
+
     /// Whether this model runs locally on-device (e.g. Apple Translate).
     public var isLocal: Bool { id == Self.appleTranslateID }
+
+    /// Whether this is a non-LLM direct translation service (Apple Translate, Google Translate).
+    public var isDirectTranslation: Bool { id == Self.appleTranslateID || id == Self.googleTranslateID }
+
+    /// Whether this model is Google Translate.
+    public var isGoogleTranslate: Bool { id == Self.googleTranslateID }
 
     /// Whether the given model ID refers to a local/on-device model.
     public static func isLocalModelID(_ id: String) -> Bool {
         id == appleTranslateID
+    }
+
+    /// Whether the given model ID refers to a non-LLM direct translation service.
+    public static func isDirectTranslationID(_ id: String) -> Bool {
+        id == appleTranslateID || id == googleTranslateID
     }
 
     public init(from decoder: Decoder) throws {

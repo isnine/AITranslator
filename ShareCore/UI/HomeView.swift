@@ -1062,7 +1062,7 @@ public struct HomeView: View {
     @ViewBuilder
     private func chatButton(for runID: String) -> some View {
         if let run = viewModel.modelRuns.first(where: { $0.id == runID }),
-           !run.model.isLocal
+           !run.model.isDirectTranslation
         {
             Button {
                 if let session = viewModel.createConversation(from: run) {

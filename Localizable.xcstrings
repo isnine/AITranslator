@@ -7112,6 +7112,9 @@
         }
       }
     },
+    "Free, no API key needed" : {
+
+    },
     "General" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10646,9 +10649,6 @@
       }
     },
     "On-Device" : {
-
-    },
-    "ON-DEVICE" : {
 
     },
     "One subscription, all your Apple devices" : {
@@ -20110,6 +20110,9 @@
     },
     "Translation" : {
       "comment" : "Marketplace category"
+    },
+    "TRANSLATION" : {
+
     },
     "Translation output — enables Apple Translate support" : {
 
