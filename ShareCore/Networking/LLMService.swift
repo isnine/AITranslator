@@ -91,6 +91,7 @@ public final class LLMService {
         models: [ModelConfig],
         images: [ImageAttachment] = [],
         targetLanguageDescriptor: String,
+        sourceLanguageDescriptor: String = "",
         partialHandler: (@MainActor @Sendable (String, StreamingUpdate) -> Void)? = nil,
         completionHandler: (@MainActor @Sendable (ModelExecutionResult) -> Void)? = nil
     ) async -> [ModelExecutionResult] {
@@ -116,6 +117,7 @@ public final class LLMService {
                             model: model,
                             images: images,
                             targetLanguageDescriptor: targetLanguageDescriptor,
+                            sourceLanguageDescriptor: sourceLanguageDescriptor,
                             partialHandler: partialHandler
                         )
                     } catch is CancellationError {
@@ -146,6 +148,7 @@ public final class LLMService {
         model: ModelConfig,
         images: [ImageAttachment] = [],
         targetLanguageDescriptor: String,
+        sourceLanguageDescriptor: String = "",
         partialHandler: (@MainActor @Sendable (String, StreamingUpdate) -> Void)?
     ) async throws -> ModelExecutionResult {
         let start = Date()
@@ -187,7 +190,7 @@ public final class LLMService {
                 prompt: action.prompt,
                 text: text,
                 targetLanguage: targetLanguageDescriptor,
-                sourceLanguage: ""
+                sourceLanguage: sourceLanguageDescriptor
             )
             let promptContainsTextPlaceholder = PromptSubstitution.containsTextPlaceholder(action.prompt)
 

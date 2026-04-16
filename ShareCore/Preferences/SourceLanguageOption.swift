@@ -61,4 +61,13 @@ public enum SourceLanguageOption: String, CaseIterable, Identifiable, Codable {
         let english = Locale(identifier: "en")
         return english.localizedString(forIdentifier: rawValue) ?? rawValue
     }
+
+    /// Human-readable descriptor for LLM prompts, e.g. "日本語 (Japanese)".
+    public var promptDescriptor: String {
+        guard self != .auto else { return "" }
+        let native = nativeName
+        let english = englishName
+        guard native != english else { return native }
+        return "\(native) (\(english))"
+    }
 }

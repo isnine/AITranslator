@@ -8,16 +8,95 @@
 import Foundation
 import NaturalLanguage
 
+/// Result of language detection with confidence scoring.
+public struct LanguageDetectionResult: Sendable {
+    public let language: NLLanguage?
+    public let confidence: Double
+    public let isReliable: Bool
+}
+
 /// Detects the source text language and resolves the target language
 /// to avoid translating into the same language as the source.
 public enum SourceLanguageDetector {
 
+    // Languages matching TargetLanguageOption/SourceLanguageOption (20 languages)
+    private static let supportedNLLanguages: [NLLanguage] = [
+        .english, .arabic, .simplifiedChinese, .traditionalChinese,
+        .dutch, .french, .german, .hindi, .indonesian, .italian,
+        .japanese, .korean, .polish, .portuguese, .russian,
+        .spanish, .thai, .turkish, .ukrainian, .vietnamese,
+    ]
+
+    // Prior probability hints — common languages get a slight boost
+    // to improve detection accuracy for short or ambiguous text.
+    private static let languageHints: [NLLanguage: Double] = [
+        .english: 2.0,
+        .simplifiedChinese: 1.5,
+        .traditionalChinese: 0.8,
+        .japanese: 0.6,
+        .korean: 0.5,
+        .french: 0.4, .spanish: 0.4, .italian: 0.4,
+        .portuguese: 0.3, .german: 0.3, .russian: 0.3,
+        .arabic: 0.2, .thai: 0.2, .vietnamese: 0.2,
+        .dutch: 0.2, .polish: 0.2, .turkish: 0.2,
+        .indonesian: 0.2, .hindi: 0.2, .ukrainian: 0.2,
+    ]
+
+    private static let defaultThreshold: Double = 0.3
+    private static let shortTextThreshold: Double = 0.5
+    private static let shortTextMaxLength = 5
+    private static let maxHypotheses = 5
+
     /// Attempts to detect the dominant language of the given text.
     /// Returns `nil` when confidence is too low.
     public static func detectLanguage(of text: String) -> NLLanguage? {
+        detectWithConfidence(of: text).language
+    }
+
+    /// Full detection with confidence scoring.
+    public static func detectWithConfidence(of text: String) -> LanguageDetectionResult {
         let recognizer = NLLanguageRecognizer()
+        recognizer.languageConstraints = supportedNLLanguages
+        recognizer.languageHints = languageHints
         recognizer.processString(text)
-        return recognizer.dominantLanguage
+
+        let hypotheses = recognizer.languageHypotheses(withMaximum: maxHypotheses)
+        let best = hypotheses.max(by: { $0.value < $1.value })
+
+        guard let best else {
+            return LanguageDetectionResult(language: nil, confidence: 0, isReliable: false)
+        }
+
+        let effectiveThreshold = text.count <= shortTextMaxLength
+            ? shortTextThreshold
+            : defaultThreshold
+        let isReliable = best.value >= effectiveThreshold
+
+        if isReliable {
+            return LanguageDetectionResult(
+                language: best.key,
+                confidence: best.value,
+                isReliable: true
+            )
+        }
+
+        // Fallback for very short text: if all characters are basic Latin,
+        // assume English rather than returning nil (which breaks Apple Translate).
+        if text.count <= shortTextMaxLength,
+           text.unicodeScalars.allSatisfy({ $0.isASCII })
+        {
+            return LanguageDetectionResult(
+                language: .english,
+                confidence: best.value,
+                isReliable: false
+            )
+        }
+
+        return LanguageDetectionResult(
+            language: nil,
+            confidence: best.value,
+            isReliable: false
+        )
     }
 
     /// Resolves the target language when the source language is already known (user-pinned).

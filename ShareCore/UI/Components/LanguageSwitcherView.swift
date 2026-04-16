@@ -76,11 +76,7 @@ public struct LanguageSwitcherView: View {
     }
 
     private var filteredTargetOptions: [TargetLanguageOption] {
-        let appleTranslateEnabled = preferences.enabledModelIDs.contains(ModelConfig.appleTranslateID)
-        return TargetLanguageOption.filteredSelectionOptions(
-            appleTranslateEnabled: appleTranslateEnabled,
-            installedLanguages: preferences.appleTranslateInstalledLanguages
-        )
+        TargetLanguageOption.selectionOptions
     }
 
     private var sourceRows: [LanguageRow] {
@@ -181,10 +177,15 @@ public struct LanguageSwitcherView: View {
             } label: {
                 HStack(spacing: 3) {
                     let showDetected = detectedSource != nil && detectedSource != preferences.sourceLanguage
-                    languageLabel(sourceDisplayName)
-                        .strikethrough(showDetected)
                     if showDetected, let detected = detectedSource {
+                        languageLabel(sourceDisplayName)
+                            .strikethrough(true)
+                            .opacity(0.5)
+                            .layoutPriority(-1)
                         languageLabel(detected.primaryLabel)
+                            .layoutPriority(1)
+                    } else {
+                        languageLabel(sourceDisplayName)
                     }
                     Image(systemName: "chevron.up.chevron.down")
                         .font(chevronFont)
@@ -217,10 +218,15 @@ public struct LanguageSwitcherView: View {
                     }
                 } label: {
                     HStack(spacing: 3) {
-                        languageLabel(targetDisplayName)
-                            .strikethrough(showResolved)
                         if showResolved {
+                            languageLabel(targetDisplayName)
+                                .strikethrough(true)
+                                .opacity(0.5)
+                                .layoutPriority(-1)
                             languageLabel(resolved.primaryLabel)
+                                .layoutPriority(1)
+                        } else {
+                            languageLabel(targetDisplayName)
                         }
                         Image(systemName: "chevron.up.chevron.down")
                             .font(chevronFont)
