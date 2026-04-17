@@ -82,6 +82,8 @@ struct AITranslatorApp: App {
     /// Wrapper view that captures the openWindow environment action and provides it to AppDelegate
     struct MainWindowContent: View {
         @Environment(\.openWindow) private var openWindow
+        @ObservedObject private var prefs = AppPreferences.shared
+        @State private var showOnboarding = false
 
         var body: some View {
             RootTabView()
@@ -94,7 +96,15 @@ struct AITranslatorApp: App {
                         }
 
                         // NOTE: Snapshot export is handled in AppDelegate.applicationDidFinishLaunching.
+                        return
                     }
+
+                    if !prefs.hasCompletedOnboarding {
+                        showOnboarding = true
+                    }
+                }
+                .sheet(isPresented: $showOnboarding) {
+                    OnboardingView(isPresented: $showOnboarding)
                 }
         }
     }

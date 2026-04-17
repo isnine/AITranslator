@@ -35,6 +35,7 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var appleTranslateInstalledLanguages: Set<String>
     #if os(macOS)
         @Published public private(set) var textSelectionTranslationEnabled: Bool
+        @Published public private(set) var hasCompletedOnboarding: Bool
     #endif
 
     private let defaults: UserDefaults
@@ -61,6 +62,7 @@ public final class AppPreferences: ObservableObject {
 
         #if os(macOS)
             textSelectionTranslationEnabled = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
+            hasCompletedOnboarding = defaults.bool(forKey: StorageKeys.hasCompletedOnboarding)
         #endif
 
         notificationObserver = NotificationCenter.default.addObserver(
@@ -133,6 +135,13 @@ public final class AppPreferences: ObservableObject {
 
             textSelectionTranslationEnabled = enabled
             defaults.set(enabled, forKey: StorageKeys.textSelectionTranslationEnabled)
+        }
+
+        public func setHasCompletedOnboarding(_ completed: Bool) {
+            guard hasCompletedOnboarding != completed else { return }
+
+            hasCompletedOnboarding = completed
+            defaults.set(completed, forKey: StorageKeys.hasCompletedOnboarding)
         }
     #endif
 
@@ -242,6 +251,11 @@ public final class AppPreferences: ObservableObject {
             if textSelectionTranslationEnabled != storedTextSelection {
                 textSelectionTranslationEnabled = storedTextSelection
             }
+
+            let storedOnboarding = defaults.bool(forKey: StorageKeys.hasCompletedOnboarding)
+            if hasCompletedOnboarding != storedOnboarding {
+                hasCompletedOnboarding = storedOnboarding
+            }
         #endif
 
         let storedEnabledModels = AppPreferences.readEnabledModelIDs(from: defaults)
@@ -338,6 +352,7 @@ private enum StorageKeys {
     static let appleTranslateInstalledLanguages = "apple_translate_installed_languages"
     #if os(macOS)
         static let textSelectionTranslationEnabled = "text_selection_translation_enabled"
+        static let hasCompletedOnboarding = "has_completed_onboarding"
     #endif
     static let satisfactionPromptLastVersion = "satisfaction_prompt_last_version"
     static let satisfactionPromptLastDate = "satisfaction_prompt_last_date"
