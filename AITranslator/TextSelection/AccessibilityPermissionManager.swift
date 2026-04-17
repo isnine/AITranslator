@@ -27,8 +27,12 @@
             startPolling()
         }
 
-        /// Open System Settings > Accessibility.
+        /// Open System Settings > Accessibility and register the app in TCC so it appears in the list.
         func openAccessibilitySettings() {
+            // Side-effect of AXIsProcessTrustedWithOptions: registers TLingo in the Accessibility TCC list.
+            let options = [axTrustedPromptKey: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+
             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
                 NSWorkspace.shared.open(url)
             }
