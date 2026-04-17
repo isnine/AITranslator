@@ -38,9 +38,7 @@ public final class VoicesService: Sendable {
 
         let (data, response) = try await urlSession.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw VoicesServiceError.invalidResponse
-        }
+        let httpResponse = try response.asHTTP(or: VoicesServiceError.invalidResponse)
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             let body = String(data: data, encoding: .utf8)

@@ -136,9 +136,7 @@ public final class ModelsService: Sendable {
 
             let (data, response) = try await urlSession.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw ModelsServiceError.invalidResponse
-            }
+            let httpResponse = try response.asHTTP(or: ModelsServiceError.invalidResponse)
 
             guard (200 ... 299).contains(httpResponse.statusCode) else {
                 let body = String(data: data, encoding: .utf8)

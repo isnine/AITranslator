@@ -242,7 +242,10 @@ public final class LLMService {
             request.httpBody = payloadData
 
             if let jsonString = String(data: payloadData, encoding: .utf8) {
-                logger.debug("Request: model=\(model.displayName, privacy: .public), url=\(requestURL.absoluteString, privacy: .public), action=\(action.name, privacy: .public)")
+                logger
+                    .debug(
+                        "Request: model=\(model.displayName, privacy: .public), url=\(requestURL.absoluteString, privacy: .public), action=\(action.name, privacy: .public)"
+                    )
                 logger.debug("Payload: \(jsonString, privacy: .public)")
             }
 
@@ -260,9 +263,7 @@ public final class LLMService {
             } else {
                 let (data, response) = try await urlSession.data(for: request)
 
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    throw URLError(.badServerResponse)
-                }
+                let httpResponse = try response.asHTTP(or: URLError(.badServerResponse))
 
                 let responseString = String(data: data, encoding: .utf8) ?? ""
                 logger.debug("Response JSON from \(model.displayName, privacy: .public): \(responseString, privacy: .public)")
@@ -315,9 +316,7 @@ public final class LLMService {
 
         try Task.checkCancellation()
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
+        let httpResponse = try response.asHTTP(or: URLError(.badServerResponse))
 
         let upstreamTTFBMs = (httpResponse.value(forHTTPHeaderField: "X-Upstream-TTFB")).flatMap(Double.init)
 
@@ -473,7 +472,6 @@ public final class LLMService {
             .appendingPathComponent(model.id)
             .appendingPathComponent("chat/completions")
 
-
         var request = URLRequest(url: requestURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -491,7 +489,10 @@ public final class LLMService {
         encoder.outputFormatting = []
         request.httpBody = try encoder.encode(payload)
 
-        logger.debug("Continuation: model=\(model.displayName, privacy: .public), url=\(requestURL.absoluteString, privacy: .public), messages=\(messages.count, privacy: .public)")
+        logger
+            .debug(
+                "Continuation: model=\(model.displayName, privacy: .public), url=\(requestURL.absoluteString, privacy: .public), messages=\(messages.count, privacy: .public)"
+            )
 
         try Task.checkCancellation()
 
@@ -499,9 +500,7 @@ public final class LLMService {
 
         try Task.checkCancellation()
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw URLError(.badServerResponse)
-        }
+        let httpResponse = try response.asHTTP(or: URLError(.badServerResponse))
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             var errorBytes: [UInt8] = []

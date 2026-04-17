@@ -9,7 +9,6 @@ import Foundation
 
 /// Free Google Translate via the GTX API (no API key required).
 public final class GoogleTranslateService: Sendable {
-
     public static let shared = GoogleTranslateService()
 
     private let session: URLSession = {
@@ -79,9 +78,7 @@ public final class GoogleTranslateService: Sendable {
 
         let (data, response) = try await session.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw GoogleTranslateError.invalidResponse
-        }
+        let httpResponse = try response.asHTTP(or: GoogleTranslateError.invalidResponse)
         guard httpResponse.statusCode == 200 else {
             let body = String(data: data, encoding: .utf8) ?? ""
             throw GoogleTranslateError.apiError(statusCode: httpResponse.statusCode, message: body)

@@ -131,9 +131,7 @@ public final class TTSPreviewService: NSObject, ObservableObject, AVAudioPlayerD
 
         let (data, response) = try await urlSession.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TTSPreviewError.invalidResponse
-        }
+        let httpResponse = try response.asHTTP(or: TTSPreviewError.invalidResponse)
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             let body = String(data: data, encoding: .utf8)

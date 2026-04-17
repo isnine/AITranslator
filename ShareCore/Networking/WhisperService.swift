@@ -53,9 +53,7 @@ public final class WhisperService: Sendable {
 
         let (data, response) = try await urlSession.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw WhisperError.invalidResponse
-        }
+        let httpResponse = try response.asHTTP(or: WhisperError.invalidResponse)
 
         guard (200 ... 299).contains(httpResponse.statusCode) else {
             let body = String(data: data, encoding: .utf8)
