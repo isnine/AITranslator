@@ -30,17 +30,32 @@ public final class StoreManager: ObservableObject {
     private var transactionListener: Task<Void, Never>?
     private static let premiumKey = "is_premium_subscriber"
 
-    /// `true` when running via TestFlight (sandbox receipt in a non-DEBUG, non-App-Store build).
+    /// `true` when running via TestFlight.
+    ///
+    /// Detection strategy:
+    /// - iOS/iPadOS: App Store receipt path contains `sandboxReceipt`.
+    /// - macOS: the receipt filename is identical to Mac App Store builds, so we additionally
+    ///   check for `/TestFlight/` in the bundle path and fall back to the authoritative
+    ///   `AppTransaction` environment probe, whose result is cached after launch.
     public static var isTestFlight: Bool {
         #if DEBUG
             return false
         #else
-            guard let receiptURL = Bundle.main.appStoreReceiptURL else { return false }
-            // iOS TestFlight uses "sandboxReceipt" as the receipt filename.
-            // macOS TestFlight receipt lives under a path containing "sandboxReceipt".
-            return receiptURL.path.contains("sandboxReceipt")
+            if let receiptURL = Bundle.main.appStoreReceiptURL,
+               receiptURL.path.contains("sandboxReceipt") {
+                return true
+            }
+            #if os(macOS)
+                if Bundle.main.bundlePath.contains("/TestFlight/") { return true }
+            #endif
+            return isTestFlightEnvironmentCached
         #endif
     }
+
+    // Cached because `isTestFlight` must stay synchronous, but the authoritative probe
+    // (`AppTransaction`) is async. Written once from the @MainActor init task; the Bool
+    // write is atomic on our target architectures.
+    nonisolated(unsafe) private static var isTestFlightEnvironmentCached: Bool = false
 
     /// Whether TestFlight premium override is currently active.
     @Published public private(set) var isTestFlightOverride: Bool = false
@@ -76,6 +91,7 @@ public final class StoreManager: ObservableObject {
 
             // Check current entitlements on launch
             Task {
+                await resolveTestFlightEnvironment()
                 await checkSubscriptionStatus()
                 await loadProducts()
             }
@@ -186,6 +202,32 @@ public final class StoreManager: ObservableObject {
         }
 
         updatePremiumStatus(hasActiveSubscription)
+    }
+
+    // MARK: - TestFlight Environment Probe
+
+    /// Authoritative TestFlight detection via `AppTransaction` (covers macOS, where the
+    /// receipt filename heuristic can't distinguish TestFlight from Mac App Store).
+    /// Also restores a previously saved TestFlight override that the synchronous
+    /// `isTestFlight` check may have missed before this probe completed.
+    private func resolveTestFlightEnvironment() async {
+        do {
+            let verification = try await AppTransaction.shared
+            let transaction = try checkVerified(verification)
+            let isSandbox = transaction.environment == .sandbox
+            Self.isTestFlightEnvironmentCached = isSandbox
+            logger.info("AppTransaction environment: \(String(describing: transaction.environment), privacy: .public)")
+
+            if isSandbox {
+                let storedOverride = AppPreferences.sharedDefaults.bool(forKey: Self.testFlightOverrideKey)
+                if storedOverride, !isTestFlightOverride {
+                    isTestFlightOverride = true
+                    updatePremiumStatus(true)
+                }
+            }
+        } catch {
+            logger.error("AppTransaction probe failed: \(error, privacy: .public)")
+        }
     }
 
     // MARK: - TestFlight Premium Toggle

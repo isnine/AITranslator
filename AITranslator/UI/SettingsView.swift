@@ -220,11 +220,18 @@ struct SettingsView: View {
             .padding(.top, 4)
             .contentShape(Rectangle())
             .onTapGesture(count: 2) {
-                guard StoreManager.isTestFlight else { return }
-                let enabled = storeManager.toggleTestFlightPremium()
-                testFlightAlertMessage = enabled
-                    ? "Premium activated (TestFlight)"
-                    : "Premium deactivated (TestFlight)"
+                if StoreManager.isTestFlight {
+                    let enabled = storeManager.toggleTestFlightPremium()
+                    testFlightAlertMessage = enabled
+                        ? "Premium activated (TestFlight)"
+                        : "Premium deactivated (TestFlight)"
+                } else {
+                    #if DEBUG
+                        testFlightAlertMessage = "DEBUG build – premium already enabled automatically."
+                    #else
+                        testFlightAlertMessage = "TestFlight override is only available in TestFlight builds."
+                    #endif
+                }
                 showTestFlightAlert = true
             }
     }
