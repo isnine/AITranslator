@@ -39,28 +39,26 @@ public final class LLMService {
     /// Extracts suggested actions from response text and returns (cleanedText, suggestions).
     /// Looks for pattern: [SUGGESTIONS: action1 | action2 | action3]
     static func extractSuggestedActions(from text: String) -> (String, [String]) {
-        let regex = suggestionsRegex
-        let nsText = text as NSString
-        let range = NSRange(location: 0, length: nsText.length)
-        guard let match = regex.firstMatch(in: text, options: [], range: range) else {
+        let fullRange = NSRange(text.startIndex ..< text.endIndex, in: text)
+        guard let match = suggestionsRegex.firstMatch(in: text, options: [], range: fullRange),
+              let matchRange = Range(match.range, in: text),
+              let captureRange = Range(match.range(at: 1), in: text)
+        else {
             return (text, [])
         }
 
-        let actionsString = nsText.substring(with: match.range(at: 1))
-        let actions = actionsString
+        let stripped = text.replacingCharacters(in: matchRange, with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let actions = text[captureRange]
             .components(separatedBy: "|")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
 
-        // Only accept exactly 3 suggestions
         guard actions.count == 3 else {
-            // Strip the line anyway to keep the display clean
-            let cleaned = nsText.replacingCharacters(in: match.range, with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            return (cleaned, [])
+            return (stripped, [])
         }
 
-        // Truncate each action to max 5 words, capitalize first letter
         let truncated = actions.map { action -> String in
             let words = action.split(separator: " ", maxSplits: 5, omittingEmptySubsequences: true)
             var result = words.prefix(5).joined(separator: " ")
@@ -70,9 +68,7 @@ public final class LLMService {
             return result
         }
 
-        let cleaned = nsText.replacingCharacters(in: match.range, with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return (cleaned, truncated)
+        return (stripped, truncated)
     }
 
     /// Extracts upstream TTFB and estimates client-to-Azure latency from response headers.
