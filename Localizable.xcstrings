@@ -1609,6 +1609,7 @@
       }
     },
     "App stays active when window is closed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -8392,6 +8393,7 @@
       "comment" : "Marketplace error"
     },
     "Keep Running in Menu Bar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

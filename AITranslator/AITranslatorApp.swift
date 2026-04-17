@@ -294,8 +294,7 @@ struct AITranslatorApp: App {
         }
 
         func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
-            // If user enabled "keep running when closed", don't quit when window closes
-            return !AppPreferences.shared.keepRunningWhenClosed
+            false
         }
 
         func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

@@ -34,7 +34,6 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var accentTheme: AccentTheme
     @Published public private(set) var appleTranslateInstalledLanguages: Set<String>
     #if os(macOS)
-        @Published public private(set) var keepRunningWhenClosed: Bool
         @Published public private(set) var textSelectionTranslationEnabled: Bool
     #endif
 
@@ -61,10 +60,6 @@ public final class AppPreferences: ObservableObject {
         defaults.removeObject(forKey: "custom_config_directory")
 
         #if os(macOS)
-            // Default to true - keep app running in menu bar when window is closed
-            keepRunningWhenClosed = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
-                ? true
-                : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
             textSelectionTranslationEnabled = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
         #endif
 
@@ -133,13 +128,6 @@ public final class AppPreferences: ObservableObject {
     }
 
     #if os(macOS)
-        public func setKeepRunningWhenClosed(_ keepRunning: Bool) {
-            guard keepRunningWhenClosed != keepRunning else { return }
-
-            keepRunningWhenClosed = keepRunning
-            defaults.set(keepRunning, forKey: StorageKeys.keepRunningWhenClosed)
-        }
-
         public func setTextSelectionTranslationEnabled(_ enabled: Bool) {
             guard textSelectionTranslationEnabled != enabled else { return }
 
@@ -250,13 +238,6 @@ public final class AppPreferences: ObservableObject {
         }
 
         #if os(macOS)
-            let storedKeepRunning = defaults.object(forKey: StorageKeys.keepRunningWhenClosed) == nil
-                ? true
-                : defaults.bool(forKey: StorageKeys.keepRunningWhenClosed)
-            if keepRunningWhenClosed != storedKeepRunning {
-                keepRunningWhenClosed = storedKeepRunning
-            }
-
             let storedTextSelection = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
             if textSelectionTranslationEnabled != storedTextSelection {
                 textSelectionTranslationEnabled = storedTextSelection
@@ -356,7 +337,6 @@ private enum StorageKeys {
     /// Key for Apple Translate installed language codes
     static let appleTranslateInstalledLanguages = "apple_translate_installed_languages"
     #if os(macOS)
-        static let keepRunningWhenClosed = "keep_running_when_closed"
         static let textSelectionTranslationEnabled = "text_selection_translation_enabled"
     #endif
     static let satisfactionPromptLastVersion = "satisfaction_prompt_last_version"

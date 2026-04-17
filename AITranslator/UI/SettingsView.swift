@@ -157,9 +157,6 @@ struct SettingsView: View {
                 Divider()
                     .padding(.leading, 52)
                 textSelectionTranslationRow
-                Divider()
-                    .padding(.leading, 52)
-                keepRunningRow
             #endif
         }
     }
@@ -592,32 +589,6 @@ private extension SettingsView {
                 NSEvent.removeMonitor(monitor)
                 localEventMonitor = nil
             }
-        }
-
-        var keepRunningRow: some View {
-            HStack(spacing: 16) {
-                SettingsIconBadge(icon: "menubar.rectangle", color: .cyan)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Keep Running in Menu Bar")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(colors.textPrimary)
-                    Text("App stays active when window is closed")
-                        .font(.system(size: 12))
-                        .foregroundColor(colors.textSecondary)
-                }
-
-                Spacer()
-
-                Toggle("", isOn: Binding(
-                    get: { preferences.keepRunningWhenClosed },
-                    set: { preferences.setKeepRunningWhenClosed($0) }
-                ))
-                .labelsHidden()
-                .toggleStyle(.switch)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
         }
 
         var textSelectionTranslationRow: some View {
