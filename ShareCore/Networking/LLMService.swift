@@ -331,7 +331,8 @@ public final class LLMService {
         }
 
         let contentType = (httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "").lowercased()
-        let isSentencePairsMode = structuredOutputConfig?.primaryField == "sentence_pairs"
+        let isSentencePairsMode = structuredOutputConfig?.primaryField == ActionConfig.StructuredOutputConfig
+            .sentencePairsFieldName
         let isStructuredOutputMode = structuredOutputConfig != nil && !isSentencePairsMode
 
         if contentType.contains("text/event-stream") {
@@ -555,7 +556,7 @@ public final class LLMService {
     private func parseSentencePairsFromJSON(_ jsonString: String) -> [SentencePair] {
         guard let data = jsonString.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let pairsArray = json["sentence_pairs"] as? [[String: Any]]
+              let pairsArray = json[ActionConfig.StructuredOutputConfig.sentencePairsFieldName] as? [[String: Any]]
         else {
             return []
         }
@@ -1036,9 +1037,9 @@ private extension LLMService {
         if let structuredOutput,
            let dictionary = message.structuredDictionary()
         {
-            // Check for sentence_pairs array (for sentence-by-sentence translation)
-            if structuredOutput.primaryField == "sentence_pairs",
-               let pairsValue = dictionary["sentence_pairs"],
+            let sentencePairsField = ActionConfig.StructuredOutputConfig.sentencePairsFieldName
+            if structuredOutput.primaryField == sentencePairsField,
+               let pairsValue = dictionary[sentencePairsField],
                case let .array(pairsArray) = pairsValue
             {
                 let pairs = pairsArray.compactMap { item -> SentencePair? in

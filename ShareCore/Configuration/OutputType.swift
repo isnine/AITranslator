@@ -92,9 +92,13 @@ public enum OutputType: String, Codable, CaseIterable, Sendable {
 // MARK: - Built-in Structured Output Templates
 
 public extension ActionConfig.StructuredOutputConfig {
+    /// JSON field name used for the sentence-pairs primary field. The same
+    /// identifier appears in the `jsonSchema` payload below; keep them in sync.
+    static let sentencePairsFieldName = "sentence_pairs"
+
     /// Template for sentence-by-sentence translation
     static let sentencePairs = ActionConfig.StructuredOutputConfig(
-        primaryField: "sentence_pairs",
+        primaryField: sentencePairsFieldName,
         additionalFields: [],
         jsonSchema: """
         {
