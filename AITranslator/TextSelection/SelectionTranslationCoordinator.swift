@@ -23,8 +23,8 @@
             isRunning = true
             logger.info("Text selection translation started")
 
-            selectionMonitor.onTextSelected = { [weak self] point, isEditable in
-                self?.triggerIconController.show(near: point, allowPolish: isEditable)
+            selectionMonitor.onTextSelected = { [weak self] point in
+                self?.triggerIconController.show(near: point)
             }
 
             selectionMonitor.onMouseDown = { [weak self] _ in
@@ -39,11 +39,7 @@
             }
 
             triggerIconController.onTranslateRequested = { [weak self] text in
-                self?.popupController.showAtCursor(text: text, action: .translate)
-            }
-
-            triggerIconController.onPolishRequested = { [weak self] text in
-                self?.popupController.showAtCursor(text: text, action: .polish)
+                self?.popupController.showAtCursor(text: text)
             }
 
             triggerIconController.onDismissed = { [weak self] in

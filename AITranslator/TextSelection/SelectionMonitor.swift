@@ -14,7 +14,7 @@
 
     @MainActor
     final class SelectionMonitor {
-        var onTextSelected: ((CGPoint, Bool) -> Void)?
+        var onTextSelected: ((CGPoint) -> Void)?
         var onMouseDown: ((CGPoint) -> Void)?
 
         nonisolated(unsafe) private var globalMonitor: Any?
@@ -94,17 +94,17 @@
                 try? await Task.sleep(for: .milliseconds(50))
                 guard !Task.isCancelled, !self.isSuppressed else { return }
 
-                if let selection = AccessibilityGrabber.grabSelection(near: point),
-                   !selection.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                if let text = AccessibilityGrabber.grabSelectedText(near: point),
+                   !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 {
-                    self.onTextSelected?(point, selection.isEditable)
+                    self.onTextSelected?(point)
                     return
                 }
 
                 // AX unavailable (Chrome / Electron / etc). Require a deliberate drag
                 // to avoid showing the icon for stray double-clicks on empty space.
                 if dragDistance > 20 {
-                    self.onTextSelected?(point, false)
+                    self.onTextSelected?(point)
                 }
             }
         }

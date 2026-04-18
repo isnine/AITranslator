@@ -2,45 +2,23 @@
 //  TriggerIconController.swift
 //  TLingo
 //
-//  Manages trigger icon lifecycle: show near cursor, hover/click to translate or polish, auto-dismiss.
+//  Manages trigger icon lifecycle: show near cursor, hover/click to translate, auto-dismiss.
 //
 
 #if os(macOS)
     import AppKit
 
-    enum TriggerAction {
-        case translate
-        case polish
-
-        var symbolName: String {
-            switch self {
-            case .translate: return "translate"
-            case .polish:    return "wand.and.sparkles"
-            }
-        }
-
-        var accessibilityLabel: String {
-            switch self {
-            case .translate: return "Translate"
-            case .polish:    return "Polish"
-            }
-        }
-    }
-
-    // MARK: - TriggerIconButton
+    // MARK: - TriggerTrackingView
 
     @MainActor
-    final class TriggerIconButton: NSView {
-        let action: TriggerAction
+    final class TriggerTrackingView: NSView {
         var onMouseEntered: (() -> Void)?
         var onMouseExited: (() -> Void)?
         var onMouseDown: (() -> Void)?
 
         private var trackingArea: NSTrackingArea?
-        private var isHovered = false
 
-        init(action: TriggerAction, frame frameRect: NSRect) {
-            self.action = action
+        override init(frame frameRect: NSRect) {
             super.init(frame: frameRect)
             wantsLayer = true
         }
@@ -65,17 +43,23 @@
 
         override func draw(_ dirtyRect: NSRect) {
             super.draw(dirtyRect)
+
             guard let ctx = NSGraphicsContext.current?.cgContext else { return }
+            let rect = bounds.insetBy(dx: 1, dy: 1)
 
-            if isHovered {
-                ctx.setFillColor(NSColor.labelColor.withAlphaComponent(0.08).cgColor)
-                let highlight = NSBezierPath(roundedRect: bounds.insetBy(dx: 2, dy: 2), xRadius: 6, yRadius: 6)
-                highlight.fill()
-            }
+            // Circle background
+            ctx.setFillColor(NSColor.controlBackgroundColor.cgColor)
+            ctx.fillEllipse(in: rect)
 
+            // Border
+            ctx.setStrokeColor(NSColor.separatorColor.cgColor)
+            ctx.setLineWidth(0.5)
+            ctx.strokeEllipse(in: rect)
+
+            // SF Symbol icon
             let sizeConfig = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
             let colorConfig = NSImage.SymbolConfiguration(hierarchicalColor: .labelColor)
-            if let image = NSImage(systemSymbolName: action.symbolName, accessibilityDescription: action.accessibilityLabel)?
+            if let image = NSImage(systemSymbolName: "translate", accessibilityDescription: "Translate")?
                 .withSymbolConfiguration(sizeConfig.applying(colorConfig))
             {
                 let imageSize = image.size
@@ -90,14 +74,10 @@
         }
 
         override func mouseEntered(with _: NSEvent) {
-            isHovered = true
-            needsDisplay = true
             onMouseEntered?()
         }
 
         override func mouseExited(with _: NSEvent) {
-            isHovered = false
-            needsDisplay = true
             onMouseExited?()
         }
 
@@ -106,103 +86,54 @@
         }
     }
 
-    // MARK: - TriggerContainerView
-
-    @MainActor
-    final class TriggerContainerView: NSView {
-        override init(frame frameRect: NSRect) {
-            super.init(frame: frameRect)
-            wantsLayer = true
-        }
-
-        @available(*, unavailable)
-        required init?(coder _: NSCoder) { fatalError() }
-
-        override func draw(_ dirtyRect: NSRect) {
-            super.draw(dirtyRect)
-            guard let ctx = NSGraphicsContext.current?.cgContext else { return }
-
-            let rect = bounds.insetBy(dx: 1, dy: 1)
-            let radius = rect.height / 2
-
-            ctx.setFillColor(NSColor.controlBackgroundColor.cgColor)
-            let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
-            path.fill()
-
-            ctx.setStrokeColor(NSColor.separatorColor.cgColor)
-            ctx.setLineWidth(0.5)
-            path.lineWidth = 0.5
-            path.stroke()
-        }
-    }
-
     // MARK: - TriggerIconController
 
     @MainActor
     final class TriggerIconController {
         var onTranslateRequested: ((String) -> Void)?
-        var onPolishRequested: ((String) -> Void)?
         var onDismissed: (() -> Void)?
 
         private var panel: TriggerIconPanel?
+        private var trackingView: TriggerTrackingView?
         private var anchorPoint: CGPoint?
         private var hoverTimer: Timer?
-        private var pendingHoverAction: TriggerAction?
         private var autoDismissTimer: Timer?
         private var grabTask: Task<Void, Never>?
 
-        func show(near point: CGPoint, allowPolish: Bool) {
+        func show(near point: CGPoint) {
             dismissSilently()
 
             anchorPoint = point
 
-            let actions: [TriggerAction] = allowPolish ? [.translate, .polish] : [.translate]
-            let buttonSize = TriggerIconPanel.height
-            let panelWidth = allowPolish ? TriggerIconPanel.dualWidth : TriggerIconPanel.singleWidth
-            let panelHeight = TriggerIconPanel.height
+            let panel = TriggerIconPanel()
+            let size = TriggerIconPanel.size
+            let trackingView = TriggerTrackingView(frame: NSRect(x: 0, y: 0, width: size, height: size))
 
-            let panel = TriggerIconPanel(width: panelWidth)
-            let container = TriggerContainerView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
-
-            for (index, action) in actions.enumerated() {
-                let xOffset = allowPolish ? (index == 0 ? 2 : panelWidth - buttonSize - 2) : 0
-                let button = TriggerIconButton(
-                    action: action,
-                    frame: NSRect(x: xOffset, y: 0, width: buttonSize, height: buttonSize)
-                )
-                button.onMouseEntered = { [weak self] in self?.startHoverTimer(for: action) }
-                button.onMouseExited = { [weak self] in self?.cancelHoverTimer() }
-                button.onMouseDown = { [weak self] in self?.trigger(action: action) }
-                container.addSubview(button)
+            trackingView.onMouseEntered = { [weak self] in
+                self?.startHoverTimer()
+            }
+            trackingView.onMouseExited = { [weak self] in
+                self?.cancelHoverTimer()
+            }
+            trackingView.onMouseDown = { [weak self] in
+                self?.triggerTranslation()
             }
 
-            if allowPolish {
-                let divider = NSView(frame: NSRect(
-                    x: panelWidth / 2 - 0.5,
-                    y: 6,
-                    width: 1,
-                    height: panelHeight - 12
-                ))
-                divider.wantsLayer = true
-                divider.layer?.backgroundColor = NSColor.separatorColor.cgColor
-                container.addSubview(divider)
-            }
-
-            panel.contentView = container
+            panel.contentView = trackingView
 
             let offset: CGFloat = 8
             var x = point.x + offset
-            var y = point.y - offset - panelHeight
+            var y = point.y - offset - size
 
             if let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) ?? NSScreen.main {
                 let visibleFrame = screen.visibleFrame
-                if x + panelWidth > visibleFrame.maxX { x = point.x - panelWidth - offset }
-                if y + panelHeight > visibleFrame.maxY { y = point.y - panelHeight - offset }
+                if x + size > visibleFrame.maxX { x = point.x - size - offset }
+                if y + size > visibleFrame.maxY { y = point.y - size - offset }
                 if x < visibleFrame.minX { x = visibleFrame.minX }
                 if y < visibleFrame.minY { y = visibleFrame.minY }
             }
 
-            panel.setFrame(NSRect(x: x, y: y, width: panelWidth, height: panelHeight), display: true)
+            panel.setFrame(NSRect(x: x, y: y, width: size, height: size), display: true)
             panel.alphaValue = 0
             panel.orderFront(nil)
 
@@ -212,6 +143,7 @@
             }
 
             self.panel = panel
+            self.trackingView = trackingView
 
             startAutoDismissTimer()
         }
@@ -249,20 +181,18 @@
 
         private func cleanup() {
             panel = nil
+            trackingView = nil
             anchorPoint = nil
-            pendingHoverAction = nil
         }
 
         // MARK: - Timers
 
-        private func startHoverTimer(for action: TriggerAction) {
+        private func startHoverTimer() {
             cancelHoverTimer()
             cancelAutoDismissTimer()
-            pendingHoverAction = action
             hoverTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
                 Task { @MainActor in
-                    guard let self, let pending = self.pendingHoverAction else { return }
-                    self.trigger(action: pending)
+                    self?.triggerTranslation()
                 }
             }
         }
@@ -270,7 +200,6 @@
         private func cancelHoverTimer() {
             hoverTimer?.invalidate()
             hoverTimer = nil
-            pendingHoverAction = nil
         }
 
         private func startAutoDismissTimer() {
@@ -292,7 +221,7 @@
             cancelAutoDismissTimer()
         }
 
-        private func trigger(action: TriggerAction) {
+        private func triggerTranslation() {
             guard let point = anchorPoint else { return }
             cancelAllTimers()
 
@@ -307,10 +236,7 @@
                       !Task.isCancelled
                 else { return }
                 self?.grabTask = nil
-                switch action {
-                case .translate: self?.onTranslateRequested?(text)
-                case .polish:    self?.onPolishRequested?(text)
-                }
+                self?.onTranslateRequested?(text)
             }
         }
     }

@@ -37,26 +37,9 @@
 
         override func sendEvent(_ event: NSEvent) {
             if event.type == .leftMouseDown {
-                if shouldStartWindowDrag(for: event) {
-                    performDrag(with: event)
-                    return
-                }
                 if !isKeyWindow { makeKey() }
             }
             super.sendEvent(event)
-        }
-
-        private func shouldStartWindowDrag(for event: NSEvent) -> Bool {
-            guard let contentView else { return true }
-            let point = contentView.convert(event.locationInWindow, from: nil)
-            guard let hitView = contentView.hitTest(point) else { return true }
-
-            var view: NSView? = hitView
-            while let v = view, v !== contentView {
-                if !v.mouseDownCanMoveWindow { return false }
-                view = v.superview
-            }
-            return true
         }
     }
 #endif
