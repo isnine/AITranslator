@@ -23,8 +23,8 @@
             isRunning = true
             logger.info("Text selection translation started")
 
-            selectionMonitor.onTextSelected = { [weak self] text, point in
-                self?.triggerIconController.show(text: text, near: point)
+            selectionMonitor.onTextSelected = { [weak self] point in
+                self?.triggerIconController.show(near: point)
             }
 
             selectionMonitor.onMouseDown = { [weak self] _ in

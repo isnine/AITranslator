@@ -157,11 +157,6 @@ struct SettingsView: View {
                 Divider()
                     .padding(.leading, 52)
                 textSelectionTranslationRow
-                if preferences.textSelectionTranslationEnabled {
-                    Divider()
-                        .padding(.leading, 52)
-                    clipboardFallbackRow
-                }
             #endif
         }
     }
@@ -631,33 +626,6 @@ private extension SettingsView {
                             preferences.setTextSelectionTranslationEnabled(false)
                         }
                     }
-                ))
-                .labelsHidden()
-                .toggleStyle(.switch)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-        }
-
-        var clipboardFallbackRow: some View {
-            HStack(spacing: 16) {
-                SettingsIconBadge(icon: "doc.on.clipboard", color: .orange)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Clipboard Fallback")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(colors.textPrimary)
-                    Text("Allow copying selected text to clipboard when accessibility read fails")
-                        .font(.system(size: 12))
-                        .foregroundColor(colors.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer()
-
-                Toggle("", isOn: Binding(
-                    get: { preferences.textSelectionClipboardFallbackEnabled },
-                    set: { preferences.setTextSelectionClipboardFallbackEnabled($0) }
                 ))
                 .labelsHidden()
                 .toggleStyle(.switch)

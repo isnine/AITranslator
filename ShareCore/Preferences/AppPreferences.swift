@@ -35,7 +35,6 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var appleTranslateInstalledLanguages: Set<String>
     #if os(macOS)
         @Published public private(set) var textSelectionTranslationEnabled: Bool
-        @Published public private(set) var textSelectionClipboardFallbackEnabled: Bool
         @Published public private(set) var hasCompletedOnboarding: Bool
     #endif
 
@@ -63,7 +62,6 @@ public final class AppPreferences: ObservableObject {
 
         #if os(macOS)
             textSelectionTranslationEnabled = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
-            textSelectionClipboardFallbackEnabled = defaults.bool(forKey: StorageKeys.textSelectionClipboardFallbackEnabled)
             hasCompletedOnboarding = defaults.bool(forKey: StorageKeys.hasCompletedOnboarding)
         #endif
 
@@ -137,13 +135,6 @@ public final class AppPreferences: ObservableObject {
 
             textSelectionTranslationEnabled = enabled
             defaults.set(enabled, forKey: StorageKeys.textSelectionTranslationEnabled)
-        }
-
-        public func setTextSelectionClipboardFallbackEnabled(_ enabled: Bool) {
-            guard textSelectionClipboardFallbackEnabled != enabled else { return }
-
-            textSelectionClipboardFallbackEnabled = enabled
-            defaults.set(enabled, forKey: StorageKeys.textSelectionClipboardFallbackEnabled)
         }
 
         public func setHasCompletedOnboarding(_ completed: Bool) {
@@ -261,11 +252,6 @@ public final class AppPreferences: ObservableObject {
                 textSelectionTranslationEnabled = storedTextSelection
             }
 
-            let storedClipboardFallback = defaults.bool(forKey: StorageKeys.textSelectionClipboardFallbackEnabled)
-            if textSelectionClipboardFallbackEnabled != storedClipboardFallback {
-                textSelectionClipboardFallbackEnabled = storedClipboardFallback
-            }
-
             let storedOnboarding = defaults.bool(forKey: StorageKeys.hasCompletedOnboarding)
             if hasCompletedOnboarding != storedOnboarding {
                 hasCompletedOnboarding = storedOnboarding
@@ -366,7 +352,6 @@ private enum StorageKeys {
     static let appleTranslateInstalledLanguages = "apple_translate_installed_languages"
     #if os(macOS)
         static let textSelectionTranslationEnabled = "text_selection_translation_enabled"
-        static let textSelectionClipboardFallbackEnabled = "text_selection_clipboard_fallback_enabled"
         static let hasCompletedOnboarding = "has_completed_onboarding"
     #endif
     static let satisfactionPromptLastVersion = "satisfaction_prompt_last_version"
