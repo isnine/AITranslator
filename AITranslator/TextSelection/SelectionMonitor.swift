@@ -78,16 +78,35 @@
         private func handleMouseUp(at point: CGPoint, clickCount: Int) {
             guard !isSuppressed else { return }
 
-            var wasDragOrMultiClick = clickCount >= 2
-            if !wasDragOrMultiClick, let downPoint = mouseDownPoint {
+            var dragDistance: CGFloat = 0
+            if let downPoint = mouseDownPoint {
                 let dx = point.x - downPoint.x
                 let dy = point.y - downPoint.y
-                wasDragOrMultiClick = sqrt(dx * dx + dy * dy) > 5
+                dragDistance = sqrt(dx * dx + dy * dy)
             }
             mouseDownPoint = nil
 
+            let wasDragOrMultiClick = clickCount >= 2 || dragDistance > 5
             guard wasDragOrMultiClick else { return }
-            onTextSelected?(point)
+
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                try? await Task.sleep(for: .milliseconds(50))
+                guard !Task.isCancelled, !self.isSuppressed else { return }
+
+                if let text = AccessibilityGrabber.grabSelectedText(near: point),
+                   !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                {
+                    self.onTextSelected?(point)
+                    return
+                }
+
+                // AX unavailable (Chrome / Electron / etc). Require a deliberate drag
+                // to avoid showing the icon for stray double-clicks on empty space.
+                if dragDistance > 20 {
+                    self.onTextSelected?(point)
+                }
+            }
         }
     }
 #endif
