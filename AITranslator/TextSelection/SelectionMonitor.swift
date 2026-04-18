@@ -8,6 +8,7 @@
 #if os(macOS)
     import AppKit
     import os
+    import ShareCore
 
     private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "SelectionMonitor")
 
@@ -136,7 +137,8 @@
                     }
                 }
 
-                // Tier 3: Clipboard simulation
+                // Tier 3: Clipboard simulation (opt-in; modifies the user's clipboard transiently)
+                guard AppPreferences.shared.textSelectionClipboardFallbackEnabled else { return }
                 if let text = await ClipboardGrabber.grabViaClipboard(),
                    !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 {
