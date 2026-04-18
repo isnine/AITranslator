@@ -10,6 +10,11 @@
     import ShareCore
     import SwiftUI
 
+    enum PopupAction {
+        case translate
+        case polish
+    }
+
     @MainActor
     final class TranslationPopupController {
         var onDismiss: (() -> Void)?
@@ -18,11 +23,15 @@
         private var dismissMonitor: PopupDismissMonitor?
         private var currentViewModel: HomeViewModel?
 
-        func showAtCursor(text: String) {
+        func showAtCursor(text: String, action: PopupAction = .translate) {
             dismiss()
 
             let viewModel = HomeViewModel()
             currentViewModel = viewModel
+
+            if action == .polish, let polishAction = viewModel.actions.first(where: { $0.outputType == .diff }) {
+                viewModel.selectedActionID = polishAction.id
+            }
 
             let initialSize = CGSize(width: 400, height: 320)
             let newPanel = TranslationPopupPanel(contentRect: NSRect(origin: .zero, size: initialSize))

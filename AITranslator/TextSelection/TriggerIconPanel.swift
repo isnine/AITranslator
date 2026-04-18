@@ -9,10 +9,12 @@
     import AppKit
 
     final class TriggerIconPanel: NSPanel {
-        static let size: CGFloat = 32
+        static let height: CGFloat = 32
+        static let singleWidth: CGFloat = 32
+        static let dualWidth: CGFloat = 68
 
-        init() {
-            let rect = NSRect(x: 0, y: 0, width: Self.size, height: Self.size)
+        init(width: CGFloat) {
+            let rect = NSRect(x: 0, y: 0, width: width, height: Self.height)
             super.init(
                 contentRect: rect,
                 styleMask: [.nonactivatingPanel, .borderless],

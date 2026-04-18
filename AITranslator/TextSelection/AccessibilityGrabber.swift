@@ -10,10 +10,20 @@
     import ApplicationServices
 
     enum AccessibilityGrabber {
+        struct SelectionResult {
+            let text: String
+            let isEditable: Bool
+        }
+
         /// Read the selected text from the frontmost application using the Accessibility API.
         /// Validates that the click occurred near the focused element to filter stale selections.
         @MainActor
         static func grabSelectedText(near clickPoint: CGPoint? = nil) -> String? {
+            grabSelection(near: clickPoint)?.text
+        }
+
+        @MainActor
+        static func grabSelection(near clickPoint: CGPoint? = nil) -> SelectionResult? {
             guard let frontApp = NSWorkspace.shared.frontmostApplication else { return nil }
 
             let appElement = AXUIElementCreateApplication(frontApp.processIdentifier)
@@ -74,7 +84,15 @@
                 }
             }
 
-            return text
+            var settable: DarwinBoolean = false
+            let settableResult = AXUIElementIsAttributeSettable(
+                focusedElement,
+                kAXValueAttribute as CFString,
+                &settable
+            )
+            let isEditable = (settableResult == .success && settable.boolValue)
+
+            return SelectionResult(text: text, isEditable: isEditable)
         }
     }
 #endif
