@@ -95,9 +95,10 @@
 
         private var panel: TriggerIconPanel?
         private var trackingView: TriggerTrackingView?
-        private var anchorPoint: CGPoint = .zero
+        private var anchorPoint: CGPoint?
         private var hoverTimer: Timer?
         private var autoDismissTimer: Timer?
+        private var grabTask: Task<Void, Never>?
 
         func show(near point: CGPoint) {
             dismissSilently()
@@ -165,6 +166,8 @@
         }
 
         func dismissSilently() {
+            grabTask?.cancel()
+            grabTask = nil
             guard let panel else { return }
             cancelAllTimers()
             panel.contentView = nil
@@ -179,7 +182,7 @@
         private func cleanup() {
             panel = nil
             trackingView = nil
-            anchorPoint = .zero
+            anchorPoint = nil
         }
 
         // MARK: - Timers
@@ -219,7 +222,7 @@
         }
 
         private func triggerTranslation() {
-            let point = anchorPoint
+            guard let point = anchorPoint else { return }
             cancelAllTimers()
 
             guard let panel else { return }
@@ -227,10 +230,12 @@
             panel.close()
             cleanup()
 
-            Task { @MainActor [weak self] in
+            grabTask = Task { @MainActor [weak self] in
                 guard let text = await SelectionTextGrabber.grab(near: point),
-                      !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                      !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      !Task.isCancelled
                 else { return }
+                self?.grabTask = nil
                 self?.onTranslateRequested?(text)
             }
         }
