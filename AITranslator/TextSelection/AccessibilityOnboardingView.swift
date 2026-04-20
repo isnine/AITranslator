@@ -68,7 +68,7 @@
                 if !permissionManager.isAccessibilityGranted {
                     VStack(alignment: .leading, spacing: 8) {
                         stepRow(number: 1, text: "Click \"Open System Settings\" below")
-                        stepRow(number: 2, text: "Find TLingo in the list and enable it")
+                        stepRow(number: 2, text: "Click the + button, then add TLingo from Applications")
                         stepRow(number: 3, text: "This page will update automatically")
                     }
                     .padding(.horizontal, 8)

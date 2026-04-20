@@ -27,9 +27,10 @@
             startPolling()
         }
 
-        /// Open System Settings > Accessibility and register the app in TCC so it appears in the list.
+        /// Open System Settings > Accessibility.
         func openAccessibilitySettings() {
-            // Side-effect of AXIsProcessTrustedWithOptions: registers TLingo in the Accessibility TCC list.
+            // Attempt to trigger the system trust prompt (works for non-sandboxed builds).
+            // Sandboxed apps require the user to manually add via the + button in Settings.
             let options = [axTrustedPromptKey: true] as CFDictionary
             _ = AXIsProcessTrustedWithOptions(options)
 
