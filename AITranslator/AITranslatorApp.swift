@@ -307,11 +307,8 @@ struct AITranslatorApp: App {
             false
         }
 
-        func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-            // When user clicks Dock icon and no windows are visible, open main window
-            if !flag {
-                openMainWindow()
-            }
+        func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+            openMainWindow()
             return true
         }
 
@@ -361,10 +358,7 @@ struct AITranslatorApp: App {
         func openMainWindow() {
             activateRegularMode()
 
-            // Look for a usable main window (visible or minimized, not a stale closed window)
-            if let window = NSApp.windows.first(where: {
-                $0.canBecomeMain && ($0.isVisible || $0.isMiniaturized)
-            }) {
+            if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
                 if window.isMiniaturized {
                     window.deminiaturize(nil)
                 }
