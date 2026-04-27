@@ -56,14 +56,21 @@ public final class AppleTranslationService: @unchecked Sendable {
         target: Locale.Language
     ) async -> LanguageAvailability.Status {
         let availability = LanguageAvailability()
+        let sourceDesc = source?.minimalIdentifier ?? "auto"
+        let targetDesc = target.minimalIdentifier
         if let source {
-            return await availability.status(from: source, to: target)
+            let status = await availability.status(from: source, to: target)
+            if status != .installed && status != .supported {
+                logger.error("languageAvailabilityStatus: \(sourceDesc, privacy: .public) → \(targetDesc, privacy: .public) = \(String(describing: status), privacy: .public)")
+            }
+            return status
         }
         // When source is nil we rely on auto-detection; just check the target is in supported languages.
         let supported = await availability.supportedLanguages
         if supported.contains(where: { $0.minimalIdentifier == target.minimalIdentifier }) {
             return .supported
         }
+        logger.error("languageAvailabilityStatus: target \(targetDesc, privacy: .public) not in supported list (auto source)")
         return .unsupported
     }
 
@@ -104,10 +111,13 @@ public final class AppleTranslationService: @unchecked Sendable {
     @available(iOS 17.4, macOS 14.4, *)
     public func translateWithInstalledLanguages(
         text: String,
-        source: Locale.Language,
+        source: Locale.Language?,
         target: Locale.Language
     ) async throws -> ModelExecutionResult {
-        let session = TranslationSession(installedSource: source, target: target)
+        let resolvedSource = source
+            ?? SourceLanguageDetector.detectLocaleLanguage(of: text)
+            ?? SourceLanguageDetector.fallbackSourceLanguage()
+        let session = TranslationSession(installedSource: resolvedSource, target: target)
         return try await translate(text: text, using: session)
     }
 
@@ -115,10 +125,13 @@ public final class AppleTranslationService: @unchecked Sendable {
     @available(iOS 17.4, macOS 14.4, *)
     public func translateSentencesWithInstalledLanguages(
         text: String,
-        source: Locale.Language,
+        source: Locale.Language?,
         target: Locale.Language
     ) async throws -> ModelExecutionResult {
-        let session = TranslationSession(installedSource: source, target: target)
+        let resolvedSource = source
+            ?? SourceLanguageDetector.detectLocaleLanguage(of: text)
+            ?? SourceLanguageDetector.fallbackSourceLanguage()
+        let session = TranslationSession(installedSource: resolvedSource, target: target)
         return try await translateSentences(text: text, using: session)
     }
 
@@ -133,15 +146,29 @@ public final class AppleTranslationService: @unchecked Sendable {
         let start = Date()
         logger.debug("translate called, text length: \(text.count, privacy: .public)")
 
-        // prepareTranslation() triggers the system download UI if the language pack
-        // is not yet installed (.supported status). No-op if already installed (.installed).
-        try await session.prepareTranslation()
+        do {
+            // prepareTranslation() triggers the system download UI if the language pack
+            // is not yet installed (.supported status). No-op if already installed (.installed).
+            try await session.prepareTranslation()
+        } catch {
+            logger.error("translate: prepareTranslation failed: \(String(describing: error), privacy: .public)")
+            #if os(macOS)
+                NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
+            #endif
+            throw error
+        }
         // Notify the host app that language download is done and the auxiliary window can be hidden.
         #if os(macOS)
             NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
         #endif
 
-        let response = try await session.translate(text)
+        let response: TranslationSession.Response
+        do {
+            response = try await session.translate(text)
+        } catch {
+            logger.error("translate: session.translate failed: \(String(describing: error), privacy: .public)")
+            throw error
+        }
         let duration = Date().timeIntervalSince(start)
 
         logger.debug("translate success, duration: \(duration, privacy: .public)s")
@@ -160,8 +187,16 @@ public final class AppleTranslationService: @unchecked Sendable {
     ) async throws -> ModelExecutionResult {
         let start = Date()
 
-        // prepareTranslation() triggers the system download UI if needed.
-        try await session.prepareTranslation()
+        do {
+            // prepareTranslation() triggers the system download UI if needed.
+            try await session.prepareTranslation()
+        } catch {
+            logger.error("translateSentences: prepareTranslation failed: \(String(describing: error), privacy: .public)")
+            #if os(macOS)
+                NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
+            #endif
+            throw error
+        }
         #if os(macOS)
             NotificationCenter.default.post(name: .appleTranslationPrepareCompleted, object: nil)
         #endif
@@ -173,7 +208,13 @@ public final class AppleTranslationService: @unchecked Sendable {
             TranslationSession.Request(sourceText: sentence, clientIdentifier: "\(index)")
         }
 
-        let responses = try await session.translations(from: requests)
+        let responses: [TranslationSession.Response]
+        do {
+            responses = try await session.translations(from: requests)
+        } catch {
+            logger.error("translateSentences: session.translations failed: \(String(describing: error), privacy: .public)")
+            throw error
+        }
 
         // Map responses back by clientIdentifier to maintain order.
         var translatedByIndex: [Int: String] = [:]
@@ -254,6 +295,7 @@ public enum LocalProviderError: LocalizedError {
     case translationFailed(String)
     case unsupportedAction
     case unsupportedLanguagePair
+    case sameSourceAndTarget(language: String)
 
     public var errorDescription: String? {
         switch self {
@@ -265,6 +307,12 @@ public enum LocalProviderError: LocalizedError {
             return NSLocalizedString("This action is not supported by the selected provider", comment: "Unsupported action error")
         case .unsupportedLanguagePair:
             return NSLocalizedString("Apple Translate does not support this language pair", comment: "Unsupported language pair error")
+        case let .sameSourceAndTarget(language):
+            let format = NSLocalizedString(
+                "Source and target are both %@. Pick a different target language.",
+                comment: "Apple Translate refused to translate from a language to itself"
+            )
+            return String(format: format, language)
         }
     }
 }

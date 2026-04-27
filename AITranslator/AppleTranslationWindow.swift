@@ -53,6 +53,8 @@
                 logger.debug("language availability: \(String(describing: status), privacy: .public) for viewModel=\(String(describing: ObjectIdentifier(viewModel)), privacy: .public)")
                 if status == .supported {
                     AppleTranslationWindowManager.shared.showForLanguageDownload()
+                } else if status != .installed {
+                    logger.error("Apple Translate bridge: unsupported language pair source=\(source?.minimalIdentifier ?? "nil", privacy: .public), target=\(targetLocale.minimalIdentifier, privacy: .public), status=\(String(describing: status), privacy: .public). .translationTask will fail with no result.")
                 }
 
                 if self.pendingConfig != nil {

@@ -208,6 +208,7 @@ public final class HomeViewModel: ObservableObject {
     public private(set) var pendingAppleTranslateText: String?
     public private(set) var pendingAppleTranslateAction: ActionConfig?
     public private(set) var pendingAppleTranslateRequestID: UUID?
+    private var pendingAppleTranslateResolvedTarget: TargetLanguageOption?
 
     /// When non-nil, bypasses automatic language detection and uses this
     /// target language for the current translation.
@@ -755,14 +756,16 @@ public final class HomeViewModel: ObservableObject {
         modelRuns[index].status = .running(start: Date())
 
         let images = currentRequestImages
+        // Use executeRequest so direct services (Apple/Google) get routed through their own
+        // paths. executeSingleModelRequest only handles cloud LLM calls.
         perRunTasks[runID] = Task { [weak self] in
-            await self?.executeSingleModelRequest(
-                runID: runID,
+            await self?.executeRequest(
                 requestID: requestID,
                 text: text,
                 action: action,
-                model: model,
-                images: images
+                models: [model],
+                images: images,
+                isPerRunRetry: true
             )
         }
     }
@@ -791,13 +794,12 @@ public final class HomeViewModel: ObservableObject {
         }
     #endif
 
-    /// Manually override the auto-detected target language and re-execute
-    /// the current translation. Pass the user's preferred language to revert
-    /// the automatic redirect.
+    /// Manually override the target language for the next translation and re-execute.
+    /// Used by the language switcher menu. Target is never automatically redirected,
+    /// so `resolvedTargetLanguage` stays nil — the override is consumed once on the next request.
     public func overrideTargetLanguage(_ language: TargetLanguageOption) {
         targetLanguageOverride = language
-        let preferred = AppPreferences.shared.targetLanguage
-        resolvedTargetLanguage = language != preferred ? language : nil
+        resolvedTargetLanguage = nil
         performSelectedAction()
     }
 
@@ -931,13 +933,8 @@ public final class HomeViewModel: ObservableObject {
         if prompt.isEmpty {
             chatMessages.append(ChatMessage(role: "user", content: text, images: currentRequestImages))
         } else {
-            // Use the resolved target language that was shown in the UI,
-            // falling back to auto-detection if no override was applied
-            let preferred = AppPreferences.shared.targetLanguage
-            let resolvedTarget = resolvedTargetLanguage ?? SourceLanguageDetector.resolveTargetLanguage(
-                for: text,
-                preferred: preferred
-            )
+            // Target language is always the user preference (never auto-redirected).
+            let resolvedTarget = resolvedTargetLanguage ?? AppPreferences.shared.targetLanguage
             let processedPrompt = PromptSubstitution.substitute(
                 prompt: prompt,
                 text: text,
@@ -1022,48 +1019,59 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
-    /// Consumes `targetLanguageOverride` if set, otherwise resolves from source language or auto-detects from `text`.
-    /// Returns both the resolved target and the detected source code so that callers (Apple Translate,
-    /// Google Translate, LLM) can reuse the detection result without re-running NLLanguageRecognizer.
+    /// Consumes `targetLanguageOverride` if set, otherwise returns the user's preferred target.
+    /// Target language is never automatically redirected — it always honors the user's setting.
+    /// Source language detection biases away from the target so mixed-language input
+    /// (e.g. "你好, hello") picks the *other* language when the user is in `.auto` mode.
     private func consumeResolvedTarget(for text: String) -> ResolvedLanguagePair {
-        let sourceCode = detectSourceCode(for: text)
-
+        let target: TargetLanguageOption
         if let override = targetLanguageOverride {
             targetLanguageOverride = nil
-            return ResolvedLanguagePair(target: override, sourceCode: sourceCode)
+            target = override
+        } else {
+            target = AppPreferences.shared.targetLanguage
         }
-        let preferred = AppPreferences.shared.targetLanguage
-        if let code = sourceCode {
-            let target = SourceLanguageDetector.resolveTargetLanguage(
-                forKnownSourceCode: code,
-                preferred: preferred
-            )
-            return ResolvedLanguagePair(target: target, sourceCode: code)
-        }
-        let target = SourceLanguageDetector.resolveTargetLanguage(
-            for: text,
-            preferred: preferred
-        )
-        return ResolvedLanguagePair(target: target, sourceCode: nil)
+        let sourceCode = detectSourceCode(for: text, excluding: target)
+        return ResolvedLanguagePair(target: target, sourceCode: sourceCode)
     }
 
     /// Detects the source language code and sets `detectedSourceLanguage` for UI.
-    private func detectSourceCode(for text: String) -> String? {
+    /// When `sourceLanguage` is `.auto`, biases detection away from `target` so that
+    /// a Chinese+English input is detected as Chinese when the user is translating to English.
+    private func detectSourceCode(for text: String, excluding target: TargetLanguageOption) -> String? {
         let sourceLanguage = AppPreferences.shared.sourceLanguage
         if sourceLanguage != .auto {
             detectedSourceLanguage = sourceLanguage
             return sourceLanguage.rawValue
         }
-        if let detected = SourceLanguageDetector.detectLocaleLanguage(of: text) {
-            var code = detected.languageCode?.identifier ?? ""
-            if let script = detected.script {
-                code += "-" + script.identifier
-            }
-            detectedSourceLanguage = SourceLanguageOption(rawValue: code)
-                ?? SourceLanguageOption(rawValue: String(code.prefix(2)))
-            return code
+        let targetCode = target == .appLanguage ? TargetLanguageOption.appLanguageIdentifier : target.rawValue
+        guard let detected = SourceLanguageDetector.detectLocaleLanguage(of: text, excludingTargetCode: targetCode) else {
+            return nil
         }
-        return nil
+        let code = detected.minimalIdentifier
+        detectedSourceLanguage = SourceLanguageOption(rawValue: code)
+            ?? SourceLanguageOption(rawValue: String(code.prefix(2)))
+        return code
+    }
+
+    /// If user chose source==target (or auto-detected source matches target), Apple Translate
+    /// physically can't translate — return a localized error result instead of calling the API.
+    private func sameSourceAndTargetResult(
+        sourceCode: String?,
+        target: TargetLanguageOption
+    ) -> ModelExecutionResult? {
+        let targetCode = target == .appLanguage ? TargetLanguageOption.appLanguageIdentifier : target.rawValue
+        guard let sourceCode,
+              SourceLanguageDetector.languagesAreSame(sourceCode, targetCode)
+        else {
+            return nil
+        }
+        logger.error("Apple Translate: source==target (\(sourceCode, privacy: .public)), short-circuiting")
+        return ModelExecutionResult(
+            modelID: ModelConfig.appleTranslateID,
+            duration: 0,
+            response: .failure(LocalProviderError.sameSourceAndTarget(language: target.englishName))
+        )
     }
 
     private func executeSingleModelRequest(
@@ -1077,12 +1085,6 @@ public final class HomeViewModel: ObservableObject {
         guard !Task.isCancelled else { return }
 
         let resolved = consumeResolvedTarget(for: text)
-        let resolvedTarget = resolved.target
-        let preferred = AppPreferences.shared.targetLanguage
-        if resolvedTarget != preferred {
-            logger.debug("Target redirected: \(preferred.rawValue, privacy: .public) → \(resolvedTarget.rawValue, privacy: .public), source=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public)")
-            resolvedTargetLanguage = resolvedTarget
-        }
 
         let _ = await llmService.perform(
             text: text,
@@ -1127,26 +1129,25 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
+    private func isRequestStillValid(_ requestID: UUID, isPerRunRetry: Bool) -> Bool {
+        if isPerRunRetry {
+            return perRunRequestIDs.values.contains(requestID)
+        }
+        return activeRequestID == requestID
+    }
+
     private func executeRequest(
         requestID: UUID,
         text: String,
         action: ActionConfig,
         models: [ModelConfig],
-        images: [ImageAttachment] = []
+        images: [ImageAttachment] = [],
+        isPerRunRetry: Bool = false
     ) async {
         guard !Task.isCancelled else { return }
 
         let resolved = consumeResolvedTarget(for: text)
         let resolvedTarget = resolved.target
-
-        // Surface the resolved language in the UI only when it differs from the preference
-        let preferred = AppPreferences.shared.targetLanguage
-        if resolvedTarget != preferred {
-            logger.debug("Target redirected: \(preferred.rawValue, privacy: .public) → \(resolvedTarget.rawValue, privacy: .public), source=\(self.detectedSourceLanguage?.rawValue ?? "nil", privacy: .public)")
-            resolvedTargetLanguage = resolvedTarget
-        } else {
-            logger.debug("No redirect needed: target=\(preferred.rawValue, privacy: .public)")
-        }
 
         // Separate direct translation services from cloud LLM models.
         let cloudModels = models.filter { !$0.isDirectTranslation }
@@ -1158,34 +1159,34 @@ public final class HomeViewModel: ObservableObject {
         if hasAppleTranslate {
             if action.supportsAppleTranslate {
                 if supportsAppleTranslate {
-                    // SwiftUI context: if the language pack is already installed, use the direct
-                    // TranslationSession(installedSource:target:) path which is faster and more
-                    // reliable than waiting for .translationTask() to fire.
-                    // Only fall back to .translationTask() when a download is required.
+                    // SwiftUI context: prefer the direct TranslationSession(installedSource:target:)
+                    // path when the language pack is already installed; fall back to .translationTask()
+                    // only when a download is required.
                     let sourceLocale: Locale.Language? = resolved.sourceCode.map { Locale.Language(identifier: $0) }
                     let targetLocale = resolvedTarget.localeLanguage
-                    logger.debug("Apple Translate: checking language availability before choosing path")
-                    Task { [weak self] in
+                    if let shortCircuit = sameSourceAndTargetResult(sourceCode: resolved.sourceCode, target: resolvedTarget) {
+                        apply(result: shortCircuit, allowDiff: false)
+                    } else {
+                        Task { [weak self] in
                         guard let self else { return }
                         if #available(iOS 17.4, macOS 14.4, *) {
                             let status = await AppleTranslationService.shared.languageAvailabilityStatus(
                                 source: sourceLocale, target: targetLocale
                             )
-                            logger.debug("Apple Translate: language status=\(String(describing: status), privacy: .public), using \(status == .installed ? "installedSource" : ".translationTask", privacy: .public) path")
-                            if status == .installed, let source = sourceLocale {
+                            if status == .installed {
                                 // Language pack already on device — skip SwiftUI bridge entirely.
                                 do {
                                     let result: ModelExecutionResult
                                     if action.outputType == .sentencePairs {
                                         result = try await AppleTranslationService.shared.translateSentencesWithInstalledLanguages(
-                                            text: text, source: source, target: targetLocale
+                                            text: text, source: sourceLocale, target: targetLocale
                                         )
                                     } else {
                                         result = try await AppleTranslationService.shared.translateWithInstalledLanguages(
-                                            text: text, source: source, target: targetLocale
+                                            text: text, source: sourceLocale, target: targetLocale
                                         )
                                     }
-                                    guard self.activeRequestID == requestID else { return }
+                                    guard self.isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
                                     self.apply(result: result, allowDiff: false)
                                     if case let .success(message) = result.response,
                                        let idx = self.modelRuns.firstIndex(where: { $0.id == result.modelID })
@@ -1195,14 +1196,15 @@ public final class HomeViewModel: ObservableObject {
                                             sourceText: self.currentRequestInputText,
                                             resultText: message,
                                             actionName: action.name,
-                                            targetLanguage: self.resolvedTargetLanguage?.englishName ?? "",
+                                            targetLanguage: resolvedTarget.englishName,
                                             modelID: result.modelID,
                                             modelDisplayName: self.modelRuns[idx].modelDisplayName,
                                             duration: result.duration
                                         )
                                     }
                                 } catch {
-                                    guard self.activeRequestID == requestID else { return }
+                                    logger.error("Apple Translate (installed-pack path) failed: \(String(describing: error), privacy: .public), source=\(sourceLocale?.minimalIdentifier ?? "auto", privacy: .public), target=\(targetLocale.minimalIdentifier, privacy: .public)")
+                                    guard self.isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
                                     let fail = ModelExecutionResult(
                                         modelID: ModelConfig.appleTranslateID,
                                         duration: 0,
@@ -1216,6 +1218,7 @@ public final class HomeViewModel: ObservableObject {
                                 self.pendingAppleTranslateText = text
                                 self.pendingAppleTranslateAction = action
                                 self.pendingAppleTranslateRequestID = requestID
+                                self.pendingAppleTranslateResolvedTarget = resolvedTarget
                                 self.appleTranslateSourceLanguage = sourceLocale
                                 self.appleTranslateTargetLanguage = resolvedTarget
                                 logger.debug("Apple Translate: published target=\(resolvedTarget.englishName, privacy: .public), starting 10s timeout watchdog")
@@ -1224,13 +1227,14 @@ public final class HomeViewModel: ObservableObject {
                                 // Watchdog: if .translationTask() doesn't fire within 10s, surface an error.
                                 try? await Task.sleep(nanoseconds: 10_000_000_000)
                                 guard self.pendingAppleTranslateRequestID == requestID else { return }
-                                logger.debug("Apple Translate: watchdog fired — .translationTask() did not respond in 10s")
+                                logger.error("Apple Translate watchdog fired — .translationTask() did not respond in 10s, source=\(sourceLocale?.minimalIdentifier ?? "auto", privacy: .public), target=\(resolvedTarget.rawValue, privacy: .public), status=\(String(describing: status), privacy: .public)")
                                 self.pendingAppleTranslateText = nil
                                 self.pendingAppleTranslateAction = nil
                                 self.pendingAppleTranslateRequestID = nil
+                                self.pendingAppleTranslateResolvedTarget = nil
                                 self.appleTranslateSourceLanguage = nil
                                 self.appleTranslateTargetLanguage = nil
-                                guard self.activeRequestID == requestID else { return }
+                                guard self.isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
                                 let timeoutResult = ModelExecutionResult(
                                     modelID: ModelConfig.appleTranslateID,
                                     duration: 10,
@@ -1240,34 +1244,36 @@ public final class HomeViewModel: ObservableObject {
                             }
                         }
                     }
+                    }
                 } else {
                     // Non-SwiftUI context (e.g. extension): use TranslationSession(installedSource:target:)
                     // directly. Only works if language packs are already installed.
                     let sourceLocale: Locale.Language? = resolved.sourceCode.map { Locale.Language(identifier: $0) }
                     let targetLocale = resolvedTarget.localeLanguage
-                    Task { [weak self] in
+                    if let shortCircuit = sameSourceAndTargetResult(sourceCode: resolved.sourceCode, target: resolvedTarget) {
+                        apply(result: shortCircuit, allowDiff: false)
+                    } else {
+                        Task { [weak self] in
                         guard let self else { return }
                         // Always true at runtime (guarded by isAvailable in getEnabledModels),
                         // but required for the compiler's availability check.
                         if #available(iOS 17.4, macOS 14.4, *) {
                             do {
-                                guard let source = sourceLocale else {
-                                    throw LocalProviderError.translationFailed("Could not detect source language")
-                                }
                                 let result: ModelExecutionResult
                                 if action.outputType == .sentencePairs {
                                     result = try await AppleTranslationService.shared.translateSentencesWithInstalledLanguages(
-                                        text: text, source: source, target: targetLocale
+                                        text: text, source: sourceLocale, target: targetLocale
                                     )
                                 } else {
                                     result = try await AppleTranslationService.shared.translateWithInstalledLanguages(
-                                        text: text, source: source, target: targetLocale
+                                        text: text, source: sourceLocale, target: targetLocale
                                     )
                                 }
-                                guard self.activeRequestID == requestID else { return }
+                                guard self.isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
                                 self.apply(result: result, allowDiff: false)
                             } catch {
-                                guard self.activeRequestID == requestID else { return }
+                                logger.error("Apple Translate (non-SwiftUI path) failed: \(String(describing: error), privacy: .public), source=\(sourceLocale?.minimalIdentifier ?? "auto", privacy: .public), target=\(targetLocale.minimalIdentifier, privacy: .public)")
+                                guard self.isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
                                 let fail = ModelExecutionResult(
                                     modelID: ModelConfig.appleTranslateID,
                                     duration: 0,
@@ -1277,9 +1283,11 @@ public final class HomeViewModel: ObservableObject {
                             }
                         }
                     }
+                    }
                 }
             } else {
                 // Unsupported action — show inline error immediately.
+                logger.error("Apple Translate: action '\(action.name, privacy: .public)' does not support Apple Translate")
                 let result = ModelExecutionResult(
                     modelID: ModelConfig.appleTranslateID,
                     duration: 0,
@@ -1292,8 +1300,7 @@ public final class HomeViewModel: ObservableObject {
         // Kick off Google Translate if present.
         if hasGoogleTranslate {
             if action.supportsAppleTranslate {
-                // Reuse the source code already detected by consumeResolvedTarget
-                let googleSourceCode = resolved.sourceCode
+                let googleSourceCode: String? = resolved.sourceCode
                 Task { [weak self] in
                     guard let self else { return }
                     let result = await GoogleTranslateService.shared.translate(
@@ -1301,7 +1308,7 @@ public final class HomeViewModel: ObservableObject {
                         sourceCode: googleSourceCode,
                         targetCode: resolvedTarget.rawValue
                     )
-                    guard self.activeRequestID == requestID else { return }
+                    guard self.isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
                     self.apply(result: result, allowDiff: false)
                     if case let .success(message) = result.response,
                        let idx = self.modelRuns.firstIndex(where: { $0.id == result.modelID })
@@ -1311,7 +1318,7 @@ public final class HomeViewModel: ObservableObject {
                             sourceText: self.currentRequestInputText,
                             resultText: message,
                             actionName: action.name,
-                            targetLanguage: self.resolvedTargetLanguage?.englishName ?? "",
+                            targetLanguage: resolvedTarget.englishName,
                             modelID: result.modelID,
                             modelDisplayName: self.modelRuns[idx].modelDisplayName,
                             duration: result.duration
@@ -1333,9 +1340,9 @@ public final class HomeViewModel: ObservableObject {
             // Only direct translation services were selected; skip cloud path.
             if !hasAppleTranslate && !hasGoogleTranslate {
                 // No models at all — shouldn't reach here but guard anyway.
-                if activeRequestID == requestID {
+                if isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) {
                     currentRequestTask = nil
-                    activeRequestID = nil
+                    if !isPerRunRetry { activeRequestID = nil }
                 }
             }
             return
@@ -1350,7 +1357,7 @@ public final class HomeViewModel: ObservableObject {
             sourceLanguageDescriptor: resolved.sourceLanguageDescriptor,
             partialHandler: { [weak self] modelID, update in
                 guard let self else { return }
-                guard self.activeRequestID == requestID else { return }
+                guard self.isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
                 guard let index = self.modelRuns.firstIndex(where: { $0.id == modelID }) else {
                     return
                 }
@@ -1380,7 +1387,7 @@ public final class HomeViewModel: ObservableObject {
             },
             completionHandler: { [weak self] result in
                 guard let self else { return }
-                guard self.activeRequestID == requestID else { return }
+                guard self.isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
                 self.apply(result: result, allowDiff: self.currentActionShowsDiff)
 
                 if case let .success(message) = result.response,
@@ -1391,7 +1398,7 @@ public final class HomeViewModel: ObservableObject {
                         sourceText: self.currentRequestInputText,
                         resultText: message,
                         actionName: self.selectedAction?.name ?? "",
-                        targetLanguage: self.resolvedTargetLanguage?.englishName ?? "",
+                        targetLanguage: resolvedTarget.englishName,
                         modelID: result.modelID,
                         modelDisplayName: self.modelRuns[idx].modelDisplayName,
                         duration: result.duration
@@ -1401,7 +1408,7 @@ public final class HomeViewModel: ObservableObject {
         )
 
         guard !Task.isCancelled else { return }
-        guard activeRequestID == requestID else { return }
+        guard isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) else { return }
 
         for result in results {
             if modelRuns.contains(where: { $0.id == result.modelID }) {
@@ -1448,9 +1455,11 @@ public final class HomeViewModel: ObservableObject {
             }
         }
 
-        if activeRequestID == requestID {
-            currentRequestTask = nil
-            activeRequestID = nil
+        if isRequestStillValid(requestID, isPerRunRetry: isPerRunRetry) {
+            if !isPerRunRetry {
+                currentRequestTask = nil
+                activeRequestID = nil
+            }
 
             // Signal view layer for satisfaction prompt if any model succeeded
             let hasSuccess = modelRuns.contains { run in
@@ -1473,6 +1482,7 @@ public final class HomeViewModel: ObservableObject {
         pendingAppleTranslateText = nil
         pendingAppleTranslateAction = nil
         pendingAppleTranslateRequestID = nil
+        pendingAppleTranslateResolvedTarget = nil
         appleTranslateSourceLanguage = nil
         appleTranslateTargetLanguage = nil
         detectedSourceLanguage = nil
@@ -1493,14 +1503,16 @@ public final class HomeViewModel: ObservableObject {
                   let action = pendingAppleTranslateAction,
                   let requestID = pendingAppleTranslateRequestID
             else {
-                logger.debug("executeAppleTranslation: missing pending state, aborting")
+                logger.error("executeAppleTranslation: missing pending state, aborting (text=\(self.pendingAppleTranslateText != nil, privacy: .public), action=\(self.pendingAppleTranslateAction != nil, privacy: .public), requestID=\(self.pendingAppleTranslateRequestID != nil, privacy: .public))")
                 return
             }
 
             // Clear pending state.
+            let resolvedTarget = pendingAppleTranslateResolvedTarget ?? AppPreferences.shared.targetLanguage
             pendingAppleTranslateText = nil
             pendingAppleTranslateAction = nil
             pendingAppleTranslateRequestID = nil
+            pendingAppleTranslateResolvedTarget = nil
             appleTranslateSourceLanguage = nil
             appleTranslateTargetLanguage = nil
 
@@ -1528,13 +1540,14 @@ public final class HomeViewModel: ObservableObject {
                             sourceText: self.currentRequestInputText,
                             resultText: message,
                             actionName: action.name,
-                            targetLanguage: self.resolvedTargetLanguage?.englishName ?? "",
+                            targetLanguage: resolvedTarget.englishName,
                             modelID: result.modelID,
                             modelDisplayName: self.modelRuns[idx].modelDisplayName,
                             duration: result.duration
                         )
                     }
                 } catch {
+                    logger.error("executeAppleTranslation failed: \(String(describing: error), privacy: .public)")
                     guard self.activeRequestID == requestID else { return }
                     let failResult = ModelExecutionResult(
                         modelID: ModelConfig.appleTranslateID,

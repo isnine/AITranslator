@@ -7,6 +7,9 @@
 
 import Foundation
 import NaturalLanguage
+import os
+
+private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "SourceLanguageDetector")
 
 /// Result of language detection with confidence scoring.
 public struct LanguageDetectionResult: Sendable {
@@ -44,7 +47,8 @@ public enum SourceLanguageDetector {
 
     private static let defaultThreshold: Double = 0.3
     private static let shortTextThreshold: Double = 0.5
-    private static let shortTextMaxLength = 5
+    private static let shortTextMaxLength = 10
+    private static let shortTextMaxWords = 3
     private static let maxHypotheses = 5
 
     /// Attempts to detect the dominant language of the given text.
@@ -62,68 +66,36 @@ public enum SourceLanguageDetector {
 
         let hypotheses = recognizer.languageHypotheses(withMaximum: maxHypotheses)
         let best = hypotheses.max(by: { $0.value < $1.value })
+        let hypothesesDesc = hypotheses
+            .sorted { $0.value > $1.value }
+            .map { "\($0.key.rawValue):\(String(format: "%.3f", $0.value))" }
+            .joined(separator: ", ")
 
         guard let best else {
+            logger.debug("detect text='\(text, privacy: .public)' → no hypotheses")
             return LanguageDetectionResult(language: nil, confidence: 0, isReliable: false)
         }
 
-        let effectiveThreshold = text.count <= shortTextMaxLength
-            ? shortTextThreshold
-            : defaultThreshold
+        let isShort = isShortText(text)
+        let effectiveThreshold = isShort ? shortTextThreshold : defaultThreshold
         let isReliable = best.value >= effectiveThreshold
 
         if isReliable {
+            let corrected = correctChineseScript(best.key)
+            logger.debug("detect text='\(text, privacy: .public)' hypotheses=[\(hypothesesDesc, privacy: .public)] short=\(isShort, privacy: .public) → '\(corrected.rawValue, privacy: .public)' (confidence \(best.value, privacy: .public) ≥ \(effectiveThreshold, privacy: .public))")
             return LanguageDetectionResult(
-                language: best.key,
+                language: corrected,
                 confidence: best.value,
                 isReliable: true
             )
         }
 
-        // Fallback for very short text: if all characters are basic Latin,
-        // assume English rather than returning nil (which breaks Apple Translate).
-        if text.count <= shortTextMaxLength,
-           text.unicodeScalars.allSatisfy({ $0.isASCII })
-        {
-            return LanguageDetectionResult(
-                language: .english,
-                confidence: best.value,
-                isReliable: false
-            )
-        }
-
+        logger.debug("detect text='\(text, privacy: .public)' hypotheses=[\(hypothesesDesc, privacy: .public)] short=\(isShort, privacy: .public) → unreliable (top \(best.value, privacy: .public) < \(effectiveThreshold, privacy: .public))")
         return LanguageDetectionResult(
             language: nil,
             confidence: best.value,
             isReliable: false
         )
-    }
-
-    /// Resolves the target language when the source language is already known (user-pinned).
-    /// Avoids NL detection — directly checks if source matches preferred target.
-    public static func resolveTargetLanguage(
-        forKnownSourceCode sourceCode: String,
-        preferred: TargetLanguageOption
-    ) -> TargetLanguageOption {
-        let preferredCode = resolvedLanguageCode(for: preferred)
-        guard languageCodesMatch(sourceCode, preferredCode) else {
-            return preferred
-        }
-        // Source matches target — walk system languages for an alternative
-        for identifier in Locale.preferredLanguages {
-            let components = Locale.Language.Components(identifier: identifier)
-            guard let langCode = components.languageCode else { continue }
-            var candidateCode = langCode.identifier
-            if let script = components.script {
-                candidateCode += "-" + script.identifier
-            }
-            if !languageCodesMatch(candidateCode, sourceCode),
-               let option = targetLanguageOption(for: candidateCode)
-            {
-                return option
-            }
-        }
-        return preferred
     }
 
     /// Detects the source language and returns it as a `Locale.Language`.
@@ -133,64 +105,207 @@ public enum SourceLanguageDetector {
         return Locale.Language(identifier: detected.rawValue)
     }
 
-    /// Returns the best target language option for the given source text.
+    /// Core auto-detection entry point for unit testing.
     ///
-    /// When the detected source language matches the user's preferred target,
-    /// the method walks `Locale.preferredLanguages` to find the next best
-    /// language that differs from the source. Falls back to the preferred
-    /// target if detection is inconclusive or no alternative is found.
-    public static func resolveTargetLanguage(
-        for text: String,
-        preferred: TargetLanguageOption
-    ) -> TargetLanguageOption {
-        guard let detected = detectLanguage(of: text) else {
-            return preferred
+    /// Returns the BCP 47 source language code (e.g. "en", "zh-Hans") that auto-detection
+    /// resolves to, given the user's target language and preferred language list.
+    ///
+    /// - Parameters:
+    ///   - text: Source text.
+    ///   - targetCode: The user-selected target language code (used to bias detection
+    ///     away from source == target).
+    ///   - preferredLanguages: The user's system language list (for Chinese script correction).
+    ///     Defaults to `Locale.preferredLanguages`.
+    /// - Returns: A BCP 47 code, or `nil` when detection is inconclusive.
+    public static func resolveAutoSourceCode(
+        text: String,
+        targetCode: String?,
+        preferredLanguages: [String] = Locale.preferredLanguages
+    ) -> String? {
+        guard let targetCode, !targetCode.isEmpty else {
+            guard let detected = detectLanguage(of: text) else { return nil }
+            let corrected = correctChineseScript(detected, preferredLanguages: preferredLanguages)
+            return corrected.rawValue
         }
 
-        let detectedCode = detected.rawValue // e.g. "en", "zh-Hans", "ja"
-        let preferredCode = resolvedLanguageCode(for: preferred)
+        let recognizer = NLLanguageRecognizer()
+        recognizer.languageConstraints = supportedNLLanguages
+        recognizer.languageHints = languageHints
+        recognizer.processString(text)
 
-        // If the source language doesn't match the preferred target, keep it
-        guard languageCodesMatch(detectedCode, preferredCode) else {
-            return preferred
+        let hypotheses = recognizer.languageHypotheses(withMaximum: maxHypotheses)
+        guard !hypotheses.isEmpty else { return nil }
+
+        let isShort = isShortText(text)
+        let threshold = isShort ? shortTextThreshold : defaultThreshold
+        let minimumExclusionConfidence = 0.15
+        let excludedTopRelativeRatio = 0.3
+
+        let sorted = hypotheses.sorted { $0.value > $1.value }
+        let excludedTopConfidence = sorted.first { languageCodesMatch($0.key.rawValue, targetCode) }?.value ?? 0
+        let relativeFloor = excludedTopConfidence * excludedTopRelativeRatio
+
+        for (lang, confidence) in sorted {
+            if languageCodesMatch(lang.rawValue, targetCode) { continue }
+            if confidence < minimumExclusionConfidence { break }
+            if confidence < relativeFloor { break }
+            let corrected = correctChineseScript(lang, preferredLanguages: preferredLanguages)
+            return corrected.rawValue
         }
 
-        // Source matches target — find an alternative from the user's system languages
+        if let top = sorted.first, top.value >= threshold {
+            let corrected = correctChineseScript(top.key, preferredLanguages: preferredLanguages)
+            return corrected.rawValue
+        }
+        return nil
+    }
+
+    /// Like `detectLocaleLanguage(of:)`, but skips any hypothesis whose base language
+    /// matches `targetCode`. Delegates to `resolveAutoSourceCode` for the core logic;
+    /// adds full logging.
+    public static func detectLocaleLanguage(
+        of text: String,
+        excludingTargetCode targetCode: String?
+    ) -> Locale.Language? {
+        guard let targetCode, !targetCode.isEmpty else {
+            return detectLocaleLanguage(of: text)
+        }
+
+        let recognizer = NLLanguageRecognizer()
+        recognizer.languageConstraints = supportedNLLanguages
+        recognizer.languageHints = languageHints
+        recognizer.processString(text)
+
+        let hypotheses = recognizer.languageHypotheses(withMaximum: maxHypotheses)
+        guard !hypotheses.isEmpty else {
+            logger.debug("detectExcluding(target=\(targetCode, privacy: .public)) text='\(text, privacy: .public)' → no hypotheses")
+            return nil
+        }
+
+        let isShort = isShortText(text)
+        let threshold = isShort ? shortTextThreshold : defaultThreshold
+        let minimumExclusionConfidence = 0.15
+        let excludedTopRelativeRatio = 0.3
+
+        let sorted = hypotheses.sorted { $0.value > $1.value }
+        let hypothesesDesc = sorted
+            .map { "\($0.key.rawValue):\(String(format: "%.3f", $0.value))" }
+            .joined(separator: ", ")
+        let excludedTopConfidence = sorted.first { languageCodesMatch($0.key.rawValue, targetCode) }?.value ?? 0
+        let relativeFloor = excludedTopConfidence * excludedTopRelativeRatio
+
+        for (lang, confidence) in sorted {
+            if languageCodesMatch(lang.rawValue, targetCode) { continue }
+            if confidence < minimumExclusionConfidence {
+                logger.debug("detectExcluding(target=\(targetCode, privacy: .public)) text='\(text, privacy: .public)' hypotheses=[\(hypothesesDesc, privacy: .public)] → '\(lang.rawValue, privacy: .public)' rejected (confidence \(confidence, privacy: .public) < absolute floor \(minimumExclusionConfidence, privacy: .public))")
+                break
+            }
+            if confidence < relativeFloor {
+                logger.debug("detectExcluding(target=\(targetCode, privacy: .public)) text='\(text, privacy: .public)' hypotheses=[\(hypothesesDesc, privacy: .public)] → '\(lang.rawValue, privacy: .public)' rejected (confidence \(confidence, privacy: .public) < \(excludedTopRelativeRatio, privacy: .public) × excluded top \(excludedTopConfidence, privacy: .public) = \(relativeFloor, privacy: .public))")
+                break
+            }
+            let corrected = correctChineseScript(lang)
+            logger.debug("detectExcluding(target=\(targetCode, privacy: .public)) text='\(text, privacy: .public)' hypotheses=[\(hypothesesDesc, privacy: .public)] → picked '\(corrected.rawValue, privacy: .public)' (confidence \(confidence, privacy: .public))")
+            return Locale.Language(identifier: corrected.rawValue)
+        }
+
+        // No non-target candidate qualifies — return the unfiltered top hypothesis if reliable.
+        if let top = sorted.first, top.value >= threshold {
+            let corrected = correctChineseScript(top.key)
+            logger.debug("detectExcluding(target=\(targetCode, privacy: .public)) text='\(text, privacy: .public)' hypotheses=[\(hypothesesDesc, privacy: .public)] → no qualifying non-target, falling back to top '\(corrected.rawValue, privacy: .public)' (confidence \(top.value, privacy: .public))")
+            return Locale.Language(identifier: corrected.rawValue)
+        }
+        logger.debug("detectExcluding(target=\(targetCode, privacy: .public)) text='\(text, privacy: .public)' hypotheses=[\(hypothesesDesc, privacy: .public)] → no qualifying candidate and top below threshold \(threshold, privacy: .public), returning nil")
+        return nil
+    }
+
+    /// Fallback chain when source detection is inconclusive:
+    /// 1. user-pinned `sourceLanguage` (if not `.auto`)
+    /// 2. first supported entry in `Locale.preferredLanguages`
+    /// 3. English
+    public static func fallbackSourceLanguage(
+        userPreference: SourceLanguageOption? = nil
+    ) -> Locale.Language {
+        let preference = userPreference ?? AppPreferences.shared.sourceLanguage
+        if preference != .auto {
+            return Locale.Language(identifier: preference.rawValue)
+        }
         for identifier in Locale.preferredLanguages {
             let components = Locale.Language.Components(identifier: identifier)
             guard let langCode = components.languageCode else { continue }
-
-            var candidateCode = langCode.identifier
+            var candidate = langCode.identifier
             if let script = components.script {
-                candidateCode += "-" + script.identifier
+                candidate += "-" + script.identifier
             }
-
-            if !languageCodesMatch(candidateCode, detectedCode),
-               let option = targetLanguageOption(for: candidateCode)
+            if SourceLanguageOption(rawValue: candidate) != nil
+                || SourceLanguageOption(rawValue: langCode.identifier) != nil
             {
-                return option
+                return Locale.Language(identifier: candidate)
             }
         }
+        return Locale.Language(identifier: "en")
+    }
 
-        // No suitable alternative found — keep original preference
-        return preferred
+    /// Returns true when two BCP 47 codes refer to the same translation language
+    /// (e.g. "en" == "en-US" == "en-Latn", "zh-Hans" treated as same as "zh-Hant" per detector design).
+    static func languagesAreSame(_ a: String, _ b: String) -> Bool {
+        languageCodesMatch(a, b)
     }
 
     // MARK: - Private Helpers
 
-    /// Resolves the underlying language code for a `TargetLanguageOption`,
-    /// handling the `.appLanguage` case.
-    private static func resolvedLanguageCode(for option: TargetLanguageOption) -> String {
-        switch option {
-        case .appLanguage:
-            return TargetLanguageOption.appLanguageIdentifier
-        default:
-            return option.rawValue
+    /// Reconciles zh-Hans / zh-Hant detection against the user's
+    /// `preferredLanguages`. NLLanguageRecognizer cannot reliably
+    /// distinguish scripts for short Han text like "你好"; if the detected
+    /// script is absent from the user's preferred list but the other script
+    /// is present, swap to what the user actually has.
+    static func correctChineseScript(
+        _ detected: NLLanguage,
+        preferredLanguages: [String] = Locale.preferredLanguages
+    ) -> NLLanguage {
+        guard detected == .simplifiedChinese || detected == .traditionalChinese else {
+            return detected
         }
+        var hasHans = false
+        var hasHant = false
+        for identifier in preferredLanguages {
+            let components = Locale.Language.Components(identifier: identifier)
+            guard components.languageCode?.identifier == "zh" else { continue }
+            switch components.script?.identifier {
+            case "Hans": hasHans = true
+            case "Hant": hasHant = true
+            default: break
+            }
+        }
+        if detected == .traditionalChinese, !hasHant, hasHans {
+            return .simplifiedChinese
+        }
+        if detected == .simplifiedChinese, !hasHans, hasHant {
+            return .traditionalChinese
+        }
+        return detected
+    }
+
+    /// Treats text as "short" when either the character count or the
+    /// word count is small. Word count uses Unicode word boundaries so
+    /// that languages without spaces (CJK) are not mis-classified.
+    private static func isShortText(_ text: String) -> Bool {
+        if text.count <= shortTextMaxLength { return true }
+        var wordCount = 0
+        text.enumerateSubstrings(
+            in: text.startIndex..<text.endIndex,
+            options: [.byWords, .localized]
+        ) { _, _, _, stop in
+            wordCount += 1
+            if wordCount > shortTextMaxWords {
+                stop = true
+            }
+        }
+        return wordCount <= shortTextMaxWords
     }
 
     /// Compares two language codes, matching on the base language
-    /// (e.g. "zh-Hans" matches "zh-Hant", "en-US" matches "en").
+    /// (e.g. "zh-Hans" matches "zh-Hant", "en-US" matches "en", "en" matches "en-Latn").
     ///
     /// Script variants of the same language (e.g. Simplified vs Traditional Chinese)
     /// are treated as matching because NLLanguageRecognizer cannot reliably distinguish
@@ -204,13 +319,52 @@ public enum SourceLanguageDetector {
         let bBase = baseLanguage(b)
         if aBase == bBase { return true }
 
-        // Fall back to language-only comparison so that script variants
-        // (zh-Hans vs zh-Hant) are still considered the same language.
-        let aLang = Locale.Language.Components(identifier: a).languageCode?.identifier
-        let bLang = Locale.Language.Components(identifier: b).languageCode?.identifier
-        if let aLang, let bLang, aLang == bLang { return true }
+        let aComp = Locale.Language.Components(identifier: a)
+        let bComp = Locale.Language.Components(identifier: b)
+        guard let aLang = aComp.languageCode?.identifier,
+              let bLang = bComp.languageCode?.identifier,
+              aLang == bLang
+        else {
+            return false
+        }
+
+        // Both sides carry a script (e.g. zh-Hans vs zh-Hant) — treat as same language
+        // because NLLanguageRecognizer cannot reliably distinguish scripts for short text.
+        if aComp.script != nil, bComp.script != nil { return true }
+
+        // One side bare, the other has a script: only collapse when the script is
+        // the language's *default* script (e.g. "en" vs "en-Latn"). For languages
+        // with multiple meaningful scripts (zh, sr, mn, az, …) this still distinguishes.
+        let onlyScript = aComp.script?.identifier ?? bComp.script?.identifier
+        if let onlyScript, onlyScript == defaultScript(forLanguageCode: aLang) {
+            return true
+        }
 
         return false
+    }
+
+    /// Default script for a language code, used to ignore redundant script tags
+    /// (e.g. "en-Latn" is just "en"). Only languages whose detector output may
+    /// include a script tag need to be listed here.
+    private static func defaultScript(forLanguageCode code: String) -> String? {
+        switch code {
+        case "en", "fr", "de", "es", "it", "pt", "nl", "pl", "tr", "id", "vi":
+            return "Latn"
+        case "ru", "uk":
+            return "Cyrl"
+        case "ar":
+            return "Arab"
+        case "ja":
+            return "Jpan"
+        case "ko":
+            return "Kore"
+        case "th":
+            return "Thai"
+        case "hi":
+            return "Deva"
+        default:
+            return nil
+        }
     }
 
     /// Extracts the base language (language + script if present) from an identifier.

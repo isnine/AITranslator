@@ -7,6 +7,7 @@
 ## 快速定位
 
 - macOS 截图流水线（应用内导出 + 营销合成）：[`docs/macos-screenshots.md`](./macos-screenshots.md)
+- 源/目标语言适配（Apple / Google / LLM）：[`docs/language-resolution.md`](./language-resolution.md)
 
 | 需求                        | 关键文件                                                                   |
 | --------------------------- | -------------------------------------------------------------------------- |

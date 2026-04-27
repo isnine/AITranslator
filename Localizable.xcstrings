@@ -26614,6 +26614,9 @@
         }
       }
     },
+    "Source and target are both %@. Pick a different target language." : {
+      "comment" : "Apple Translate refused to translate from a language to itself"
+    },
     "Speak input text" : {
       "localizations" : {
         "ar" : {
