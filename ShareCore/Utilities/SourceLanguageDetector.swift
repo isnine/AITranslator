@@ -105,7 +105,46 @@ public enum SourceLanguageDetector {
         return Locale.Language(identifier: detected.rawValue)
     }
 
-    /// Core auto-detection entry point for unit testing.
+    /// Detects source language with NLLanguageRecognizer constrained to the given candidates only.
+    /// Used in Match mode to improve short-text accuracy.
+    public static func detectLocaleLanguageConstrained(
+        of text: String,
+        candidateCodes: [String]
+    ) -> Locale.Language? {
+        let constraints = candidateCodes.compactMap { nlLanguage(forCode: $0) }
+        guard !constraints.isEmpty else { return detectLocaleLanguage(of: text) }
+
+        let recognizer = NLLanguageRecognizer()
+        recognizer.languageConstraints = constraints
+        recognizer.languageHints = languageHints.filter { constraints.contains($0.key) }
+        recognizer.processString(text)
+
+        let hypotheses = recognizer.languageHypotheses(withMaximum: maxHypotheses)
+        let sorted = hypotheses.sorted { $0.value > $1.value }
+        let isShort = isShortText(text)
+        let threshold = isShort ? shortTextThreshold : defaultThreshold
+
+        guard let top = sorted.first, top.value >= threshold else { return nil }
+        let corrected = correctChineseScript(top.key)
+        return Locale.Language(identifier: corrected.rawValue)
+    }
+
+    /// Picks the best target from `candidates` that differs from `sourceCode`.
+    /// Priority: iterate candidates in order (app language first, then preferred, then English).
+    public static func resolveMatchTarget(
+        sourceCode: String?,
+        candidates: [TargetLanguageOption]
+    ) -> TargetLanguageOption {
+        guard let sourceCode, !candidates.isEmpty else {
+            return candidates.first ?? .english
+        }
+        for candidate in candidates {
+            if !languageCodesMatch(sourceCode, candidate.rawValue) {
+                return candidate
+            }
+        }
+        return candidates.first ?? .english
+    }
     ///
     /// Returns the BCP 47 source language code (e.g. "en", "zh-Hans") that auto-detection
     /// resolves to, given the user's target language and preferred language list.
@@ -377,6 +416,16 @@ public enum SourceLanguageDetector {
             base += "-" + script.identifier
         }
         return base
+    }
+
+    /// Maps a BCP 47 code to `NLLanguage` by matching against `supportedNLLanguages`.
+    private static func nlLanguage(forCode code: String) -> NLLanguage? {
+        let nl = NLLanguage(rawValue: code)
+        if supportedNLLanguages.contains(nl) { return nl }
+        let base = baseLanguage(code)
+        let nlBase = NLLanguage(rawValue: base)
+        if supportedNLLanguages.contains(nlBase) { return nlBase }
+        return nil
     }
 
     /// Maps a language code to the corresponding `TargetLanguageOption`, if one exists.

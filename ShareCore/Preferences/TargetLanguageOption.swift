@@ -89,7 +89,7 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
     public var primaryLabel: String {
         switch self {
         case .appLanguage:
-            return String(localized: "Match App Language")
+            return String(localized: "Match")
         default:
             return nativeName
         }
@@ -98,8 +98,8 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
     public var secondaryLabel: String {
         switch self {
         case .appLanguage:
-            let english = TargetLanguageOption.appLanguageEnglishName
-            return english.isEmpty ? "Use the current app language" : english
+            let names = TargetLanguageOption.matchCandidates.map(\.nativeName)
+            return names.isEmpty ? String(localized: "Auto-match target language") : names.joined(separator: ", ")
         default:
             return englishName
         }
@@ -138,6 +138,38 @@ public enum TargetLanguageOption: String, CaseIterable, Identifiable, Codable {
             return english
         }
         return identifier
+    }
+
+    /// Languages available in Match mode: app language + system preferred languages + English, deduplicated.
+    public static var matchCandidates: [TargetLanguageOption] {
+        var seen = Set<TargetLanguageOption>()
+        var result: [TargetLanguageOption] = []
+        func add(_ option: TargetLanguageOption) {
+            guard option != .appLanguage, seen.insert(option).inserted else { return }
+            result.append(option)
+        }
+        if let appOption = optionForCode(appLanguageIdentifier) {
+            add(appOption)
+        }
+        for identifier in Locale.preferredLanguages {
+            if let option = optionForCode(identifier) {
+                add(option)
+            }
+        }
+        add(.english)
+        return result
+    }
+
+    /// Maps a BCP 47 code (e.g. "zh-Hans", "en-US", "ja") to a TargetLanguageOption.
+    private static func optionForCode(_ code: String) -> TargetLanguageOption? {
+        let components = Locale.Language.Components(identifier: code)
+        guard let langCode = components.languageCode else { return nil }
+        var candidate = langCode.identifier
+        if let script = components.script {
+            candidate += "-" + script.identifier
+        }
+        return TargetLanguageOption(rawValue: candidate)
+            ?? TargetLanguageOption(rawValue: langCode.identifier)
     }
 
     public var promptDescriptor: String {

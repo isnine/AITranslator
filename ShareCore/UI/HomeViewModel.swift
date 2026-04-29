@@ -1031,6 +1031,14 @@ public final class HomeViewModel: ObservableObject {
         } else {
             target = AppPreferences.shared.targetLanguage
         }
+
+        if target == .appLanguage {
+            let candidates = TargetLanguageOption.matchCandidates
+            let sourceCode = detectSourceCodeConstrained(for: text, candidateCodes: candidates.map(\.rawValue))
+            let resolved = SourceLanguageDetector.resolveMatchTarget(sourceCode: sourceCode, candidates: candidates)
+            return ResolvedLanguagePair(target: resolved, sourceCode: sourceCode)
+        }
+
         let sourceCode = detectSourceCode(for: text, excluding: target)
         return ResolvedLanguagePair(target: target, sourceCode: sourceCode)
     }
@@ -1046,6 +1054,22 @@ public final class HomeViewModel: ObservableObject {
         }
         let targetCode = target == .appLanguage ? TargetLanguageOption.appLanguageIdentifier : target.rawValue
         guard let detected = SourceLanguageDetector.detectLocaleLanguage(of: text, excludingTargetCode: targetCode) else {
+            return nil
+        }
+        let code = detected.minimalIdentifier
+        detectedSourceLanguage = SourceLanguageOption(rawValue: code)
+            ?? SourceLanguageOption(rawValue: String(code.prefix(2)))
+        return code
+    }
+
+    /// Match mode: detects source language constrained to candidate language codes only.
+    private func detectSourceCodeConstrained(for text: String, candidateCodes: [String]) -> String? {
+        let sourceLanguage = AppPreferences.shared.sourceLanguage
+        if sourceLanguage != .auto {
+            detectedSourceLanguage = sourceLanguage
+            return sourceLanguage.rawValue
+        }
+        guard let detected = SourceLanguageDetector.detectLocaleLanguageConstrained(of: text, candidateCodes: candidateCodes) else {
             return nil
         }
         let code = detected.minimalIdentifier
@@ -1622,6 +1646,8 @@ public final class HomeViewModel: ObservableObject {
                 duration: result.duration,
                 responseBody: responseBody
             )
+            let failedRun = modelRuns.remove(at: index)
+            modelRuns.append(failedRun)
         }
     }
 

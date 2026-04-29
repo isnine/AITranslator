@@ -65,7 +65,7 @@ public struct LanguageSwitcherView: View {
     private var targetDisplayName: String {
         let target = preferences.targetLanguage
         if target == .appLanguage {
-            return TargetLanguageOption.appLanguageEnglishName
+            return String(localized: "Match")
         }
         return target.primaryLabel
     }
