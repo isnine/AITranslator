@@ -1082,7 +1082,8 @@ public final class HomeViewModel: ObservableObject {
     /// physically can't translate — return a localized error result instead of calling the API.
     private func sameSourceAndTargetResult(
         sourceCode: String?,
-        target: TargetLanguageOption
+        target: TargetLanguageOption,
+        modelID: String = ModelConfig.appleTranslateID
     ) -> ModelExecutionResult? {
         let targetCode = target == .appLanguage ? TargetLanguageOption.appLanguageIdentifier : target.rawValue
         guard let sourceCode,
@@ -1090,9 +1091,9 @@ public final class HomeViewModel: ObservableObject {
         else {
             return nil
         }
-        logger.error("Apple Translate: source==target (\(sourceCode, privacy: .public)), short-circuiting")
+        logger.error("\(modelID, privacy: .public): source==target (\(sourceCode, privacy: .public)), short-circuiting")
         return ModelExecutionResult(
-            modelID: ModelConfig.appleTranslateID,
+            modelID: modelID,
             duration: 0,
             response: .failure(LocalProviderError.sameSourceAndTarget(language: target.englishName))
         )
@@ -1324,6 +1325,9 @@ public final class HomeViewModel: ObservableObject {
         // Kick off Google Translate if present.
         if hasGoogleTranslate {
             if action.supportsAppleTranslate {
+                if let shortCircuit = sameSourceAndTargetResult(sourceCode: resolved.sourceCode, target: resolvedTarget, modelID: ModelConfig.googleTranslateID) {
+                    apply(result: shortCircuit, allowDiff: false)
+                } else {
                 let googleSourceCode: String? = resolved.sourceCode
                 Task { [weak self] in
                     guard let self else { return }
@@ -1348,6 +1352,7 @@ public final class HomeViewModel: ObservableObject {
                             duration: result.duration
                         )
                     }
+                }
                 }
             } else {
                 let result = ModelExecutionResult(
