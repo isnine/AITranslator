@@ -14,11 +14,6 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var storeManager = StoreManager.shared
 
-    @State private var showRestoreSuccess = false
-    @State private var showRestoreFailure = false
-    @State private var showPurchaseSuccess = false
-    @State private var showPurchaseFailure = false
-
     private var colors: AppColorPalette {
         AppColors.palette(for: colorScheme)
     }
@@ -30,12 +25,9 @@ struct PaywallView: View {
                     heroSection
                     featuresSection
                     productsSection
+                    subscribeButton
                     legalFooter
-                    #if !os(macOS)
-                        restoreButton
-                    #endif
                 }
-                .padding(.horizontal, 20)
                 .padding(.vertical, 28)
             }
             .background(colors.background.ignoresSafeArea())
@@ -56,6 +48,167 @@ struct PaywallView: View {
                 }
         }
         .tint(colors.accent)
+    }
+
+    // MARK: - Products
+
+    @State private var selectedProduct: Product?
+
+    private var productsSection: some View {
+        VStack(spacing: 0) {
+            if let lifetime = storeManager.lifetimeProduct {
+                productRow(
+                    product: lifetime,
+                    title: "Lifetime",
+                    subtitle: "One-time purchase, forever yours",
+                    priceLabel: lifetime.displayPrice,
+                    periodLabel: nil,
+                    badge: "BEST VALUE"
+                )
+            }
+
+            sectionDivider
+
+            if let annual = storeManager.annualProduct {
+                productRow(
+                    product: annual,
+                    title: "Annual",
+                    subtitle: monthlySavingsText(annual: annual),
+                    priceLabel: annual.displayPrice,
+                    periodLabel: "/ year",
+                    badge: nil
+                )
+            }
+
+            sectionDivider
+
+            if let monthly = storeManager.monthlyProduct {
+                productRow(
+                    product: monthly,
+                    title: "Monthly",
+                    subtitle: "Cancel anytime",
+                    priceLabel: monthly.displayPrice,
+                    periodLabel: "/ month",
+                    badge: nil
+                )
+            }
+        }
+        .background(cardBackground)
+        .padding(.horizontal, 20)
+        .onAppear {
+            selectedProduct = storeManager.lifetimeProduct
+        }
+    }
+
+    private var sectionDivider: some View {
+        Rectangle()
+            .fill(colors.divider)
+            .frame(height: 0.5)
+            .padding(.leading, 56)
+    }
+
+    private func monthlySavingsText(annual: Product) -> String {
+        let perMonth = (annual.price / 12).formatted(annual.priceFormatStyle)
+        return "\(perMonth)/mo — save vs. monthly"
+    }
+
+    private func productRow(
+        product: Product,
+        title: String,
+        subtitle: String,
+        priceLabel: String,
+        periodLabel: String?,
+        badge: String?
+    ) -> some View {
+        let isSelected = selectedProduct?.id == product.id
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                selectedProduct = product
+            }
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .stroke(isSelected ? colors.accent : colors.divider, lineWidth: isSelected ? 6 : 1.5)
+                        .frame(width: 22, height: 22)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 6) {
+                        Text(title)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(colors.textPrimary)
+
+                        if let badge {
+                            Text(badge)
+                                .font(.system(size: 9, weight: .heavy))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule().fill(
+                                        LinearGradient(
+                                            colors: [Color.orange, Color.yellow],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                )
+                        }
+                    }
+
+                    Text(subtitle)
+                        .font(.system(size: 13))
+                        .foregroundColor(colors.textSecondary)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text(priceLabel)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundColor(colors.textPrimary)
+                    if let periodLabel {
+                        Text(periodLabel)
+                            .font(.system(size: 11))
+                            .foregroundColor(colors.textSecondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Subscribe Button
+
+    private var subscribeButton: some View {
+        Button {
+            guard let product = selectedProduct else { return }
+            Task { await storeManager.purchase(product) }
+        } label: {
+            Group {
+                if storeManager.isPurchasing {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Text("Continue")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .foregroundColor(.white)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(colors.accent)
+            )
+        }
+        .disabled(selectedProduct == nil || storeManager.isPurchasing)
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Hero
@@ -136,168 +289,6 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Products
-
-    private var productsSection: some View {
-        #if os(macOS)
-            SubscriptionStoreView(productIDs: SubscriptionProduct.allIdentifiers)
-                .subscriptionStorePolicyDestination(url: Self.termsOfUseURL, for: .termsOfService)
-                .subscriptionStorePolicyDestination(url: Self.privacyPolicyURL, for: .privacyPolicy)
-                .storeButton(.visible, for: .restorePurchases)
-                .subscriptionStoreButtonLabel(.multiline)
-                .frame(maxWidth: .infinity, minHeight: 320)
-                .background(cardBackground)
-        #else
-            VStack(spacing: 12) {
-                if storeManager.isLoadingProducts {
-                    ProgressView()
-                        .padding(.vertical, 20)
-                } else if storeManager.products.isEmpty {
-                    Text("Products unavailable. Please try again later.")
-                        .font(.system(size: 14))
-                        .foregroundColor(colors.textSecondary)
-                        .padding(.vertical, 20)
-                } else {
-                    ForEach(storeManager.products, id: \.id) { product in
-                        productCard(product)
-                    }
-                }
-
-                if let error = storeManager.purchaseError {
-                    Text(error)
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.error)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 4)
-                }
-            }
-            .alert("Purchase Successful", isPresented: $showPurchaseSuccess) {
-                Button("OK") { dismiss() }
-            } message: {
-                Text("You are now a premium subscriber. Enjoy!")
-            }
-            .alert("Purchase Failed", isPresented: $showPurchaseFailure) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(storeManager.purchaseError ?? "An unknown error occurred.")
-            }
-        #endif
-    }
-
-    private func productCard(_ product: Product) -> some View {
-        let isAnnual = product.id == SubscriptionProduct.annual.rawValue
-
-        return Button {
-            Task {
-                await storeManager.purchase(product)
-                if storeManager.isPremium {
-                    showPurchaseSuccess = true
-                } else if storeManager.purchaseError != nil {
-                    showPurchaseFailure = true
-                }
-            }
-        } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(product.displayName)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(colors.textPrimary)
-
-                        if isAnnual, let savingsText = annualSavingsText {
-                            Text(savingsText)
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.green)
-                                .clipShape(Capsule())
-                        }
-                    }
-
-                    Text(product.description)
-                        .font(.system(size: 13))
-                        .foregroundColor(colors.textSecondary)
-                }
-
-                Spacer()
-
-                Text(product.displayPrice)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(colors.accent)
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 14)
-                    .fill(colors.cardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(colors.divider, lineWidth: 1)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(storeManager.isPurchasing)
-        .opacity(storeManager.isPurchasing ? 0.6 : 1.0)
-    }
-
-    // MARK: - Savings Calculation
-
-    private var annualSavingsText: String? {
-        guard let monthly = storeManager.monthlyProduct,
-              let annual = storeManager.annualProduct
-        else {
-            return nil
-        }
-        let annualized = monthly.price * 12
-        guard annualized > annual.price else { return nil }
-        let savings = (annualized - annual.price) / annualized * 100
-        let percent = Int(NSDecimalNumber(decimal: savings).doubleValue)
-        guard percent > 0 else { return nil }
-        return String(localized: "Save \(percent)%")
-    }
-
-    // MARK: - Restore
-
-    private var restoreButton: some View {
-        Button {
-            Task {
-                await storeManager.restorePurchases()
-                if storeManager.purchaseError != nil {
-                    showRestoreFailure = true
-                } else if storeManager.isPremium {
-                    showRestoreSuccess = true
-                } else {
-                    showRestoreFailure = true
-                }
-            }
-        } label: {
-            if storeManager.isPurchasing {
-                ProgressView()
-                    .controlSize(.small)
-            } else {
-                Text("Restore Purchases")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(colors.accent)
-            }
-        }
-        .disabled(storeManager.isPurchasing)
-        .alert("Restore Successful", isPresented: $showRestoreSuccess) {
-            Button("OK") { dismiss() }
-        } message: {
-            Text("Your purchases have been restored successfully.")
-        }
-        .alert("Restore Failed", isPresented: $showRestoreFailure) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            if let error = storeManager.purchaseError {
-                Text(error)
-            } else {
-                Text("No active subscription found. Please check your account or subscribe.")
-            }
-        }
-    }
-
     // MARK: - Legal
 
     private static let privacyPolicyURL = URL(
@@ -308,24 +299,28 @@ struct PaywallView: View {
     )!
 
     private var legalFooter: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
+            Button("Restore Purchases") {
+                Task { await storeManager.restorePurchases() }
+            }
+            .font(.system(size: 13))
+            .foregroundColor(colors.accent)
+
+            HStack(spacing: 16) {
+                Link("Terms of Use", destination: Self.termsOfUseURL)
+                Link("Privacy Policy", destination: Self.privacyPolicyURL)
+            }
+            .font(.system(size: 11))
+            .foregroundColor(colors.textSecondary.opacity(0.6))
+
             Text(
-                "Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. Payment will be charged to your Apple ID account at confirmation of purchase."
+                "Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period."
             )
             .font(.system(size: 11))
             .foregroundColor(colors.textSecondary.opacity(0.6))
             .multilineTextAlignment(.center)
-
-            HStack(spacing: 4) {
-                Link("Terms of Use (EULA)", destination: Self.termsOfUseURL)
-                Text("and")
-                    .foregroundColor(colors.textSecondary.opacity(0.6))
-                Link("Privacy Policy", destination: Self.privacyPolicyURL)
-            }
-            .font(.system(size: 12))
-            .underline()
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 28)
     }
 
     // MARK: - Shared

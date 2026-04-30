@@ -2191,6 +2191,7 @@
       }
     },
     "and" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -2951,6 +2952,9 @@
           }
         }
       }
+    },
+    "Auto-match target language" : {
+
     },
     "Azure → Model:" : {
       "localizations" : {
@@ -14613,6 +14617,9 @@
         }
       }
     },
+    "Match" : {
+
+    },
     "Match App Language" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15611,6 +15618,7 @@
       }
     },
     "No active subscription found. Please check your account or subscribe." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -19237,6 +19245,7 @@
       }
     },
     "Products unavailable. Please try again later." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -19781,6 +19790,7 @@
       }
     },
     "Purchase Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -19893,6 +19903,7 @@
       }
     },
     "Purchase Successful" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -22448,6 +22459,7 @@
       }
     },
     "Restore Failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -22672,6 +22684,7 @@
       }
     },
     "Restore Successful" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -27403,7 +27416,11 @@
         }
       }
     },
+    "Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period." : {
+
+    },
     "Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. Payment will be charged to your Apple ID account at confirmation of purchase." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -28172,7 +28189,11 @@
         }
       }
     },
+    "Terms of Use" : {
+
+    },
     "Terms of Use (EULA)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -32531,6 +32552,7 @@
       }
     },
     "You are now a premium subscriber. Enjoy!" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -33081,6 +33103,7 @@
       }
     },
     "Your purchases have been restored successfully." : {
+      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {

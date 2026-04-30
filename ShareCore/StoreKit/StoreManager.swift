@@ -66,10 +66,21 @@ public final class StoreManager: ObservableObject {
 
     private init() {
         #if DEBUG
-            // Auto-enable premium in development builds
-            isPremium = true
-            AppPreferences.sharedDefaults.set(true, forKey: Self.premiumKey)
-            logger.debug("DEBUG build – premium auto-enabled")
+            // Auto-enable premium in development builds unless user toggled it off
+            isTestFlightOverride = AppPreferences.sharedDefaults.bool(forKey: Self.testFlightOverrideKey)
+            if isTestFlightOverride {
+                isPremium = false
+                logger.debug("DEBUG build – premium disabled via override toggle")
+            } else {
+                isPremium = true
+                AppPreferences.sharedDefaults.set(true, forKey: Self.premiumKey)
+                logger.debug("DEBUG build – premium auto-enabled")
+            }
+
+            transactionListener = listenForTransactions()
+            Task {
+                await loadProducts()
+            }
         #else
             // Read cached premium status from App Group defaults
             isPremium = AppPreferences.sharedDefaults.bool(forKey: Self.premiumKey)
@@ -110,15 +121,22 @@ public final class StoreManager: ObservableObject {
 
         do {
             let storeProducts = try await Product.products(
-                for: SubscriptionProduct.allIdentifiers
+                for: PremiumProduct.allIdentifiers
             )
 
-            // Sort: monthly first, then annual
+            logger.info("Loaded \(storeProducts.count) products: \(storeProducts.map(\.id).joined(separator: ", "), privacy: .public)")
+
+            // Sort: monthly first, then annual, then lifetime
             products = storeProducts.sorted { lhs, rhs in
-                let lhsIsMonthly = lhs.id == SubscriptionProduct.monthly.rawValue
-                let rhsIsMonthly = rhs.id == SubscriptionProduct.monthly.rawValue
-                if lhsIsMonthly != rhsIsMonthly { return lhsIsMonthly }
-                return lhs.price < rhs.price
+                let order: (Product) -> Int = { p in
+                    switch p.id {
+                    case SubscriptionProduct.monthly.rawValue: return 0
+                    case SubscriptionProduct.annual.rawValue: return 1
+                    case LifetimeProduct.lifetime.rawValue: return 2
+                    default: return 3
+                    }
+                }
+                return order(lhs) < order(rhs)
             }
 
         } catch {
@@ -142,7 +160,7 @@ public final class StoreManager: ObservableObject {
                 await transaction.finish()
                 // Directly grant premium for verified subscription purchases,
                 // as Transaction.currentEntitlements may lag behind.
-                if SubscriptionProduct.allIdentifiers.contains(transaction.productID) {
+                if PremiumProduct.allIdentifiers.contains(transaction.productID) {
                     updatePremiumStatus(true)
                 }
                 await checkSubscriptionStatus()
@@ -194,7 +212,7 @@ public final class StoreManager: ObservableObject {
         for await result in Transaction.currentEntitlements {
             guard let transaction = try? checkVerified(result) else { continue }
 
-            if SubscriptionProduct.allIdentifiers.contains(transaction.productID) {
+            if PremiumProduct.allIdentifiers.contains(transaction.productID) {
                 if transaction.revocationDate == nil {
                     hasActiveSubscription = true
                 }
@@ -232,26 +250,25 @@ public final class StoreManager: ObservableObject {
 
     // MARK: - TestFlight Premium Toggle
 
-    /// Toggle TestFlight premium override. Returns the new override state.
     @discardableResult
     public func toggleTestFlightPremium() -> Bool {
-        guard Self.isTestFlight else { return false }
-        let newValue = !isTestFlightOverride
-        isTestFlightOverride = newValue
-        AppPreferences.sharedDefaults.set(newValue, forKey: Self.testFlightOverrideKey)
-
-        if newValue {
-            updatePremiumStatus(true)
-        } else {
-            // Immediately clear premium, then let async check correct upward if real subscription exists
-            updatePremiumStatus(false)
-            Task {
-                await checkSubscriptionStatus()
+        #if DEBUG
+            let newValue = !isTestFlightOverride
+            isTestFlightOverride = newValue
+            AppPreferences.sharedDefaults.set(newValue, forKey: Self.testFlightOverrideKey)
+            updatePremiumStatus(!newValue)
+            return !newValue
+        #else
+            guard Self.isTestFlight else { return false }
+            let newValue = !isTestFlightOverride
+            isTestFlightOverride = newValue
+            AppPreferences.sharedDefaults.set(newValue, forKey: Self.testFlightOverrideKey)
+            updatePremiumStatus(newValue)
+            if !newValue {
+                Task { await checkSubscriptionStatus() }
             }
-        }
-
-        logger.debug("TestFlight override toggled: \(newValue, privacy: .public)")
-        return newValue
+            return newValue
+        #endif
     }
 
     // MARK: - Transaction Listener
@@ -297,5 +314,15 @@ public final class StoreManager: ObservableObject {
     /// Annual product, if available.
     public var annualProduct: Product? {
         products.first { $0.id == SubscriptionProduct.annual.rawValue }
+    }
+
+    /// Lifetime product, if available.
+    public var lifetimeProduct: Product? {
+        products.first { $0.id == LifetimeProduct.lifetime.rawValue }
+    }
+
+    /// Subscription-only products (excludes lifetime).
+    public var subscriptionProducts: [Product] {
+        products.filter { SubscriptionProduct.allIdentifiers.contains($0.id) }
     }
 }

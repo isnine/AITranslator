@@ -227,7 +227,10 @@ struct SettingsView: View {
                         : "Premium deactivated (TestFlight)"
                 } else {
                     #if DEBUG
-                        testFlightAlertMessage = "DEBUG build – premium already enabled automatically."
+                        let enabled = storeManager.toggleTestFlightPremium()
+                        testFlightAlertMessage = enabled
+                            ? "Premium activated (Debug)"
+                            : "Premium deactivated (Debug)"
                     #else
                         testFlightAlertMessage = "TestFlight override is only available in TestFlight builds."
                     #endif
