@@ -1,21 +1,18 @@
-Due nuovi potenti motori di traduzione si aggiungono a TLingo — Apple Translate per la privacy sul dispositivo e Google Translate per una copertura linguistica più ampia.
+Un TLingo più intelligente e raffinato — con una nuova opzione di acquisto a vita e corrispondenza linguistica intelligente.
 
 Novità
-• Traduzione per selezione testo (macOS) — seleziona del testo in qualsiasi app per tradurlo istantaneamente. Un'icona fluttuante appare vicino al cursore per un accesso rapido.
-• Integrazione di Apple Translate — un potente motore di traduzione sul dispositivo. Inizia a tradurre immediatamente senza scaricare pacchetti lingua.
-• Integrazione di Google Translate — accedi al servizio di traduzione di Google per un supporto linguistico ancora più ampio.
-• Il selettore di lingua è stato esteso a tutte le 21 lingue di Apple Translate.
-• Il rilevamento della lingua di origine mostra ora quale lingua è stata rilevata con un chiaro indicatore visivo.
-• Visualizza i pacchetti lingua di Apple Translate installati direttamente dalla pagina Modelli.
+• Acquisto a vita — sblocca Premium per sempre con un singolo pagamento.
+• Schermata di upgrade ridisegnata con un confronto chiaro dei piani.
+• Guida di avvio macOS — ti accompagna nella configurazione dell'accessibilità al primo avvio.
+• Selettore azioni nel popup di traduzione per selezione testo — cambia azione senza uscire dalla finestra fluttuante.
 
 Migliorato
-• La pagina Modelli ora mostra solo le lingue scaricate per una visualizzazione più ordinata.
-• Le schede della cronologia traduzioni distinguono chiaramente il testo di origine dal risultato tradotto.
-• La barra laterale di macOS è stata ridisegnata con NavigationSplitView nativo per un'esperienza più fluida.
-• I record della cronologia vengono visualizzati direttamente nella barra laterale di macOS per un accesso più rapido.
+• La modalità corrispondenza rileva e imposta automaticamente la lingua di destinazione in base al testo.
+• La traduzione per selezione testo su macOS è più veloce e affidabile — tempistica di acquisizione ottimizzata, annullamento delle richieste obsolete e controllo preventivo dell'accessibilità.
+• Icona di attivazione dell'azione di rifinitura sui campi di testo modificabili.
 
 Corretto
-• Risolti i problemi di layout del menu di destinazione del selettore lingua.
-• La finestra di download della lingua appare ora nella posizione corretta.
-• La sincronizzazione della configurazione dell'estensione di traduzione funziona in modo affidabile tra app ed estensione.
-• Diversi miglioramenti di stabilità in tutta l'applicazione.
+• Google Translate non fallisce più quando la lingua di origine e di destinazione coincidono.
+• L'instradamento linguistico di Apple Translate funziona correttamente per tutte le lingue supportate.
+• Il clic sull'icona del Dock mostra correttamente la finestra principale dopo il riavvio.
+• L'interruttore premium di TestFlight funziona in modo affidabile su macOS.

@@ -1,21 +1,18 @@
-Dua mesin terjemahan baru yang canggih hadir di TLingo — Apple Translate untuk privasi di perangkat dan Google Translate untuk cakupan bahasa yang lebih luas.
+TLingo yang lebih cerdas dan lebih halus — dengan opsi pembelian seumur hidup baru dan pencocokan bahasa cerdas.
 
 Baru
-• Terjemahan Seleksi Teks (macOS) — pilih teks di aplikasi mana pun untuk langsung menerjemahkan. Ikon mengambang muncul di dekat kursor untuk akses cepat.
-• Integrasi Apple Translate — mesin terjemahan canggih yang bekerja langsung di perangkat Anda. Mulai menerjemahkan seketika tanpa perlu mengunduh paket bahasa.
-• Integrasi Google Translate — akses layanan terjemahan Google untuk dukungan bahasa yang lebih luas lagi.
-• Pemilih bahasa diperluas ke semua 21 bahasa Apple Translate.
-• Deteksi bahasa sumber kini menampilkan bahasa yang terdeteksi dengan indikator visual yang jelas.
-• Lihat paket bahasa Apple Translate yang terinstal langsung dari halaman Model.
+• Pembelian seumur hidup — buka Premium selamanya dengan satu kali pembayaran.
+• Layar upgrade yang didesain ulang dengan perbandingan paket yang jelas.
+• Panduan pengenalan macOS — memandu Anda melalui pengaturan aksesibilitas saat peluncuran pertama.
+• Pemilih aksi di popup terjemahan seleksi teks — ganti aksi tanpa meninggalkan jendela mengambang.
 
 Ditingkatkan
-• Halaman Model kini hanya menampilkan bahasa yang sudah diunduh untuk tampilan yang lebih rapi.
-• Kartu riwayat terjemahan kini membedakan dengan jelas antara teks sumber dan hasil terjemahan.
-• Sidebar macOS dirancang ulang dengan NavigationSplitView native untuk pengalaman yang lebih lancar.
-• Catatan riwayat ditampilkan langsung di sidebar macOS untuk akses yang lebih cepat.
+• Mode pencocokan sekarang mendeteksi dan mengalihkan bahasa target secara dinamis berdasarkan teks Anda.
+• Terjemahan seleksi teks di macOS lebih cepat dan lebih andal — waktu pengambilan yang dioptimalkan, pembatalan permintaan kedaluwarsa, dan pemeriksaan awal aksesibilitas.
+• Ikon pemicu aksi pemolesan pada bidang teks yang dapat diedit.
 
 Diperbaiki
-• Masalah tata letak menu target pengalih bahasa telah diperbaiki.
-• Jendela unduhan bahasa kini muncul di posisi yang benar.
-• Sinkronisasi konfigurasi ekstensi terjemahan berfungsi dengan andal antara aplikasi dan ekstensi.
-• Berbagai peningkatan stabilitas di seluruh aplikasi.
+• Google Translate tidak lagi gagal saat bahasa sumber dan target sama.
+• Perutean bahasa Apple Translate berfungsi dengan benar di semua bahasa yang didukung.
+• Mengklik ikon Dock menampilkan jendela utama dengan benar setelah peluncuran ulang.
+• Sakelar premium TestFlight berfungsi dengan andal di macOS.

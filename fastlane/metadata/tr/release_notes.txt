@@ -1,21 +1,18 @@
-TLingo'ya iki güçlü yeni çeviri motoru ekleniyor — cihaz üzerinde gizlilik için Apple Translate ve geniş dil desteği için Google Translate.
+Daha akıllı, daha cilalı bir TLingo — yeni ömür boyu satın alma seçeneği ve akıllı dil eşleştirme.
 
 Yeni
-• Metin Seçimi ile Çeviri (macOS) — herhangi bir uygulamada metin seçerek anında çevirin. İmlecin yanında hızlı erişim için kayan bir simge belirir.
-• Apple Translate entegrasyonu — cihazınızda çalışan güçlü bir çeviri motoru. Dil paketi indirmeden hemen çevirmeye başlayın.
-• Google Translate entegrasyonu — daha geniş dil desteği için Google'ın çeviri hizmetine erişin.
-• Dil seçici, tüm 21 Apple Translate diline genişletildi.
-• Kaynak dil algılama artık hangi dilin algılandığını net bir görsel göstergeyle gösteriyor.
-• Yüklü Apple Translate dil paketlerini doğrudan Modeller sayfasından görüntüleyin.
+• Ömür boyu satın alma — tek bir ödemeyle Premium'u sonsuza dek açın.
+• Net plan karşılaştırması ile yeniden tasarlanmış yükseltme ekranı.
+• macOS başlangıç rehberi — ilk açılışta erişilebilirlik kurulumunda size rehberlik eder.
+• Metin seçimi çeviri açılır penceresinde eylem seçici — kayan pencereden ayrılmadan eylem değiştirin.
 
 İyileştirme
-• Modeller sayfası artık daha temiz bir görünüm için yalnızca indirilen dilleri gösteriyor.
-• Çeviri geçmişi kartları artık kaynak metni ve çeviri sonucunu açıkça ayırt ediyor.
-• macOS kenar çubuğu, daha akıcı bir deneyim için yerel NavigationSplitView ile yeniden tasarlandı.
-• Geçmiş kayıtları, daha hızlı erişim için macOS kenar çubuğunda doğrudan görüntüleniyor.
+• Eşleştirme modu artık metninize göre hedef dili dinamik olarak algılıyor ve değiştiriyor.
+• macOS'ta metin seçimi çevirisi daha hızlı ve güvenilir — optimize edilmiş yakalama zamanlaması, eski isteklerin iptali ve erişilebilirlik ön kontrolü.
+• Düzenlenebilir metin alanlarında cilalama eylemi tetikleme simgesi.
 
 Düzeltme
-• Dil değiştirici hedef menüsü düzen sorunları çözüldü.
-• Dil indirme penceresi artık doğru konumda görünüyor.
-• Çeviri eklentisi yapılandırma senkronizasyonu, uygulama ve eklenti arasında güvenilir şekilde çalışıyor.
-• Uygulama genelinde çeşitli kararlılık iyileştirmeleri.
+• Google Translate, kaynak ve hedef dil aynı olduğunda artık başarısız olmuyor.
+• Apple Translate dil yönlendirmesi tüm desteklenen dillerde doğru çalışıyor.
+• Dock simgesine tıklamak yeniden başlatmadan sonra ana pencereyi doğru şekilde gösteriyor.
+• macOS'ta TestFlight premium geçişi güvenilir şekilde çalışıyor.

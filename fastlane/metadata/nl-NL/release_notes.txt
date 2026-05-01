@@ -1,21 +1,18 @@
-Twee krachtige nieuwe vertaalmotoren vervoegen TLingo — Apple Translate voor privacy op het apparaat en Google Translate voor brede taalondersteuning.
+Een slimmer, verfijnder TLingo — met een nieuwe lifetime-aankoopoptie en intelligente taalafstemming.
 
 Nieuw
-• Tekstselectie-vertaling (macOS) — selecteer tekst in elke app om direct te vertalen. Een zwevend pictogram verschijnt bij uw cursor voor snelle toegang.
-• Apple Translate-integratie — een krachtige vertaalmotor die rechtstreeks op uw apparaat werkt. Begin direct met vertalen zonder taalpakketten te downloaden.
-• Google Translate-integratie — toegang tot de vertaalservice van Google voor nog bredere taalondersteuning.
-• De taalkeuzelijst is uitgebreid naar alle 21 Apple Translate-talen.
-• Brontalendetectie toont nu welke taal is gedetecteerd met een duidelijke visuele indicator.
-• Bekijk geïnstalleerde Apple Translate-taalpakketten direct vanaf de Modellen-pagina.
+• Lifetime-aankoop — ontgrendel Premium voor altijd met één betaling.
+• Vernieuwde upgrade-scherm met duidelijke planvergelijking.
+• macOS-introductiegids — begeleidt u bij de toegankelijkheidsinstellingen bij de eerste start.
+• Actiekiezer in het tekstselectie-vertaalpopup — wissel van actie zonder het zwevende venster te verlaten.
 
 Verbeterd
-• De Modellen-pagina toont nu alleen gedownloade talen voor een overzichtelijker weergave.
-• Vertaalgeschiedenis-kaarten onderscheiden nu duidelijk de brontekst van het vertaalde resultaat.
-• De macOS-zijbalk is opnieuw ontworpen met native NavigationSplitView voor een vloeiendere ervaring.
-• Geschiedenisrecords worden direct in de macOS-zijbalk weergegeven voor snellere toegang.
+• De afstemmingsmodus detecteert en schakelt nu dynamisch de doeltaal op basis van uw tekst.
+• Tekstselectie-vertaling op macOS is sneller en betrouwbaarder — geoptimaliseerde ophaaltiming, annulering van verlopen verzoeken en toegankelijkheids-voorcontrole.
+• Polijst-actie-triggerpictogram voor bewerkbare tekstvelden.
 
 Opgelost
-• Layoutproblemen in het doelmenu van de taalwisselaar opgelost.
-• Het taaldownloadvenster verschijnt nu op de juiste positie.
-• Configuratiesynchronisatie van de vertaalextensie werkt nu betrouwbaar tussen app en extensie.
-• Diverse stabiliteitsverbeteringen door de hele app.
+• Google Translate faalt niet meer wanneer de bron- en doeltaal hetzelfde zijn.
+• Apple Translate-taalroutering werkt nu correct voor alle ondersteunde talen.
+• Klikken op het Dock-pictogram toont het hoofdvenster correct na herstart.
+• TestFlight premium-schakelaar werkt betrouwbaar op macOS.

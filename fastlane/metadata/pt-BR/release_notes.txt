@@ -1,21 +1,18 @@
-Dois novos e poderosos motores de tradução chegam ao TLingo — Apple Translate para privacidade no dispositivo e Google Translate para cobertura linguística mais ampla.
+Um TLingo mais inteligente e refinado — com nova opção de compra vitalícia e correspondência inteligente de idiomas.
 
 Novo
-• Tradução por seleção de texto (macOS) — selecione texto em qualquer app para traduzir instantaneamente. Um ícone flutuante aparece próximo ao cursor para acesso rápido.
-• Integração com Apple Translate — um poderoso motor de tradução no dispositivo. Comece a traduzir imediatamente sem precisar baixar pacotes de idiomas.
-• Integração com Google Translate — acesse o serviço de tradução do Google para suporte a ainda mais idiomas.
-• O seletor de idiomas foi expandido para todos os 21 idiomas do Apple Translate.
-• A detecção do idioma de origem agora mostra qual idioma foi detectado com um indicador visual claro.
-• Veja os pacotes de idiomas do Apple Translate instalados diretamente na página de Modelos.
+• Compra vitalícia — desbloqueie o Premium para sempre com um único pagamento.
+• Tela de upgrade redesenhada com comparação clara dos planos.
+• Guia de introdução no macOS — orienta você na configuração de acessibilidade na primeira inicialização.
+• Seletor de ações no popup de tradução por seleção de texto — troque de ação sem sair da janela flutuante.
 
 Melhorado
-• A página de Modelos agora exibe apenas os idiomas baixados para uma visualização mais limpa.
-• Os cartões do histórico de tradução distinguem claramente o texto original do resultado traduzido.
-• A barra lateral do macOS foi redesenhada com NavigationSplitView nativo para uma experiência mais fluida.
-• Registros do histórico são exibidos diretamente na barra lateral do macOS para acesso mais rápido.
+• O modo de correspondência agora detecta e resolve dinamicamente o idioma de destino com base no seu texto.
+• A tradução por seleção de texto no macOS é mais rápida e confiável — tempo de captura otimizado, cancelamento de requisições obsoletas e verificação prévia de acessibilidade.
+• Ícone de ativação da ação de polimento em campos de texto editáveis.
 
 Corrigido
-• Resolvidos problemas de layout no menu de destino do seletor de idiomas.
-• A janela de download de idioma agora aparece na posição correta.
-• A sincronização de configuração da extensão de tradução funciona de forma confiável entre o app e a extensão.
-• Diversas melhorias de estabilidade em todo o aplicativo.
+• O Google Tradutor não falha mais quando os idiomas de origem e destino são iguais.
+• O roteamento de idiomas do Apple Tradutor funciona corretamente em todos os idiomas suportados.
+• Clicar no ícone do Dock exibe corretamente a janela principal após a reinicialização.
+• O alternador premium do TestFlight funciona de forma confiável no macOS.

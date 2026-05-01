@@ -1,21 +1,18 @@
-To nye kraftfulde oversættelsesmotorer tilslutter sig TLingo — Apple Translate til privatliv på enheden og Google Translate til bred sprogdækning.
+En smartere, mere forfinet TLingo — med ny livstidskøbsmulighed og intelligent sprogtilpasning.
 
 Nyt
-• Tekstmarkeringsoversættelse (macOS) — markér tekst i en vilkårlig app for øjeblikkelig oversættelse. Et svævende ikon vises nær markøren for hurtig adgang.
-• Apple Translate-integration — en kraftfuld oversættelsesmotor direkte på din enhed. Begynd at oversætte med det samme uden at downloade sprogpakker.
-• Google Translate-integration — få adgang til Googles oversættelsestjeneste for endnu bredere sprogsupport.
-• Sprogvælgeren er udvidet til alle 21 Apple Translate-sprog.
-• Kildesprogregistrering viser nu, hvilket sprog der blev registreret, med en tydelig visuel indikator.
-• Se installerede Apple Translate-sprogpakker direkte fra Modeller-siden.
+• Livstidskøb — lås op for Premium for altid med én betaling.
+• Fornyet opgraderingsskærm med tydelig plansammenligning.
+• macOS-introduktionsguide — hjælper dig med tilgængelighedsopsætning ved første start.
+• Handlingsvælger i tekstmarkerings-oversættelsespopup — skift handling uden at forlade det svævende vindue.
 
 Forbedret
-• Modeller-siden viser nu kun downloadede sprog for et renere overblik.
-• Oversættelseshistorik-kort skelner nu tydeligt mellem kildetekst og det oversatte resultat.
-• macOS-sidebjælken er redesignet med native NavigationSplitView for en mere flydende oplevelse.
-• Historikposter vises direkte i macOS-sidebjælken for hurtigere adgang.
+• Tilpasningstilstand registrerer og skifter nu dynamisk målsprog baseret på din tekst.
+• Tekstmarkeringsoversættelse på macOS er hurtigere og mere pålidelig — optimeret indfangningstiming, annullering af forældede forespørgsler og tilgængelighedsforcheck.
+• Poléringshandlings-triggerikon på redigerbare tekstfelter.
 
 Rettet
-• Løst problemer med layoutet i sprogskifterens målmenu.
-• Sprogdownload-dialogen vises nu i den korrekte position.
-• Konfigurationssynkronisering for oversættelsesudvidelsen fungerer nu pålideligt mellem app og udvidelse.
-• Diverse stabilitetsforbedringer i hele appen.
+• Google Translate fejler ikke længere, når kilde- og målsprog er ens.
+• Apple Translate-sprogruting fungerer korrekt for alle understøttede sprog.
+• Klik på Dock-ikonet viser korrekt hovedvinduet efter genstart.
+• TestFlight premium-skifter fungerer pålideligt på macOS.

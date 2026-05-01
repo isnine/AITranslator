@@ -1,21 +1,18 @@
-Zwei leistungsstarke neue Übersetzungsmotoren ergänzen TLingo — Apple Translate für datenschutzfreundliche Übersetzungen auf dem Gerät und Google Translate für breite Sprachabdeckung.
+Ein smarteres, ausgereifteres TLingo — mit neuer Lifetime-Kaufoption und intelligenter Spracherkennung.
 
 Neu
-• Textauswahl-Übersetzung (macOS) — markieren Sie Text in einer beliebigen App, um ihn sofort zu übersetzen. Ein schwebendes Symbol erscheint neben dem Cursor für schnellen Zugriff.
-• Apple Translate-Integration — ein leistungsstarker On-Device-Übersetzungsmotor. Beginnen Sie sofort mit dem Übersetzen, ohne Sprachpakete herunterzuladen.
-• Google Translate-Integration — greifen Sie auf Googles Übersetzungsdienst für noch umfangreichere Sprachunterstützung zu.
-• Die Sprachauswahl wurde auf alle 21 Apple Translate-Sprachen erweitert.
-• Die Quellspracherkennung zeigt nun mit einem deutlichen visuellen Indikator an, welche Sprache erkannt wurde.
-• Überprüfen Sie installierte Apple Translate-Sprachpakete direkt auf der Modelle-Seite.
+• Lifetime-Kauf — schalten Sie Premium mit einer einmaligen Zahlung dauerhaft frei.
+• Überarbeiteter Upgrade-Bildschirm mit klarem Planvergleich.
+• macOS-Einführungsanleitung — führt Sie beim ersten Start durch die Bedienungshilfen-Einrichtung.
+• Aktionsauswahl im Textauswahl-Übersetzungs-Popup — wechseln Sie Aktionen, ohne das schwebende Fenster zu verlassen.
 
 Verbessert
-• Die Modelle-Seite zeigt nun nur heruntergeladene Sprachen für eine übersichtlichere Ansicht.
-• Übersetzungsverlauf-Karten unterscheiden nun klar zwischen dem Quelltext und dem übersetzten Ergebnis.
-• Die macOS-Seitenleiste wurde mit nativem NavigationSplitView für ein flüssigeres Erlebnis neu gestaltet.
-• Verlaufseinträge werden direkt in der macOS-Seitenleiste angezeigt für schnelleren Zugriff.
+• Der Abgleichmodus erkennt und wechselt die Zielsprache jetzt dynamisch anhand Ihres Textes.
+• Textauswahl-Übersetzung auf macOS ist schneller und zuverlässiger — optimiertes Timing, Abbruch veralteter Anfragen und Barrierefreiheits-Vorabprüfung.
+• Polier-Aktionssymbol für bearbeitbare Textfelder.
 
 Behoben
-• Layoutprobleme im Zielmenü des Sprachumschalters behoben.
-• Das Sprachdownload-Fenster erscheint nun an der korrekten Position.
-• Die Konfigurationssynchronisierung der Übersetzungserweiterung funktioniert nun zuverlässig zwischen App und Erweiterung.
-• Diverse Stabilitätsverbesserungen in der gesamten App.
+• Google Translate schlägt nicht mehr fehl, wenn Quell- und Zielsprache identisch sind.
+• Apple Translate-Sprachrouting funktioniert jetzt korrekt für alle unterstützten Sprachen.
+• Klick auf das Dock-Symbol zeigt das Hauptfenster nach Neustart korrekt an.
+• TestFlight Premium-Umschalter funktioniert auf macOS zuverlässig.

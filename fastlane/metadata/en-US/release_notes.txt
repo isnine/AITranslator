@@ -1,21 +1,18 @@
-Two powerful new translation engines join TLingo — Apple Translate for on-device privacy and Google Translate for broad language coverage.
+A smarter, more polished TLingo — with a new lifetime purchase option and intelligent language matching.
 
 New
-• Text Selection Translation (macOS) — select text in any app to instantly translate. A floating icon appears near your cursor for quick access.
-• Apple Translate integration — a powerful on-device translation engine. Start translating immediately with no language pack downloads needed.
-• Google Translate integration — access Google's translation service for even broader language support.
-• Language selector expanded to all 21 Apple Translate languages.
-• Source language detection now shows which language was detected with a clear visual indicator.
-• View installed Apple Translate language packs directly from the Models page.
+• Lifetime purchase — unlock Premium forever with a single payment.
+• Redesigned upgrade screen with clear plan comparison.
+• macOS onboarding guide — walks you through Accessibility setup on first launch.
+• Action picker in the selection translation popup — switch actions without leaving the floating window.
 
 Improved
-• Models page now shows only downloaded languages for a cleaner view.
-• Translation history cards clearly distinguish source text from translated results.
-• macOS sidebar redesigned with native NavigationSplitView for a smoother experience.
-• History records display inline in the macOS sidebar for quicker access.
+• Match mode now dynamically detects and resolves the target language based on your text.
+• Text selection on macOS is faster and more reliable — smarter grab timing, stale request cancellation, and Accessibility pre-check.
+• Polish action trigger icon on editable text fields.
 
 Fixed
-• Resolved language switcher target menu layout issues.
-• Language download sheet now appears at the correct position.
-• Translation extension configuration syncs reliably across app and extension.
-• Various stability improvements throughout the app.
+• Google Translate no longer fails when source and target languages are the same.
+• Apple Translate language routing works correctly across all supported languages.
+• Clicking the Dock icon properly shows the main window after relaunch.
+• TestFlight premium toggle works reliably on macOS.
