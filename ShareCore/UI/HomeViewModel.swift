@@ -851,7 +851,7 @@ public final class HomeViewModel: ObservableObject {
     public func openFeedbackEmail() {
         let isPremium = StoreManager.shared.isPremium
         let subject = isPremium ? "TLingo%20Feedback%20%5BPremium%5D" : "TLingo%20Feedback"
-        guard let url = URL(string: "mailto:xiaozwan@outlook.com?subject=\(subject)") else { return }
+        guard let url = URL(string: "mailto:tlingo@zanderwang.com?subject=\(subject)") else { return }
         #if canImport(UIKit)
             UIApplication.shared.open(url)
         #elseif canImport(AppKit)

@@ -10120,108 +10120,108 @@
         }
       }
     },
-    "Every email gets a reply · xiaozwan@outlook.com" : {
+    "Every email gets a reply · tlingo@zanderwang.com" : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "تحصل كل رسالة بريد إلكتروني على رد · xiaozwan@outlook.com"
+            "value" : "تحصل كل رسالة بريد إلكتروني على رد · tlingo@zanderwang.com"
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Jede E-Mail erhält eine Antwort · xiaozwan@outlook.com"
+            "value" : "Jede E-Mail erhält eine Antwort · tlingo@zanderwang.com"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Every email gets a reply · xiaozwan@outlook.com"
+            "value" : "Every email gets a reply · tlingo@zanderwang.com"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada correo electrónico recibe una respuesta · xiaozwan@outlook.com"
+            "value" : "Cada correo electrónico recibe una respuesta · tlingo@zanderwang.com"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaque e-mail reçoit une réponse · xiaozwan@outlook.com"
+            "value" : "Chaque e-mail reçoit une réponse · tlingo@zanderwang.com"
           }
         },
         "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Setiap email mendapatkan balasan · xiaozwan@outlook.com"
+            "value" : "Setiap email mendapatkan balasan · tlingo@zanderwang.com"
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ogni email riceve una risposta · xiaozwan@outlook.com"
+            "value" : "Ogni email riceve una risposta · tlingo@zanderwang.com"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すべてのメールに返信があります · xiaozwan@outlook.com"
+            "value" : "すべてのメールに返信があります · tlingo@zanderwang.com"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "모든 이메일은 답장을 받습니다 · xiaozwan@outlook.com"
+            "value" : "모든 이메일은 답장을 받습니다 · tlingo@zanderwang.com"
           }
         },
         "nb" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hver e-post får svar · xiaozwan@outlook.com"
+            "value" : "Hver e-post får svar · tlingo@zanderwang.com"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elke e-mail krijgt een reactie · xiaozwan@outlook.com"
+            "value" : "Elke e-mail krijgt een reactie · tlingo@zanderwang.com"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Cada e-mail recebe uma resposta · xiaozwan@outlook.com"
+            "value" : "Cada e-mail recebe uma resposta · tlingo@zanderwang.com"
           }
         },
         "sv" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Varje e-post får svar · xiaozwan@outlook.com"
+            "value" : "Varje e-post får svar · tlingo@zanderwang.com"
           }
         },
         "tr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Her e-posta yanıt alır · xiaozwan@outlook.com"
+            "value" : "Her e-posta yanıt alır · tlingo@zanderwang.com"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每封邮件都会收到回复 · xiaozwan@outlook.com"
+            "value" : "每封邮件都会收到回复 · tlingo@zanderwang.com"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每封郵件都會收到回覆 · xiaozwan@outlook.com"
+            "value" : "每封郵件都會收到回覆 · tlingo@zanderwang.com"
           }
         },
         "zh-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每封電郵都會收到回覆 · xiaozwan@outlook.com"
+            "value" : "每封電郵都會收到回覆 · tlingo@zanderwang.com"
           }
         }
       }

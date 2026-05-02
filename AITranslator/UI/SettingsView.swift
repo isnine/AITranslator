@@ -435,7 +435,7 @@ private extension SettingsView {
     var feedbackRow: some View {
         Button {
             let subject = storeManager.isPremium ? "TLingo%20Feedback%20%5BPremium%5D" : "TLingo%20Feedback"
-            if let url = URL(string: "mailto:xiaozwan@outlook.com?subject=\(subject)") {
+            if let url = URL(string: "mailto:tlingo@zanderwang.com?subject=\(subject)") {
                 #if os(iOS)
                     UIApplication.shared.open(url)
                 #elseif os(macOS)
@@ -450,7 +450,7 @@ private extension SettingsView {
                     Text("Feedback")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(colors.textPrimary)
-                    Text("Every email gets a reply · xiaozwan@outlook.com")
+                    Text("Every email gets a reply · tlingo@zanderwang.com")
                         .font(.system(size: 12))
                         .foregroundColor(colors.textSecondary)
                 }

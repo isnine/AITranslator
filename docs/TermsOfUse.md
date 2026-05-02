@@ -138,5 +138,5 @@ These Terms, together with the Privacy Policy, constitute the entire agreement b
 
 If you have any questions about these Terms, please contact us at:
 
-- **Email**: xiaozwan@outlook.com
+- **Email**: tlingo@zanderwang.com
 - **Support Page**: https://isnine.notion.site/2dc096d1267280748981e039ccc39f04

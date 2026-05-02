@@ -128,6 +128,6 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 If you have any questions or concerns about this Privacy Policy, please contact us at:
 
-- **Email**: xiaozwan@outlook.com
+- **Email**: tlingo@zanderwang.com
 - **Support Page**: https://isnine.notion.site/2dc096d1267280748981e039ccc39f04
 - **Terms of Use**: https://isnine.notion.site/Terms-of-Use-EULA-TLingo-304096d126728075b0d7c2e7578214c5
