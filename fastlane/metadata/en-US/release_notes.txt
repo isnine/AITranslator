@@ -1,18 +1,7 @@
-A smarter, more polished TLingo — with a new lifetime purchase option and intelligent language matching.
-
-New
-• Lifetime purchase — unlock Premium forever with a single payment.
-• Redesigned upgrade screen with clear plan comparison.
-• macOS onboarding guide — walks you through Accessibility setup on first launch.
-• Action picker in the selection translation popup — switch actions without leaving the floating window.
+A refined Premium experience — smarter upgrades and clearer subscription management.
 
 Improved
-• Match mode now dynamically detects and resolves the target language based on your text.
-• Text selection on macOS is faster and more reliable — smarter grab timing, stale request cancellation, and Accessibility pre-check.
-• Polish action trigger icon on editable text fields.
-
-Fixed
-• Google Translate no longer fails when source and target languages are the same.
-• Apple Translate language routing works correctly across all supported languages.
-• Clicking the Dock icon properly shows the main window after relaunch.
-• TestFlight premium toggle works reliably on macOS.
+• Paywall now only shows plans you can upgrade to — no confusing downgrades.
+• Successful purchases automatically close the paywall.
+• Settings now displays your exact subscription tier (Monthly, Annual, or Lifetime).
+• Premium features list is visible to all subscribers, including Lifetime members.

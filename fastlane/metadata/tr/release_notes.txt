@@ -1,18 +1,7 @@
-Daha akıllı, daha cilalı bir TLingo — yeni ömür boyu satın alma seçeneği ve akıllı dil eşleştirme.
+Daha gelişmiş bir Premium deneyimi — daha akıllı yükseltmeler ve daha net abonelik yönetimi.
 
-Yeni
-• Ömür boyu satın alma — tek bir ödemeyle Premium'u sonsuza dek açın.
-• Net plan karşılaştırması ile yeniden tasarlanmış yükseltme ekranı.
-• macOS başlangıç rehberi — ilk açılışta erişilebilirlik kurulumunda size rehberlik eder.
-• Metin seçimi çeviri açılır penceresinde eylem seçici — kayan pencereden ayrılmadan eylem değiştirin.
-
-İyileştirme
-• Eşleştirme modu artık metninize göre hedef dili dinamik olarak algılıyor ve değiştiriyor.
-• macOS'ta metin seçimi çevirisi daha hızlı ve güvenilir — optimize edilmiş yakalama zamanlaması, eski isteklerin iptali ve erişilebilirlik ön kontrolü.
-• Düzenlenebilir metin alanlarında cilalama eylemi tetikleme simgesi.
-
-Düzeltme
-• Google Translate, kaynak ve hedef dil aynı olduğunda artık başarısız olmuyor.
-• Apple Translate dil yönlendirmesi tüm desteklenen dillerde doğru çalışıyor.
-• Dock simgesine tıklamak yeniden başlatmadan sonra ana pencereyi doğru şekilde gösteriyor.
-• macOS'ta TestFlight premium geçişi güvenilir şekilde çalışıyor.
+İyileştirmeler
+• Ödeme ekranı artık yalnızca yükseltebileceğiniz planları gösteriyor — kafa karıştırıcı düşürme yok.
+• Başarılı satın alımlar ödeme ekranını otomatik olarak kapatıyor.
+• Ayarlar artık tam abonelik düzeyinizi gösteriyor (Aylık, Yıllık veya Ömür Boyu).
+• Premium özellikler listesi, Ömür Boyu üyeler dahil tüm aboneler tarafından görülebilir.

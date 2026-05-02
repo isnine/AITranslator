@@ -1,18 +1,7 @@
-En smartere, mere forfinet TLingo — med ny livstidskøbsmulighed og intelligent sprogtilpasning.
+En forbedret Premium-oplevelse — smartere opgraderinger og tydeligere abonnementsadministration.
 
-Nyt
-• Livstidskøb — lås op for Premium for altid med én betaling.
-• Fornyet opgraderingsskærm med tydelig plansammenligning.
-• macOS-introduktionsguide — hjælper dig med tilgængelighedsopsætning ved første start.
-• Handlingsvælger i tekstmarkerings-oversættelsespopup — skift handling uden at forlade det svævende vindue.
-
-Forbedret
-• Tilpasningstilstand registrerer og skifter nu dynamisk målsprog baseret på din tekst.
-• Tekstmarkeringsoversættelse på macOS er hurtigere og mere pålidelig — optimeret indfangningstiming, annullering af forældede forespørgsler og tilgængelighedsforcheck.
-• Poléringshandlings-triggerikon på redigerbare tekstfelter.
-
-Rettet
-• Google Translate fejler ikke længere, når kilde- og målsprog er ens.
-• Apple Translate-sprogruting fungerer korrekt for alle understøttede sprog.
-• Klik på Dock-ikonet viser korrekt hovedvinduet efter genstart.
-• TestFlight premium-skifter fungerer pålideligt på macOS.
+Forbedringer
+• Betalingssiden viser nu kun planer, du kan opgradere til — ingen forvirrende nedgraderinger.
+• Vellykkede køb lukker automatisk betalingssiden.
+• Indstillinger viser nu dit præcise abonnementsniveau (Månedlig, Årlig eller Livstid).
+• Oversigt over Premium-funktioner er synlig for alle abonnenter, inkl. Livstid-medlemmer.

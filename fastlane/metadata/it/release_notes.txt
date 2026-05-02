@@ -1,18 +1,7 @@
-Un TLingo più intelligente e raffinato — con una nuova opzione di acquisto a vita e corrispondenza linguistica intelligente.
+Un'esperienza Premium più raffinata — upgrade più intelligenti e gestione dell'abbonamento più chiara.
 
-Novità
-• Acquisto a vita — sblocca Premium per sempre con un singolo pagamento.
-• Schermata di upgrade ridisegnata con un confronto chiaro dei piani.
-• Guida di avvio macOS — ti accompagna nella configurazione dell'accessibilità al primo avvio.
-• Selettore azioni nel popup di traduzione per selezione testo — cambia azione senza uscire dalla finestra fluttuante.
-
-Migliorato
-• La modalità corrispondenza rileva e imposta automaticamente la lingua di destinazione in base al testo.
-• La traduzione per selezione testo su macOS è più veloce e affidabile — tempistica di acquisizione ottimizzata, annullamento delle richieste obsolete e controllo preventivo dell'accessibilità.
-• Icona di attivazione dell'azione di rifinitura sui campi di testo modificabili.
-
-Corretto
-• Google Translate non fallisce più quando la lingua di origine e di destinazione coincidono.
-• L'instradamento linguistico di Apple Translate funziona correttamente per tutte le lingue supportate.
-• Il clic sull'icona del Dock mostra correttamente la finestra principale dopo il riavvio.
-• L'interruttore premium di TestFlight funziona in modo affidabile su macOS.
+Miglioramenti
+• Il paywall ora mostra solo i piani a cui puoi eseguire l'upgrade — nessun downgrade confuso.
+• Gli acquisti riusciti chiudono automaticamente il paywall.
+• Le impostazioni mostrano ora il tuo esatto livello di abbonamento (Mensile, Annuale o A vita).
+• L'elenco delle funzionalità Premium è visibile a tutti gli abbonati, inclusi i membri A vita.

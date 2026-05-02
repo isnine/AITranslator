@@ -1,18 +1,7 @@
-Un TLingo plus intelligent et plus soigné — avec une nouvelle option d'achat à vie et une correspondance linguistique intelligente.
+Une expérience Premium affinée — mises à niveau plus intelligentes et gestion des abonnements plus claire.
 
-Nouveau
-• Achat à vie — débloquez Premium pour toujours avec un seul paiement.
-• Écran de mise à niveau repensé avec une comparaison claire des forfaits.
-• Guide d'accueil macOS — vous accompagne dans la configuration de l'accessibilité au premier lancement.
-• Sélecteur d'actions dans la fenêtre contextuelle de traduction par sélection — changez d'action sans quitter la fenêtre flottante.
-
-Amélioré
-• Le mode correspondance détecte et résout désormais dynamiquement la langue cible en fonction de votre texte.
-• La traduction par sélection de texte sur macOS est plus rapide et plus fiable — timing de capture optimisé, annulation des requêtes périmées et vérification préalable de l'accessibilité.
-• Icône de déclenchement de l'action de polissage sur les champs de texte modifiables.
-
-Corrigé
-• Google Translate ne génère plus d'erreur lorsque les langues source et cible sont identiques.
-• Le routage linguistique d'Apple Translate fonctionne correctement pour toutes les langues prises en charge.
-• Le clic sur l'icône du Dock affiche correctement la fenêtre principale après un relancement.
-• Le basculement premium TestFlight fonctionne de manière fiable sur macOS.
+Améliorations
+• L'écran de paiement n'affiche désormais que les forfaits vers lesquels vous pouvez évoluer — sans rétrogradations déroutantes.
+• Les achats réussis ferment automatiquement l'écran de paiement.
+• Les réglages affichent maintenant votre niveau d'abonnement exact (Mensuel, Annuel ou À vie).
+• La liste des fonctionnalités Premium est visible par tous les abonnés, y compris les membres À vie.
