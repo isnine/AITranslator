@@ -2303,6 +2303,9 @@
         }
       }
     },
+    "Annual" : {
+
+    },
     "App" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5770,6 +5773,9 @@
           }
         }
       }
+    },
+    "Current plan: %@" : {
+
     },
     "Custom Action" : {
       "localizations" : {
@@ -13620,6 +13626,9 @@
         }
       }
     },
+    "Lifetime" : {
+
+    },
     "Listening..." : {
       "comment" : "Voice recording state",
       "localizations" : {
@@ -15064,6 +15073,9 @@
           }
         }
       }
+    },
+    "Monthly" : {
+
     },
     "Network Log" : {
       "extractionState" : "manual",
@@ -18586,6 +18598,9 @@
           }
         }
       }
+    },
+    "Premium Active" : {
+
     },
     "Preparing microphone..." : {
       "comment" : "Microphone initializing",
@@ -27645,6 +27660,9 @@
         }
       }
     },
+    "Switch to a higher tier for even more value" : {
+
+    },
     "Synced across devices" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28516,6 +28534,9 @@
           }
         }
       }
+    },
+    "Thank you for your support!" : {
+
     },
     "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet." : {
       "comment" : "Snapshot mock input text\nSnapshot mock translation result",
@@ -31770,6 +31791,9 @@
         }
       }
     },
+    "Upgrade Your Plan" : {
+
+    },
     "URL" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32663,6 +32687,9 @@
           }
         }
       }
+    },
+    "You have the best plan" : {
+
     },
     "You have unsaved changes. Are you sure you want to discard them?" : {
       "localizations" : {

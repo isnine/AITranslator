@@ -18,15 +18,24 @@ struct PaywallView: View {
         AppColors.palette(for: colorScheme)
     }
 
+    private var hasUpgradeOptions: Bool {
+        currentTierPriority < 2
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 28) {
                     heroSection
-                    featuresSection
-                    productsSection
-                    subscribeButton
-                    legalFooter
+                    if hasUpgradeOptions {
+                        featuresSection
+                        productsSection
+                        subscribeButton
+                        legalFooter
+                    } else {
+                        featuresSection
+                        currentPlanBadge
+                    }
                 }
                 .padding(.vertical, 28)
             }
@@ -48,15 +57,36 @@ struct PaywallView: View {
                 }
         }
         .tint(colors.accent)
+        .onChange(of: storeManager.activePremiumProductID) { _, newID in
+            if newID != nil {
+                Task {
+                    try? await Task.sleep(for: .seconds(0.5))
+                    dismiss()
+                }
+            }
+        }
     }
 
     // MARK: - Products
 
     @State private var selectedProduct: Product?
 
+    private var currentTierPriority: Int {
+        guard let productID = storeManager.activePremiumProductID else { return -1 }
+        return PremiumProduct.tierPriority(for: productID)
+    }
+
+    private func isUpgrade(_ product: Product) -> Bool {
+        PremiumProduct.tierPriority(for: product.id) > currentTierPriority
+    }
+
     private var productsSection: some View {
         VStack(spacing: 0) {
-            if let lifetime = storeManager.lifetimeProduct {
+            let lifetime = storeManager.lifetimeProduct.flatMap { isUpgrade($0) ? $0 : nil }
+            let annual = storeManager.annualProduct.flatMap { isUpgrade($0) ? $0 : nil }
+            let monthly = storeManager.monthlyProduct.flatMap { isUpgrade($0) ? $0 : nil }
+
+            if let lifetime {
                 productRow(
                     product: lifetime,
                     title: "Lifetime",
@@ -67,9 +97,9 @@ struct PaywallView: View {
                 )
             }
 
-            sectionDivider
+            if lifetime != nil, annual != nil { sectionDivider }
 
-            if let annual = storeManager.annualProduct {
+            if let annual {
                 productRow(
                     product: annual,
                     title: "Annual",
@@ -80,9 +110,9 @@ struct PaywallView: View {
                 )
             }
 
-            sectionDivider
+            if (lifetime != nil || annual != nil), monthly != nil { sectionDivider }
 
-            if let monthly = storeManager.monthlyProduct {
+            if let monthly {
                 productRow(
                     product: monthly,
                     title: "Monthly",
@@ -96,7 +126,10 @@ struct PaywallView: View {
         .background(cardBackground)
         .padding(.horizontal, 20)
         .onAppear {
-            selectedProduct = storeManager.lifetimeProduct
+            let upgradeable = [storeManager.lifetimeProduct, storeManager.annualProduct, storeManager.monthlyProduct]
+                .compactMap { $0 }
+                .filter { isUpgrade($0) }
+            selectedProduct = upgradeable.first
         }
     }
 
@@ -211,6 +244,32 @@ struct PaywallView: View {
         .padding(.horizontal, 20)
     }
 
+    // MARK: - Current Plan Badge (Lifetime)
+
+    private var currentPlanBadge: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 44))
+                .foregroundColor(.green)
+
+            Text("You have the best plan")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(colors.textPrimary)
+
+            if let productID = storeManager.activePremiumProductID,
+               let tier = PremiumProduct.tierDisplayName(for: productID)
+            {
+                Text("Current plan: \(tier)")
+                    .font(.system(size: 15))
+                    .foregroundColor(colors.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .background(cardBackground)
+        .padding(.horizontal, 20)
+    }
+
     // MARK: - Hero
 
     private var heroSection: some View {
@@ -225,11 +284,17 @@ struct PaywallView: View {
                     )
                 )
 
-            Text("Upgrade to Premium")
+            Text(hasUpgradeOptions
+                ? (storeManager.isPremium ? "Upgrade Your Plan" : "Upgrade to Premium")
+                : "Premium Active")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(colors.textPrimary)
 
-            Text("Unlock the most powerful translation models")
+            Text(hasUpgradeOptions
+                ? (storeManager.isPremium
+                    ? "Switch to a higher tier for even more value"
+                    : "Unlock the most powerful translation models")
+                : "Thank you for your support!")
                 .font(.system(size: 16))
                 .foregroundColor(colors.textSecondary)
                 .multilineTextAlignment(.center)

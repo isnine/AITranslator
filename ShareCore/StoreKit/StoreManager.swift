@@ -24,6 +24,7 @@ public final class StoreManager: ObservableObject {
     @Published public private(set) var purchaseError: String?
     @Published public private(set) var isLoadingProducts: Bool = false
     @Published public private(set) var isPurchasing: Bool = false
+    @Published public private(set) var activePremiumProductID: String?
 
     // MARK: - Private
 
@@ -158,9 +159,8 @@ public final class StoreManager: ObservableObject {
             case let .success(verification):
                 let transaction = try checkVerified(verification)
                 await transaction.finish()
-                // Directly grant premium for verified subscription purchases,
-                // as Transaction.currentEntitlements may lag behind.
                 if PremiumProduct.allIdentifiers.contains(transaction.productID) {
+                    activePremiumProductID = transaction.productID
                     updatePremiumStatus(true)
                 }
                 await checkSubscriptionStatus()
@@ -208,6 +208,7 @@ public final class StoreManager: ObservableObject {
         }
 
         var hasActiveSubscription = false
+        var activeProductID: String?
 
         for await result in Transaction.currentEntitlements {
             guard let transaction = try? checkVerified(result) else { continue }
@@ -215,10 +216,16 @@ public final class StoreManager: ObservableObject {
             if PremiumProduct.allIdentifiers.contains(transaction.productID) {
                 if transaction.revocationDate == nil {
                     hasActiveSubscription = true
+                    let newPriority = PremiumProduct.tierPriority(for: transaction.productID)
+                    let currentPriority = activeProductID.map { PremiumProduct.tierPriority(for: $0) } ?? -1
+                    if newPriority > currentPriority {
+                        activeProductID = transaction.productID
+                    }
                 }
             }
         }
 
+        activePremiumProductID = activeProductID
         updatePremiumStatus(hasActiveSubscription)
     }
 
@@ -299,6 +306,9 @@ public final class StoreManager: ObservableObject {
     private func updatePremiumStatus(_ newValue: Bool) {
         guard isPremium != newValue else { return }
         isPremium = newValue
+        if !newValue {
+            activePremiumProductID = nil
+        }
         AppPreferences.sharedDefaults.set(newValue, forKey: Self.premiumKey)
         AppPreferences.sharedDefaults.synchronize()
         logger.info("Premium status updated: \(newValue, privacy: .public)")

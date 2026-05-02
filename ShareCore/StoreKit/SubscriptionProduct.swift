@@ -26,4 +26,22 @@ public enum LifetimeProduct: String, Sendable {
 public enum PremiumProduct {
     public static let allIdentifiers: Set<String> =
         SubscriptionProduct.allIdentifiers.union([LifetimeProduct.lifetime.rawValue])
+
+    public static func tierDisplayName(for productID: String) -> String? {
+        switch productID {
+        case SubscriptionProduct.monthly.rawValue: return String(localized: "Monthly")
+        case SubscriptionProduct.annual.rawValue: return String(localized: "Annual")
+        case LifetimeProduct.lifetime.rawValue: return String(localized: "Lifetime")
+        default: return nil
+        }
+    }
+
+    public static func tierPriority(for productID: String) -> Int {
+        switch productID {
+        case SubscriptionProduct.monthly.rawValue: return 0
+        case SubscriptionProduct.annual.rawValue: return 1
+        case LifetimeProduct.lifetime.rawValue: return 2
+        default: return -1
+        }
+    }
 }

@@ -314,11 +314,19 @@ private extension SettingsView {
         return voiceID.capitalized
     }
 
+    var subscriptionSubtitle: String {
+        guard storeManager.isPremium else { return String(localized: "Free") }
+        if let productID = storeManager.activePremiumProductID,
+           let tier = PremiumProduct.tierDisplayName(for: productID)
+        {
+            return "Premium · \(tier)"
+        }
+        return String(localized: "Premium")
+    }
+
     var subscriptionRow: some View {
         Button {
-            if !storeManager.isPremium {
-                showPaywall = true
-            }
+            showPaywall = true
         } label: {
             HStack(spacing: 16) {
                 SettingsIconBadge(icon: "crown.fill", color: .orange)
@@ -327,7 +335,7 @@ private extension SettingsView {
                     Text("Subscription")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(colors.textPrimary)
-                    Text(storeManager.isPremium ? "Premium" : "Free")
+                    Text(subscriptionSubtitle)
                         .font(.system(size: 13))
                         .foregroundColor(storeManager.isPremium ? .orange : colors.textSecondary)
                 }
