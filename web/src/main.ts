@@ -23,7 +23,7 @@ import {
 import { supabaseConfigured } from "./supabase";
 import type { ActionConfig, AppSettings, TranslationHistoryEntry } from "./types";
 
-const APP_STORE_URL = "https://apps.apple.com/app/tlingo-ai-translator/id6736452175";
+const APP_STORE_URL = "https://apps.apple.com/app/id6754217103";
 
 const SOURCE_LANGUAGES: { code: string; name: string }[] = [
   { code: "auto", name: "Detect language" },
