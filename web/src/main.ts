@@ -8,6 +8,7 @@ import { renderMarkdown } from "./markdown";
 import { escapeHTML } from "./utils";
 import {
   consumeOAuthCallbackIfPresent,
+  getCurrentSession,
   onAuthChange,
   signInWith,
   signOut,
@@ -20,6 +21,7 @@ import {
   loadCloudSettings,
   saveCloudSettings,
 } from "./cloud-storage";
+import { cancelGoogleOneTap, googleOneTapConfigured, promptGoogleOneTap } from "./google-onetap";
 import { supabaseConfigured } from "./supabase";
 import type { ActionConfig, AppSettings, TranslationHistoryEntry } from "./types";
 
@@ -522,6 +524,7 @@ function persistSettings() {
 }
 
 function openSignin(note?: string) {
+  cancelGoogleOneTap();
   if (!supabaseConfigured) {
     signinNote.textContent =
       "Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.";
@@ -684,6 +687,9 @@ async function bootstrapAuth() {
     const wasSignedIn = currentUserEmail !== null;
     currentUserEmail = user?.email ?? null;
     updateAccountUI();
+    if (user) {
+      cancelGoogleOneTap();
+    }
     if (user && !wasSignedIn) {
       closeSignin();
       const cloud = await loadCloudSettings();
@@ -696,6 +702,10 @@ async function bootstrapAuth() {
       }
     }
   });
+  const session = await getCurrentSession();
+  if (!session && googleOneTapConfigured) {
+    promptGoogleOneTap().catch(() => {});
+  }
 }
 
 updateAccountUI();
