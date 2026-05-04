@@ -478,6 +478,125 @@ a { color: inherit; text-decoration: none; }
   line-height: 1.45;
 }
 
+/* ────────── Billing ────────── */
+.billing-panel {
+  width: 100%;
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.billing-copy {
+  min-width: 0;
+}
+
+.eyebrow {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.billing-copy h2 {
+  font-size: 18px;
+  line-height: 1.25;
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.billing-copy p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.billing-plans {
+  display: flex;
+  gap: 10px;
+}
+
+.plan-btn {
+  appearance: none;
+  min-width: 126px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  padding: 12px 14px;
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  transition: border-color 0.15s ease, transform 0.05s ease, opacity 0.15s ease;
+}
+
+.plan-btn:hover {
+  border-color: var(--border-strong);
+}
+
+.plan-btn:active {
+  transform: scale(0.99);
+}
+
+.plan-btn:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.plan-btn.featured {
+  border-color: var(--text);
+}
+
+.plan-name {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.plan-price {
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.plan-cadence {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.billing-status {
+  grid-column: 1 / -1;
+  min-height: 18px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .billing-panel {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+  .billing-plans {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .plan-btn {
+    min-width: 0;
+  }
+}
+
 /* ────────── Modal ────────── */
 .modal {
   position: fixed;

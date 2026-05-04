@@ -1,3 +1,5 @@
+import { buildCheckoutParams } from "./billing";
+
 /**
  * Cloudflare Worker that validates incoming requests with HMAC-SHA256 signature
  * before proxying them to Azure OpenAI using secrets stored in the environment.
@@ -18,6 +20,11 @@ interface Env {
   TTS_ENDPOINT: string;
   MARKETPLACE_DB: D1Database;
   ADMIN_PASSWORD: string;
+  STRIPE_SECRET_KEY: string;
+  STRIPE_MONTHLY_PRICE_ID?: string;
+  STRIPE_YEARLY_PRICE_ID?: string;
+  CHECKOUT_SUCCESS_URL?: string;
+  CHECKOUT_CANCEL_URL?: string;
 }
 
 interface AuthResult {
@@ -120,6 +127,11 @@ export default {
     // Route: /web/api/* - Web API endpoints (no HMAC, direct D1 access)
     if (path.startsWith("/web/api/")) {
       return handleWebAPI(request, env, path);
+    }
+
+    // Route: /billing/checkout - Create a Stripe Managed Payments Checkout Session
+    if (path === "/billing/checkout") {
+      return handleBillingCheckout(request, env);
     }
 
     // Validate HMAC signature for all other routes
@@ -813,6 +825,63 @@ function buildResponse(
   }
 
   return new Response(body, { status, headers });
+}
+
+async function handleBillingCheckout(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") {
+    return buildResponse(JSON.stringify({ error: "Method not allowed" }), 405, "application/json");
+  }
+
+  if (!env.STRIPE_SECRET_KEY) {
+    return buildResponse(
+      JSON.stringify({ error: "Stripe is not configured" }),
+      500,
+      "application/json"
+    );
+  }
+
+  let params: URLSearchParams;
+  try {
+    const body = (await request.json()) as { plan?: unknown; customerEmail?: unknown };
+    params = buildCheckoutParams(body, {
+      monthlyPriceId: env.STRIPE_MONTHLY_PRICE_ID,
+      yearlyPriceId: env.STRIPE_YEARLY_PRICE_ID,
+      successUrl: env.CHECKOUT_SUCCESS_URL,
+      cancelUrl: env.CHECKOUT_CANCEL_URL,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Invalid request";
+    return buildResponse(JSON.stringify({ error: message }), 400, "application/json");
+  }
+
+  const stripeResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Stripe-Version": "2026-02-25.preview",
+    },
+    body: params,
+  });
+
+  const stripeBody = (await stripeResponse.json().catch(() => null)) as
+    | { url?: string; id?: string; error?: { message?: string } }
+    | null;
+
+  if (!stripeResponse.ok || !stripeBody?.url) {
+    const message = stripeBody?.error?.message || "Failed to create Checkout Session";
+    return buildResponse(
+      JSON.stringify({ error: message }),
+      stripeResponse.ok ? 502 : stripeResponse.status,
+      "application/json"
+    );
+  }
+
+  return buildResponse(
+    JSON.stringify({ url: stripeBody.url, sessionId: stripeBody.id }),
+    200,
+    "application/json"
+  );
 }
 
 // MARK: - Web Marketplace UI

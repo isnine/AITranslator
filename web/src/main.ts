@@ -6,6 +6,7 @@ import { parseGrammarCheck, parseSentencePairs } from "./parsers";
 import { wordDiff } from "./diff";
 import { renderMarkdown } from "./markdown";
 import { escapeHTML } from "./utils";
+import { createCheckoutSession, type BillingPlan } from "./billing";
 import {
   consumeOAuthCallbackIfPresent,
   getCurrentSession,
@@ -26,6 +27,7 @@ import { supabaseConfigured } from "./supabase";
 import type { ActionConfig, AppSettings, TranslationHistoryEntry } from "./types";
 
 const APP_STORE_URL = "https://apps.apple.com/app/id6754217103";
+const PROXY_PREFIX = __CLOUD_PROXY_PREFIX__;
 
 const SOURCE_LANGUAGES: { code: string; name: string }[] = [
   { code: "auto", name: "Detect language" },
@@ -103,6 +105,27 @@ app.innerHTML = `
     </div>
 
     <div class="action-grid" id="action-grid"></div>
+
+    <section class="billing-panel" aria-labelledby="billing-title">
+      <div class="billing-copy">
+        <div class="eyebrow">Pro</div>
+        <h2 id="billing-title">Unlock premium translation models</h2>
+        <p>Use TLingo with higher-capability models for longer, harder translation work.</p>
+      </div>
+      <div class="billing-plans">
+        <button class="plan-btn" data-plan="monthly">
+          <span class="plan-name">Monthly</span>
+          <span class="plan-price">$3</span>
+          <span class="plan-cadence">per month</span>
+        </button>
+        <button class="plan-btn featured" data-plan="yearly">
+          <span class="plan-name">Yearly</span>
+          <span class="plan-price">$20</span>
+          <span class="plan-cadence">per year</span>
+        </button>
+      </div>
+      <p class="billing-status" id="billing-status" aria-live="polite"></p>
+    </section>
   </main>
 
   <div class="modal" id="settings-modal" hidden>
@@ -210,6 +233,8 @@ const signinModal = document.getElementById("signin-modal")!;
 const signinNote = document.getElementById("signin-note")!;
 const historyModal = document.getElementById("history-modal")!;
 const historyBody = document.getElementById("history-body")!;
+const billingStatus = document.getElementById("billing-status")!;
+const planButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".plan-btn"));
 
 AVAILABLE_MODELS.forEach((m) => {
   const opt = document.createElement("option");
@@ -616,6 +641,30 @@ signOutBtn.addEventListener("click", async () => {
   accountPopover.hidden = true;
   await signOut();
 });
+
+planButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const plan = button.dataset.plan as BillingPlan | undefined;
+    if (!plan) return;
+    startCheckout(plan, button).catch((error) => {
+      billingStatus.textContent = error instanceof Error ? error.message : String(error);
+      planButtons.forEach((btn) => (btn.disabled = false));
+    });
+  });
+});
+
+async function startCheckout(plan: BillingPlan, sourceButton: HTMLButtonElement) {
+  billingStatus.textContent = "Opening checkout...";
+  planButtons.forEach((btn) => (btn.disabled = true));
+  sourceButton.classList.add("loading");
+
+  try {
+    const checkout = await createCheckoutSession(PROXY_PREFIX, plan, currentUserEmail);
+    window.location.assign(checkout.url);
+  } finally {
+    sourceButton.classList.remove("loading");
+  }
+}
 
 function updateAccountUI() {
   accountSlot.innerHTML = "";

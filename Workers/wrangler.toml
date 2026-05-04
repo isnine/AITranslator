@@ -18,11 +18,18 @@ mode = "smart"
 [observability]
 enabled = true
 
+[vars]
+STRIPE_MONTHLY_PRICE_ID = "price_1TTC34LR1JKu36LYjnG0A7M9"
+STRIPE_YEARLY_PRICE_ID = "price_1TTC35LR1JKu36LYdZGKGN8x"
+CHECKOUT_SUCCESS_URL = "https://tlingo.zanderwang.com/?checkout=success"
+CHECKOUT_CANCEL_URL = "https://tlingo.zanderwang.com/?checkout=cancelled"
+
 # Environment variables (secrets should be set via `wrangler secret put`)
 # Required secrets:
 # - APP_SECRET: The HMAC shared secret for request signing
 # - AZURE_API_KEY: Azure OpenAI API key
 # - AZURE_ENDPOINT: Azure OpenAI endpoint URL
+# - STRIPE_SECRET_KEY: Stripe secret key for creating Checkout Sessions
 
 # D1 Database for marketplace actions
 [[d1_databases]]

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test:onetap": "rm -rf test-dist && tsc src/google-onetap-crypto.ts --ignoreConfig --target es2023 --module nodenext --moduleResolution nodenext --outDir test-dist --skipLibCheck && node --test test/google-onetap.test.mjs"
+    "test:onetap": "rm -rf test-dist && tsc src/google-onetap-crypto.ts --ignoreConfig --target es2023 --module nodenext --moduleResolution nodenext --outDir test-dist --skipLibCheck && node --test test/google-onetap.test.mjs",
+    "test:billing": "rm -rf test-dist && tsc src/billing.ts --ignoreConfig --target es2023 --module nodenext --moduleResolution nodenext --outDir test-dist --skipLibCheck && node --test test/billing.test.mjs"
   },
   "devDependencies": {
     "typescript": "~6.0.2",

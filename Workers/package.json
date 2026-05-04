@@ -4,7 +4,7 @@
   "description": "",
   "main": "azureProxyWorker.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "rm -rf test-dist && ../web/node_modules/typescript/bin/tsc billing.ts --ignoreConfig --target es2023 --module nodenext --moduleResolution nodenext --outDir test-dist --skipLibCheck && node --test test/billing.test.mjs"
   },
   "keywords": [],
   "author": "",

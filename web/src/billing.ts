@@ -1,0 +1,35 @@
+export type BillingPlan = "monthly" | "yearly";
+
+export interface CheckoutResponse {
+  url: string;
+  sessionId?: string;
+}
+
+export function buildCheckoutEndpoint(proxyPrefix: string): string {
+  return `${proxyPrefix.replace(/\/+$/, "")}/billing/checkout`;
+}
+
+export async function createCheckoutSession(
+  proxyPrefix: string,
+  plan: BillingPlan,
+  customerEmail?: string | null
+): Promise<CheckoutResponse> {
+  const response = await fetch(buildCheckoutEndpoint(proxyPrefix), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      plan,
+      ...(customerEmail ? { customerEmail } : {}),
+    }),
+  });
+
+  const body = (await response.json().catch(() => null)) as
+    | { url?: string; sessionId?: string; error?: string }
+    | null;
+
+  if (!response.ok || !body?.url) {
+    throw new Error(body?.error || `Checkout failed with HTTP ${response.status}`);
+  }
+
+  return { url: body.url, sessionId: body.sessionId };
+}
