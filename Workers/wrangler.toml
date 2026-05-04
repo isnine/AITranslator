@@ -19,8 +19,9 @@ mode = "smart"
 enabled = true
 
 [vars]
-STRIPE_MONTHLY_PRICE_ID = "price_1TTC34LR1JKu36LYjnG0A7M9"
-STRIPE_YEARLY_PRICE_ID = "price_1TTC35LR1JKu36LYdZGKGN8x"
+STRIPE_MONTHLY_PRICE_ID = "price_1TTDhULR1JKu36LYjURBZxPE"
+STRIPE_YEARLY_PRICE_ID = "price_1TTDhVLR1JKu36LYhfqSBpph"
+STRIPE_LIFETIME_PRICE_ID = "price_1TTDhWLR1JKu36LY35u9BpkL"
 CHECKOUT_SUCCESS_URL = "https://tlingo.zanderwang.com/?checkout=success"
 CHECKOUT_CANCEL_URL = "https://tlingo.zanderwang.com/?checkout=cancelled"
 

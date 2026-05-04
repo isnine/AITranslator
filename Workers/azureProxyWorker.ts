@@ -23,6 +23,7 @@ interface Env {
   STRIPE_SECRET_KEY: string;
   STRIPE_MONTHLY_PRICE_ID?: string;
   STRIPE_YEARLY_PRICE_ID?: string;
+  STRIPE_LIFETIME_PRICE_ID?: string;
   CHECKOUT_SUCCESS_URL?: string;
   CHECKOUT_CANCEL_URL?: string;
 }
@@ -846,6 +847,7 @@ async function handleBillingCheckout(request: Request, env: Env): Promise<Respon
     params = buildCheckoutParams(body, {
       monthlyPriceId: env.STRIPE_MONTHLY_PRICE_ID,
       yearlyPriceId: env.STRIPE_YEARLY_PRICE_ID,
+      lifetimePriceId: env.STRIPE_LIFETIME_PRICE_ID,
       successUrl: env.CHECKOUT_SUCCESS_URL,
       cancelUrl: env.CHECKOUT_CANCEL_URL,
     });

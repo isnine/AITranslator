@@ -1,11 +1,14 @@
-export const TLINGO_MONTHLY_PRICE_ID = "price_1TTC34LR1JKu36LYjnG0A7M9";
-export const TLINGO_YEARLY_PRICE_ID = "price_1TTC35LR1JKu36LYdZGKGN8x";
+export const TLINGO_MONTHLY_PRICE_ID = "price_1TTDhULR1JKu36LYjURBZxPE";
+export const TLINGO_YEARLY_PRICE_ID = "price_1TTDhVLR1JKu36LYhfqSBpph";
+export const TLINGO_LIFETIME_PRICE_ID = "price_1TTDhWLR1JKu36LY35u9BpkL";
 
-export type BillingPlan = "monthly" | "yearly";
+export type BillingPlan = "monthly" | "yearly" | "lifetime";
+export type CheckoutMode = "subscription" | "payment";
 
 export interface CheckoutConfig {
   monthlyPriceId?: string;
   yearlyPriceId?: string;
+  lifetimePriceId?: string;
   successUrl?: string;
   cancelUrl?: string;
 }
@@ -18,31 +21,47 @@ export interface CheckoutRequestBody {
 export function selectBillingPrice(plan: unknown, config: CheckoutConfig = {}): {
   plan: BillingPlan;
   priceId: string;
+  mode: CheckoutMode;
 } {
-  if (plan !== "monthly" && plan !== "yearly") {
-    throw new Error("plan must be monthly or yearly");
+  if (plan !== "monthly" && plan !== "yearly" && plan !== "lifetime") {
+    throw new Error("plan must be monthly, yearly, or lifetime");
   }
 
-  const priceId =
-    plan === "monthly"
-      ? config.monthlyPriceId || TLINGO_MONTHLY_PRICE_ID
-      : config.yearlyPriceId || TLINGO_YEARLY_PRICE_ID;
+  if (plan === "monthly") {
+    return {
+      plan,
+      priceId: config.monthlyPriceId || TLINGO_MONTHLY_PRICE_ID,
+      mode: "subscription",
+    };
+  }
 
-  return { plan, priceId };
+  if (plan === "yearly") {
+    return {
+      plan,
+      priceId: config.yearlyPriceId || TLINGO_YEARLY_PRICE_ID,
+      mode: "subscription",
+    };
+  }
+
+  return {
+    plan,
+    priceId: config.lifetimePriceId || TLINGO_LIFETIME_PRICE_ID,
+    mode: "payment",
+  };
 }
 
 export function buildCheckoutParams(
   body: CheckoutRequestBody,
   config: CheckoutConfig = {}
 ): URLSearchParams {
-  const { priceId } = selectBillingPrice(body.plan, config);
+  const { priceId, mode } = selectBillingPrice(body.plan, config);
   const successUrl =
     config.successUrl || "https://tlingo.zanderwang.com/?checkout=success";
   const cancelUrl =
     config.cancelUrl || "https://tlingo.zanderwang.com/?checkout=cancelled";
 
   const params = new URLSearchParams();
-  params.set("mode", "subscription");
+  params.set("mode", mode);
   params.set("line_items[0][price]", priceId);
   params.set("line_items[0][quantity]", "1");
   params.set("success_url", successUrl);

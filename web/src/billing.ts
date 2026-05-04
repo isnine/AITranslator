@@ -1,4 +1,4 @@
-export type BillingPlan = "monthly" | "yearly";
+export type BillingPlan = "monthly" | "yearly" | "lifetime";
 
 export interface CheckoutResponse {
   url: string;
@@ -7,6 +7,10 @@ export interface CheckoutResponse {
 
 export function buildCheckoutEndpoint(proxyPrefix: string): string {
   return `${proxyPrefix.replace(/\/+$/, "")}/billing/checkout`;
+}
+
+export function isBillingPlan(plan: unknown): plan is BillingPlan {
+  return plan === "monthly" || plan === "yearly" || plan === "lifetime";
 }
 
 export async function createCheckoutSession(

@@ -6,7 +6,7 @@ import { parseGrammarCheck, parseSentencePairs } from "./parsers";
 import { wordDiff } from "./diff";
 import { renderMarkdown } from "./markdown";
 import { escapeHTML } from "./utils";
-import { createCheckoutSession, type BillingPlan } from "./billing";
+import { createCheckoutSession, isBillingPlan, type BillingPlan } from "./billing";
 import {
   consumeOAuthCallbackIfPresent,
   getCurrentSession,
@@ -115,13 +115,18 @@ app.innerHTML = `
       <div class="billing-plans">
         <button class="plan-btn" data-plan="monthly">
           <span class="plan-name">Monthly</span>
-          <span class="plan-price">$3</span>
+          <span class="plan-price">$0.10</span>
           <span class="plan-cadence">per month</span>
         </button>
         <button class="plan-btn featured" data-plan="yearly">
           <span class="plan-name">Yearly</span>
-          <span class="plan-price">$20</span>
+          <span class="plan-price">$9.99</span>
           <span class="plan-cadence">per year</span>
+        </button>
+        <button class="plan-btn" data-plan="lifetime">
+          <span class="plan-name">Lifetime</span>
+          <span class="plan-price">$20</span>
+          <span class="plan-cadence">one-time</span>
         </button>
       </div>
       <p class="billing-status" id="billing-status" aria-live="polite"></p>
@@ -644,8 +649,8 @@ signOutBtn.addEventListener("click", async () => {
 
 planButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    const plan = button.dataset.plan as BillingPlan | undefined;
-    if (!plan) return;
+    const plan = button.dataset.plan;
+    if (!isBillingPlan(plan)) return;
     startCheckout(plan, button).catch((error) => {
       billingStatus.textContent = error instanceof Error ? error.message : String(error);
       planButtons.forEach((btn) => (btn.disabled = false));
