@@ -29,7 +29,6 @@ test("selects the TLingo lifetime Stripe price", () => {
     plan: "lifetime",
     priceId: TLINGO_LIFETIME_PRICE_ID,
     mode: "payment",
-    paymentMethodTypes: ["card", "alipay", "wechat_pay"],
   });
 });
 
@@ -53,7 +52,7 @@ test("builds a Managed Payments subscription Checkout Session payload", () => {
   assert.equal(params.get("cancel_url"), "https://tlingo.zanderwang.com/?checkout=cancelled");
 });
 
-test("builds a Managed Payments lifetime Checkout Session payload", () => {
+test("builds a Dashboard-managed lifetime Checkout Session payload", () => {
   const params = buildCheckoutParams({
     plan: "lifetime",
   });
@@ -62,7 +61,5 @@ test("builds a Managed Payments lifetime Checkout Session payload", () => {
   assert.equal(params.get("line_items[0][price]"), TLINGO_LIFETIME_PRICE_ID);
   assert.equal(params.get("line_items[0][quantity]"), "1");
   assert.equal(params.get("managed_payments[enabled]"), null);
-  assert.equal(params.get("payment_method_types[0]"), "card");
-  assert.equal(params.get("payment_method_types[1]"), "alipay");
-  assert.equal(params.get("payment_method_types[2]"), "wechat_pay");
+  assert.equal(params.get("payment_method_types[0]"), null);
 });

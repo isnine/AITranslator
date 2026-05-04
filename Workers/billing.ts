@@ -4,7 +4,6 @@ export const TLINGO_LIFETIME_PRICE_ID = "price_1TTDhWLR1JKu36LY35u9BpkL";
 
 export type BillingPlan = "monthly" | "yearly" | "lifetime";
 export type CheckoutMode = "subscription" | "payment";
-export type PaymentMethodType = "card" | "alipay" | "wechat_pay";
 
 export interface CheckoutConfig {
   monthlyPriceId?: string;
@@ -23,7 +22,6 @@ export function selectBillingPrice(plan: unknown, config: CheckoutConfig = {}): 
   plan: BillingPlan;
   priceId: string;
   mode: CheckoutMode;
-  paymentMethodTypes?: PaymentMethodType[];
 } {
   if (plan !== "monthly" && plan !== "yearly" && plan !== "lifetime") {
     throw new Error("plan must be monthly, yearly, or lifetime");
@@ -49,7 +47,6 @@ export function selectBillingPrice(plan: unknown, config: CheckoutConfig = {}): 
     plan,
     priceId: config.lifetimePriceId || TLINGO_LIFETIME_PRICE_ID,
     mode: "payment",
-    paymentMethodTypes: ["card", "alipay", "wechat_pay"],
   };
 }
 
@@ -57,7 +54,7 @@ export function buildCheckoutParams(
   body: CheckoutRequestBody,
   config: CheckoutConfig = {}
 ): URLSearchParams {
-  const { priceId, mode, paymentMethodTypes } = selectBillingPrice(body.plan, config);
+  const { priceId, mode } = selectBillingPrice(body.plan, config);
   const successUrl =
     config.successUrl || "https://tlingo.zanderwang.com/?checkout=success";
   const cancelUrl =
@@ -69,11 +66,7 @@ export function buildCheckoutParams(
   params.set("line_items[0][quantity]", "1");
   params.set("success_url", successUrl);
   params.set("cancel_url", cancelUrl);
-  if (paymentMethodTypes) {
-    paymentMethodTypes.forEach((paymentMethodType, index) => {
-      params.set(`payment_method_types[${index}]`, paymentMethodType);
-    });
-  } else {
+  if (mode === "subscription") {
     params.set("managed_payments[enabled]", "true");
   }
   params.set("allow_promotion_codes", "true");
