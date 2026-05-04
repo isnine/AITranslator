@@ -29,6 +29,7 @@ test("selects the TLingo lifetime Stripe price", () => {
     plan: "lifetime",
     priceId: TLINGO_LIFETIME_PRICE_ID,
     mode: "payment",
+    paymentMethodTypes: ["card", "alipay", "wechat_pay"],
   });
 });
 
@@ -60,5 +61,8 @@ test("builds a Managed Payments lifetime Checkout Session payload", () => {
   assert.equal(params.get("mode"), "payment");
   assert.equal(params.get("line_items[0][price]"), TLINGO_LIFETIME_PRICE_ID);
   assert.equal(params.get("line_items[0][quantity]"), "1");
-  assert.equal(params.get("managed_payments[enabled]"), "true");
+  assert.equal(params.get("managed_payments[enabled]"), null);
+  assert.equal(params.get("payment_method_types[0]"), "card");
+  assert.equal(params.get("payment_method_types[1]"), "alipay");
+  assert.equal(params.get("payment_method_types[2]"), "wechat_pay");
 });
