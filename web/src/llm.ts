@@ -47,6 +47,7 @@ export async function streamChat(
         Accept: "text/event-stream",
         "X-Timestamp": auth["X-Timestamp"],
         "X-Signature": auth["X-Signature"],
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ model, messages, stream: true }),
       signal: handlers.signal,

@@ -75,9 +75,11 @@ Required environment variables (Production **and** Preview):
 | `VITE_SUPABASE_ANON_KEY` | Publishable key from Supabase dashboard |
 | `AITRANSLATOR_CLOUD_SECRET` | HMAC secret shared with the Worker |
 | `AITRANSLATOR_CLOUD_ENDPOINT` | Optional. Default Azure endpoint baked into `vite.config.ts`. |
-| `AITRANSLATOR_CLOUD_PROXY_PREFIX` | Optional. Defaults to `https://translator-api.zanderwang.com` in production. |
+| `AITRANSLATOR_CLOUD_PROXY_PREFIX` | Optional. Defaults to `/api` in production. |
 
-The production bundle calls the public `aitranslator` Worker at `translator-api.zanderwang.com` directly (the Worker already returns `Access-Control-Allow-Origin: *`). The dev server still proxies `/cloud` locally to bypass CORS.
+The production bundle calls the `aitranslator` Worker through the same-origin `/api` route on `tlingo.zanderwang.com`. The legacy `translator-api.zanderwang.com` Worker route remains available for existing app clients. The dev server still proxies `/cloud` locally to bypass CORS.
+
+Billing requires the Worker secrets `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY`, and `STRIPE_WEBHOOK_SECRET`. Configure the Stripe webhook endpoint as `https://tlingo.zanderwang.com/api/billing/webhook`.
 
 `public/_redirects` provides SPA fallback so OAuth callback paths (`/auth/callback?code=...`) resolve to `index.html`.
 

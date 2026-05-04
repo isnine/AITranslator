@@ -1,4 +1,13 @@
 import { buildCheckoutParams } from "./billing";
+import {
+  buildCheckoutCompletedEntitlement,
+  buildSubscriptionEntitlement,
+  getBillingStatus,
+  type BillingEntitlementRow,
+  type BillingEntitlementUpsert,
+} from "./billing-state";
+import { normalizeApiPath } from "./routing";
+import { verifyStripeWebhookSignature } from "./stripe-webhook";
 
 /**
  * Cloudflare Worker that validates incoming requests with HMAC-SHA256 signature
@@ -24,8 +33,13 @@ interface Env {
   STRIPE_MONTHLY_PRICE_ID?: string;
   STRIPE_YEARLY_PRICE_ID?: string;
   STRIPE_LIFETIME_PRICE_ID?: string;
+  STRIPE_WEBHOOK_SECRET: string;
   CHECKOUT_SUCCESS_URL?: string;
   CHECKOUT_CANCEL_URL?: string;
+  BILLING_PORTAL_RETURN_URL?: string;
+  SUPABASE_URL: string;
+  SUPABASE_ANON_KEY: string;
+  SUPABASE_SERVICE_ROLE_KEY: string;
 }
 
 interface AuthResult {
@@ -102,7 +116,7 @@ const MODELS_LIST: ModelInfo[] = [
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "Content-Type, api-key, Authorization, Accept, Accept-Language, X-Timestamp, X-Signature, X-Premium, X-User-ID, X-Admin-Password",
+    "Content-Type, api-key, Authorization, Accept, Accept-Language, X-Timestamp, X-Signature, X-Premium, X-User-ID, X-Admin-Password, Stripe-Signature",
   "Access-Control-Allow-Methods": "GET,HEAD,POST,PUT,DELETE,OPTIONS",
 };
 
@@ -113,7 +127,7 @@ export default {
     }
 
     const url = new URL(request.url);
-    const path = url.pathname;
+    const path = normalizeApiPath(url.pathname);
 
     // Route: /models - Return available models list (no auth required)
     if (path === "/models") {
@@ -130,13 +144,26 @@ export default {
       return handleWebAPI(request, env, path);
     }
 
+    // Route: /billing/webhook - Stripe webhook endpoint (Stripe signature, no HMAC)
+    if (path === "/billing/webhook") {
+      return handleBillingWebhook(request, env);
+    }
+
     // Route: /billing/checkout - Create a Stripe Managed Payments Checkout Session
     if (path === "/billing/checkout") {
       return handleBillingCheckout(request, env);
     }
 
+    if (path === "/billing/status") {
+      return handleBillingStatus(request, env);
+    }
+
+    if (path === "/billing/portal") {
+      return handleBillingPortal(request, env);
+    }
+
     // Validate HMAC signature for all other routes
-    const authResult = await isAuthorized(request, env.APP_SECRET);
+    const authResult = await isAuthorized(request, env.APP_SECRET, path);
     if (!authResult.valid) {
       return buildResponse(
         JSON.stringify({ error: "Unauthorized", reason: authResult.reason }),
@@ -255,7 +282,7 @@ async function handleTTSRequest(request: Request, env: Env): Promise<Response> {
 async function handleLLMRequest(request: Request, env: Env): Promise<Response> {
   // Extract and validate the model from the request path
   const url = new URL(request.url);
-  const pathParts = url.pathname.split("/").filter(Boolean);
+  const pathParts = normalizeApiPath(url.pathname).split("/").filter(Boolean);
   const requestedModel = pathParts[0];
 
   // Get client IP from CF headers
@@ -279,8 +306,8 @@ async function handleLLMRequest(request: Request, env: Env): Promise<Response> {
 
   // Validate premium access for premium models
   if (PREMIUM_MODELS.has(requestedModel)) {
-    const premiumHeader = request.headers.get("X-Premium");
-    if (premiumHeader !== "true") {
+    const hasPremium = await hasPremiumAccess(request, env);
+    if (!hasPremium) {
       return buildResponse(
         JSON.stringify({
           error: "Premium required",
@@ -697,7 +724,8 @@ async function handleIncrementDownload(env: Env, actionId: string): Promise<Resp
 
 async function isAuthorized(
   request: Request,
-  secret: string
+  secret: string,
+  path: string
 ): Promise<AuthResult> {
   const timestamp = request.headers.get("X-Timestamp");
   const signature = request.headers.get("X-Signature");
@@ -718,10 +746,6 @@ async function isAuthorized(
   if (timeDiff > TIMESTAMP_TOLERANCE_SECONDS) {
     return { valid: false, reason: "Timestamp expired" };
   }
-
-  // Extract path from request URL
-  const url = new URL(request.url);
-  const path = url.pathname;
 
   // Compute expected signature: HMAC-SHA256(secret, timestamp:path)
   const message = `${timestamp}:${path}`;
@@ -778,7 +802,7 @@ function buildAzureURL(request: Request, azureEndpoint: string): URL {
   const baseURL = new URL(azureEndpoint);
 
   const normalizedBasePath = baseURL.pathname.replace(/\/+$/, "");
-  const incomingPath = incomingURL.pathname.replace(/^\/+/, "");
+  const incomingPath = normalizeApiPath(incomingURL.pathname).replace(/^\/+/, "");
 
   const combinedPath = [normalizedBasePath, incomingPath]
     .filter(Boolean)
@@ -828,10 +852,119 @@ function buildResponse(
   return new Response(body, { status, headers });
 }
 
+interface SupabaseUser {
+  id: string;
+  email?: string;
+}
+
+function getBearerToken(request: Request): string | null {
+  const header = request.headers.get("Authorization");
+  const match = header?.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] ?? null;
+}
+
+function requireSupabaseConfig(env: Env): Response | null {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    return buildResponse(
+      JSON.stringify({ error: "Supabase is not configured" }),
+      500,
+      "application/json"
+    );
+  }
+  return null;
+}
+
+async function validateSupabaseUser(request: Request, env: Env): Promise<SupabaseUser | Response> {
+  const configError = requireSupabaseConfig(env);
+  if (configError) return configError;
+  const token = getBearerToken(request);
+  if (!token) {
+    return buildResponse(JSON.stringify({ error: "Authentication required" }), 401, "application/json");
+  }
+
+  const response = await fetch(`${env.SUPABASE_URL.replace(/\/+$/, "")}/auth/v1/user`, {
+    headers: {
+      apikey: env.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    return buildResponse(JSON.stringify({ error: "Invalid session" }), 401, "application/json");
+  }
+
+  const user = (await response.json().catch(() => null)) as { id?: string; email?: string } | null;
+  if (!user?.id) {
+    return buildResponse(JSON.stringify({ error: "Invalid session" }), 401, "application/json");
+  }
+  return { id: user.id, email: user.email };
+}
+
+function supabaseRestURL(env: Env, table: string, query = ""): string {
+  const base = env.SUPABASE_URL.replace(/\/+$/, "");
+  return `${base}/rest/v1/${table}${query}`;
+}
+
+function supabaseServiceHeaders(env: Env): HeadersInit {
+  return {
+    apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function getEntitlementByUser(
+  env: Env,
+  userId: string
+): Promise<BillingEntitlementRow | null> {
+  const query = `?select=*&user_id=eq.${encodeURIComponent(userId)}&limit=1`;
+  const response = await fetch(supabaseRestURL(env, "billing_entitlements", query), {
+    headers: supabaseServiceHeaders(env),
+  });
+  if (!response.ok) throw new Error(`Supabase entitlement lookup failed: ${response.status}`);
+  const rows = (await response.json().catch(() => [])) as BillingEntitlementRow[];
+  return rows[0] ?? null;
+}
+
+async function upsertEntitlement(env: Env, row: BillingEntitlementUpsert): Promise<void> {
+  const response = await fetch(
+    supabaseRestURL(env, "billing_entitlements", "?on_conflict=user_id"),
+    {
+      method: "POST",
+      headers: {
+        ...supabaseServiceHeaders(env),
+        Prefer: "resolution=merge-duplicates",
+      },
+      body: JSON.stringify({ ...row, updated_at: new Date().toISOString() }),
+    }
+  );
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Supabase entitlement upsert failed: ${response.status} ${detail}`);
+  }
+}
+
+async function hasPremiumAccess(request: Request, env: Env): Promise<boolean> {
+  const token = getBearerToken(request);
+  if (token && env.SUPABASE_URL && env.SUPABASE_ANON_KEY && env.SUPABASE_SERVICE_ROLE_KEY) {
+    const user = await validateSupabaseUser(request, env);
+    if (!(user instanceof Response)) {
+      const entitlement = await getEntitlementByUser(env, user.id);
+      return getBillingStatus(entitlement).isPremium;
+    }
+  }
+
+  // Temporary iOS compatibility path until the native app sends Supabase auth.
+  return request.headers.get("X-Premium") === "true";
+}
+
 async function handleBillingCheckout(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") {
     return buildResponse(JSON.stringify({ error: "Method not allowed" }), 405, "application/json");
   }
+
+  const user = await validateSupabaseUser(request, env);
+  if (user instanceof Response) return user;
 
   if (!env.STRIPE_SECRET_KEY) {
     return buildResponse(
@@ -843,14 +976,26 @@ async function handleBillingCheckout(request: Request, env: Env): Promise<Respon
 
   let params: URLSearchParams;
   try {
-    const body = (await request.json()) as { plan?: unknown; customerEmail?: unknown };
-    params = buildCheckoutParams(body, {
-      monthlyPriceId: env.STRIPE_MONTHLY_PRICE_ID,
-      yearlyPriceId: env.STRIPE_YEARLY_PRICE_ID,
-      lifetimePriceId: env.STRIPE_LIFETIME_PRICE_ID,
-      successUrl: env.CHECKOUT_SUCCESS_URL,
-      cancelUrl: env.CHECKOUT_CANCEL_URL,
-    });
+    const body = (await request.json()) as { plan?: unknown };
+    const entitlement = await getEntitlementByUser(env, user.id);
+    params = buildCheckoutParams(
+      {
+        plan: body.plan,
+        customerEmail: entitlement?.stripe_customer_id ? undefined : user.email,
+        userId: user.id,
+      },
+      {
+        monthlyPriceId: env.STRIPE_MONTHLY_PRICE_ID,
+        yearlyPriceId: env.STRIPE_YEARLY_PRICE_ID,
+        lifetimePriceId: env.STRIPE_LIFETIME_PRICE_ID,
+        successUrl: env.CHECKOUT_SUCCESS_URL,
+        cancelUrl: env.CHECKOUT_CANCEL_URL,
+      }
+    );
+    if (entitlement?.stripe_customer_id) {
+      params.set("customer", entitlement.stripe_customer_id);
+      params.delete("customer_email");
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid request";
     return buildResponse(JSON.stringify({ error: message }), 400, "application/json");
@@ -884,6 +1029,102 @@ async function handleBillingCheckout(request: Request, env: Env): Promise<Respon
     200,
     "application/json"
   );
+}
+
+async function handleBillingStatus(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET") {
+    return buildResponse(JSON.stringify({ error: "Method not allowed" }), 405, "application/json");
+  }
+  const user = await validateSupabaseUser(request, env);
+  if (user instanceof Response) return user;
+  const entitlement = await getEntitlementByUser(env, user.id);
+  return buildResponse(JSON.stringify(getBillingStatus(entitlement)), 200, "application/json");
+}
+
+async function handleBillingPortal(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") {
+    return buildResponse(JSON.stringify({ error: "Method not allowed" }), 405, "application/json");
+  }
+  const user = await validateSupabaseUser(request, env);
+  if (user instanceof Response) return user;
+  const entitlement = await getEntitlementByUser(env, user.id);
+  if (!entitlement?.stripe_customer_id) {
+    return buildResponse(JSON.stringify({ error: "No Stripe customer found" }), 404, "application/json");
+  }
+
+  const params = new URLSearchParams();
+  params.set("customer", entitlement.stripe_customer_id);
+  params.set("return_url", env.BILLING_PORTAL_RETURN_URL || "https://tlingo.zanderwang.com/");
+
+  const stripeResponse = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+      "Stripe-Version": "2026-02-25.preview",
+    },
+    body: params,
+  });
+  const stripeBody = (await stripeResponse.json().catch(() => null)) as
+    | { url?: string; error?: { message?: string } }
+    | null;
+  if (!stripeResponse.ok || !stripeBody?.url) {
+    return buildResponse(
+      JSON.stringify({ error: stripeBody?.error?.message || "Failed to create billing portal session" }),
+      stripeResponse.ok ? 502 : stripeResponse.status,
+      "application/json"
+    );
+  }
+  return buildResponse(JSON.stringify({ url: stripeBody.url }), 200, "application/json");
+}
+
+async function handleBillingWebhook(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") {
+    return buildResponse(JSON.stringify({ error: "Method not allowed" }), 405, "application/json");
+  }
+  if (!env.STRIPE_WEBHOOK_SECRET) {
+    return buildResponse(JSON.stringify({ error: "Stripe webhook is not configured" }), 500, "application/json");
+  }
+  const payload = await request.text();
+  const signature = request.headers.get("Stripe-Signature");
+  if (!signature || !(await verifyStripeWebhookSignature(payload, signature, env.STRIPE_WEBHOOK_SECRET))) {
+    return buildResponse(JSON.stringify({ error: "Invalid Stripe signature" }), 400, "application/json");
+  }
+
+  const event = JSON.parse(payload) as { id: string; type: string; data: { object: unknown } };
+  let entitlement: BillingEntitlementUpsert | null = null;
+  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
+    entitlement = buildCheckoutCompletedEntitlement(event.data.object as never);
+  } else if (
+    event.type === "customer.subscription.created" ||
+    event.type === "customer.subscription.updated" ||
+    event.type === "customer.subscription.deleted"
+  ) {
+    entitlement = buildSubscriptionEntitlement(event.data.object as never);
+  } else if (event.type === "invoice.payment_succeeded") {
+    const invoice = event.data.object as { subscription?: string | { id?: string } | null };
+    const subscriptionId =
+      typeof invoice.subscription === "string" ? invoice.subscription : invoice.subscription?.id;
+    if (subscriptionId) {
+      const subscription = await retrieveStripeSubscription(env, subscriptionId);
+      entitlement = buildSubscriptionEntitlement(subscription as never);
+    }
+  }
+  if (entitlement) {
+    await upsertEntitlement(env, { ...entitlement, last_event_id: event.id });
+  }
+  return buildResponse(JSON.stringify({ received: true }), 200, "application/json");
+}
+
+async function retrieveStripeSubscription(env: Env, subscriptionId: string): Promise<unknown> {
+  const response = await fetch(`https://api.stripe.com/v1/subscriptions/${subscriptionId}`, {
+    headers: {
+      Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+      "Stripe-Version": "2026-02-25.preview",
+    },
+  });
+  if (!response.ok) throw new Error(`Failed to retrieve Stripe subscription: ${response.status}`);
+  return response.json();
 }
 
 // MARK: - Web Marketplace UI

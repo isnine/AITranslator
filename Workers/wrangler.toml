@@ -4,7 +4,8 @@ compatibility_date = "2024-01-01"
 
 # Custom domain (requires DNS configured in Cloudflare)
 routes = [
-  { pattern = "translator-api.zanderwang.com/*", zone_name = "zanderwang.com" }
+  { pattern = "translator-api.zanderwang.com/*", zone_name = "zanderwang.com" },
+  { pattern = "tlingo.zanderwang.com/api/*", zone_name = "zanderwang.com" }
 ]
 
 # Default workers.dev subdomain: https://aitranslator.xiaozwan.workers.dev/
@@ -24,6 +25,7 @@ STRIPE_YEARLY_PRICE_ID = "price_1TTDhVLR1JKu36LYhfqSBpph"
 STRIPE_LIFETIME_PRICE_ID = "price_1TTDhWLR1JKu36LY35u9BpkL"
 CHECKOUT_SUCCESS_URL = "https://tlingo.zanderwang.com/?checkout=success"
 CHECKOUT_CANCEL_URL = "https://tlingo.zanderwang.com/?checkout=cancelled"
+BILLING_PORTAL_RETURN_URL = "https://tlingo.zanderwang.com/"
 
 # Environment variables (secrets should be set via `wrangler secret put`)
 # Required secrets:
@@ -31,6 +33,10 @@ CHECKOUT_CANCEL_URL = "https://tlingo.zanderwang.com/?checkout=cancelled"
 # - AZURE_API_KEY: Azure OpenAI API key
 # - AZURE_ENDPOINT: Azure OpenAI endpoint URL
 # - STRIPE_SECRET_KEY: Stripe secret key for creating Checkout Sessions
+# - STRIPE_WEBHOOK_SECRET: Stripe webhook endpoint signing secret
+# - SUPABASE_URL: Supabase project URL
+# - SUPABASE_ANON_KEY: Supabase publishable/anon key for Auth validation
+# - SUPABASE_SERVICE_ROLE_KEY: Supabase service role key for billing_entitlements writes
 
 # D1 Database for marketplace actions
 [[d1_databases]]

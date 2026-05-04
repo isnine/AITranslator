@@ -6,7 +6,14 @@ import { parseGrammarCheck, parseSentencePairs } from "./parsers";
 import { wordDiff } from "./diff";
 import { renderMarkdown } from "./markdown";
 import { escapeHTML } from "./utils";
-import { createCheckoutSession, isBillingPlan, type BillingPlan } from "./billing";
+import {
+  createBillingPortalSession,
+  createCheckoutSession,
+  getBillingStatus,
+  isBillingPlan,
+  type BillingPlan,
+  type BillingStatus,
+} from "./billing";
 import {
   consumeOAuthCallbackIfPresent,
   getCurrentSession,
@@ -41,6 +48,7 @@ let currentAction: ActionConfig = ACTIONS[0];
 let currentAbort: AbortController | null = null;
 let sourceLanguage = "auto";
 let currentUserEmail: string | null = null;
+let currentBillingStatus: BillingStatus | null = null;
 
 app.innerHTML = `
   <header class="topbar">
@@ -130,6 +138,9 @@ app.innerHTML = `
         </button>
       </div>
       <p class="billing-status" id="billing-status" aria-live="polite"></p>
+      <div class="billing-actions">
+        <button class="text-btn" id="manage-billing-btn" hidden>Manage billing</button>
+      </div>
     </section>
   </main>
 
@@ -239,6 +250,7 @@ const signinNote = document.getElementById("signin-note")!;
 const historyModal = document.getElementById("history-modal")!;
 const historyBody = document.getElementById("history-body")!;
 const billingStatus = document.getElementById("billing-status")!;
+const manageBillingBtn = document.getElementById("manage-billing-btn") as HTMLButtonElement;
 const planButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".plan-btn"));
 
 AVAILABLE_MODELS.forEach((m) => {
@@ -659,17 +671,68 @@ planButtons.forEach((button) => {
 });
 
 async function startCheckout(plan: BillingPlan, sourceButton: HTMLButtonElement) {
+  const session = await getCurrentSession();
+  if (!session) {
+    openSignin("Sign in before choosing a TLingo plan.");
+    return;
+  }
   billingStatus.textContent = "Opening checkout...";
   planButtons.forEach((btn) => (btn.disabled = true));
   sourceButton.classList.add("loading");
 
   try {
-    const checkout = await createCheckoutSession(PROXY_PREFIX, plan, currentUserEmail);
+    const checkout = await createCheckoutSession(PROXY_PREFIX, plan, session.access_token);
     window.location.assign(checkout.url);
   } finally {
     sourceButton.classList.remove("loading");
   }
 }
+
+async function refreshBillingStatus() {
+  const session = await getCurrentSession();
+  if (!session) {
+    currentBillingStatus = null;
+    billingStatus.textContent = "";
+    manageBillingBtn.hidden = true;
+    return;
+  }
+
+  try {
+    currentBillingStatus = await getBillingStatus(PROXY_PREFIX, session.access_token);
+    if (currentBillingStatus.isPremium) {
+      billingStatus.textContent =
+        currentBillingStatus.plan === "lifetime"
+          ? "Lifetime premium is active."
+          : "Premium subscription is active.";
+    } else if (currentBillingStatus.status) {
+      billingStatus.textContent = `Billing status: ${currentBillingStatus.status}.`;
+    } else {
+      billingStatus.textContent = "";
+    }
+    manageBillingBtn.hidden = !currentBillingStatus.stripeCustomerId;
+  } catch (error) {
+    console.warn("[billing] failed to load status", error);
+    billingStatus.textContent = "";
+    manageBillingBtn.hidden = true;
+  }
+}
+
+manageBillingBtn.addEventListener("click", async () => {
+  const session = await getCurrentSession();
+  if (!session) {
+    openSignin("Sign in to manage billing.");
+    return;
+  }
+  manageBillingBtn.disabled = true;
+  try {
+    const portal = await createBillingPortalSession(PROXY_PREFIX, session.access_token);
+    window.location.assign(portal.url);
+  } catch (error) {
+    billingStatus.textContent = error instanceof Error ? error.message : String(error);
+  } finally {
+    manageBillingBtn.disabled = false;
+  }
+});
 
 function updateAccountUI() {
   accountSlot.innerHTML = "";
@@ -755,8 +818,12 @@ async function bootstrapAuth() {
         saveCloudSettings(settings).catch(() => {});
       }
     }
+    refreshBillingStatus().catch(() => {});
   });
   const session = await getCurrentSession();
+  if (session) {
+    refreshBillingStatus().catch(() => {});
+  }
   if (!session && googleOneTapConfigured) {
     promptGoogleOneTap().catch(() => {});
   }

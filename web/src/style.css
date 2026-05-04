@@ -583,6 +583,10 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px;
 }
 
+.billing-actions {
+  grid-column: 1 / -1;
+}
+
 @media (max-width: 720px) {
   .billing-panel {
     grid-template-columns: 1fr;

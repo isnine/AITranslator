@@ -4,7 +4,7 @@
   "description": "",
   "main": "azureProxyWorker.ts",
   "scripts": {
-    "test": "rm -rf test-dist && ../web/node_modules/typescript/bin/tsc billing.ts --ignoreConfig --target es2023 --module nodenext --moduleResolution nodenext --outDir test-dist --skipLibCheck && node --test test/billing.test.mjs"
+    "test": "rm -rf test-dist && ../web/node_modules/typescript/bin/tsc billing.ts billing-state.ts routing.ts stripe-webhook.ts --ignoreConfig --target es2023 --module nodenext --moduleResolution nodenext --outDir test-dist --skipLibCheck && node --test test/*.test.mjs"
   },
   "keywords": [],
   "author": "",

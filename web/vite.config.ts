@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
   // Prod: hit the public Worker directly (CORS is open on the Worker).
   const proxyPrefix =
     env.AITRANSLATOR_CLOUD_PROXY_PREFIX ??
-    (mode === "production" ? "https://translator-api.zanderwang.com" : "/cloud");
+    (mode === "production" ? "/api" : "/cloud");
 
   return {
     envDir: resolve(__dirname, ".."),

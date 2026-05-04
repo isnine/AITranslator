@@ -40,6 +40,7 @@ test("builds a Managed Payments subscription Checkout Session payload", () => {
   const params = buildCheckoutParams({
     plan: "monthly",
     customerEmail: "buyer@example.com",
+    userId: "user_123",
   });
 
   assert.equal(params.get("mode"), "subscription");
@@ -48,6 +49,11 @@ test("builds a Managed Payments subscription Checkout Session payload", () => {
   assert.equal(params.get("managed_payments[enabled]"), "true");
   assert.equal(params.get("allow_promotion_codes"), "true");
   assert.equal(params.get("customer_email"), "buyer@example.com");
+  assert.equal(params.get("client_reference_id"), "user_123");
+  assert.equal(params.get("metadata[supabase_user_id]"), "user_123");
+  assert.equal(params.get("metadata[plan]"), "monthly");
+  assert.equal(params.get("subscription_data[metadata][supabase_user_id]"), "user_123");
+  assert.equal(params.get("subscription_data[metadata][plan]"), "monthly");
   assert.equal(params.get("success_url"), "https://tlingo.zanderwang.com/?checkout=success");
   assert.equal(params.get("cancel_url"), "https://tlingo.zanderwang.com/?checkout=cancelled");
 });
@@ -55,6 +61,7 @@ test("builds a Managed Payments subscription Checkout Session payload", () => {
 test("builds a Dashboard-managed lifetime Checkout Session payload", () => {
   const params = buildCheckoutParams({
     plan: "lifetime",
+    userId: "user_456",
   });
 
   assert.equal(params.get("mode"), "payment");
@@ -62,4 +69,9 @@ test("builds a Dashboard-managed lifetime Checkout Session payload", () => {
   assert.equal(params.get("line_items[0][quantity]"), "1");
   assert.equal(params.get("managed_payments[enabled]"), null);
   assert.equal(params.get("payment_method_types[0]"), null);
+  assert.equal(params.get("client_reference_id"), "user_456");
+  assert.equal(params.get("metadata[supabase_user_id]"), "user_456");
+  assert.equal(params.get("metadata[plan]"), "lifetime");
+  assert.equal(params.get("payment_intent_data[metadata][supabase_user_id]"), "user_456");
+  assert.equal(params.get("payment_intent_data[metadata][plan]"), "lifetime");
 });

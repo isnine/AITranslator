@@ -16,6 +16,7 @@ export interface CheckoutConfig {
 export interface CheckoutRequestBody {
   plan?: unknown;
   customerEmail?: unknown;
+  userId?: unknown;
 }
 
 export function selectBillingPrice(plan: unknown, config: CheckoutConfig = {}): {
@@ -54,7 +55,7 @@ export function buildCheckoutParams(
   body: CheckoutRequestBody,
   config: CheckoutConfig = {}
 ): URLSearchParams {
-  const { priceId, mode } = selectBillingPrice(body.plan, config);
+  const { plan, priceId, mode } = selectBillingPrice(body.plan, config);
   const successUrl =
     config.successUrl || "https://tlingo.zanderwang.com/?checkout=success";
   const cancelUrl =
@@ -66,6 +67,18 @@ export function buildCheckoutParams(
   params.set("line_items[0][quantity]", "1");
   params.set("success_url", successUrl);
   params.set("cancel_url", cancelUrl);
+  if (typeof body.userId === "string" && body.userId) {
+    params.set("client_reference_id", body.userId);
+    params.set("metadata[supabase_user_id]", body.userId);
+    params.set("metadata[plan]", plan);
+    if (mode === "subscription") {
+      params.set("subscription_data[metadata][supabase_user_id]", body.userId);
+      params.set("subscription_data[metadata][plan]", plan);
+    } else {
+      params.set("payment_intent_data[metadata][supabase_user_id]", body.userId);
+      params.set("payment_intent_data[metadata][plan]", plan);
+    }
+  }
   if (mode === "subscription") {
     params.set("managed_payments[enabled]", "true");
   }
