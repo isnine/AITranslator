@@ -30,3 +30,6 @@ TLingo는 Apple 내장 번역을 대체하는 AI 번역 앱입니다. iPhone, iP
 이메일 작성, 기사 읽기, 문법 확인, 새로운 언어 학습까지 TLingo는 필요한 곳에서 AI 번역과 작문 도구를 제공합니다.
 
 TLingo를 다운로드하고 iPhone과 Mac에 가장 똑똑한 번역기를 설치하세요.
+
+Terms of Use (EULA): https://isnine.notion.site/Terms-of-Use-EULA-TLingo-304096d126728075b0d7c2e7578214c5
+Privacy Policy: https://isnine.notion.site/Privacy-Policy-TLing-304096d1267280fcbea4edac5f95ccda
