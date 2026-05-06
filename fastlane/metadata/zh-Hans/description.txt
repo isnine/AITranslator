@@ -32,4 +32,4 @@ TLingo是一款AI驱动的翻译应用，可替代Apple内置翻译，成为iPho
 下载TLingo，为您的iPhone和Mac升级最智能的翻译体验。
 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Privacy Policy: https://isnine.notion.site/Privacy-Policy-TLing-304096d1267280fcbea4edac5f95ccda
+Privacy Policy: https://www.notion.so/isnine/Privacy-Policy-6ab3eecbf72f4e14b6ed8df977a84b43

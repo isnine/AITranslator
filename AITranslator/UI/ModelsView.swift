@@ -605,7 +605,7 @@ struct ModelsView: View {
     }
 
     private static let privacyPolicyURL = URL(
-        string: "https://isnine.notion.site/Privacy-Policy-TLing-304096d1267280fcbea4edac5f95ccda"
+        string: "https://www.notion.so/isnine/Privacy-Policy-6ab3eecbf72f4e14b6ed8df977a84b43"
     )!
 
     private var infoFooter: some View {

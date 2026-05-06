@@ -47,4 +47,4 @@ Stop switching between translator apps, grammar checkers, and ChatGPT. TLingo gi
 Download TLingo and upgrade your iPhone and Mac with the smartest translator available.
 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
-Privacy Policy: https://isnine.notion.site/Privacy-Policy-TLing-304096d1267280fcbea4edac5f95ccda
+Privacy Policy: https://www.notion.so/isnine/Privacy-Policy-6ab3eecbf72f4e14b6ed8df977a84b43
