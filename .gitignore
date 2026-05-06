@@ -41,16 +41,12 @@ Carthage/Build/
 Dependencies/
 .accio/
 
-# fastlane
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots/**/*.png
-fastlane/macos_screenshots/**/*.png
-fastlane/macos_screenshots_marketing/**/*.png
-fastlane/test_output/
-fastlane/api_key.json
-fastlane/fonts/*.otf
-fastlane/fonts/*.ttf
+# screenshots (large PNGs kept locally only)
+screenshots/ios/**/*.png
+screenshots/macos/**/*.png
+screenshots/macos_marketing/**/*.png
+screenshots/fonts/*.otf
+screenshots/fonts/*.ttf
 
 # App Store screenshot generator (Next.js project)
 appstore-screenshots/

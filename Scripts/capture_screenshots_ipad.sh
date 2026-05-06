@@ -9,7 +9,7 @@ SIM_UDID="1A6A6179-FF5A-40A8-971B-0E5BEBD14D4B"
 SIM_NAME="Apple iPad Pro (12.9-inch) (4th generation)"
 SCHEME="TLingoUITests"
 PROJECT="$PROJECT_DIR/AITranslator.xcodeproj"
-OUTPUT_DIR="$PROJECT_DIR/fastlane/screenshots"
+OUTPUT_DIR="$PROJECT_DIR/screenshots/ios"
 CACHE_DIR="$HOME/Library/Caches/tools.fastlane"
 SCREENSHOTS_CACHE="$CACHE_DIR/screenshots"
 

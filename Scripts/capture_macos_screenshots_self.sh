@@ -4,7 +4,7 @@
 # The app exports its own window content to PNG via -MACOS_EXPORT_PATH.
 #
 # Output:
-#   fastlane/macos_screenshots/<locale>/0X_*.png
+#   screenshots/macos/<locale>/0X_*.png
 #
 set -euo pipefail
 
@@ -12,7 +12,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT="$PROJECT_DIR/AITranslator.xcodeproj"
 SCHEME="TLingo"
 APP_NAME="TLingo"
-OUTPUT_BASE="$PROJECT_DIR/fastlane/macos_screenshots"
+OUTPUT_BASE="$PROJECT_DIR/screenshots/macos"
 
 TARGET_W=1600
 TARGET_H=800

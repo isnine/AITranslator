@@ -69,23 +69,26 @@ make lint              # Lint code (SwiftLint + SwiftFormat --lint)
 
 Minimal unit tests in ShareCoreTests (migration/substitution tests). Primary testing uses MCP-based UI automation.
 
-### Fastlane (App Store Automation)
+### App Store Connect (asc CLI)
+
+Metadata, builds, and submissions are managed via the `asc` CLI. Canonical metadata lives in `metadata/{ios,macos}/`.
 
 ```bash
-# iOS Screenshots
-fastlane ios screenshots              # Capture on all devices/languages
-fastlane ios frames                   # Add device frames & marketing text
-fastlane ios deliver_screenshots      # Capture → frame → upload
-fastlane ios full_pipeline            # Full pipeline
+# Pull current metadata from ASC
+asc metadata pull --app 6754217103 --version 3.1 --platform IOS --dir metadata/ios --force
+asc metadata pull --app 6754217103 --app-info 7726c983-1526-480d-a629-419d70e657fe \
+  --version 3.0 --platform MAC_OS --dir metadata/macos --force
 
-# iOS Metadata
-fastlane ios download_metadata        # Download from App Store Connect
-fastlane ios upload_metadata          # Upload metadata to App Store
+# Push edits back (use --dry-run first)
+asc metadata push --app 6754217103 --version 3.1 --platform IOS --dir metadata/ios --dry-run
+asc metadata push --app 6754217103 --version 3.1 --platform IOS --dir metadata/ios
 
-# macOS Screenshots
-fastlane mac macos_screenshots        # Capture via in-app export
-fastlane mac macos_frames             # Compose marketing screenshots
-fastlane mac macos_full_pipeline      # Full pipeline
+# Screenshots (still captured locally under screenshots/)
+Scripts/capture_screenshots.sh           # iOS Simulator capture
+Scripts/capture_screenshots_ipad.sh      # iPad capture
+Scripts/capture_macos_screenshots_self.sh  # macOS in-app capture
+Scripts/frame_macos_marketing.sh         # Compose marketing frames
+asc screenshots upload --app 6754217103 --dir screenshots/...  # Upload to ASC
 ```
 
 ## Configuration System

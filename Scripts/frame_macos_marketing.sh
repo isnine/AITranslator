@@ -6,9 +6,9 @@
 #   - Headline + subtitle from keyword.strings / title.strings
 #   - Rounded corners + drop shadow on the app screenshot
 #
-# Input:  fastlane/macos_screenshots/<locale>/0X_*.png
-# Text:   fastlane/screenshots/<locale>/{keyword.strings,title.strings}
-# Output: fastlane/macos_screenshots_marketing/<locale>/0X_*.png
+# Input:  screenshots/macos/<locale>/0X_*.png
+# Text:   screenshots/ios/<locale>/{keyword.strings,title.strings}
+# Output: screenshots/macos_marketing/<locale>/0X_*.png
 #
 # Usage:
 #   ./Scripts/frame_macos_marketing.sh              # all locales that have raw screenshots
@@ -18,9 +18,9 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-IN_BASE="$PROJECT_DIR/fastlane/macos_screenshots"
-OUT_BASE="$PROJECT_DIR/fastlane/macos_screenshots_marketing"
-TEXT_BASE="$PROJECT_DIR/fastlane/screenshots"
+IN_BASE="$PROJECT_DIR/screenshots/macos"
+OUT_BASE="$PROJECT_DIR/screenshots/macos_marketing"
+TEXT_BASE="$PROJECT_DIR/screenshots/ios"
 
 # Canvas size (Apple macOS App Store accepted)
 W=1280
@@ -62,8 +62,8 @@ FONT_HEAD="/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 FONT_SUB="/System/Library/Fonts/Supplemental/Arial.ttf"
 
 # CJK font override (PingFang for CJK locales)
-FONT_CJK_HEAD="$PROJECT_DIR/fastlane/fonts/PingFangSC-Semibold.ttf"
-FONT_CJK_SUB="$PROJECT_DIR/fastlane/fonts/PingFangSC-Regular.ttf"
+FONT_CJK_HEAD="$PROJECT_DIR/screenshots/fonts/PingFangSC-Semibold.ttf"
+FONT_CJK_SUB="$PROJECT_DIR/screenshots/fonts/PingFangSC-Regular.ttf"
 
 KEYS=("01_Home" "02_Conversation" "03_Actions" "04_Models" "05_Settings" "06_Polish")
 

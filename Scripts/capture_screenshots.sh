@@ -9,7 +9,7 @@ SIM_UDID="C44072F7-A10C-4C39-96D8-CC1AEE321722"
 SIM_NAME="11PRO MAX - App Store"
 SCHEME="TLingoUITests"
 PROJECT="$PROJECT_DIR/AITranslator.xcodeproj"
-OUTPUT_DIR="$PROJECT_DIR/fastlane/screenshots"
+OUTPUT_DIR="$PROJECT_DIR/screenshots/ios"
 CACHE_DIR="$HOME/Library/Caches/tools.fastlane"
 SCREENSHOTS_CACHE="$CACHE_DIR/screenshots"
 
