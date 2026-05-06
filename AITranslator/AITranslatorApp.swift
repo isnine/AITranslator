@@ -5,10 +5,12 @@
 //  Created by Zander Wang on 2025/10/18.
 //
 
-import Combine
 import os
 import ShareCore
 import SwiftUI
+#if DEBUG && os(macOS)
+    import Combine
+#endif
 
 private let logger = os.Logger(subsystem: "com.zanderwang.AITranslator", category: "App")
 #if os(macOS)
@@ -134,8 +136,10 @@ struct AITranslatorApp: App {
         var openWindowAction: OpenWindowAction?
 
         private var windowObservers: [NSObjectProtocol] = []
-        private let selectionTranslationCoordinator = SelectionTranslationCoordinator()
-        private var selectionTranslationCancellable: AnyCancellable?
+        #if DEBUG
+            private let selectionTranslationCoordinator = SelectionTranslationCoordinator()
+            private var selectionTranslationCancellable: AnyCancellable?
+        #endif
 
         override init() {
             super.init()
@@ -271,14 +275,16 @@ struct AITranslatorApp: App {
             // Observe window lifecycle for smart Dock icon management
             setupWindowObservers()
 
-            selectionTranslationCancellable = AppPreferences.shared.$textSelectionTranslationEnabled
-                .sink { [weak self] enabled in
-                    if enabled {
-                        self?.selectionTranslationCoordinator.start()
-                    } else {
-                        self?.selectionTranslationCoordinator.stop()
+            #if DEBUG
+                selectionTranslationCancellable = AppPreferences.shared.$textSelectionTranslationEnabled
+                    .sink { [weak self] enabled in
+                        if enabled {
+                            self?.selectionTranslationCoordinator.start()
+                        } else {
+                            self?.selectionTranslationCoordinator.stop()
+                        }
                     }
-                }
+            #endif
         }
 
         func applicationWillTerminate(_: Notification) {
@@ -288,8 +294,10 @@ struct AITranslatorApp: App {
             // Unregister global hotkey
             HotKeyManager.shared.unregister()
 
-            selectionTranslationCoordinator.stop()
-            selectionTranslationCancellable?.cancel()
+            #if DEBUG
+                selectionTranslationCoordinator.stop()
+                selectionTranslationCancellable?.cancel()
+            #endif
 
             // Teardown menu bar
             Task { @MainActor in

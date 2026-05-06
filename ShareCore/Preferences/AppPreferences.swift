@@ -34,8 +34,10 @@ public final class AppPreferences: ObservableObject {
     @Published public private(set) var accentTheme: AccentTheme
     @Published public private(set) var appleTranslateInstalledLanguages: Set<String>
     #if os(macOS)
-        @Published public private(set) var textSelectionTranslationEnabled: Bool
         @Published public private(set) var hasCompletedOnboarding: Bool
+        #if DEBUG
+            @Published public private(set) var textSelectionTranslationEnabled: Bool
+        #endif
     #endif
 
     private let defaults: UserDefaults
@@ -61,8 +63,10 @@ public final class AppPreferences: ObservableObject {
         defaults.removeObject(forKey: "custom_config_directory")
 
         #if os(macOS)
-            textSelectionTranslationEnabled = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
             hasCompletedOnboarding = defaults.bool(forKey: StorageKeys.hasCompletedOnboarding)
+            #if DEBUG
+                textSelectionTranslationEnabled = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
+            #endif
         #endif
 
         notificationObserver = NotificationCenter.default.addObserver(
@@ -130,19 +134,21 @@ public final class AppPreferences: ObservableObject {
     }
 
     #if os(macOS)
-        public func setTextSelectionTranslationEnabled(_ enabled: Bool) {
-            guard textSelectionTranslationEnabled != enabled else { return }
-
-            textSelectionTranslationEnabled = enabled
-            defaults.set(enabled, forKey: StorageKeys.textSelectionTranslationEnabled)
-        }
-
         public func setHasCompletedOnboarding(_ completed: Bool) {
             guard hasCompletedOnboarding != completed else { return }
 
             hasCompletedOnboarding = completed
             defaults.set(completed, forKey: StorageKeys.hasCompletedOnboarding)
         }
+
+        #if DEBUG
+            public func setTextSelectionTranslationEnabled(_ enabled: Bool) {
+                guard textSelectionTranslationEnabled != enabled else { return }
+
+                textSelectionTranslationEnabled = enabled
+                defaults.set(enabled, forKey: StorageKeys.textSelectionTranslationEnabled)
+            }
+        #endif
     #endif
 
     // MARK: - Enabled Models (flat model architecture)
@@ -247,15 +253,16 @@ public final class AppPreferences: ObservableObject {
         }
 
         #if os(macOS)
-            let storedTextSelection = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
-            if textSelectionTranslationEnabled != storedTextSelection {
-                textSelectionTranslationEnabled = storedTextSelection
-            }
-
             let storedOnboarding = defaults.bool(forKey: StorageKeys.hasCompletedOnboarding)
             if hasCompletedOnboarding != storedOnboarding {
                 hasCompletedOnboarding = storedOnboarding
             }
+            #if DEBUG
+                let storedTextSelection = defaults.bool(forKey: StorageKeys.textSelectionTranslationEnabled)
+                if textSelectionTranslationEnabled != storedTextSelection {
+                    textSelectionTranslationEnabled = storedTextSelection
+                }
+            #endif
         #endif
 
         let storedEnabledModels = AppPreferences.readEnabledModelIDs(from: defaults)
@@ -351,8 +358,10 @@ private enum StorageKeys {
     /// Key for Apple Translate installed language codes
     static let appleTranslateInstalledLanguages = "apple_translate_installed_languages"
     #if os(macOS)
-        static let textSelectionTranslationEnabled = "text_selection_translation_enabled"
         static let hasCompletedOnboarding = "has_completed_onboarding"
+        #if DEBUG
+            static let textSelectionTranslationEnabled = "text_selection_translation_enabled"
+        #endif
     #endif
     static let satisfactionPromptLastVersion = "satisfaction_prompt_last_version"
     static let satisfactionPromptLastDate = "satisfaction_prompt_last_date"
