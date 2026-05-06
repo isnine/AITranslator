@@ -31,5 +31,5 @@ TLingo는 Apple 내장 번역을 대체하는 AI 번역 앱입니다. iPhone, iP
 
 TLingo를 다운로드하고 iPhone과 Mac에 가장 똑똑한 번역기를 설치하세요.
 
-Terms of Use (EULA): https://isnine.notion.site/Terms-of-Use-EULA-TLingo-304096d126728075b0d7c2e7578214c5
+Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
 Privacy Policy: https://isnine.notion.site/Privacy-Policy-TLing-304096d1267280fcbea4edac5f95ccda
