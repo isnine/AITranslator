@@ -946,15 +946,23 @@ async function upsertEntitlement(env: Env, row: BillingEntitlementUpsert): Promi
 
 async function hasPremiumAccess(request: Request, env: Env): Promise<boolean> {
   const token = getBearerToken(request);
-  if (token && env.SUPABASE_URL && env.SUPABASE_ANON_KEY && env.SUPABASE_SERVICE_ROLE_KEY) {
-    const user = await validateSupabaseUser(request, env);
-    if (!(user instanceof Response)) {
-      const entitlement = await getEntitlementByUser(env, user.id);
-      return getBillingStatus(entitlement).isPremium;
+
+  if (token) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY || !env.SUPABASE_SERVICE_ROLE_KEY) {
+      return false;
     }
+    const user = await validateSupabaseUser(request, env);
+    if (user instanceof Response) {
+      return false;
+    }
+    const entitlement = await getEntitlementByUser(env, user.id);
+    return getBillingStatus(entitlement).isPremium;
   }
 
-  // Temporary iOS compatibility path until the native app sends Supabase auth.
+  // Legacy iOS path: HMAC-signed requests without a Supabase session.
+  // Trusted only because route-level HMAC verification (see request handler)
+  // already proved the request originates from a real client build.
+  // Remove once the iOS app sends Supabase Bearer tokens.
   return request.headers.get("X-Premium") === "true";
 }
 
