@@ -1,7 +1,1 @@
-Daha gelişmiş bir Premium deneyimi — daha akıllı yükseltmeler ve daha net abonelik yönetimi.
-
-İyileştirmeler
-• Ödeme ekranı artık yalnızca yükseltebileceğiniz planları gösteriyor — kafa karıştırıcı düşürme yok.
-• Başarılı satın alımlar ödeme ekranını otomatik olarak kapatıyor.
-• Ayarlar artık tam abonelik düzeyinizi gösteriyor (Aylık, Yıllık veya Ömür Boyu).
-• Premium özellikler listesi, Ömür Boyu üyeler dahil tüm aboneler tarafından görülebilir.
+Bazı sorunlar giderildi.

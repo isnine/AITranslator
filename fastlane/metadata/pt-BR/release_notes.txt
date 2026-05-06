@@ -1,7 +1,1 @@
-Uma experiência Premium mais refinada — atualizações mais inteligentes e gerenciamento de assinatura mais claro.
-
-Melhorias
-• A tela de pagamento agora exibe apenas os planos para os quais você pode fazer upgrade — sem downgrades confusos.
-• Compras bem-sucedidas fecham a tela de pagamento automaticamente.
-• As configurações agora exibem seu nível exato de assinatura (Mensal, Anual ou Vitalício).
-• A lista de recursos Premium é visível para todos os assinantes, incluindo membros Vitalícios.
+Correção de alguns problemas.

@@ -1,7 +1,1 @@
-Une expérience Premium affinée — mises à niveau plus intelligentes et gestion des abonnements plus claire.
-
-Améliorations
-• L'écran de paiement n'affiche désormais que les forfaits vers lesquels vous pouvez évoluer — sans rétrogradations déroutantes.
-• Les achats réussis ferment automatiquement l'écran de paiement.
-• Les réglages affichent maintenant votre niveau d'abonnement exact (Mensuel, Annuel ou À vie).
-• La liste des fonctionnalités Premium est visible par tous les abonnés, y compris les membres À vie.
+Correction de quelques problèmes.

@@ -1,7 +1,1 @@
-Ein verbessertes Premium-Erlebnis — intelligentere Upgrades und übersichtlichere Abonnementverwaltung.
-
-Verbesserungen
-• Die Zahlungsseite zeigt nur noch Pläne an, auf die du upgraden kannst — keine verwirrenden Downgrades.
-• Erfolgreiche Käufe schließen die Zahlungsseite automatisch.
-• Einstellungen zeigen jetzt deine genaue Abonnementstufe (Monatlich, Jährlich oder Lebenslang).
-• Die Premium-Funktionsliste ist für alle Abonnenten sichtbar, einschließlich Lifetime-Mitglieder.
+Einige Probleme wurden behoben.

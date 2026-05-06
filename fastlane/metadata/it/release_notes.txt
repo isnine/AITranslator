@@ -1,7 +1,1 @@
-Un'esperienza Premium più raffinata — upgrade più intelligenti e gestione dell'abbonamento più chiara.
-
-Miglioramenti
-• Il paywall ora mostra solo i piani a cui puoi eseguire l'upgrade — nessun downgrade confuso.
-• Gli acquisti riusciti chiudono automaticamente il paywall.
-• Le impostazioni mostrano ora il tuo esatto livello di abbonamento (Mensile, Annuale o A vita).
-• L'elenco delle funzionalità Premium è visibile a tutti gli abbonati, inclusi i membri A vita.
+Risolti alcuni problemi.

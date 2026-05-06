@@ -1,7 +1,1 @@
-Pengalaman Premium yang lebih baik — peningkatan yang lebih cerdas dan pengelolaan langganan yang lebih jelas.
-
-Peningkatan
-• Halaman pembayaran kini hanya menampilkan paket yang dapat diupgrade — tanpa downgrade yang membingungkan.
-• Pembelian berhasil akan menutup halaman pembayaran secara otomatis.
-• Pengaturan kini menampilkan tingkat langganan Anda secara tepat (Bulanan, Tahunan, atau Seumur Hidup).
-• Daftar fitur Premium terlihat oleh semua pelanggan, termasuk anggota Seumur Hidup.
+Memperbaiki beberapa masalah.

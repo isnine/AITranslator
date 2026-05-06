@@ -1,7 +1,1 @@
-En förfinad Premium-upplevelse — smartare uppgraderingar och tydligare prenumerationshantering.
-
-Förbättringar
-• Betalningssidan visar nu bara planer du kan uppgradera till — inga förvirrande nedgraderingar.
-• Lyckade köp stänger automatiskt betalningssidan.
-• Inställningar visar nu din exakta prenumerationsnivå (Månadsvis, Årsvis eller Livstid).
-• Listan över Premium-funktioner är synlig för alla prenumeranter, inklusive Livstid-medlemmar.
+Några problem har åtgärdats.

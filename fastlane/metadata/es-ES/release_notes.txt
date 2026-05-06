@@ -1,7 +1,1 @@
-Una experiencia Premium más refinada — mejoras más inteligentes y gestión de suscripción más clara.
-
-Mejoras
-• La pantalla de pago ahora solo muestra los planes a los que puedes actualizar — sin degradaciones confusas.
-• Las compras exitosas cierran automáticamente la pantalla de pago.
-• Los ajustes ahora muestran tu nivel de suscripción exacto (Mensual, Anual o De por vida).
-• La lista de funciones Premium es visible para todos los suscriptores, incluidos los miembros De por vida.
+Se han corregido algunos problemas.

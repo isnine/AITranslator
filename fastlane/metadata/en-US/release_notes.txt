@@ -1,7 +1,1 @@
-A refined Premium experience — smarter upgrades and clearer subscription management.
-
-Improved
-• Paywall now only shows plans you can upgrade to — no confusing downgrades.
-• Successful purchases automatically close the paywall.
-• Settings now displays your exact subscription tier (Monthly, Annual, or Lifetime).
-• Premium features list is visible to all subscribers, including Lifetime members.
+Fixed some issues.
