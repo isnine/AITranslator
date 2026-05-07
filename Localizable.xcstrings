@@ -979,7 +979,6 @@
       }
     },
     "Accessibility" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4031,7 +4030,6 @@
       }
     },
     "Click \"Open System Settings\" below" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4348,6 +4346,9 @@
           }
         }
       }
+    },
+    "Click the + button, then add TLingo from Applications" : {
+
     },
     "Click to set" : {
       "extractionState" : "manual",
@@ -9351,7 +9352,6 @@
       }
     },
     "Enable Text Selection Translation" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -12210,7 +12210,6 @@
       }
     },
     "Granted" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -17176,7 +17175,6 @@
       }
     },
     "Open System Settings" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -21593,7 +21591,6 @@
       }
     },
     "Required to detect text selections" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -24103,7 +24100,6 @@
       }
     },
     "Select text in any app to instantly translate it. TLingo needs Accessibility permission to detect your text selections." : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -28436,7 +28432,6 @@
       }
     },
     "Text Selection Translation" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -29091,7 +29086,6 @@
       }
     },
     "This page will update automatically" : {
-      "extractionState" : "stale",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -30279,7 +30273,7 @@
       }
     },
     "Translate" : {
-      "comment" : "Name of the translate action\nOutput type name",
+      "comment" : "Default action name\nName of the translate action\nOutput type name",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
