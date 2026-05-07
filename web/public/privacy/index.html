@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)" />
+<title>Privacy Policy · TLingo</title>
+<style>
+  :root { --bg:#f6f6fa; --card:#fff; --accent:#e86228; --text1:#1c1c22; --text2:rgba(0,0,0,0.6); --divider:rgba(0,0,0,0.08); }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111118; --card:#18181f; --text1:#fff; --text2:rgba(255,255,255,0.65); --divider:rgba(255,255,255,0.08); }
+  }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text1); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; margin:0; line-height:1.65; }
+  .wrap { max-width:780px; margin:0 auto; padding:48px 24px; }
+  nav.top { font-size:14px; margin-bottom:24px; }
+  nav.top a { color:var(--accent); text-decoration:none; margin-right:16px; }
+  article { background:var(--card); border:1px solid var(--divider); border-radius:12px; padding:32px 36px; }
+  h1 { margin-top:0; font-size:28px; }
+  h2 { margin-top:32px; font-size:20px; }
+  h3 { margin-top:24px; font-size:16px; }
+  h4 { margin-top:18px; font-size:14px; }
+  a { color:var(--accent); }
+  p, li { font-size:15px; }
+  footer { margin-top:32px; text-align:center; font-size:13px; color:var(--text2); }
+  footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+  @media (max-width: 640px) { article { padding:20px 18px; } .wrap { padding:24px 14px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a href="/">&larr; TLingo</a></nav>
+  <article>
+<h1>Privacy Policy</h1>
+<p><strong>Last Updated: February 13, 2026</strong></p>
+<p>Zander Wang ("we," "our," or "us") operates the TLingo application and website (the "Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service, including any auto-renewable subscription services offered within it.</p>
+<p>By using TLingo, you agree to the collection and use of information in accordance with this policy.</p>
+<h2>1. Information We Collect</h2>
+<h3>1.1 Translation Content</h3>
+<p>When you use TLingo to translate text, the following data is sent to a third-party AI service for processing:</p>
+<ul>
+<li><strong>Text you input</strong> for translation</li>
+<li><strong>Source and target language</strong> selections</li>
+<li><strong>Images you attach</strong> (if using vision-capable models)</li>
+<li><strong>Translation instructions</strong> (system prompts configured in the app)</li>
+</ul>
+<p>This data is sent to <strong>Microsoft Azure OpenAI Service</strong> ("Azure OpenAI"), operated by Microsoft Corporation, to generate translations. We do not permanently store the content of your translations on our servers. Translation requests are processed in real time via streaming and are not retained after the response is delivered.</p>
+<h3>1.2 Subscription Information</h3>
+<p>When you subscribe to TLingo Premium, payment is processed by Apple through the App Store or by our payment processor (Creem / Stripe) on the web. We do not collect, store, or have access to your full payment card information. We receive confirmation of your subscription status and the minimal information needed to provide premium features and customer support (such as a customer ID and the email you provided at checkout).</p>
+<h3>1.3 Account Information (Web)</h3>
+<p>If you sign in to the web version of TLingo, we use Supabase Auth to authenticate you via email/password or third-party providers (Google, GitHub). We store your email address and an opaque user ID. Your translation history (if you opt in to sync) is stored under your account in our Supabase database.</p>
+<h3>1.4 Device and Usage Data</h3>
+<p>We may collect limited, non-personally identifiable information such as:</p>
+<ul>
+<li>Device type and operating system version</li>
+<li>App version</li>
+<li>General usage analytics (e.g., feature usage frequency)</li>
+</ul>
+<p>We do not collect personally identifiable information unless you voluntarily provide it (e.g., contacting support).</p>
+<h3>1.5 Configuration Data</h3>
+<p>TLingo stores your app preferences, custom API configurations, and settings locally on your device and (when signed in) optionally synced via Supabase. This data is used solely to provide and improve your experience.</p>
+<h2>2. How We Use Your Information</h2>
+<p>We use the information we collect to:</p>
+<ul>
+<li>Provide, maintain, and improve the translation service</li>
+<li>Process and manage your subscription</li>
+<li>Respond to customer support inquiries</li>
+<li>Monitor and analyze usage trends to improve the Service</li>
+<li>Ensure the security and integrity of our services</li>
+</ul>
+<h2>3. Third-Party Services</h2>
+<h3>3.1 LLM API Providers</h3>
+<p>TLingo's built-in cloud translation service uses <strong>Microsoft Azure OpenAI Service</strong> to process your translation requests. Microsoft processes this data in accordance with <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener">Microsoft's Privacy Statement</a> and <a href="https://learn.microsoft.com/legal/cognitive-services/openai/data-privacy" target="_blank" rel="noopener">Azure OpenAI Data Privacy</a>. Microsoft Azure OpenAI does not use customer data to train or improve its models.</p>
+<p>When requests are routed through our proxy server, they are authenticated using HMAC-SHA256 signatures. Our proxy server does not log or store your translation content.</p>
+<h3>3.2 Payment Processors</h3>
+<p>Web subscription payments are processed by Creem and/or Stripe. They receive the information required to process your payment (email, billing details, payment method). Their handling of your data is governed by their respective privacy policies.</p>
+<h3>3.3 Apple Services</h3>
+<p>TLingo uses Apple's StoreKit 2 framework to manage in-app subscriptions. All in-app payment processing is handled by Apple and is subject to <a href="https://www.apple.com/legal/privacy/" target="_blank" rel="noopener">Apple's Privacy Policy</a>.</p>
+<h3>3.4 Supabase (Web)</h3>
+<p>The web version uses Supabase for authentication, billing entitlement records, and (optionally) translation history sync. Supabase processes data in accordance with its privacy policy.</p>
+<h3>3.5 System Translation Extension</h3>
+<p>TLingo includes a system translation extension that integrates with iOS/macOS system-level translation features. The extension shares data with the main app only through the secure App Group container.</p>
+<h2>4. Data Sharing and Disclosure</h2>
+<p>We do not sell, trade, or rent your personal information to third parties. We may disclose information only in the following circumstances:</p>
+<ul>
+<li><strong>Translation processing</strong>: Your input text and related data are sent to Microsoft Azure OpenAI Service to perform translations, with your explicit consent</li>
+<li><strong>Payment processing</strong>: Billing information is shared with our payment processor to complete a transaction</li>
+<li><strong>Legal requirements</strong>: If required by law, regulation, or legal process</li>
+<li><strong>Protection of rights</strong>: To protect our rights, privacy, safety, or property</li>
+<li><strong>With your consent</strong>: When you have given explicit permission</li>
+</ul>
+<h2>5. Data Security</h2>
+<p>We implement reasonable technical and organizational measures to protect your information, including:</p>
+<ul>
+<li>HMAC-SHA256 authentication for cloud API requests</li>
+<li>TLS encryption in transit</li>
+<li>Local storage of sensitive configuration data on-device</li>
+<li>No server-side retention of translation content</li>
+</ul>
+<p>However, no method of electronic transmission or storage is 100% secure, and we cannot guarantee absolute security.</p>
+<h2>6. Data Retention</h2>
+<ul>
+<li><strong>Translation content</strong>: Not retained on our translation servers; processed in real time and discarded</li>
+<li><strong>Subscription status</strong>: Cached locally and on our payment provider's records</li>
+<li><strong>App preferences and history (web)</strong>: Retained in your Supabase account until you delete it</li>
+</ul>
+<h2>7. Children's Privacy</h2>
+<p>TLingo is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe we have inadvertently collected such information, please contact us so we can promptly delete it.</p>
+<h2>8. Your Rights</h2>
+<p>Depending on your jurisdiction, you may have the right to:</p>
+<ul>
+<li>Access the personal data we hold about you</li>
+<li>Request correction or deletion of your data</li>
+<li>Object to or restrict certain processing of your data</li>
+<li>Data portability</li>
+</ul>
+<p>To exercise any of these rights, contact us at <a href="mailto:tlingo@zanderwang.com">tlingo@zanderwang.com</a>.</p>
+<h2>9. Changes to This Privacy Policy</h2>
+<p>We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last Updated" date at the top of this policy.</p>
+<h2>10. Contact Us</h2>
+<p>If you have any questions or concerns about this Privacy Policy, please contact us at:</p>
+<ul>
+<li><strong>Email</strong>: <a href="mailto:tlingo@zanderwang.com">tlingo@zanderwang.com</a></li>
+<li><strong>Terms of Service</strong>: <a href="/terms">/terms</a></li>
+</ul>
+  </article>
+  <footer>
+    <div>
+      <a href="/terms">Terms of Service</a>|
+      <a href="/privacy">Privacy Policy</a>|
+      <a href="/support">Support</a>
+    </div>
+    <div style="margin-top:8px;">Support: <a href="mailto:tlingo@zanderwang.com">tlingo@zanderwang.com</a></div>
+    <div style="margin-top:8px;opacity:0.7;">&copy; Zander Wang · TLingo</div>
+  </footer>
+</div>
+</body>
+</html>

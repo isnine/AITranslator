@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "node scripts/build-legal.mjs && tsc && vite build",
     "preview": "vite preview",
     "test:onetap": "rm -rf test-dist && tsc src/google-onetap-crypto.ts --ignoreConfig --target es2023 --module nodenext --moduleResolution nodenext --outDir test-dist --skipLibCheck && node --test test/google-onetap.test.mjs",
     "test:billing": "rm -rf test-dist && tsc src/billing.ts --ignoreConfig --target es2023 --module nodenext --moduleResolution nodenext --outDir test-dist --skipLibCheck && node --test test/billing.test.mjs"

@@ -144,6 +144,20 @@ app.innerHTML = `
     </section>
   </main>
 
+  <footer class="site-footer">
+    <nav class="site-footer-links">
+      <a href="/terms">Terms of Service</a>
+      <span class="sep">·</span>
+      <a href="/privacy">Privacy Policy</a>
+      <span class="sep">·</span>
+      <a href="/support">Support</a>
+    </nav>
+    <p class="site-footer-meta">
+      Support: <a href="mailto:tlingo@zanderwang.com">tlingo@zanderwang.com</a>
+    </p>
+    <p class="site-footer-meta site-footer-copy">&copy; Zander Wang · TLingo</p>
+  </footer>
+
   <div class="modal" id="settings-modal" hidden>
     <div class="modal-backdrop" data-close></div>
     <div class="modal-card">

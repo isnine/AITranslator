@@ -139,6 +139,19 @@ export default {
       return serveWebApp();
     }
 
+    // Public legal & support pages (no auth) — required by payment providers
+    // (Creem / Stripe) so that ToS, Privacy Policy and a support email are
+    // reachable from the site footer/navigation.
+    if (path === "/terms" || path === "/terms/") {
+      return serveStaticHtml(TERMS_HTML);
+    }
+    if (path === "/privacy" || path === "/privacy/") {
+      return serveStaticHtml(PRIVACY_HTML);
+    }
+    if (path === "/support" || path === "/support/") {
+      return serveStaticHtml(SUPPORT_HTML);
+    }
+
     // Route: /web/api/* - Web API endpoints (no HMAC, direct D1 access)
     if (path.startsWith("/web/api/")) {
       return handleWebAPI(request, env, path);
@@ -1699,6 +1712,21 @@ const MARKETPLACE_WEB_HTML = `<!DOCTYPE html>
     </div>
   </template>
 
+  <!-- Footer (required: ToS, Privacy Policy, support email) -->
+  <footer style="margin-top:48px;padding:24px 0;border-top:1px solid var(--divider);text-align:center;font-size:13px;line-height:1.7;" class="text2">
+    <div>
+      <a href="/terms" style="color:var(--accent);text-decoration:none;margin:0 8px;">Terms of Service</a>
+      <span style="opacity:0.4;">|</span>
+      <a href="/privacy" style="color:var(--accent);text-decoration:none;margin:0 8px;">Privacy Policy</a>
+      <span style="opacity:0.4;">|</span>
+      <a href="/support" style="color:var(--accent);text-decoration:none;margin:0 8px;">Support</a>
+    </div>
+    <div style="margin-top:8px;">
+      Support: <a href="mailto:tlingo@zanderwang.com" style="color:var(--accent);text-decoration:none;">tlingo@zanderwang.com</a>
+    </div>
+    <div style="margin-top:8px;opacity:0.7;">&copy; Zander Wang &middot; TLingo</div>
+  </footer>
+
 </div>
 
 <script>
@@ -1887,3 +1915,387 @@ function marketplace() {
 </script>
 </body>
 </html>`;
+
+// ---------------------------------------------------------------------------
+// Public legal & support pages
+// ---------------------------------------------------------------------------
+
+const SUPPORT_EMAIL = "tlingo@zanderwang.com";
+
+function serveStaticHtml(html: string): Response {
+  const headers = new Headers();
+  applyCors(headers);
+  headers.set("Content-Type", "text/html; charset=utf-8");
+  headers.set("Cache-Control", "public, max-age=3600");
+  return new Response(html, { status: 200, headers });
+}
+
+function legalPage(title: string, bodyHtml: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${title} — TLingo</title>
+<style>
+  :root { --bg:#f6f6fa; --card:#fff; --accent:#e86228; --text1:#1c1c22; --text2:rgba(0,0,0,0.6); --divider:rgba(0,0,0,0.08); }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111118; --card:#18181f; --text1:#fff; --text2:rgba(255,255,255,0.65); --divider:rgba(255,255,255,0.08); }
+  }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text1); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; margin:0; line-height:1.65; }
+  .wrap { max-width:780px; margin:0 auto; padding:48px 24px; }
+  nav { font-size:14px; margin-bottom:24px; }
+  nav a { color:var(--accent); text-decoration:none; margin-right:16px; }
+  article { background:var(--card); border:1px solid var(--divider); border-radius:12px; padding:32px 36px; }
+  h1 { margin-top:0; font-size:28px; }
+  h2 { margin-top:32px; font-size:20px; }
+  h3 { margin-top:24px; font-size:16px; }
+  h4 { margin-top:18px; font-size:14px; }
+  a { color:var(--accent); }
+  p, li { font-size:15px; }
+  hr { border:none; border-top:1px solid var(--divider); margin:32px 0; }
+  footer { margin-top:32px; text-align:center; font-size:13px; color:var(--text2); }
+  footer a { color:var(--accent); text-decoration:none; margin:0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a href="/web">&larr; TLingo Marketplace</a>
+  </nav>
+  <article>
+${bodyHtml}
+  </article>
+  <footer>
+    <div>
+      <a href="/terms">Terms of Service</a>|
+      <a href="/privacy">Privacy Policy</a>|
+      <a href="/support">Support</a>
+    </div>
+    <div style="margin-top:8px;">Support: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></div>
+    <div style="margin-top:8px;opacity:0.7;">&copy; Zander Wang &middot; TLingo</div>
+  </footer>
+</div>
+</body>
+</html>`;
+}
+
+// Minimal markdown -> HTML for our static legal docs (headings, paragraphs,
+// bullet lists, links, bold). Intentionally tiny — the input is fully
+// trusted (compiled-in constants), so no sanitization is required.
+function mdToHtml(md: string): string {
+  const escape = (s: string) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const inline = (s: string) =>
+    escape(s)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+
+  const lines = md.split(/\r?\n/);
+  const out: string[] = [];
+  let inList = false;
+  const closeList = () => { if (inList) { out.push("</ul>"); inList = false; } };
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (!line.trim()) { closeList(); continue; }
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h) {
+      closeList();
+      out.push(`<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`);
+      continue;
+    }
+    const li = line.match(/^[-*]\s+(.*)$/);
+    if (li) {
+      if (!inList) { out.push("<ul>"); inList = true; }
+      out.push(`<li>${inline(li[1])}</li>`);
+      continue;
+    }
+    closeList();
+    out.push(`<p>${inline(line)}</p>`);
+  }
+  closeList();
+  return out.join("\n");
+}
+
+// Inlined verbatim from docs/TermsOfUse.md and docs/PrivacyPolicy.md.
+// Keep in sync when the markdown sources change.
+const TERMS_MD = `# Terms of Service (EULA)
+
+**Last Updated: February 11, 2026**
+
+Please read these Terms of Service ("Terms" or "EULA") carefully before using the TLingo application and website ("Service") operated by Zander Wang ("we," "our," or "us").
+
+By downloading, installing, accessing, or using TLingo, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the Service.
+
+## 1. License Grant
+
+Subject to your compliance with these Terms, we grant you a limited, non-exclusive, non-transferable, revocable license to download, install, and use the App on devices that you own or control, solely for your personal, non-commercial use.
+
+## 2. Subscription Services
+
+### 2.1 TLingo Premium
+
+TLingo offers auto-renewable subscription plans ("TLingo Premium") that provide access to premium features, including additional AI translation models and enhanced capabilities.
+
+The following subscription plans are available:
+
+- **Monthly Subscription** — Billed monthly
+- **Annual Subscription** — Billed annually
+
+Current subscription prices are displayed within the App at the time of purchase. Prices may vary by region and are subject to change.
+
+### 2.2 Billing and Payment
+
+- Payment is charged to your account at confirmation of purchase.
+- Payments may be processed by Apple through the App Store or by our payment processor (Creem / Stripe) on the web.
+- Prices are displayed in your local currency where supported.
+
+### 2.3 Auto-Renewal
+
+- Subscriptions automatically renew unless auto-renewal is turned off at least 24 hours before the end of the current subscription period.
+- Your account will be charged for renewal within 24 hours prior to the end of the current period at the same price as the original subscription.
+- You can manage your subscriptions and turn off auto-renewal in your Apple ID Account Settings, or via the customer portal link in your purchase confirmation email.
+
+### 2.4 Free Trial
+
+- If a free trial is offered, it will be clearly indicated at the time of subscription.
+- Any unused portion of a free trial period will be forfeited when you purchase a subscription.
+
+### 2.5 Cancellation
+
+- You may cancel your subscription at any time.
+- Cancellation takes effect at the end of the current billing period. You will continue to have access to premium features until the end of the period you have already paid for.
+- No refunds are provided for partial subscription periods.
+
+### 2.6 Refunds
+
+For App Store purchases, refund requests must be directed to Apple via [Apple's Report a Problem](https://reportaproblem.apple.com/) page. For web purchases processed by our payment provider, please contact us at ${SUPPORT_EMAIL}.
+
+## 3. User Conduct
+
+You agree not to:
+
+- Use the Service for any unlawful, harmful, or fraudulent purpose
+- Attempt to reverse-engineer, decompile, or disassemble the App
+- Use the Service to generate content that is illegal, harmful, threatening, abusive, defamatory, or otherwise objectionable
+- Interfere with or disrupt the Service or its servers
+- Attempt to gain unauthorized access to any part of the Service or its systems
+- Use the Service in a manner that could overburden or impair it
+- Resell, sublicense, or redistribute the App or its content
+
+## 4. Translation Service
+
+### 4.1 Accuracy
+
+TLingo uses AI-powered language models to provide translations. While we strive for accuracy, translations are generated by artificial intelligence and may contain errors, inaccuracies, or omissions. We do not guarantee the accuracy, completeness, or reliability of any translation.
+
+### 4.2 No Professional Substitute
+
+Translations provided by TLingo should not be used as a substitute for professional human translation in contexts where accuracy is critical, including but not limited to legal, medical, financial, or official documents.
+
+### 4.3 Third-Party API Services
+
+TLingo may use third-party LLM API services to process translations. These services are subject to their own terms and conditions. You are responsible for reviewing and complying with the terms of any third-party API services you configure within the App.
+
+## 5. Intellectual Property
+
+### 5.1 Our Rights
+
+The Service, including its design, code, features, and content (excluding user-generated content), is owned by Zander Wang and is protected by copyright, trademark, and other intellectual property laws.
+
+### 5.2 Your Content
+
+You retain ownership of the text you submit for translation. By using the Service, you grant us a limited, non-exclusive license to process your text solely for the purpose of providing the translation service.
+
+## 6. Privacy
+
+Your use of TLingo is also governed by our [Privacy Policy](/privacy). Please review it to understand how we collect, use, and protect your information.
+
+## 7. Disclaimers
+
+THE SERVICE IS PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+We do not guarantee that the Service will be available at all times, uninterrupted, or error-free. We reserve the right to modify, suspend, or discontinue the Service or any part thereof at any time without prior notice.
+
+We are not responsible for the availability, accuracy, or performance of third-party services (including LLM API providers and payment processors) used by the Service.
+
+## 8. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL ZANDER WANG BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, OR GOODWILL, ARISING OUT OF OR IN CONNECTION WITH YOUR USE OF THE SERVICE.
+
+OUR TOTAL LIABILITY FOR ANY CLAIMS ARISING FROM OR RELATED TO THE SERVICE SHALL NOT EXCEED THE AMOUNT YOU PAID FOR THE APP OR SUBSCRIPTION IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
+
+## 9. Indemnification
+
+You agree to indemnify, defend, and hold harmless Zander Wang from any claims, damages, losses, liabilities, and expenses (including reasonable attorneys' fees) arising from your use of the Service or violation of these Terms.
+
+## 10. Modifications to Terms
+
+We reserve the right to modify these Terms at any time. We will notify you of material changes by updating the "Last Updated" date. Your continued use of the Service after such modifications constitutes your acceptance of the updated Terms.
+
+## 11. Termination
+
+We may terminate or suspend your access to the Service at any time, without prior notice or liability, for any reason, including if you breach these Terms.
+
+## 12. Governing Law
+
+These Terms shall be governed by and construed in accordance with the laws of the People's Republic of China, without regard to its conflict of law provisions.
+
+## 13. Severability
+
+If any provision of these Terms is found to be invalid or unenforceable, the remaining provisions will continue in full force and effect.
+
+## 14. Contact Us
+
+If you have any questions about these Terms, please contact us at:
+
+- **Email**: ${SUPPORT_EMAIL}
+- **Support page**: [/support](/support)
+`;
+
+const PRIVACY_MD = `# Privacy Policy
+
+**Last Updated: February 13, 2026**
+
+Zander Wang ("we," "our," or "us") operates the TLingo application and website (the "Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service, including any auto-renewable subscription services offered within it.
+
+By using TLingo, you agree to the collection and use of information in accordance with this policy.
+
+## 1. Information We Collect
+
+### 1.1 Translation Content
+
+When you use TLingo to translate text, the following data is sent to a third-party AI service for processing:
+
+- **Text you input** for translation
+- **Source and target language** selections
+- **Images you attach** (if using vision-capable models)
+- **Translation instructions** (system prompts configured in the app)
+
+This data is sent to **Microsoft Azure OpenAI Service** ("Azure OpenAI"), operated by Microsoft Corporation, to generate translations. We do not permanently store the content of your translations on our servers. Translation requests are processed in real time via streaming and are not retained after the response is delivered.
+
+### 1.2 Subscription Information
+
+When you subscribe to TLingo Premium, payment is processed by Apple through the App Store or by our payment processor (Creem / Stripe) on the web. We do not collect, store, or have access to your full payment card information. We receive confirmation of your subscription status and the minimal information needed to provide premium features and customer support (such as a customer ID and the email you provided at checkout).
+
+### 1.3 Device and Usage Data
+
+We may collect limited, non-personally identifiable information such as:
+
+- Device type and operating system version
+- App version
+- General usage analytics (e.g., feature usage frequency)
+
+We do not collect personally identifiable information unless you voluntarily provide it (e.g., contacting support).
+
+### 1.4 Configuration Data
+
+TLingo stores your app preferences, custom API configurations, and settings locally on your device and within the App Group container. This data is used solely to provide and improve your experience and is not transmitted to us.
+
+## 2. How We Use Your Information
+
+We use the information we collect to:
+
+- Provide, maintain, and improve the translation service
+- Process and manage your subscription
+- Respond to customer support inquiries
+- Monitor and analyze usage trends to improve the Service
+- Ensure the security and integrity of our services
+
+## 3. Third-Party Services
+
+### 3.1 LLM API Providers
+
+TLingo's built-in cloud translation service uses **Microsoft Azure OpenAI Service** to process your translation requests. Microsoft processes this data in accordance with [Microsoft's Privacy Statement](https://privacy.microsoft.com/privacystatement) and [Azure OpenAI Data Privacy](https://learn.microsoft.com/legal/cognitive-services/openai/data-privacy). Microsoft Azure OpenAI does not use customer data to train or improve its models.
+
+When requests are routed through our proxy server, they are authenticated using HMAC-SHA256 signatures. Our proxy server does not log or store your translation content.
+
+### 3.2 Payment Processors
+
+Web subscription payments are processed by Creem and/or Stripe. They receive the information required to process your payment (email, billing details, payment method). Their handling of your data is governed by their respective privacy policies.
+
+### 3.3 Apple Services
+
+TLingo uses Apple's StoreKit 2 framework to manage in-app subscriptions. All in-app payment processing is handled by Apple and is subject to [Apple's Privacy Policy](https://www.apple.com/legal/privacy/).
+
+### 3.4 System Translation Extension
+
+TLingo includes a system translation extension that integrates with iOS/macOS system-level translation features. The extension shares data with the main app only through the secure App Group container.
+
+## 4. Data Sharing and Disclosure
+
+We do not sell, trade, or rent your personal information to third parties. We may disclose information only in the following circumstances:
+
+- **Translation processing**: Your input text and related data are sent to Microsoft Azure OpenAI Service to perform translations, with your explicit consent
+- **Payment processing**: Billing information is shared with our payment processor to complete a transaction
+- **Legal requirements**: If required by law, regulation, or legal process
+- **Protection of rights**: To protect our rights, privacy, safety, or property
+- **With your consent**: When you have given explicit permission
+
+## 5. Data Security
+
+We implement reasonable technical and organizational measures to protect your information, including:
+
+- HMAC-SHA256 authentication for cloud API requests
+- TLS encryption in transit
+- Local storage of sensitive configuration data on-device
+- No server-side retention of translation content
+
+However, no method of electronic transmission or storage is 100% secure, and we cannot guarantee absolute security.
+
+## 6. Data Retention
+
+- **Translation content**: Not retained; processed in real time and discarded
+- **Subscription status**: Cached locally on your device; refreshed from Apple's servers or our payment processor as needed
+- **App preferences**: Stored locally on your device until you delete the App
+
+## 7. Children's Privacy
+
+TLingo is not directed to children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe we have inadvertently collected such information, please contact us so we can promptly delete it.
+
+## 8. Your Rights
+
+Depending on your jurisdiction, you may have the right to:
+
+- Access the personal data we hold about you
+- Request correction or deletion of your data
+- Object to or restrict certain processing of your data
+- Data portability
+
+To exercise any of these rights, contact us at ${SUPPORT_EMAIL}.
+
+## 9. Changes to This Privacy Policy
+
+We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last Updated" date at the top of this policy.
+
+## 10. Contact Us
+
+If you have any questions or concerns about this Privacy Policy, please contact us at:
+
+- **Email**: ${SUPPORT_EMAIL}
+- **Terms of Service**: [/terms](/terms)
+`;
+
+const SUPPORT_MD = `# Support
+
+Need help with TLingo? We're happy to help.
+
+## Contact
+
+- **Email**: [${SUPPORT_EMAIL}](mailto:${SUPPORT_EMAIL})
+
+We typically respond within 1–2 business days.
+
+## Common topics
+
+- **Subscriptions & billing**: For App Store purchases, manage and request refunds via [Apple's Report a Problem](https://reportaproblem.apple.com/). For web purchases, email us at ${SUPPORT_EMAIL} with your order ID.
+- **Bug reports & feature requests**: Email ${SUPPORT_EMAIL} with a description, your device/OS, and the app version.
+- **Privacy & data requests**: See our [Privacy Policy](/privacy) or email ${SUPPORT_EMAIL}.
+- **Terms of Service**: See [Terms of Service](/terms).
+`;
+
+const TERMS_HTML = legalPage("Terms of Service", mdToHtml(TERMS_MD));
+const PRIVACY_HTML = legalPage("Privacy Policy", mdToHtml(PRIVACY_MD));
+const SUPPORT_HTML = legalPage("Support", mdToHtml(SUPPORT_MD));
