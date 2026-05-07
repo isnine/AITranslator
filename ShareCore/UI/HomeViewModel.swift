@@ -151,6 +151,22 @@ public final class HomeViewModel: ObservableObject {
         }
     }
 
+    /// Timestamp of the last user-originated edit to `inputText`. Set only by
+    /// UI input paths (e.g. text view delegate), never by programmatic writes,
+    /// so callers can distinguish in-progress user input from auto-filled text.
+    public var lastUserEditAt: Date?
+
+    /// Mark that the current `inputText` was just modified by the user.
+    public func markUserEditedInput() {
+        lastUserEditAt = Date()
+    }
+
+    /// Reset the user-edit marker (e.g. after a programmatic overwrite that
+    /// should not count as a user edit for future overwrite-protection checks).
+    public func clearUserEditMark() {
+        lastUserEditAt = nil
+    }
+
     @Published public var attachedImages: [ImageAttachment] = [] {
         didSet {
             guard attachedImages.count != oldValue.count else { return }

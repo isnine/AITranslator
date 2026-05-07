@@ -128,12 +128,30 @@
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let hasRecentClipboard = ClipboardMonitor.shared.hasRecentContent(within: 5)
 
-            if hasRecentClipboard && !clipboardContent.isEmpty {
-                viewModel.inputText = clipboardContent
-                viewModel.performSelectedAction()
-            } else if viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                viewModel.inputText = clipboardContent
+            guard hasRecentClipboard, !clipboardContent.isEmpty else {
+                // Fallback: only fill empty input with whatever's on the clipboard.
+                if viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    viewModel.inputText = clipboardContent
+                    viewModel.clearUserEditMark()
+                }
+                return
             }
+
+            // Protect the user's in-progress text from accidental overwrite:
+            // if the input is non-empty AND the user typed within the last 3 minutes,
+            // keep their text and skip both the overwrite and the auto-translation.
+            let currentTrimmed = viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let userEditWindow: TimeInterval = 3 * 60
+            let isProtected: Bool = {
+                guard !currentTrimmed.isEmpty else { return false }
+                guard let lastEdit = viewModel.lastUserEditAt else { return false }
+                return Date().timeIntervalSince(lastEdit) < userEditWindow
+            }()
+            if isProtected { return }
+
+            viewModel.inputText = clipboardContent
+            viewModel.clearUserEditMark()
+            viewModel.performSelectedAction()
         }
 
         private func executeTranslation() {
@@ -218,7 +236,8 @@
             VStack(spacing: 8) {
                 SelectableTextEditor(
                     text: $viewModel.inputText,
-                    textColor: colors.textPrimary
+                    textColor: colors.textPrimary,
+                    onUserEdit: { viewModel.markUserEditedInput() }
                 )
                 .font(.system(size: 13))
                 .frame(height: 60)
@@ -385,6 +404,7 @@
     private struct SelectableTextEditor: NSViewRepresentable {
         @Binding var text: String
         let textColor: Color
+        var onUserEdit: () -> Void = {}
 
         func makeCoordinator() -> Coordinator {
             Coordinator(parent: self)
@@ -450,6 +470,7 @@
                 let updated = textView.string
                 if parent.text != updated {
                     parent.text = updated
+                    parent.onUserEdit()
                 }
             }
         }
