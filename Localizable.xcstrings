@@ -21139,6 +21139,9 @@
         }
       }
     },
+    "Replay Onboarding" : {
+
+    },
     "Request Body" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -32357,6 +32360,9 @@
           }
         }
       }
+    },
+    "Walk through the setup guide again" : {
+
     },
     "Works on iPhone & Mac" : {
       "localizations" : {

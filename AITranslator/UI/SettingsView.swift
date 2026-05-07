@@ -36,6 +36,7 @@ struct SettingsView: View {
         @ObservedObject private var hotKeyManager = HotKeyManager.shared
         @State private var recordingHotKeyType: HotKeyType?
         @State private var localEventMonitor: Any?
+        @State private var showOnboarding = false
         #if DEBUG
             @State private var showAccessibilityOnboarding = false
             @StateObject private var accessibilityPermissionManager = AccessibilityPermissionManager()
@@ -114,6 +115,11 @@ struct SettingsView: View {
                 )
             }
         #endif
+        #if os(macOS)
+            .sheet(isPresented: $showOnboarding) {
+                OnboardingView(isPresented: $showOnboarding)
+            }
+        #endif
             .onAppear {
                 preferences.refreshFromDefaults()
             }
@@ -156,6 +162,9 @@ struct SettingsView: View {
                 Divider()
                     .padding(.leading, 52)
                 hotKeyPreferenceRow
+                Divider()
+                    .padding(.leading, 52)
+                replayOnboardingRow
                 #if DEBUG
                     Divider()
                         .padding(.leading, 52)
@@ -611,6 +620,34 @@ private extension SettingsView {
                 NSEvent.removeMonitor(monitor)
                 localEventMonitor = nil
             }
+        }
+
+        var replayOnboardingRow: some View {
+            Button {
+                showOnboarding = true
+            } label: {
+                HStack(spacing: 16) {
+                    SettingsIconBadge(icon: "sparkles", color: .blue)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Replay Onboarding")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(colors.textPrimary)
+                        Text("Walk through the setup guide again")
+                            .font(.system(size: 12))
+                            .foregroundColor(colors.textSecondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(colors.textSecondary.opacity(0.5))
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
         }
 
         #if DEBUG
